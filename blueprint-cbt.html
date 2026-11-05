@@ -1,0 +1,1426 @@
+<title>School CBT Blueprint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   School CBT Blueprint — token system
+   Layout: single 1120px column, sticky section rail, wireframes
+   as scrollable monospace plates (the PRD's own document world).
+   Color: slate-biased neutrals + exam-blue accent, plus 4
+   semantic status colors borrowed from attendance states.
+   ============================================================ */
+:root{
+  --paper:#f6f7f9;
+  --surface:#ffffff;
+  --surface-2:#eef1f5;
+  --line:#d5dae2;
+  --line-strong:#b7bfcb;
+  --ink:#151922;
+  --ink-2:#4b5565;
+  --ink-3:#737e8f;
+  --accent:#1e4fa3;
+  --accent-soft:#e4ecf9;
+  --code-bg:#10141b;
+  --code-ink:#d8e0ec;
+  --ok:#186b47;
+  --warn:#8a5a06;
+  --bad:#9b2530;
+  --info:#1f5f7a;
+  --ok-bg:#e2f2e9;
+  --warn-bg:#fbf0d9;
+  --bad-bg:#fae4e6;
+  --info-bg:#e1eff4;
+  --shadow:0 1px 2px rgba(16,22,32,.06), 0 8px 24px -16px rgba(16,22,32,.28);
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+
+  --step--1:.8125rem;
+  --step-0:.9375rem;
+  --step-1:1.125rem;
+  --step-2:1.375rem;
+  --step-3:1.875rem;
+  --step-4:2.5rem;
+
+  --r-sm:4px;
+  --r-md:8px;
+  --r-lg:14px;
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0d1016;
+    --surface:#141922;
+    --surface-2:#1b212c;
+    --line:#2a323f;
+    --line-strong:#3d4757;
+    --ink:#e8ecf3;
+    --ink-2:#a7b1c0;
+    --ink-3:#7d8899;
+    --accent:#7aa8f0;
+    --accent-soft:#1b2a45;
+    --code-bg:#080b10;
+    --code-ink:#c8d3e2;
+    --ok:#6ecfa0;
+    --warn:#e0b062;
+    --bad:#f08b93;
+    --info:#79c0da;
+    --ok-bg:#122c22;
+    --warn-bg:#2e2413;
+    --bad-bg:#331a1d;
+    --info-bg:#12252d;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0d1016;--surface:#141922;--surface-2:#1b212c;--line:#2a323f;--line-strong:#3d4757;
+  --ink:#e8ecf3;--ink-2:#a7b1c0;--ink-3:#7d8899;--accent:#7aa8f0;--accent-soft:#1b2a45;
+  --code-bg:#080b10;--code-ink:#c8d3e2;
+  --ok:#6ecfa0;--warn:#e0b062;--bad:#f08b93;--info:#79c0da;
+  --ok-bg:#122c22;--warn-bg:#2e2413;--bad-bg:#331a1d;--info-bg:#12252d;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font:var(--step-0)/1.6 var(--font-body);
+  padding-left:var(--gl);
+  padding-right:var(--gr);
+  padding-block:0 64px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15}
+p{margin:0}
+a{color:var(--accent)}
+code,kbd,pre{font-family:var(--font-mono)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+.wrap{max-width:1140px;margin:0 auto}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:0;top:0;background:var(--surface);padding:8px 12px;z-index:40}
+
+/* ---- masthead ---- */
+.top{
+  border-bottom:1px solid var(--line);
+  background:var(--surface);
+  margin-left:calc(-1 * var(--gl));
+  margin-right:calc(-1 * var(--gr));
+  padding-left:var(--gl);
+  padding-right:var(--gr);
+}
+.top-in{max-width:1140px;margin:0 auto;padding:14px 0;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;font-size:var(--step-1)}
+.brand span{color:var(--ink-3);font-weight:500}
+.top .meta{font-family:var(--font-mono);font-size:var(--step--1);color:var(--ink-3);margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+.top .meta b{color:var(--ink-2);font-weight:500}
+
+/* ---- hero ---- */
+.hero{padding:44px 0 28px;display:grid;gap:20px}
+.eyebrow{font-family:var(--font-mono);font-size:var(--step--1);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.hero h1{font-size:var(--step-4);letter-spacing:-.03em;max-width:22ch}
+.hero .lede{font-size:var(--step-1);color:var(--ink-2);max-width:62ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.fact{background:var(--surface);padding:12px 14px;display:grid;gap:3px;min-width:0}
+.fact dt{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.fact dd{margin:0;font-family:var(--font-display);font-weight:600;font-size:var(--step-0);font-variant-numeric:tabular-nums}
+
+/* ---- layout: rail + body ---- */
+.shell{display:grid;gap:32px;padding-top:28px;grid-template-columns:1fr}
+@media (min-width:940px){.shell{grid-template-columns:212px minmax(0,1fr);align-items:start}
+  .rail{position:sticky;top:16px}}
+.rail{font-size:var(--step--1)}
+.rail h2{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.rail a{display:grid;grid-template-columns:26px 1fr;gap:8px;padding:6px 8px;text-decoration:none;color:var(--ink-2);border-radius:var(--r-sm);border-left:2px solid transparent}
+.rail a:hover{background:var(--surface);color:var(--ink);border-left-color:var(--accent)}
+.rail a i{font-family:var(--font-mono);font-style:normal;color:var(--ink-3)}
+
+main{display:grid;gap:56px;min-width:0}
+section{display:grid;gap:16px;min-width:0;scroll-margin-top:16px}
+section > header{display:grid;gap:6px;border-bottom:1px solid var(--line);padding-bottom:12px}
+section h2{font-size:var(--step-3);letter-spacing:-.02em;display:flex;gap:12px;align-items:baseline}
+section h2 em{font-style:normal;font-family:var(--font-mono);font-size:var(--step--1);color:var(--accent);letter-spacing:.06em}
+section .sub{color:var(--ink-2);max-width:68ch}
+h3{font-size:var(--step-2);letter-spacing:-.01em}
+h4{font-size:var(--step-1)}
+
+/* ---- generic blocks ---- */
+.grid2{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:760px){.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.grid3{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:760px){.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:grid;gap:10px;min-width:0}
+.card > h4{font-family:var(--font-display)}
+.card .tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.card p,.card li{color:var(--ink-2);font-size:var(--step-0)}
+ul.tight,ol.tight{margin:0;padding-left:1.15em;display:grid;gap:5px}
+ul.tight li::marker{color:var(--line-strong)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;padding:2px 7px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.pill.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.pill.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.pill.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.pill.mute{background:var(--surface-2);color:var(--ink-3);border-color:var(--line)}
+.plain{background:none;border:0;box-shadow:none;padding:0}
+
+/* ---- callout ---- */
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 14px;display:grid;gap:6px}
+.note.risk{border-left-color:var(--bad)}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display)}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);min-width:0}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);min-width:520px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--font-mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);background:var(--surface-2);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;font-family:var(--font-mono)}
+td code,th code{font-size:12px;background:var(--surface-2);padding:1px 5px;border-radius:var(--r-sm);border:1px solid var(--line)}
+
+/* ---- wireframe plates ---- */
+.plate{background:var(--code-bg);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.plate-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.09);font-family:var(--font-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#8b9bb4}
+.plate-bar b{color:#cfe0f5;font-weight:500;text-transform:none;letter-spacing:0;font-size:12px}
+.plate-bar .path{margin-left:auto;color:#6d7f99;text-transform:none;letter-spacing:0}
+.plate pre{margin:0;padding:14px;overflow-x:auto;color:var(--code-ink);font-size:12px;line-height:1.45;tab-size:2}
+.plate pre b{color:#8fd0ff;font-weight:600}
+.plate pre i{color:#e0b062;font-style:normal}
+.plate pre u{color:#79d3a6;text-decoration:none}
+
+/* ---- flow strip ---- */
+.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:var(--font-mono);font-size:12px}
+.flow span{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:5px 9px;white-space:nowrap}
+.flow span.gate{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 35%,transparent);color:var(--warn)}
+.flow span.ok{background:var(--ok-bg);border-color:color-mix(in srgb,var(--ok) 35%,transparent);color:var(--ok)}
+.flow em{color:var(--ink-3);font-style:normal}
+
+/* ---- phase timeline ---- */
+.phases{display:grid;gap:14px}
+.phase{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 var(--r-md) var(--r-md) 0;padding:14px 16px;display:grid;gap:10px}
+.phase header{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.phase header h4{font-size:var(--step-1)}
+.phase header .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);letter-spacing:.08em}
+.phase header .when{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.deliv{display:grid;gap:6px}
+.deliv div{display:grid;grid-template-columns:16px 1fr;gap:8px;font-size:var(--step--1);color:var(--ink-2)}
+.deliv div::before{content:"▸";color:var(--line-strong);font-size:11px;line-height:1.6}
+.exit{font-size:var(--step--1);color:var(--ink-2);border-top:1px dashed var(--line);padding-top:8px}
+.exit b{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---- escalation ladder ---- */
+.ladder{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;background:var(--surface)}
+.ladder > div{display:grid;grid-template-columns:64px 1fr;gap:14px;padding:12px 14px;border-bottom:1px solid var(--line);min-width:0}
+.ladder > div:last-child{border-bottom:0}
+.ladder .lv{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding-top:2px}
+.ladder h4{font-size:var(--step-0);margin-bottom:4px}
+.ladder p{font-size:var(--step--1);color:var(--ink-2)}
+.ladder > div.hot{background:var(--bad-bg)}
+.ladder > div.hot .lv{color:var(--bad)}
+.ladder > div.mid{background:var(--warn-bg)}
+.ladder > div.mid .lv{color:var(--warn)}
+
+/* ---- control matrix ---- */
+.ctl{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+@media (min-width:700px){.ctl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ctl div{background:var(--surface);padding:12px 14px;display:grid;gap:5px;min-width:0}
+.ctl h4{font-size:var(--step-0);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ctl p{font-size:var(--step--1);color:var(--ink-2)}
+.ctl .why{font-size:var(--step--1);color:var(--ink-3)}
+
+footer{border-top:1px solid var(--line);margin-top:16px;padding-top:18px;display:flex;gap:16px;flex-wrap:wrap;font-family:var(--font-mono);font-size:var(--step--1);color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<a class="skip" href="#analisis">Lompat ke isi</a>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ blueprint pra-eksekusi</span></div>
+    <div class="meta">
+      <span>sumber <b>prd.md v0.3</b></span>
+      <span>stack <b>Laravel 13 · React · Inertia 3</b></span>
+      <span>status <b>draft tinjauan</b></span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Analisis · Wireframe · Rencana Eksekusi</div>
+    <h1>Blueprint teknis School CBT sebelum satu baris kode ditulis</h1>
+    <p class="lede">Tiga lapis: apa yang sebenarnya diminta PRD (termasuk yang belum diputuskan), seperti apa layarnya, dan urutan pekerjaan yang bisa dieksekusi per fase dengan kriteria selesai yang bisa diuji.</p>
+    <dl class="facts">
+      <div class="fact"><dt>Role</dt><dd>4 (Admin · Guru · Siswa · Pengawas)</dd></div>
+      <div class="fact"><dt>Jenis soal</dt><dd>9 kategori</dd></div>
+      <div class="fact"><dt>Tabel inti</dt><dd>±46 tabel tenant</dd></div>
+      <div class="fact"><dt>Fase</dt><dd>9 fase · 1 modul/fase</dd></div>
+      <div class="fact"><dt>Target beban</dt><dd>300 siswa konkuren</dd></div>
+      <div class="fact"><dt>Keputusan terbuka</dt><dd>12 butir</dd></div>
+    </dl>
+  </div>
+
+  <div class="shell">
+
+    <nav class="rail" aria-label="Daftar isi">
+      <h2>Isi</h2>
+      <ol>
+        <li><a href="#analisis"><i>A</i><span>Analisis PRD</span></a></li>
+        <li><a href="#model"><i>B</i><span>Model &amp; Modul</span></a></li>
+        <li><a href="#aturan"><i>C</i><span>Aturan Kritis</span></a></li>
+        <li><a href="#keamanan"><i>D</i><span>Keamanan Siswa</span></a></li>
+        <li><a href="#wireframe"><i>E</i><span>Wireframe</span></a></li>
+        <li><a href="#rencana"><i>F</i><span>Rencana Eksekusi</span></a></li>
+        <li><a href="#gate"><i>G</i><span>Gate &amp; Kriteria</span></a></li>
+        <li><a href="#risiko"><i>H</i><span>Risiko &amp; Keputusan</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+
+      <section id="analisis">
+        <header>
+          <h2><em>A</em> Analisis PRD</h2>
+          <p class="sub">PRD v0.3 sudah tegas pada prinsip, tetapi masih tipis pada beberapa tempat yang justru paling mahal untuk diubah belakangan. Bagian ini memisahkan yang sudah pasti, yang perlu ditafsirkan, dan yang harus diputuskan lebih dulu.</p>
+        </header>
+
+        <div class="grid2">
+          <div class="card">
+            <span class="tag">Tesis produk</span>
+            <h4>Event sebagai satu-satunya induk konteks</h4>
+            <p>Semua data operasional — kelas, peserta, mapel, paket soal, jadwal, sesi, ruang, pengawas, token, presensi, hasil — hanya bermakna di dalam satu event. Konsekuensi desain: tidak ada satu pun layar operasional yang boleh berdiri tanpa konteks event aktif. Ini yang membuat Admin butuh <b>Event Workspace</b>, bukan daftar menu global.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Pembeda utama</span>
+            <h4>Attendance-Gated Examination</h4>
+            <p>Presensi bukan pelengkap, melainkan gerbang. Siswa tidak punya jalur lain untuk membuat attempt selain presensi sah dari Pengawas ruangnya. Artinya presensi wajib <b>per peserta per ujian per sesi</b>, dan validasi harus diulang di endpoint <code>start</code> — bukan hanya disembunyikan di UI.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Yang menentukan skala</span>
+            <h4>Snapshot soal</h4>
+            <p>Begitu paket soal ditetapkan ke ujian, isi soal dibekukan ke <code>exam_questions</code>. Bank soal tetap boleh diedit Guru tanpa merusak ujian yang sedang berjalan. Tanpa ini, satu edit Guru bisa mengubah ujian 300 siswa yang sedang berlangsung.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Yang menentukan integritas</span>
+            <h4>Waktu &amp; penilaian milik server</h4>
+            <p>Timer, kunci jawaban, dan koreksi tidak boleh menyentuh browser siswa. <code>deadline_at = MIN(started_at + durasi, hard_end_at)</code> dihitung di backend; client hanya menampilkan sisa waktu. Konsekuensinya: payload soal untuk siswa harus disaring di level serializer/Resource, bukan di React.</p>
+          </div>
+        </div>
+
+        <h3>Tiga lapis ketegasan PRD</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Lapis</th><th>Isi</th><th>Sikap eksekusi</th></tr></thead>
+            <tbody>
+              <tr><td><b>Tetap</b></td><td>Multi-tenant shared schema, 4 role, 9 jenis soal, token wajib, presensi sebagai gerbang, server-side timer, Modular Monolith, snapshot soal, koreksi essay oleh Guru.</td><td><span class="pill ok">kunci</span> langsung jadi kontrak implementasi</td></tr>
+              <tr><td><b>Perlu tafsir</b></td><td>Bentuk konkret Event Workspace, alur penugasan paket soal ke event, UI presensi massal, kedalaman laporan, cakupan monitoring polling.</td><td><span class="pill warn">rancang dulu</span> diputuskan di blueprint ini</td></tr>
+              <tr><td><b>Belum diputus</b></td><td>MySQL vs PostgreSQL, kebijakan multi-perangkat, siapa boleh ujian ulang, berbagi bank soal, token per sesi vs per ruang, publikasi nilai per ujian vs per event.</td><td><span class="pill bad">blokir</span> jangan diasumsikan diam-diam</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note gap">
+          <b>Celah yang belum dibahas PRD</b>
+          <p>(1) <b>audit &amp; retensi media</b> — unggahan soal (gambar/audio/video) belum punya batas ukuran, format, atau kebijakan pembersihan; (2) <b>notifikasi</b> hanya disebut sebagai modul + tabel, tanpa pemicu yang jelas siapa menerima apa; (3) <b>zona waktu</b> — sekolah punya <code>timezone</code>, tetapi aturan konversi jadwal lintas zona belum ditetapkan; (4) <b>impor pengguna massal</b> (Guru/Siswa/Pengawas) disebut sebagai fitur Admin tetapi tidak punya spesifikasi template seperti impor soal; (5) <b>arsip &amp; tahun ajaran berganti</b> — apa yang terjadi pada kelas, penugasan mengajar, dan event lama saat tahun ajaran baru dibuka.</p>
+        </div>
+      </section>
+
+      <section id="model">
+        <header>
+          <h2><em>B</em> Model Data &amp; Peta Modul</h2>
+          <p class="sub">Urutan pewarisan konteks menentukan bentuk setiap query dan policy. Empat tingkat di bawah ini adalah tulang punggung seluruh aplikasi; setiap modul menempel pada salah satunya.</p>
+        </header>
+
+        <h3>Empat tingkat konteks</h3>
+        <div class="flow" role="img" aria-label="Empat tingkat konteks: sekolah, tahun ajaran, event, pelaksanaan ujian">
+          <span class="ok">school</span><em>▸</em>
+          <span class="ok">academic_year + semester</span><em>▸</em>
+          <span class="gate">event (school_events)</span><em>▸</em>
+          <span>exam ▸ session ▸ room ▸ participant ▸ attempt</span>
+        </div>
+        <div class="grid3">
+          <div class="card">
+            <span class="tag">Tingkat 1 · Tenant</span>
+            <h4>Sekolah</h4>
+            <p>Batas isolasi data. Cakupan Admin adalah satu sekolah; login memakai username + password, dan <code>users.username</code> unique global. Username menentukan akun, akun menentukan <code>school_id</code> — tenant tidak pernah dipilih dari layar login.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Tingkat 2 · Siklus</span>
+            <h4>Tahun ajaran &amp; semester</h4>
+            <p>Penanda waktu untuk kelas, enrollment, dan penugasan mengajar. Satu tahun ajaran aktif pada satu waktu per sekolah; pergantian tahun ajaran adalah operasi administratif, bukan sekadar ganti nilai flag.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Tingkat 3 · Induk kegiatan</span>
+            <h4>Event</h4>
+            <p>Pemilik semua keputusan operasional. Berstatus Draft → Preparation → Ready → Ongoing → Completed → Archived/Cancelled, dengan gerbang readiness yang memblokir perpindahan ke Ready.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Tingkat 4 · Pelaksanaan</span>
+            <h4>Ujian sampai attempt</h4>
+            <p>Rantai terpanjang dan paling kritis: exam → session → session room → participant → attendance → attempt → answer → result. Setiap mata rantai membawa <code>school_id</code> dan wajib divalidasi ulang di backend.</p>
+          </div>
+        </div>
+
+        <h3>Kelompok tabel inti</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Kelompok</th><th>Tabel</th><th>Aturan kunci</th></tr></thead>
+            <tbody>
+              <tr><td>Tenant &amp; identitas</td><td><code>schools</code>, <code>users</code>, <code>teacher_profiles</code>, <code>student_profiles</code>, <code>supervisor_profiles</code></td><td>unique <code>school_id+username</code>; profil one-to-one per role</td></tr>
+              <tr><td>Akademik</td><td><code>academic_years</code>, <code>semesters</code>, <code>classes</code>, <code>class_enrollments</code>, <code>subjects</code>, <code>teaching_assignments</code>, <code>rooms</code></td><td>kelas terikat tahun ajaran; ruang master dipakai ulang lintas event</td></tr>
+              <tr><td>Event</td><td><code>school_events</code>, <code>event_activities</code>, <code>event_classes</code>, <code>event_subjects</code>, <code>event_participants</code>, <code>event_rooms</code>, <code>event_committee_members</code>, <code>event_teacher_assignments</code></td><td>unique per pasangan (event + kelas/subjek/ruang/siswa)</td></tr>
+              <tr><td>Soal</td><td><code>questions</code>, <code>question_options</code>, <code>question_items</code>, <code>question_media</code>, <code>essay_rubric_criteria</code>, <code>question_packages</code>, <code>question_package_items</code>, <code>event_question_packages</code>, <code>question_import_batches</code></td><td>konten JSON; kunci jawaban tidak pernah dikirim ke siswa</td></tr>
+              <tr><td>Ujian</td><td><code>exams</code>, <code>exam_classes</code>, <code>exam_questions</code>, <code>exam_sessions</code>, <code>exam_session_rooms</code>, <code>exam_tokens</code>, <code>exam_participants</code>, <code>supervision_assignments</code>, <code>exam_graders</code></td><td>unique <code>exam_id+student_id</code>; snapshot penuh di <code>exam_questions</code></td></tr>
+              <tr><td>Presensi</td><td><code>attendance_records</code>, <code>attendance_logs</code></td><td>satu record per participant; log append-only, tidak boleh dihapus</td></tr>
+              <tr><td>Berita acara</td><td><code>room_reports</code>, <code>room_report_media</code>, <code>signatures</code></td><td>satu berita acara per ruang-sesi; <code>room_report_media</code> menyimpan foto beserta <code>captured_at</code> dan metadata perangkat; <code>signatures</code> melekat pada peran + sesi (<code>role</code>, <code>signer_user_id</code>, <code>signed_at</code>, <code>image_path</code>), bukan pada orang semata, supaya pergantian pengawas tidak memindahkan tanda tangan lama</td></tr>
+              <tr><td>Pintu pengawas</td><td><code>room_entry_links</code></td><td>satu baris per ruang-sesi: <code>slug</code> unik global, <code>code_hash</code> kode pengawas, <code>expires_at</code> mengikuti sesi, <code>revoked_at</code>, <code>use_count</code>, <code>bound_device_fingerprint</code>; dibaca terpisah dari <code>exam_tokens</code> karena keduanya kredensial berbeda dengan masa hidup berbeda</td></tr>
+              <tr><td>Pengerjaan</td><td><code>exam_attempts</code>, <code>attempt_questions</code>, <code>student_answers</code></td><td>unique <code>participant+attempt_number</code>; <code>version</code> untuk optimistic concurrency</td></tr>
+              <tr><td>Nilai</td><td><code>essay_gradings</code>, <code>exam_results</code></td><td>satu hasil per attempt; status koreksi membedakan final dan belum final</td></tr>
+              <tr><td>Pendukung</td><td><code>exam_incidents</code>, <code>notifications</code>, <code>activity_logs</code></td><td>semua membawa <code>school_id</code> dan jejak waktu</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Peta modul dan ketergantungan</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>#</th><th>Modul</th><th>Bergantung pada</th><th>Dipakai oleh</th></tr></thead>
+            <tbody>
+              <tr><td class="num">1</td><td>Tenancy</td><td>—</td><td>semua modul</td></tr>
+              <tr><td class="num">2</td><td>Identity</td><td>Tenancy</td><td>semua modul</td></tr>
+              <tr><td class="num">3</td><td>Academic</td><td>Tenancy</td><td>User Management, Events, Reporting</td></tr>
+              <tr><td class="num">4</td><td>User Management</td><td>Tenancy, Identity, Academic</td><td>Events, Supervision, Grading</td></tr>
+              <tr><td class="num">5</td><td>Events + Committee</td><td>Academic, User Management</td><td>Question Package, Examination, Reporting</td></tr>
+              <tr><td class="num">6</td><td>Question Bank</td><td>Academic</td><td>Question Package, Import</td></tr>
+              <tr><td class="num">7</td><td>Question Import</td><td>Question Bank</td><td>Question Package</td></tr>
+              <tr><td class="num">8</td><td>Question Package</td><td>Question Bank, Events</td><td>Examination</td></tr>
+              <tr><td class="num">9</td><td>Examination</td><td>Events, Question Package</td><td>Exam Session, Attempt, Supervision</td></tr>
+              <tr><td class="num">10</td><td>Exam Session + Token</td><td>Examination</td><td>Attempt, Attendance</td></tr>
+              <tr><td class="num">11</td><td>Supervision</td><td>Exam Session, User Management</td><td>Attendance, Monitoring</td></tr>
+              <tr><td class="num">12</td><td>Attendance</td><td>Supervision, Exam Session</td><td>Exam Attempt</td></tr>
+              <tr><td class="num">13</td><td>Exam Attempt</td><td>Attendance, Token</td><td>Grading, Monitoring</td></tr>
+              <tr><td class="num">14</td><td>Grading + Result</td><td>Exam Attempt</td><td>Reporting, Notification</td></tr>
+              <tr><td class="num">15</td><td>Reporting</td><td>semua di atas</td><td>—</td></tr>
+              <tr><td class="num">16</td><td>Notification + Audit Log</td><td>Identity</td><td>lintas modul</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <b>Aturan modul yang tidak bisa ditawar</b>
+          <p>Satu modul hanya boleh mengakses modul lain melalui service resminya — bukan lewat model langsung milik domain lain. Contoh: modul Attendance tidak boleh menulis ke <code>exam_participants</code>; ia meminta Examination memvalidasi penempatan, lalu menulis <code>attendance_records</code>. Ini yang menjaga Modular Monolith tetap punya batas, bukan jadi monolit tanpa aturan.</p>
+        </div>
+      </section>
+
+      <section id="aturan">
+        <header>
+          <h2><em>C</em> Delapan Aturan Kritis</h2>
+          <p class="sub">Ini titik-titik yang kalau salah, tidak bisa ditambal belakangan tanpa membongkar data. Semuanya dieksekusi di backend.</p>
+        </header>
+
+        <div class="grid2">
+          <div class="card">
+            <span class="tag">01 · Isolasi</span>
+            <h4>Tenant diperiksa di setiap operasi</h4>
+            <p>Bukan hanya login. Setiap baca, ubah, hapus memeriksa kepemilikan data. Lapisnya: middleware tenant → global query scope → Policy → Form Request → service layer → foreign key gabungan. Manipulasi ID di URL tidak boleh membuka data sekolah lain.</p>
+          </div>
+          <div class="card">
+            <span class="tag">02 · Gerbang presensi</span>
+            <h4>Tanpa presensi sah, tidak ada attempt</h4>
+            <p>Validasi berurutan di endpoint <code>start</code>: akun aktif → sekolah cocok → terdaftar di event → terdaftar sebagai peserta → penempatan sesi/ruang valid → presensi <code>present</code> (atau <code>late</code> yang diizinkan) → diverifikasi pengawas ruang tersebut → sesi masih menerima → token valid → attempt belum habis → tidak ada attempt aktif bentrok.</p>
+          </div>
+          <div class="card">
+            <span class="tag">03 · Snapshot</span>
+            <h4>Paket soal dibekukan saat ditetapkan</h4>
+            <p>Snapshot mencakup pertanyaan, pilihan, item matching/ordering, kunci, bobot, konfigurasi penilaian, rubrik, referensi media, dan urutan. Bank soal asli tetap hidup; ujian yang sudah dijadwalkan tidak ikut berubah.</p>
+          </div>
+          <div class="card">
+            <span class="tag">04 · Soal ke siswa</span>
+            <h4>Kunci jawaban tidak pernah meninggalkan server</h4>
+            <p>Payload soal untuk siswa disusun dari <code>prompt_snapshot</code> + pilihan tanpa <code>is_correct</code>. Pembahasan, kunci, dan rubrik hanya muncul di endpoint Guru/Admin. Penyaringan di level Resource, bukan filter di React.</p>
+          </div>
+          <div class="card">
+            <span class="tag">05 · Waktu</span>
+            <h4>Server pemilik waktu ujian</h4>
+            <p><code>deadline_at</code> dihitung sekali saat attempt dibuat dan disimpan. Client hanya menampilkan selisih. Automatic submission dijadwalkan dari deadline itu dan harus idempotent — request berulang tidak boleh menghasilkan hasil ganda.</p>
+          </div>
+          <div class="card">
+            <span class="tag">06 · Idempotensi</span>
+            <h4>Satu jawaban, satu nilai, satu hasil</h4>
+            <p>Attempt dibuat dalam transaksi dengan row locking pada participant. Submit idempotent. <code>exam_results</code> unique per attempt. Autosave menyimpan nilai <code>version</code> dan menolak tulisan yang basi, agar request yang saling menyusul tidak menimpa jawaban lebih baru.</p>
+          </div>
+          <div class="card">
+            <span class="tag">07 · Jejak</span>
+            <h4>Perubahan presensi tidak bisa dihapus</h4>
+            <p>Setiap perubahan status mencatat peserta, event, ujian, sesi, ruang, status sebelum dan sesudah, identitas pengawas, waktu, dan alasan. Riwayat append-only; koreksi administratif Admin pun hanya menambah baris baru.</p>
+          </div>
+          <div class="card">
+            <span class="tag">08 · Cakupan pengawas</span>
+            <h4>Pengawas hanya melihat ruangnya</h4>
+            <p>Daftar ruang dan peserta diturunkan dari <code>supervision_assignments</code> milik pengguna tersebut pada sesi berjalan. Pengawas tidak dapat memverifikasi peserta dari ruang lain, dan tidak dapat mengubah soal, jawaban, atau nilai.</p>
+          </div>
+        </div>
+
+        <h3>Alur gerbang: dari presensi ke attempt</h3>
+        <div class="flow" role="img" aria-label="Alur dari pengawas memverifikasi presensi sampai attempt dibuat">
+          <span>Pengawas buka ruang</span><em>▸</em>
+          <span>verifikasi peserta</span><em>▸</em>
+          <span class="gate">attendance = present</span><em>▸</em>
+          <span>Siswa lihat status hijau</span><em>▸</em>
+          <span>input token</span><em>▸</em>
+          <span>validasi ulang backend</span><em>▸</em>
+          <span class="ok">attempt dibuat</span>
+        </div>
+        <div class="note risk">
+          <b>Kegagalan yang paling sering terjadi di sistem seperti ini</b>
+          <p>Frontend menyembunyikan tombol "Mulai" dan menganggap itu cukup. Siswa yang membuka DevTools atau memanggil endpoint langsung tetap bisa masuk. Karena itu pemeriksaan presensi, token, jadwal, dan batas attempt wajib diulang di server pada <code>POST /student/exams/{id}/start</code>, dan UI hanya jadi cermin dari keputusan server.</p>
+        </div>
+      </section>
+
+      <section id="keamanan">
+        <header>
+          <h2><em>D</em> Keamanan Siswa Saat Mengerjakan</h2>
+          <p class="sub">Lapisan pencegahan di sisi browser. PRD menempatkan browser lockdown dan AI proctoring di luar MVP, jadi yang dibangun di sini adalah penangkal praktis tanpa aplikasi native: klik kanan, salin, pindah tab, dan pintasan devtools. Semua di antaranya adalah penangkal, bukan pengaman — karena itu setiap kontrol punya pasangan deteksi di server.</p>
+        </header>
+
+        <div class="note risk">
+          <b>Batas yang harus diakui sejak awal</b>
+          <p>JavaScript di browser siswa sepenuhnya berada di tangan siswa. Siapa pun yang bisa membuka DevTools bisa mematikan <code>contextmenu</code>, <code>copy</code>, atau <code>visibilitychange</code>, dan memanggil endpoint soal secara langsung. Karena itu: <b>blokir adalah lapisan kenyamanan dan pencegahan; yang benar-benar menjaga ujian adalah kontrol server</b> — kunci jawaban tidak dikirim, presensi diverifikasi, timer dihitung server, dan attempt dijaga transaksi. Setiap blokir yang terbukti dilewati harus menghasilkan catatan, bukan ilusi keamanan.</p>
+        </div>
+
+        <h3>Bertingkat, bukan satu tombol blokir</h3>
+        <p class="sub">Satu tangkapan langsung mengunci ujian akan menghasilkan puluhan siswa terblokir karena salah tekan. Tangkapan dipisah menurut tingkat kecurangannya, dan hanya tingkat tertinggi yang menghentikan attempt.</p>
+
+        <div class="ladder">
+          <div>
+            <span class="lv">Tingkat 0<br>Halus</span>
+            <div>
+              <h4>Blokir tanpa gangguan — tidak dicatat</h4>
+              <p>Klik kanan, drag-select teks soal, tombol salin, potong, dan tempel di luar area jawaban, plus pintasan devtools (F12, Ctrl+Shift+I/J/C, Ctrl+U). Aksi ditolak diam-diam: menu tidak muncul, seleksi dibatalkan, tidak ada dialog, tidak ada catatan pelanggaran. Siswa yang tidak berniat curang tidak akan pernah menyadarinya, jadi tidak ada alasan untuk mengganggu mereka atau membebani log.</p>
+            </div>
+          </div>
+          <div class="mid">
+            <span class="lv">Tingkat 1<br>Ringan</span>
+            <div>
+              <h4>Peringatan pertama, tercatat, ujian lanjut</h4>
+              <p>Keluar dari tab atau jendela kehilangan fokus, keluar dari mode layar penuh (bila diaktifkan), menempel teks ke kotak jawaban, membuka pintasan print (Ctrl+P), atau menekan Escape saat layar penuh. Siswa menerima panel peringatan di dalam halaman dengan hitungan mundur singkat sebelum bisa menutup, lalu tetap boleh melanjutkan. Counter per attempt bertambah, dan setiap kejadian tercatat di server bersama waktunya.</p>
+            </div>
+          </div>
+          <div class="mid">
+            <span class="lv">Tingkat 2<br>Berulang</span>
+            <div>
+              <h4>Peringatan keras, pengawas diberi tahu</h4>
+              <p>Pelanggaran tingkat 1 melewati ambang yang dikonfigurasi sekolah (usulan awal: 5 kejadian). Peringatan berubah bentuk menjadi merah, menyebut jumlah pelanggaran dan konsekuensi berikutnya, dan Pengawas ruang menerima penanda pada baris peserta di layar presensi. Attempt tetap berjalan agar siswa tidak dihukum sebelum Pengawas memutuskan.</p>
+            </div>
+          </div>
+          <div class="hot">
+            <span class="lv">Tingkat 3<br>Berat</span>
+            <div>
+              <h4>Attempt dikunci, butuh Pengawas atau Admin membuka</h4>
+              <p>Ambang tingkat 2 terlampaui, atau terdeteksi upaya mematikan proteksi: matinya hook <code>visibilitychange</code> bersama hilangnya detak perangkat, panggilan endpoint soal berulang tanpa jejak attempt normal, atau kejadian pindah tab yang berulang dalam waktu sangat singkat. Layar siswa tertutup panel terkunci dan hanya memuat satu kalimat serta tombol memanggil Pengawas. Jawaban yang sudah tersimpan tetap utuh. Membuka kunci hanya oleh Pengawas ruang itu atau Admin, tercatat sebagai baris <code>exam_violations</code> beserta identitas pembuka.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="note gap">
+          <b>Ambang batas adalah keputusan sekolah, bukan keputusan sistem</b>
+          <p>Banyak pelanggaran tingkat 2 hanya butuh dibuka Pengawas tanpa menutup ujian. Ambangnya karena itu disimpan sebagai kolom <code>violation_thresholds</code> pada tabel <code>exams</code>, bukan sebagai konstanta di kode, mengikuti kebijakan pemakaian minimal — angka usulan di atas hanyalah titik awal yang perlu diuji dengan sekolah, bukan keputusan teknis yang boleh diputuskan sepihak.</p>
+        </div>
+
+        <h3>Kontrol yang dibangun, dan pasangannya di server</h3>
+        <div class="ctl">
+          <div>
+            <h4>Klik kanan &amp; menu konteks <span class="pill mute">tingkat 0</span></h4>
+            <p>Menonaktifkan <code>contextmenu</code> di seluruh area ujian, diaktifkan kembali hanya di kotak jawaban essay bila guru mengizinkan tempel.</p>
+            <p class="why">Pasangan server: tidak ada — ini murni kenyamanan, tidak ada yang dilindungi.</p>
+          </div>
+          <div>
+            <h4>Seleksi &amp; salin <span class="pill mute">tingkat 0</span></h4>
+            <p><code>user-select: none</code> pada teks soal, penanganan <code>copy</code>, <code>cut</code>, dan <code>dragstart</code> yang membatalkan aksi. Kata sandi tidak bisa disalin dari soal. Kotak jawaban tidak ikut disaring.</p>
+            <p class="why">Pasangan server: konten soal tetap dikirim karena memang harus terbaca; yang dijaga adalah kunci jawaban yang tidak pernah sampai ke browser.</p>
+          </div>
+          <div>
+            <h4>Pintasan devtools &amp; cetak <span class="pill mute">tingkat 0</span></h4>
+            <p>F12, Ctrl+Shift+I/J/C, Ctrl+U, dan Ctrl+P ditahan selama attempt berjalan. Pengguna yang sudah menyiapkan devtools sebelum masuk tetap memiliki jendelanya.</p>
+            <p class="why">Pasangan server: pemanggilan endpoint soal tanpa attempt aktif ditolak, dan pemanggilan berulang di luar pola normal dicatat sebagai pelanggaran berat.</p>
+          </div>
+          <div>
+            <h4>Pindah tab &amp; kehilangan fokus <span class="pill warn">tingkat 1</span></h4>
+            <p>Dengarkan <code>visibilitychange</code>, <code>blur</code>, dan <code>pagehide</code>. Setiap keluar dari tab dicatat sebagai kejadian dengan durasinya, lalu ditampilkan sebagai peringatan ketika siswa kembali. Ambang waktu singkat (usulan: 1,5 detik) menyaring gangguan bukan kesengajaan, tanpa menghilangkan catatannya.</p>
+            <p class="why">Pasangan server: kejadian dikirim ke <code>POST /student/attempts/{id}/violations</code> bersama <code>version</code> attempt; server menolak bila attempt tidak aktif, dan menambah counter pada baris attempt.</p>
+          </div>
+          <div>
+            <h4>Detak perangkat &amp; deteksi proteksi mati <span class="pill bad">tingkat 3</span></h4>
+            <p>Selain detak jawaban yang sudah ada, halaman mengirim sinyal ringan tiap 30 detik yang membawa penanda bahwa hook proteksi masih hidup. Server menyimpan <code>last_seen_at</code> dan <code>guard_flags</code> per attempt.</p>
+            <p class="why">Pasangan server: hilangnya sinyal sementara jawaban tetap mengalir adalah pola mencurigakan; dicatat, dan bila terjadi berulang attempt dikunci.</p>
+          </div>
+          <div>
+            <h4>Layar penuh <span class="pill warn">opsional</span></h4>
+            <p>Mode layar penuh diminta saat attempt dibuat dan keluar darinya jadi pelanggaran tingkat 1. Tombolnya hanya bekerja dari klik pertama siswa, dan ditolak di sebagian peramban ponsel.</p>
+            <p class="why">Harus dapat dimatikan per sekolah: BYOD di ponsel membuat layar penuh merepotkan dan bukan penangkal yang berarti.</p>
+          </div>
+          <div>
+            <h4>Tempel ke kotak jawaban <span class="pill warn">tingkat 1</span></h4>
+            <p>Untuk short answer dan numeric, penempelan diblokir. Untuk essay, tempel boleh dikonfigurasi per soal karena menulis panjang tanpa tempel justru menghukum.</p>
+            <p class="why">Pasangan server: tidak ada yang bisa dibuktikan dari sisi server; ini murni pencegahan di layar siswa.</p>
+          </div>
+          <div>
+            <h4>Yang sengaja tidak dilakukan <span class="pill mute">batas MVP</span></h4>
+            <p>Tidak ada perekaman layar, tangkapan kamera, penguncian sistem operasi, pemblokiran jaringan, atau deteksi AI. PRD menempatkannya di luar MVP dan menambahkannya berarti membangun aplikasi native, bukan situs.</p>
+            <p class="why">Pengawas ruang secara fisik tetap menjadi penangkal utama; perangkat lunak hanya mengurangi peluang, tidak mengawasi manusia.</p>
+          </div>
+        </div>
+
+        <h3>Data yang dicatat</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Tabel</th><th>Kolom kunci</th><th>Catatan</th></tr></thead>
+            <tbody>
+              <tr><td><code>exam_violations</code> <span class="pill mute">baru</span></td><td><code>school_id</code>, <code>exam_attempt_id</code>, <code>exam_participant_id</code>, <code>violation_type</code>, <code>severity</code>, <code>occurred_at</code>, <code>duration_ms</code>, <code>metadata_json</code>, <code>reported_by_client</code>, <code>resolved_by</code>, <code>resolved_at</code></td><td>Append-only seperti <code>attendance_logs</code>. <code>violation_type</code>: contextmenu, copy, paste, tab_blur, fullscreen_exit, devtools_attempt, print_attempt, guard_lost, heartbeat_gap. <code>severity</code>: 0 sampai 3.</td></tr>
+              <tr><td><code>exam_attempts</code> <span class="pill info">tambah kolom</span></td><td><code>violation_count</code>, <code>violation_worst_severity</code>, <code>lock_reason</code>, <code>locked_at</code>, <code>last_seen_at</code>, <code>guard_flags_json</code></td><td>Counter dan status kunci disimpan pada attempt, bukan dihitung ulang tiap permintaan.</td></tr>
+              <tr><td><code>exams</code> <span class="pill info">tambah kolom</span></td><td><code>violation_thresholds_json</code>, <code>enforce_fullscreen</code>, <code>allow_paste_essay</code>, <code>guard_enabled</code></td><td>Kebijakan per ujian sehingga sekolah dapat melonggarkan untuk ujian tertentu.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <b>Aturan penting: siswa tidak boleh diam-diam dicurigai</b>
+          <p>Setiap catatan pelanggaran tingkat 1 ke atas harus dapat dilihat siswa pada halaman hasil atau riwayatnya — bukan untuk menakuti, melainkan agar bila Pengawas menyita ujian ada bukti yang bisa dibantah siswa bersama orang tua. Sistem yang mencatat tanpa pernah memberi tahu siswa akan memicu sengketa yang tidak bisa diselesaikan dengan data. Riwayat ini tidak boleh dihapus melalui antarmuka operasional, sama seperti riwayat presensi.</p>
+        </div>
+
+        <h3>Tampilan siswa saat pelanggaran tercatat</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Siswa · Pelanggaran ringan</b><span class="pill warn">tingkat 1</span><span class="path">overlay di /student/attempts/{id}</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| Matematika · Sesi 2 · R-02                            <b>Sisa 00:48:33</b>   |
++--------------------------------------------------------------------------+
+|                     +--------------------------------------+              |
+|                     |  <i>PERHATIAN</i>                             |              |
+|                     |                                      |              |
+|                     |  Anda meninggalkan halaman ujian.    |              |
+|                     |  Kejadian ini tercatat (1 dari 5).   |              |
+|                     |                                      |              |
+|                     |  Jika pelanggaran mencapai batas,    |              |
+|                     |  ujian Anda akan dikunci dan harus   |              |
+|                     |  dibuka oleh Pengawas ruang.         |              |
+|                     |                                      |              |
+|                     |         [ Mengerti, lanjutkan ]      |              |
+|                     |            <i>aktif dalam 3 detik</i>     |              |
+|                     +--------------------------------------+              |
+|                                                                          |
+|  Jawaban tetap tersimpan. Waktu ujian tetap berjalan.                    |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+
+        <div class="plate">
+          <div class="plate-bar"><b>Siswa · Attempt terkunci</b><span class="pill bad">tingkat 3</span><span class="path">/student/attempts/{id}?locked=1</span></div>
+<pre>
++--------------------------------------------------------------------------+
+|                           <b>UJIAN DIKUNCI</b>                              |
+|                                                                          |
+|   Batas pelanggaran terlampaui. Ujian Anda dihentikan sementara.          |
+|   Jawaban yang sudah tersimpan tetap aman.                               |
+|                                                                          |
+|   Perangkat lain tidak dapat melanjutkan ujian ini.                       |
+|                                                                          |
+|   Hubungi Pengawas ruang Anda:                                            |
+|                                                                          |
+|     Pengawas R-02 · Budi Santoso                                          |
+|                                                                          |
+|   [ Minta bantuan Pengawas ]   <i>hanya membuka layar panggilan</i>          |
+|                                                                          |
+|   Terkunci pada 09:52:10 · Pelanggaran tercatat: 3                        |
+|                                                                          |
+|   <i>Tidak ada tombol untuk melanjutkan sendiri.</i>                        |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+        <p class="sub">Layar terkunci sengaja tidak menampilkan cara keluar. Waktu tetap berjalan terhadap <code>deadline_at</code> storage server, dan bila Pengawas tidak membuka sebelum batas akhir, penutupan otomatis tetap mengumpulkan apa yang sudah tersimpan.</p>
+
+        <h3>Wireframe pengawas: kolom pelanggaran</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Pengawas · Presensi dengan kolom pelanggaran</b><span class="pill info">tambahan pada layar Fase 6</span><span class="path">/supervisor/rooms/{id}/attendance</span></div>
+<pre>
++--------------------------------------------------------------------------+
+|  [x] NIS      Nama              Kelas | Presensi | Pengerjaan   | <i>Pelanggaran</i> |
+|------+--------------------------+------+----------+--------------+-----------|
+|  [x] 2024001  Ahmad Fauzi       X-1   | <u>Present</u>  | <u>Mengerjakan</u>| <u>—</u>         |
+|  [x] 2024002  Bunga Lestari     X-1   | <u>Present</u>  | <u>Submit</u>     | <u>—</u>         |
+|  [ ] 2024003  Cahyo Nugroho     X-2   | <i>Pending</i>  | —            | <u>—</u>         |
+|  [ ] 2024005  Eka Pratama       X-2   | <i>Late</i>     | <u>Mengerjakan</u>| <i>2 ringan</i>   |
+|  [ ] 2024007  Gilang Saputra    X-3   | <u>Present</u>  | <i>Terkunci</i>   | <b>3 berat</b>   |
++--------------------------------------------------------------------------+
+| Gilang Saputra · riwayat:                                                 |
+|   09:41 tab_blur 2s   09:47 tab_blur 1s   09:50 devtools_attempt          |
+|   09:52 terkunci otomatis (ambang terlampaui)                             |
+| [ Buka kunci ]   [ Catat sebagai insiden ]                                |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <span class="tag">Efek samping yang wajib diantisipasi</span>
+            <h4>Deteksi tab juga mengenai keyboard virtual dan panggilan masuk</h4>
+            <p>Di ponsel, membuka keyboard virtual atau menerima panggilan telepon memicu <code>blur</code> dan dicatat sebagai pelanggaran. Karena itu ambang waktu singkat wajib diterapkan, dan deteksi tingkat 1 ke atas sebaiknya dinonaktifkan pada attempt yang berjalan di BYOD ponsel bila sekolah tidak memakai mode layar penuh.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Kegagalan yang harus dihindari</span>
+            <h4>Proteksi tidak boleh menjatuhkan ujian</h4>
+            <p>Semua handler penangkal dibungkus try/catch. Kegagalan mengirim catatan pelanggaran tidak boleh menahan penyimpanan jawaban, karena autosave jauh lebih penting daripada log. Bila endpoint pelanggaran bermasalah, kejadian disimpan di antrean kecil di peramban dan dikirim menyusul.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="wireframe">
+        <header>
+          <h2><em>E</em> Wireframe</h2>
+          <p class="sub">Rangka layar per role. Setiap plate menunjukkan susunan, bukan gaya visual: apa yang ada di mana, apa yang aktif bergantung konteks, dan apa yang sengaja tidak ditampilkan. Rute mengikuti spesifikasi PRD bagian 20.</p>
+        </header>
+
+        <div class="note">
+          <b>Cara membaca</b>
+          <p><code>[ ]</code> kontrol, <code>&lt; &gt;</code> navigasi, <b>&gt;&gt;</b> jalur utama. Tinggi baris tidak proporsional. Semua plate digulir mendatar bila layar sempit.</p>
+        </div>
+
+        <h3>1 · Login tunggal: username + password</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Login</b><span class="pill mute">semua role</span><span class="path">/login</span></div>
+<pre>
++--------------------------------------------------------------------------+
+|                                                                          |
+|   +------------------------------+   +-------------------------------+   |
+|   |  SCHOOL CBT                  |   |  Username       [ smkn1.2024001 ]|
+|   |                              |   |  Password       [ ********   ]|   |
+|   |  Satu platform, banyak       |   |                               |   |
+|   |  sekolah.                    |   |  [ Masuk ]    Lupa password?  |   |
+|   |                              |   |                               |   |
+|   |  Isi username Anda:          |   |  >> Gagal 3x: rate limit 60s  |   |
+|   |  NIS, NIP, atau akun staf.   |   |                               |   |
+|   +------------------------------+   +-------------------------------+   |
+|                                                                          |
+|   Dua kolom saja. Tidak ada NPSN, tidak ada kode sekolah, tidak ada      |
+|   pemilih konteks di layar login. Username membawa identitas akun, dan   |
+|   akun membawa school_id. Pesan gagal selalu tunggal, tanpa             |
+|   membocorkan apakah username atau password yang keliru. Setelah valid   |
+|   -> redirect sesuai role, bukan dipilih di UI.                          |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>Role</th><th>Username yang diketik</th><th>Diarahkan ke</th></tr></thead>
+            <tbody>
+              <tr><td>Admin</td><td>Username akun staf yang ditetapkan Admin lain</td><td><code>/admin</code> — konsol sekolah</td></tr>
+              <tr><td>Guru</td><td>Username berbasis NIP</td><td><code>/guru</code> — bank soal dan koreksi</td></tr>
+              <tr><td>Siswa</td><td>Username berbasis NIS</td><td><code>/siswa</code> — jadwal, gerbang, pengerjaan</td></tr>
+              <tr><td>Pengawas</td><td><code>staff_code</code>, username berbasis NIP, atau magic link ruang + kode pengawas</td><td><code>/pengawas</code> — ruang tugas dan presensi; <code>/p/{slug-ruang}</code> untuk masuk lewat tautan ruang</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <b>Yang berubah dari desain sebelumnya</b>
+          <p>Field NPSN dan field kode sekolah dihapus dari layar login. Login menjadi username + password saja. Konsekuensinya satu kolom harus berubah di database: <code>users.username</code> menjadi <b>unique global</b>, bukan unique per sekolah (<code>school_id + username</code>). Kalau tidak, '2024001' di dua sekolah berbeda akan ambigu dan server tidak bisa memilih akun mana yang diautentikasi. Karena NIS dan NIP berasal dari sistem berbeda di tiap sekolah dan bisa bertabrakan, Admin diberi dua jalan: impor massal yang otomatis memberi awalan (mis. <code>smkn1.2024001</code>), atau mengetik username saat menambah akun satu per satu. Username tetap milik satu akun — tidak ada satu username yang dipakai bersama sekolompok orang.</p>
+        </div>
+
+        <div class="note gap">
+          <b>Konsekuensi keamanan yang harus diterima</b>
+          <p>Tanpa NPSN di form, username menjadi satu-satunya penanda akun, jadi ia harus sedikit berbeda dari yang orang lain bisa tebak. NIS yang berurutan dan tersebar luas justru mudah ditebak. Karena itu rate limiting diberlakukan per username + IP (bukan per IP saja, supaya satu laboratorium yang dipakai bergantian tidak saling mengunci), dan pesan kegagalan tetap tunggal sehingga form tidak bisa dipakai untuk memeriksa username mana yang benar-benar ada.</p>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <span class="tag">Keputusan wireframe</span>
+            <h4>Satu pintu, bukan dua portal terpisah</h4>
+            <p>Admin, Guru, Siswa, dan Pengawas masuk lewat form yang sama. Role hanya menentukan halaman tujuan setelah autentikasi berhasil. Ini menjaga asumsi PRD 2.2 no.3 — tidak ada role baru di luar empat — dan menghindari dua jalur autentikasi yang harus dijaga selaras selamanya. Konsol admin sekolah dan portal sekolah tetap berbeda secara alamat dan tata letak, tetapi keduanya di balik satu pintu masuk.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Bila nanti butuh konsol lintas sekolah</span>
+            <h4>Itu role baru, dan PRD menolaknya untuk MVP</h4>
+            <p>Konsol platform yang dapat melihat atau membuat sekolah melanggar asumsi 2.2 no.3 dan menempatkan Super Admin di butir 2.3 di luar cakupan: provisioning sekolah dilakukan di luar aplikasi. Bila kebutuhan itu muncul, ia dibuka sebagai pintu kedua yang terpisah pada alamatnya sendiri, bukan ditambahkan sebagai tab di konsol Admin sekolah — supaya Admin sekolah tidak pernah melihat apa pun di luar sekolahnya.</p>
+          </div>
+        </div>
+
+        <h3>2 · Admin — dashboard dan workspace event</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Admin · Event Workspace</b><span class="pill info">konteks event aktif</span><span class="path">/admin/events/{event}</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| SCHOOL CBT · SMK Negeri 1        [Event: UAS Ganjil 2026/2027  v] [Admin]|
++--------------------------------------------------------------------------+
+| RINGKASAN   | UAS Ganjil 2026/2027        Status: <i>Preparation</i>       |
+| Kepanitiaan | Kode EV-2026-001  · TA 2026/2027 · Ganjil                   |
+| Kelas       | 02 Nov - 14 Nov 2026        Readiness 9/11 <u>persyaratan</u>   |
+| Mata pelajaran|----------------------------------------------------------|
+| Paket soal  | [ RINGKASAN EVENT ]  [ KESIAPAN ]  [ AKTIVITAS ]            |
+| Jadwal      |                                                             |
+| Sesi &amp; ruang| +--------------------+ +--------------------+ +-------------+|
+| Pengawas    | | Peserta       1284 | | Ujian            12 | | Ruang    24 ||
+| Token       | | Hadir         1120 | | Sesi             18 | | Pengawas 31 ||
+| Presensi    | | Belum presensi 148 | | Paket soal        12 | | Token ok 16 ||
+| Monitoring  | | Tidak hadir      16 | +--------------------+ +-------------+|
+| Koreksi     |                                                             |
+| Hasil       | KESIAPAN EVENT                    [Tandai Ready] <i>disabled</i>|
+| Laporan     | +---------------------------------------------------------+ |
+|             | | <u>OK</u> Identitas event lengkap                          | |
+|             | | <u>OK</u> Tahun ajaran &amp; semester tersedia                 | |
+|             | | <u>OK</u> Kelas peserta ditetapkan       6 kelas            | |
+|             | | <u>OK</u> Mata pelajaran ditetapkan      8 mapel            | |
+|             | | <u>OK</u> Peserta terdaftar             1284 siswa          | |
+|             | | <u>OK</u> Jadwal ujian tersedia          12 ujian           | |
+|             | | <i>!!</i> Paket soal belum ditetapkan    2 ujian tanpa paket | |
+|             | | <u>OK</u> Sesi &amp; ruang tersedia                           | |
+|             | | <u>OK</u> Pengawas ditugaskan            31 orang           | |
+|             | | <i>!!</i> Konflik jadwal                 1 ruang bentrok    | |
+|             | | <u>OK</u> Token tersedia                                   | |
+|             | +---------------------------------------------------------+ |
+|             |                                                             |
+|             | CATATAN: token dapat dilihat Admin dan Pengawas bertugas.   |
+|             | Pengawas membacanya dari layar presensi ruangnya, tanpa      |
+|             | perlu meminta ke konsol admin.                              |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <span class="tag">Keputusan wireframe</span>
+            <h4>Rail kiri terikat event, bukan menu global</h4>
+            <p>Seluruh item navigasi di bawah "Ringkasan" hanya relevan di dalam event terpilih. Pemilih event ada di header dan selalu terlihat, supaya Admin tidak pernah salah konteks saat menetapkan peserta atau jadwal. Tanpa event terpilih, rail-nya kosong dengan ajakan membuat event pertama.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Keputusan wireframe</span>
+            <h4>Readiness ditampilkan sebagai daftar, bukan lencana</h4>
+            <p>Admin perlu tahu <em>apa</em> yang kurang, bukan hanya bahwa belum siap. Karena itu checklist-nya jadi elemen utama halaman, tiap baris membawa tautan perbaikan, dan tombol "Tandai Ready" nonaktif selama masih ada butir gagal. Ini cermin langsung dari PRD 6.5.</p>
+          </div>
+        </div>
+
+        <h3>3 · Guru — bank soal dan question builder</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Guru · Question Builder</b><span class="pill warn">draft</span><span class="path">/teacher/questions/{id}/edit</span></div>
+<pre>
++--------------------------------------------------------------------------+
+|  Bank Soal > [Matematika · Kelas X] > Soal baru        [Simpan draft]     |
++--------------------------------------------------------------------------+
+|  METADATA                    |  PERTANYAAN                                |
+|  Mapel   [Matematika   v]    |  +--------------------------------------+  |
+|  Tingkat [X            v]    |  | B  I  U  x2 x-2  •  1.  |Tabel|  |  |
+|  Jenis   [Multiple     v]    |  |Gambar|Audio|Video| Rumus |          |  |
+|  Kesulitan [Sedang     v]    |  +--------------------------------------+  |
+|  Bobot   [ 4 ]  Kode [Q-1042]|  | Ketik pertanyaan di sini...          |  |
+|                              |  |                                      |  |
+|  PENILAIAN PARSIAL           |  +--------------------------------------+  |
+|  ( ) Penuh hanya jika semua  |                                            |
+|      benar, tanpa salah      |  PILIHAN JAWABAN         [+ Tambah opsi]   |
+|  ( ) Skor per opsi benar     |  +--------------------------------------+  |
+|  ( ) Skor = benar/total      |  | A | [teks opsi...]           [v benar]|  |
+|                              |  | B | [teks opsi...]           [ ]      |  |
+|  PEMBAHASAN                  |  | C | [teks opsi...]           [v benar]|  |
+|  [........................]  |  | D | [teks opsi...]           [ ]      |  |
+|                              |  +--------------------------------------+  |
+|  MEDIA                       |                                            |
+|  [ Unggah ] gambar/audio/vid |  [ Preview soal ]     Draft -> Published   |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Jenis soal</th><th>Input di builder</th><th>Penilaian</th></tr></thead>
+            <tbody>
+              <tr><td>Single choice</td><td>Opsi + satu kunci</td><td><span class="pill ok">otomatis</span></td></tr>
+              <tr><td>Multiple answers</td><td>Opsi + beberapa kunci + mode parsial</td><td><span class="pill ok">otomatis</span></td></tr>
+              <tr><td>True/False</td><td>Pernyataan + benar/salah</td><td><span class="pill ok">otomatis</span></td></tr>
+              <tr><td>Short answer</td><td>Kunci + alternatif + normalisasi huruf/spasi</td><td><span class="pill ok">otomatis</span></td></tr>
+              <tr><td>Matching</td><td>Dua kelompok item + pasangan benar</td><td><span class="pill ok">otomatis</span></td></tr>
+              <tr><td>Ordering</td><td>Daftar item + urutan benar</td><td><span class="pill ok">otomatis</span></td></tr>
+              <tr><td>Numeric</td><td>Nilai + toleransi + satuan</td><td><span class="pill ok">otomatis</span></td></tr>
+              <tr><td>Essay</td><td>Area jawaban + rubrik opsional + skor maks</td><td><span class="pill warn">manual guru</span></td></tr>
+              <tr><td>Media</td><td>Stimulus media + mekanisme jawaban</td><td><span class="pill info">ikut mekanisme</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <b>Guru menambah butir langsung dari laman Paket soal</b>
+          <p>Menyusun paket dan menulis soal bukan dua pekerjaan yang terpisah di kepala Guru: ia menulis soal justru karena paketnya sedang kurang. Karena itu laman <code>/guru/paket/{id}</code> membuka panel bank soal di samping daftar butir — kotak centang, pencarian, lalu satu tombol yang menambahkan butir terpilih ke paket. Dari panel yang sama tersedia "Buat soal baru", yang membuka builder dan setelah disimpan langsung menaruh soalnya di paket ini, bukan hanya di bank. Impor massal juga dapat diarahkan ke paket yang sedang dibuka. Tanpa jalan pintas ini, satu pekerjaan yang dilakukan puluhan kali per paket memerlukan tiga perpindahan halaman setiap kali.</p>
+          <p>Satu aturan yang tetap berlaku: soal tetap disimpan di bank soal lebih dulu, lalu dirujuk oleh paket. Paket tidak pernah memiliki soal secara langsung, dan menghapus paket tidak pernah menghapus soal. Yang berubah hanyalah jalan masuknya, bukan pemilikannya.</p>
+        </div>
+
+        <h3>4 · Admin — sesi, ruang, token, pengawas</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Admin · Sesi &amp; Ruang</b><span class="pill info">validasi konflik</span><span class="path">/admin/events/{event}/exams/{exam}/sessions</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| UAS Ganjil > Matematika Kelas X > Sesi                    [+ Sesi baru]   |
++--------------------------------------------------------------------------+
+| Sesi | Buka akses   | Batas mulai | Akhir absolut | Durasi | Ruang | Token |
+|------+--------------+-------------+---------------+--------+-------+-------|
+|  1   | 07:00        | 07:15       | 09:00         | 90 mnt |  8    | <u>482916</u>|
+|  2   | 09:30        | 09:45       | 11:30         | 90 mnt |  8    | <u>731048</u>|
+|  3   | 13:00        | 13:15       | 15:00         | 90 mnt |  8    | <i>belum</i> |
++--------------------------------------------------------------------------+
+| SESI 2 · RUANG DAN PENGAWAS                                               |
+| +----------------------------------------------------------------------+ |
+| | Ruang   Kapasitas  Peserta  Pengawas            Status               | |
+| | R-01    32         30       [Budi S.      ]     <u>ok</u>                | |
+| | R-02    32         32       [Siti R.      ]     <u>ok</u>                | |
+| | R-03    32         34       [Ani M. +1    ]     <i>melebihi kapasitas</i>  | |
+| | R-04    28         28       [—            ]     <i>pengawas kosong</i>     | |
+| +----------------------------------------------------------------------+ |
+|                                                                          |
+| VALIDASI: 1 ruang melebihi kapasitas · 1 ruang tanpa pengawas            |
+|           pengawas R-03 bentrok dengan sesi 3 mapel Bahasa Indonesia     |
++--------------------------------------------------------------------------+
+| PINTU MASUK PENGAWAS · Sesi 2 · satu tautan per ruang                     |
+| +----------------------------------------------------------------------+ |
+| | Tautan R-01  /p/r01-7k4m     [ Salin ] [ Cetak kartu pintu ]         | |
+| | Kode pengawas  4 8 2 9 1 6   diminta setelah tautan dibuka           | |
+| |                              terbit 07:05 · kedaluwarsa 09:00        | |
+| |                              terikat R-01 · 1 perangkat              | |
+| |                                                                      | |
+| | Tautan menunjuk ruang ini dan tidak membuka apa pun sendirian.       | |
+| | Kode membuka sesinya. Keduanya harus cocok pada ruang yang sama.     | |
+| | Setiap pembukaan tercatat: waktu, perangkat, IP.                     | |
+| +----------------------------------------------------------------------+ |
+| | R-01 /p/r01-7k4m 482916 aktif  |  R-02 /p/r02-9x2q 731048 aktif      | |
+| | R-03 /p/r03-4h8n 205517 belum  |  R-04 tanpa pengawas —  belum       | |
++--------------------------------------------------------------------------+
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+        <div class="note gap">
+          <b>Yang PRD minta divalidasi, dan tempat menampilkannya</b>
+          <p>Kapasitas ruang, jumlah peserta, benturan penggunaan ruang, status ruang, kesesuaian event, dan benturan penugasan pengawas (PRD 9.4 dan 9.6) ditampilkan pada satu panel validasi di layar ini. Kalau validasi hanya muncul sebagai galat setelah tombol simpan, Admin akan menebak-nebak; daftar ruang harus menyatakan masalahnya lebih dulu.</p>
+        </div>
+
+        <h3>5 · Pengawas — daftar ruang dan verifikasi presensi</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Pengawas · Presensi</b><span class="pill bad">gerbang ujian</span><span class="pill info">token tampil di sini</span><span class="path">/supervisor/rooms/{id}/attendance</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| Pengawas · Budi Santoso     [Ruang R-02 · Sesi 2 · Matematika Kelas X  v]|
++--------------------------------------------------------------------------+
+| TOKEN SESI 2 · Matematika                      berlaku 09:30 - 11:30      |
+| +----------------------------------------------------------------------+ |
+| |   <b>4 8 2 9 1 6</b>        [ Tampilkan ]  [ Salin ]  [ Sembunyikan ]     | |
+| |                                                                      | |
+| |   Tampilkan di papan atau bacakan saat peserta meminta.              | |
+| |   Token berlaku untuk seluruh ruang sesi ini, bukan per ruang.       | |
+| +----------------------------------------------------------------------+ |
++--------------------------------------------------------------------------+
+|  Hadir 28  Terlambat 2  Belum 2  Tidak hadir 0  Izin 0  Mengerjakan 21    |
+|  Submit 5  Koneksi terputus 1                                            |
++--------------------------------------------------------------------------+
+| [ Cari nama / NIS / kursi ] [ Verifikasi terpilih ] [ Semua hadir ]      |
+| Urut nomor kursi: Pengawas menyusur baris demi baris, 1-8 depan.         |
++--------------------------------------------------------------------------+
+|  [x] Kursi Nama              NIS      | Presensi    | Pengerjaan         |
+|------+---------------------+-----------+---------------+-------------------|
+|  [x] 01    Ahmad Fauzi       2024001  | <u>Present</u>       | <u>Mengerjakan</u>     |
+|  [x] 02    Bunga Lestari     2024002  | <u>Present</u>       | <u>Submit</u>          |
+|  [ ] 03    Cahyo Nugroho     2024003  | <i>Pending</i>       | —                 |
+|  [ ] 04    Dewi Anggraini    2024004  | <i>Pending</i>       | —                 |
+|  [x] 05    Eka Pratama       2024005  | <i>Late</i>          | <u>Mengerjakan</u>     |
+|  [x] 06    Fajar Ramadhan    2024006  | <u>Present</u>       | <i>Koneksi terputus</i>|
++--------------------------------------------------------------------------+
+| Pilih status: ( ) Hadir  ( ) Terlambat  ( ) Tidak hadir  ( ) Izin         |
+| Alasan (opsional) [....................................]  [ Simpan ]      |
++--------------------------------------------------------------------------+
+| Riwayat: 07:12 Ahmad Fauzi pending -> present oleh Budi S.               |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <span class="tag">Status presensi</span>
+            <h4>Lima keadaan, satu gerbang</h4>
+            <p><span class="pill warn">pending</span> <span class="pill ok">present</span> <span class="pill warn">late</span> <span class="pill bad">absent</span> <span class="pill info">excused</span></p>
+            <p>Hanya <code>present</code> — dan <code>late</code> bila kebijakan ujian mengizinkan serta batas keterlambatan belum lewat — yang membuka jalan ke validasi token.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Presensi massal</span>
+            <h4>Verifikasi banyak sekaligus, tetap berjejak</h4>
+            <p>Pengawas memilih beberapa baris lalu menetapkan satu status. Sistem tetap menulis satu <code>attendance_logs</code> per peserta dengan identitas pengawas dan waktunya. Massal bukan berarti mengabaikan jejak.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Urutan daftar</span>
+            <h4>Nomor kursi, bukan abjad</h4>
+            <p>Pengawas mencocokkan baris tabel dengan orang di ruang, bukan dengan daftar kelas. Nomor kursi juga yang tertulis di meja dan yang ditetapkan saat penempatan peserta, sehingga menyusur ruang baris demi baris berarti menyusur tabel dari atas ke bawah tanpa melompat. Pencarian tetap menerima nama, NIS, dan nomor kursi bagi pengawas yang lebih suka mengetik.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Dua kolom yang dipisah</span>
+            <h4>Presensi milik Pengawas, pengerjaan milik server</h4>
+            <p>Kolom <b>Presensi</b> adalah keputusan Pengawas dan hanya Pengawas ruang itu yang boleh mengubahnya. Kolom <b>Pengerjaan</b> berasal dari server dan tidak dapat diketik siapa pun. Peserta yang sudah hadir tapi belum mulai berbeda masalahnya dari peserta yang koneksinya putus — menyatukan keduanya akan menyembunyikan dua gejala yang berbeda.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Token di sisi pengawas</span>
+            <h4>Pengawas tidak perlu ke konsol Admin</h4>
+            <p>Token dibaca di layar yang sama dengan presensi, sehingga tidak ada perjalanan bolak-balik ke ruangan lain atau panggilan telepon ke Admin saat peserta siap memulai. Ditampilkan tertutup sampai Pengawas menekan Tampilkan, agar tidak terbaca peserta yang mengintip layar pengawas, dan tersalin ke papan tulis dengan satu tombol.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Monitoring</span>
+            <h4>Kolom pengerjaan memakai heartbeat</h4>
+            <p>Heartbeat 30 detik dan status terputus setelah 90 detik tanpa kabar. Angka awal ini wajib diuji lewat load testing, bukan dipercaya begitu saja.</p>
+          </div>
+        </div>
+
+        <div class="note">
+          <b>Token: satu nilai per sesi, dibaca dari dua tempat</b>
+          <p>Rekomendasi PRD 9.7 adalah satu token bersama untuk satu sesi. Karena itu token tidak melekat pada ruang, dan seluruh pengawas dalam sesi yang sama berhak melihat nilai yang sama. Token tetap disimpan sebagai hash untuk validasi, sedangkan nilai tampilan disimpan terenkripsi dan hanya dibuka kepada Admin sekolah dan Pengawas yang punya penugasan pada sesi tersebut. Setiap penampilan nilai token dicatat sebagai aktivitas, supaya bila token beredar ke luar ruang, jejaknya bisa ditelusuri ke akun mana.</p>
+        </div>
+
+        <div class="note gap">
+          <b>Bila sekolah memilih token per ruang</b>
+          <p>PRD membuka kemungkinan itu dengan menambahkan cakupan token pada ruang. Konsekuensinya: <code>exam_tokens</code> mendapat kolom cakupan ruang yang dapat kosong, layar pengawas menampilkan token ruangnya sendiri dan bukan token sesi, dan Admin kehilangan satu tombol ganti yang berlaku serentak. Konsekuensi terakhir itu yang paling sering terlewat — dengan token per ruang, mengganti token saat ujian berjalan berarti mengganti di setiap ruang satu per satu, dan itu justru pekerjaan yang ingin dihindari dengan menampilkan token di portal pengawas.</p>
+        </div>
+
+        <div class="note gap">
+          <b>Pintu kedua untuk Pengawas: magic link per ruang + kode pengawas</b>
+          <p>Pengawas kerap tidak punya akun yang siap dipakai saat sesi pertama dimulai — akunnya dibuat Admin, dan memintanya mencari username sendiri di depan pintu ruang sementara peserta sudah menunggu berarti mengorbankan presensi, padahal presensi adalah gerbang yang menentukan siapa boleh mengerjakan. Karena itu setiap ruang memperoleh sepasang kredensial sendiri, diterbitkan dan dicetak dari laman <code>/admin/ruang</code>.</p>
+          <p>Alurnya dua langkah, dan pemisahan itulah pengamannya. <b>Tautan</b> unik per ruang (mis. <code>cbt.sekolah.id/p/r01-7k4m</code>) menentukan ruang mana yang dibuka; ia panjang, sulit ditebak, dan aman ditempel di pintu karena sendirian tidak membuka apa pun. Setelah tautan dibuka, pengawas mengetik <b>kode pengawas</b> enam angka untuk ruang itu; kode menentukan siapa yang masuk. Server memverifikasi bahwa tautan dan kode menunjuk ruang yang sama, lalu sesi pengawas terbit terbatas pada ruang dan sesi ujian itu, dan pengawas mendarat di <code>/pengawas</code> dengan tepat satu kartu ruang.</p>
+          <p>Sifat yang penting bagi implementasi: satu tautan per ruang, satu kode per ruang, keduanya berdiri sendiri. Membuka tautan R-01 dengan kode R-02 gagal meski kodenya sah. Mencabut kredensial R-01 tidak menyentuh R-02, sehingga ruang lain tidak perlu diterbitkan ulang saat satu kode bocor. Admin melihat seluruh pasangan dalam satu daftar, termasuk ruang yang belum punya pengawas sehingga tautannya memang belum perlu diterbitkan.</p>
+        </div>
+
+        <div class="note gap">
+          <b>Batas magic link, dan mengapa batas itu harus tertulis</b>
+          <p>Magic link bukan pengganti akun, melainkan tiket masuk berbatas waktu yang menerbitkan sesi terbatas pada satu ruang dan satu sesi. Yang terbuka hanya tiga hal yang memang tugas pengawas ruang: presensi, token sesi, dan monitoring ruang itu. Ia tidak membuka nilai, bank soal, data event, kepanitiaan, atau ruang lain. Karena tautannya ditempel di pintu dan terbaca siapa pun yang lewat, ia tidak boleh menjadi satu-satunya penjaga — itulah alasan kode tetap diminta setelah tautan dibuka. Tautan dan kode kedaluwarsa bersama sesinya, masing-masing dapat dicabut Admin secara terpisah, pencabutan langsung memutus sesi yang sedang berjalan, dan setiap pembukaan tercatat sebagai peristiwa berpelaku lengkap dengan waktu, perangkat, dan IP — termasuk pembukaan yang dilakukan dari layar Admin sendiri.</p>
+          <p>Yang tidak boleh terjadi, dan karena itu ditulis di sini: kredensial ruang tidak boleh menjadi jalan pintas menuju data yang bukan milik pengawas, dan tidak boleh hidup lebih lama daripada sesinya. Tautan yang masih berlaku setelah ujian selesai bukan kemudahan, melainkan pintu yang lupa ditutup.</p>
+        </div>
+
+        <div class="note gap">
+          <b>Berita acara: foto dan tanda tangan, diambil dari dalam ruang</b>
+          <p>Presensi menjawab siapa yang hadir. Berita acara menjawab pertanyaan yang datang belakangan — apakah ruangannya tertib, apakah ada peserta yang keluar, apakah ada insiden. Karena itu laman <code>/supervisor/rooms/{id}/report</code> meminta dua hal yang hanya bisa diberikan oleh orang yang berada di ruang itu pada saat itu: foto keadaan ruang dan tanda tangan.</p>
+          <p>Tiga hal yang membuat berkas ini dapat dipercaya. <b>Satu</b>, waktu pengambilan dan metadata perangkat disimpan bersama gambarnya; foto yang dipilih dari galeri setelah ujian tetap tercatat kapan diunggah, sehingga tidak dapat menyamar sebagai bukti saat kejadian. <b>Dua</b>, tanda tangan melekat pada peran dan sesi, bukan pada orang — bila ruang itu digantikan pengawas lain pada sesi berikutnya, tanda tangan lama tidak ikut berpindah. <b>Tiga</b>, Admin boleh membaca, mencetak, dan mengunduh berita acara mana pun di sekolahnya, tetapi tidak boleh menandatanganinya: tanda tangan atas ruang yang tidak ia masuki adalah keterangan palsu, dan fitur yang memudahkannya akan dipakai.</p>
+          <p>Berita acara juga tidak boleh menjadi syarat yang menghambat: draft tersimpan otomatis, dan Pengawas boleh menutup lamannya lalu kembali. Yang ditolak hanyalah pengiriman akhir selama foto sesudah ujian atau tanda tangan yang diwajibkan masih kosong.</p>
+        </div>
+
+        <div class="note gap">
+          <b>Batas lebar: siapa yang memakai ponsel, dan siapa yang tidak</b>
+          <p>Tiga permukaan dipakai berdiri atau sambil berjalan, dan ketiganya digambar dalam rangka ponsel yang lebarnya dijaga di bawah 240 px: <b>Pengawas</b> — sembilan laman, karena pengawas memegang ponsel dengan satu tangan sambil mengawasi ruang; <b>siswa mengerjakan ujian</b> — gerbang, pengerjaan, peringatan, terkunci, dan konfirmasi selesai, karena anak membuka ujian dari ponselnya sendiri; dan <b>laman siswa lainnya</b> — jadwal, nilai, riwayat pelanggaran — memakai rangka yang sama supaya tidak ada dua bentuk tampilan yang harus dipelajari anak yang sama.</p>
+          <p>Yang <i>tidak</i> turun ke rangka ponsel juga diputuskan, dan itu bagian dari keputusan yang sama: laman Guru tetap lebar. Menyusun paket soal, mengoreksi uraian satu per satu, dan membaca analisis butir adalah pekerjaan meja dengan banyak kolom yang harus dibandingkan sekaligus; memaksakannya ke layar sempit akan memindahkan kesulitannya ke tempat yang salah. Konsol Admin juga tetap lebar karena ia mengelola seluruh sekolah.</p>
+          <p>Satu aturan yang lahir dari batas ini, dan perlu diingat saat implementasi: daftar kursi di laman presensi disusun sebagai baris dua tingkat per siswa — nama dan status di tingkat atas, aksi di tingkat bawah — bukan tabel lebar yang harus digeser ke samping. Tabel yang mengharuskan Pengawas menggeser layar sambil berdiri akan salah tandai — dan salah tandai di laman ini berarti siswa yang hadir tercatat tidak hadir, lalu ditolak masuk ujian oleh sistem yang dibangun untuk mencegah hal itu.</p>
+        </div>
+
+        <h3>6 · Siswa — dashboard, gerbang, dan mesin ujian</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Siswa · Dashboard</b><span class="pill mute">read-only</span><span class="path">/student/exams</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| Halo, Ahmad Fauzi · Kelas X-1 · SMK Negeri 1                              |
++--------------------------------------------------------------------------+
+| SEDANG BERLANGSUNG                                                        |
+| +----------------------------------------------------------------------+ |
+| | Matematika · Sesi 2 · Ruang R-02 · sisa 62 menit      [ Lanjutkan ]  | |
+| | Presensi: <u>Present</u> diverifikasi 07:12 oleh Budi S.                  | |
+| +----------------------------------------------------------------------+ |
+|                                                                          |
+| HARI INI                                                                  |
+| +----------------------------------------------------------------------+ |
+| | 09:30  Bahasa Indonesia  Sesi 2  R-02  | Presensi <i>Pending</i>          | |
+| |        Menunggu verifikasi pengawas ruang                             | |
+| +----------------------------------------------------------------------+ |
+|                                                                          |
+| SELESAI &amp; HASIL                                                          |
+|  07:00  Pendidikan Agama   Sesi 1   Nilai 86   <u>dipublikasikan</u>          |
+|  Kemarin Matematika Try Out        Nilai —    <i>menunggu koreksi essay</i>   |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+
+        <div class="plate">
+          <div class="plate-bar"><b>Siswa · Gerbang akses</b><span class="pill bad">ditolak</span><span class="path">/student/exams/{id}</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| Bahasa Indonesia · Sesi 2 · Ruang R-02                                    |
++--------------------------------------------------------------------------+
+|                      AKSES UJIAN BELUM TERSEDIA                           |
+|                                                                          |
+|   Anda belum mendapatkan verifikasi kehadiran dari Pengawas ruang ujian. |
+|   Silakan hubungi Pengawas yang bertugas untuk melakukan verifikasi       |
+|   sebelum memulai ujian.                                                  |
+|                                                                          |
+|   Pengawas R-02: Budi Santoso                                            |
+|                                                                          |
+|   [ Input Token ]  <i>nonaktif sampai presensi sah</i>                       |
+|                                                                          |
+|   Status Anda: <i>Pending</i>   Diperbarui: 09:31   [ Segarkan status ]    |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+        <div class="note">
+          <b>Teks galat diambil apa adanya dari PRD 10.9</b>
+          <p>Pesan ini bukan hiasan: ia satu-satunya instruksi yang dibaca siswa saat gagal masuk. Karena itu layarnya menyebut nama pengawas ruang dan status terkini, lalu menyediakan tombol untuk menyegarkan status — supaya siswa tahu harus menunggu siapa, bukan menyimpulkan ujiannya rusak.</p>
+        </div>
+
+        <div class="plate">
+          <div class="plate-bar"><b>Siswa · Mesin ujian</b><span class="pill info">autosave</span><span class="path">/student/attempts/{id}</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| Matematika · UAS Ganjil 2026/2027      Sesi 2 · R-02      <b>Sisa 01:02:14</b> |
++--------------------------------------------------------------------------+
+| SOAL 3 DARI 40        [&lt;] [&gt;]   Tandai review [ ]                        |
+|                                                                          |
+| +--------------------------------------+ +-----------------------------+ |
+| | Nilai x yang memenuhi 2x + 6 = 14    | | NAVIGASI SOAL               | |
+| | adalah...                            | |                             | |
+| |                                      | | <u>1</u> <u>2</u> <b>3</b> <i>4</i> 5 6 7 8 9 10                | |
+| | ( ) x = 2                            | | 11 12 13 14 15 16 17 18 19  | |
+| | ( ) x = 3                            | | 20 21 22 23 24 25 26 27 28  | |
+| | (v) x = 4                            | | 29 30 31 32 33 34 35 36 37  | |
+| | ( ) x = 5                            | | 38 39 40                   | |
+| |                                      | |                             | |
+| | [ Soal berikutnya > ]                | | <u>terjawab</u>  <i>review</i>  kosong | |
+| +--------------------------------------+ +-----------------------------+ |
+|                                                                          |
+| Tersimpan 09:41:02  OK       [ Sebelumnya ]  [ Selesai &amp; kumpulkan ]     |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <span class="tag">Yang tidak ada di layar siswa</span>
+            <h4>Tidak ada kunci, tidak ada bobot, tidak ada pembahasan</h4>
+            <p>Payload soal hanya membawa teks pertanyaan, pilihan tanpa penanda benar, dan media. Kunci jawaban, konfigurasi skor, dan rubrik tetap di server. Ini juga alasan navigasi soal dirender dari urutan yang sudah dibekukan per attempt, agar pengacakan soal dan opsi konsisten dengan yang dinilai server.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Ringkasan sebelum submit</span>
+            <h4>Empat angka, satu keputusan</h4>
+            <p>Total soal, terjawab, belum terjawab, dan ditandai review — sesuai PRD 11.7. Setelah konfirmasi, jawaban dikunci, <code>submitted_at</code> dicatat, penilaian otomatis berjalan, dan essay masuk antrean koreksi. Bila waktu habis lebih dulu, penutupan attempt dilakukan server dan harus idempotent.</p>
+          </div>
+        </div>
+
+        <h3>7 · Guru — koreksi essay, dan Admin — publikasi hasil</h3>
+        <div class="plate">
+          <div class="plate-bar"><b>Guru · Koreksi Essay</b><span class="pill warn">menunggu</span><span class="path">/teacher/grading</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| Tugas koreksi · Bahasa Indonesia · UAS Ganjil 2026/2027                   |
+| Menunggu 42 · Selesai 118                                     [ Filter ] |
++--------------------------------------------------------------------------+
+| Soal 38 · Essay · skor maks 10 · rubrik 3 kriteria                        |
++--------------------------------------------------------------------------+
+|  Siswa: Ahmad Fauzi · X-1 · Sesi 2                                        |
+| +--------------------------------------+ +-----------------------------+ |
+| | Jawaban siswa                        | | PENILAIAN                   | |
+| |                                      | | Kriteria 1  [ 3 ] / 4       | |
+| | "Menurut saya faktor utamanya        | | Kriteria 2  [ 2 ] / 3       | |
+| |  adalah ..."                         | | Kriteria 3  [ 1 ] / 3       | |
+| |                                      | |-----------------------------| |
+| |                                      | | Total   6 / 10              | |
+| |                                      | | Feedback [................] | |
+| |                                      | | [ Simpan &amp; berikutnya ]      | |
+| +--------------------------------------+ +-----------------------------+ |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+        <div class="plate">
+          <div class="plate-bar"><b>Admin · Hasil &amp; Publikasi</b><span class="pill bad">belum final</span><span class="path">/admin/events/{event}/reports</span></div>
+<pre>
++--------------------------------------------------------------------------+
+| UAS Ganjil > Hasil                          [ Ekspor XLSX | CSV | PDF ]   |
++--------------------------------------------------------------------------+
+| Status koreksi: <i>Partially Graded</i>  · 14 attempt menunggu essay      |
+| [ Publikasikan hasil ]  <i>nonaktif sampai seluruh essay terkoreksi</i>     |
++--------------------------------------------------------------------------+
+| Kelas | Peserta | Rata-rata | Tertinggi | Terendah | Belum final |        |
+|-------+---------+-----------+-----------+---------+-------------|        |
+| X-1   |  32     |   78,4    |   96      |   51    |     3       |        |
+| X-2   |  30     |   74,1    |   92      |   48    |     6       |        |
+| X-3   |  28     |   81,0    |   98      |   60    |     5       |        |
++--------------------------------------------------------------------------+
+| Nilai Akhir = (Total Skor Diperoleh / Total Skor Maksimal) x 100          |
+| Siswa hanya melihat nilainya sendiri setelah dipublikasikan.              |
++--------------------------------------------------------------------------+
+</pre>
+        </div>
+
+        <h3>Peta rute dan halaman</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Area</th><th>Rute acuan</th><th>Halaman kunci</th></tr></thead>
+            <tbody>
+              <tr><td>Auth</td><td><code>/login</code></td><td>Login username + password, semua role</td></tr>
+              <tr><td>Admin master</td><td><code>/admin/school</code>, <code>/admin/teachers</code>, <code>/admin/students</code>, <code>/admin/classes</code>, <code>/admin/subjects</code>, <code>/admin/rooms</code></td><td>Data induk di luar event</td></tr>
+              <tr><td>Admin event</td><td><code>/admin/events</code> dan sub-rute PRD 20.3</td><td>Workspace event + readiness</td></tr>
+              <tr><td>Guru</td><td><code>/teacher/questions</code>, <code>/teacher/packages</code>, <code>/teacher/import</code>, <code>/teacher/grading</code></td><td>Bank soal, builder, impor, koreksi</td></tr>
+              <tr><td>Pengawas</td><td><code>/supervisor/dashboard</code>, <code>/supervisor/assignments</code>, <code>/supervisor/rooms/{id}/attendance</code>, <code>/supervisor/rooms/{id}/report</code>, <code>/p/{slug-ruang}</code></td><td>Presensi, monitoring, dan token sesi penugasannya; <code>/report</code> untuk berita acara berisi foto ruang dan tanda tangan yang melekat pada peran + sesi; <code>/p/{slug-ruang}</code> menerima magic link per ruang, lalu meminta kode pengawas</td></tr>
+              <tr><td>Siswa</td><td><code>/student/exams</code>, <code>/student/exams/{id}/eligibility</code>, <code>/student/attempts/{id}</code></td><td>Jadwal, gerbang, pengerjaan</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="rencana">
+        <header>
+          <h2><em>F</em> Rencana Eksekusi</h2>
+          <p class="sub">Sembilan fase mengikuti PRD bagian 22, tetapi tiap fase di sini memuat keluaran konkret, syarat mulai, dan cara membuktikan fase itu selesai. Urutannya sengaja tidak bisa ditukar: setiap fase memakai hasil fase sebelumnya.</p>
+        </header>
+
+        <div class="note">
+          <b>Aturan kerja lintas fase</b>
+          <p>Setiap fase menutup dengan migrasi, seeder/factory, policy, feature test, dan satu halaman Inertia yang benar-benar bisa dibuka. Tidak ada fase yang "selesai" hanya karena backend-nya jalan tanpa layar; sebaliknya, tidak ada layar yang dibangun di atas endpoint yang belum punya policy dan test.</p>
+        </div>
+
+        <div class="phases">
+
+          <div class="phase">
+            <header><span class="n">FASE 1</span><h4>Fondasi &amp; isolasi tenant</h4><span class="when">paling menentukan</span></header>
+            <p>Semua fase lain bergantung pada ini. Kalau isolasi salah di sini, memperbaikinya nanti berarti menyentuh setiap controller.</p>
+            <div class="deliv">
+              <div>Setup Laravel 13 + Inertia 3 + React + shadcn/ui + Vite; dua entry layout (app dan ujian) karena halaman ujian perlu chrome minimal.</div>
+              <div>Tabel <code>schools</code> dan <code>users</code>, dengan <code>users.username</code> unique global; login username + password untuk keempat role, rate limiting per username + IP, pencatatan <code>last_login_at</code>.</div>
+              <div>Middleware tenant, trait <code>BelongsToSchool</code>, global query scope, dan <code>SchoolResolver</code> sebagai satu-satunya sumber <code>school_id</code> dari sesi.</div>
+              <div>Spatie/Laravel-permission atau enum role + Policy; empat layout React (<code>admin</code>, <code>teacher</code>, <code>student</code>, <code>supervisor</code>).</div>
+              <div>Audit log dasar dan struktur modul <code>app/Domain/*</code> dengan aturan batas antar modul.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> test isolasi tenant lulus — user sekolah A memanggil ID milik sekolah B dan menerima 404, bukan 403 yang membocorkan keberadaan data. Login keempat role dengan satu form username mengarah ke dashboard masing-masing, dan username yang tidak ada memberi pesan yang sama persis dengan password yang salah.</p>
+          </div>
+
+          <div class="phase">
+            <header><span class="n">FASE 2</span><h4>Master data akademik</h4><span class="when">di luar event</span></header>
+            <div class="deliv">
+              <div>Profil sekolah, tahun ajaran, semester, kelas, enrollment, mata pelajaran, penugasan mengajar, ruang.</div>
+              <div>CRUD Admin dengan pencarian, filter, dan paginasi server-side; impor/ekspor Guru, Siswa, Pengawas.</div>
+              <div>Akun otomatis untuk Guru/Siswa/Pengawas dengan penautan profil one-to-one.</div>
+              <div>Penugasan mengajar sebagai dasar pembatasan akses Guru — dipakai sejak Fase 3.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> Admin dapat menyiapkan satu sekolah lengkap (1 tahun ajaran, 6 kelas, 8 mapel, 24 ruang, 1200 siswa) tanpa menyentuh database langsung, dan Guru hanya melihat mapel/kelas yang ditugaskan kepadanya.</p>
+          </div>
+
+          <div class="phase">
+            <header><span class="n">FASE 3</span><h4>Event management &amp; workspace</h4><span class="when">jantung produk</span></header>
+            <div class="deliv">
+              <div>CRUD <code>school_events</code> + <code>event_activities</code>; siklus status Draft → Preparation → Ready → Ongoing → Completed → Archived/Cancelled.</div>
+              <div>Event Workspace dengan rail 15 item sesuai PRD 6.4, semuanya membaca konteks event aktif.</div>
+              <div>Kepanitiaan, kelas &amp; peserta event (generate dari enrollment aktif + pengecualian/penambahan manual), mata pelajaran, alokasi ruang, penugasan Guru.</div>
+              <div>Event Readiness service yang mengembalikan daftar butir gagal beserta tautan perbaikan; memblokir transisi ke Ready.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> satu event lengkap terbentuk dari nol, readiness menyebut sisa kekurangan secara tepat, dan Admin dapat menutup event menjadi Completed lalu Archived tanpa memutus riwayat.</p>
+          </div>
+
+          <div class="phase">
+            <header><span class="n">FASE 4</span><h4>Bank soal &amp; paket soal</h4><span class="when">paling luas</span></header>
+            <div class="deliv">
+              <div>Sembilan jenis soal dengan skema JSON: <code>prompt_json</code>, <code>answer_key_json</code>, <code>scoring_config_json</code>, <code>explanation_json</code>, plus <code>question_options</code>, <code>question_items</code>, <code>question_media</code>, <code>essay_rubric_criteria</code>.</div>
+              <div>Question Builder dengan editor kaya (bold/italic/underline, sub/superscript, daftar, tabel, gambar, audio, video, rumus) dan penyimpanan terstruktur agar bisa dimuat ulang.</div>
+              <div>Paket soal + item + urutan + bobot + total nilai; riwayat penggunaan paket.</div>
+              <div>Impor Excel bertahap: unggah, baca struktur, validasi, preview, galat per sheet dan nomor baris, konfirmasi, simpan; idempotent terhadap kiriman ulang file yang sama.</div>
+              <div>Snapshot service yang membekukan paket ke <code>exam_questions</code>.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> Guru membuat satu paket berisi kesembilan jenis soal, mengimpornya lewat Excel dengan setidaknya satu galat yang dilaporkan tepat barisnya, lalu paket itu dapat disnapshot tanpa kehilangan kunci, bobot, atau rubrik.</p>
+          </div>
+
+          <div class="phase">
+            <header><span class="n">FASE 5</span><h4>Manajemen ujian</h4><span class="when">rajin validasi</span></header>
+            <div class="deliv">
+              <div><code>exams</code> dengan durasi, maksimal percobaan, pengacakan soal/opsi, kebijakan navigasi, kebijakan keterlambatan, publikasi hasil; <code>exam_classes</code>.</div>
+              <div>Snapshot soal dijalankan saat paket ditetapkan.</div>
+              <div>Sesi, ruang per sesi, penempatan peserta, penugasan pengawas, dan token (hash untuk validasi, terenkripsi untuk tampilan berwenang).</div>
+              <div>Validasi kapasitas, benturan ruang, dan benturan penugasan pengawas ditampilkan di layar, bukan hanya sebagai galat simpan.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> satu ujian dengan 3 sesi × 8 ruang × 300 peserta tersusun tanpa peserta ganda, tanpa ruang melebihi kapasitas, dan tanpa pengawas bentrok; mengganti isi paket asli tidak mengubah snapshot.</p>
+          </div>
+
+          <div class="phase">
+            <header><span class="n">FASE 6</span><h4>Portal pengawas &amp; presensi</h4><span class="when">gerbang produk</span></header>
+            <div class="deliv">
+              <div>Pembuatan <code>attendance_records</code> berstatus <code>pending</code> otomatis saat peserta ditempatkan — tanpa daftar manual.</div>
+              <div>Dashboard pengawas, daftar ruang dari <code>supervision_assignments</code>, daftar peserta per ruang, pencarian, presensi individual dan massal.</div>
+              <div>Pembacaan token sesi dari layar presensi pengawas — ditampilkan tertutup sampai diminta, dapat disalin, dan setiap penampilan nilai tercatat sebagai aktivitas. Ini menghapus kebutuhan pengawas berjalan ke konsol Admin saat peserta siap memulai.</div>
+              <div><code>attendance_logs</code> append-only untuk setiap perubahan, termasuk koreksi.</div>
+              <div>Monitoring dasar: status pengerjaan, heartbeat, status koneksi, incident report.</div>
+              <div>Magic link per ruang: slug unik tiap ruang plus kode pengawas per ruang, keduanya diterbitkan dan dapat dicabut terpisah dari rincian ruang Admin, dengan laman masuk <code>/p/{slug}</code> yang meminta kode sebelum menerbitkan sesi terbatas satu ruang, serta pencatatan setiap pembukaan. Tanpa ini portal pengawas bergantung pada akun yang belum tentu siap saat sesi pertama dimulai.</div>
+              <div>Berita acara per ruang-sesi: unggah foto keadaan ruang sebelum dan sesudah ujian beserta waktu pengambilan, catatan kejadian, dan tanda tangan Pengawas yang melekat pada peran + sesi. Draft tersimpan otomatis; pengiriman akhir ditolak selama berkas wajib belum lengkap.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> pengawas di ruang R-02 tidak dapat melihat atau memverifikasi peserta R-03 meski menebak ID-nya; setiap perubahan presensi meninggalkan satu baris log yang tidak bisa dihapus dari antarmuka; pengawas sesi 2 dapat membaca token sesinya dari layar presensi tanpa membuka konsol Admin, dan pengawas sesi lain ditolak. Magic link hanya menerbitkan sesi untuk ruang yang ditunjuk slug-nya, kode ruang lain ditolak meski sah, mencabut kredensial R-01 tidak memengaruhi R-02, tidak ada kredensial yang masih berlaku setelah sesinya berakhir, dan pencabutan langsung memutus sesi berjalan. Berita acara ruang R-02 tidak dapat disunting pengawas R-03, Admin dapat mengunduh tetapi tidak dapat menandatangani berita acara mana pun, dan berita acara tidak dapat dikirim final selama foto sesudah ujian atau tanda tangan wajib masih kosong.</p>
+          </div>
+
+          <div class="phase">
+            <header><span class="n">FASE 7</span><h4>Mesin ujian siswa</h4><span class="when">paling kritis</span></header>
+            <div class="deliv">
+              <div>Dashboard siswa, daftar ujian, detail, dan layar gerbang presensi.</div>
+              <div>Endpoint <code>eligibility</code> dan <code>start</code> dengan 11 pemeriksaan berurutan; attempt dibuat dalam transaksi dengan row locking.</div>
+              <div>Antarmuka pengerjaan dengan timer server, navigasi, penanda review, indikator status; autosave dengan debounce dan <code>version</code>.</div>
+              <div>Autosave dengan debounce dan <code>version</code>.</div>
+              <div>Lapisan penangkal siswa: klik kanan, salin, pintasan devtools dan cetak, deteksi pindah tab, deteksi proteksi mati, layar penuh opsional, dan tangga eskalasi empat tingkat dengan penguncian attempt yang hanya dapat dibuka Pengawas atau Admin.</div>
+              <div>Tabel <code>exam_violations</code> append-only, kolom kebijakan pelanggaran pada <code>exams</code>, dan kolom counter serta status kunci pada <code>exam_attempts</code>.</div>
+              <div>Pemulihan sesi, submit berkunci, dan automatic submission idempotent saat deadline tercapai.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> siswa <code>pending</code> ditolak walau memanggil endpoint <code>start</code> langsung; mencabut koneksi saat mengerjakan lalu menyambung kembali memulihkan jawaban tanpa kehilangan satu pun; dua request start bersamaan menghasilkan tepat satu attempt; memindahkan tab lima kali menghasilkan penguncian dengan jejak lengkap, dan siswa terkunci tidak dapat membuka sendiri lewat pemuatan ulang halaman.</p>
+          </div>
+
+          <div class="phase">
+            <header><span class="n">FASE 8</span><h4>Penilaian, hasil, dan pelaporan</h4><span class="when">penutup siklus</span></header>
+            <div class="deliv">
+              <div>Penilaian otomatis tujuh jenis objektif, termasuk mode skor parsial multiple answers sesuai konfigurasi tiap soal.</div>
+              <div>Antrean koreksi essay, penilaian per kriteria rubrik, feedback, status Not Graded → Partially Graded → Fully Graded → Published.</div>
+              <div>Perhitungan hasil dan aturan bahwa hasil dengan essay belum terkoreksi tidak boleh dianggap final.</div>
+              <div>Publikasi terkendali oleh Admin; laporan per event/ujian/mapel/kelas/sesi/ruang dengan ekspor XLSX, CSV, PDF melalui queue.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> nilai akhir cocok dengan rumus PRD pada serangkaian kasus uji, tombol publikasi tidak dapat menandai hasil yang masih menunggu koreksi, dan siswa hanya melihat nilainya sendiri.</p>
+          </div>
+
+          <div class="phase">
+            <header><span class="n">FASE 9</span><h4>QA, beban, dan peluncuran</h4><span class="when">pintu masuk produksi</span></header>
+            <div class="deliv">
+              <div>Uji keamanan: isolasi tenant, otorisasi presensi, kebocoran kunci jawaban, rate limiting token dan login.</div>
+              <div>Uji fungsional seluruh alur per role termasuk jalur gagal, bukan hanya jalur bahagia.</div>
+              <div>Load testing 300 siswa konkuren; ukur P95 simpan jawaban ≤ 2 detik dan pemuatan halaman operasional ≤ 3 detik; kalibrasi heartbeat dari hasil ukur.</div>
+              <div>Uji backup &amp; pemulihan, monitoring error, dan prosedur penerapan ke produksi.</div>
+            </div>
+            <p class="exit"><b>Selesai bila:</b> hasil load test memenuhi target PRD 19.3 pada lingkungan uji yang disepakati, dan prosedur pemulihan sudah dibuktikan minimal sekali dari cadangan nyata.</p>
+          </div>
+
+        </div>
+      </section>
+
+      <section id="gate">
+        <header>
+          <h2><em>G</em> Gate Kualitas &amp; Kriteria Penerimaan</h2>
+          <p class="sub">Kriteria penerimaan PRD bagian 21 diterjemahkan menjadi pemeriksaan yang bisa dijalankan. Ini yang menentukan sebuah fase boleh disebut selesai.</p>
+        </header>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>Area</th><th>Kriteria</th><th>Cara membuktikan</th></tr></thead>
+            <tbody>
+              <tr><td rowspan="2">Multi-tenant</td><td>Data antar sekolah terisolasi; manipulasi ID tidak menembus batas.</td><td>Test otomatis menyilangkan ID lintas sekolah pada setiap endpoint ber-ID</td></tr>
+              <tr><td>Username unik lintas seluruh platform, bukan hanya per sekolah.</td><td>Impor dua sekolah berisi NIS yang sama; importer menolak atau memberi awalan, tidak pernah membuat dua akun berusername sama</td></tr>
+              <tr><td rowspan="3">Event</td><td>Event menampung beberapa kegiatan evaluasi.</td><td>Satu event dengan aktivitas teori, praktik, remedial berjalan tanpa saling mengganggu</td></tr>
+              <tr><td>Kelas, mapel, peserta, ruang, guru, pengawas dapat ditetapkan.</td><td>Membangun event lengkap dari nol hanya lewat UI</td></tr>
+              <tr><td>Status Ready hanya tercapai bila syarat wajib terpenuhi.</td><td>Menghapus satu komponen lalu memastikan transisi ditolak</td></tr>
+              <tr><td rowspan="2">Soal</td><td>Sembilan kategori dapat dibuat, diedit, dan dipratinjau.</td><td>Satu paket uji berisi sembilan jenis soal</td></tr>
+              <tr><td>Snapshot menjaga konsistensi ujian.</td><td>Mengubah soal asli setelah penjadwalan; snapshot tidak berubah</td></tr>
+              <tr><td rowspan="4">Presensi</td><td>Siswa belum dipresensi tidak dapat memulai ujian.</td><td>Panggilan langsung ke endpoint <code>start</code> ditolak dengan status presensi</td></tr>
+              <tr><td>Pengawas hanya melihat dan memverifikasi ruangnya.</td><td>Percobaan lintas ruang gagal</td></tr>
+              <tr><td>Record presensi terbentuk otomatis saat penempatan.</td><td>Menempatkan peserta lalu memeriksa record <code>pending</code> tanpa aksi pengawas</td></tr>
+              <tr><td>Riwayat perubahan presensi tersimpan.</td><td>Koreksi berkali-kali menghasilkan baris log berurutan</td></tr>
+              <tr><td>Token sesi dapat dibaca pengawas tanpa konsol Admin.</td><td>Pengawas sesi 2 melihat token sesi 2 pada layar presensinya; pengawas sesi lain ditolak</td></tr>
+              <tr><td rowspan="3">Mesin ujian</td><td>Server-side timer dan autosave andal.</td><td>Mengubah jam perangkat siswa; sisa waktu tidak terpengaruh</td></tr>
+              <tr><td>Attempt ganda tidak sah dicegah.</td><td>Dua request start bersamaan menghasilkan satu attempt</td></tr>
+              <tr><td>Kunci jawaban tidak pernah sampai ke browser siswa.</td><td>Memeriksa payload respons soal siswa</td></tr>
+              <tr><td rowspan="3">Keamanan siswa</td><td>Klik kanan, salin, dan pintasan devtools ditahan tanpa mengganggu pengerjaan.</td><td>Mencoba klik kanan, seleksi, Ctrl+C, F12, Ctrl+P; jawaban tetap tersimpan normal</td></tr>
+              <tr><td>Pindah tab tercatat dan dieskalasi sesuai ambang sekolah.</td><td>Berpindah tab melewati ambang; attempt terkunci dengan baris <code>exam_violations</code> lengkap</td></tr>
+              <tr><td>Penguncian tidak dapat dibuka siswa sendiri.</td><td>Memuat ulang halaman dan memanggil ulang endpoint jawaban sebagai siswa terkunci; kedua-duanya ditolak</td></tr>
+              <tr><td rowspan="3">Nilai &amp; laporan</td><td>Soal objektif dinilai otomatis; essay oleh Guru.</td><td>Submit lalu bandingkan skor otomatis dengan kunci</td></tr>
+              <tr><td>Hasil final dibedakan dari yang belum final.</td><td>Attempt dengan essay belum dikoreksi tidak dapat dipublikasikan</td></tr>
+              <tr><td>Siswa hanya melihat nilainya sendiri.</td><td>Percobaan membuka nilai siswa lain gagal</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Definisi selesai yang berlaku di seluruh fase</h3>
+        <div class="grid2">
+          <div class="card">
+            <span class="tag">Wajib ada</span>
+            <h4>Migrasi, factory, policy, test, layar</h4>
+            <p>Sebuah fitur tidak dianggap ada sebelum kelima unsur itu lengkap. Seeder dan factory bukan pelengkap: tanpa keduanya, fase berikutnya tidak bisa diuji dengan data yang realistis.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Wajib diuji</span>
+            <h4>Jalur gagal, bukan hanya jalur berhasil</h4>
+            <p>Setiap aturan kritis di bagian C punya test yang membuktikan penolakannya: siswa pending, pengawas ruang lain, token kedaluwarsa, attempt melebihi batas, ruang melebihi kapasitas, pengawas bentrok.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="risiko">
+        <header>
+          <h2><em>H</em> Risiko &amp; Keputusan yang Harus Diambil Lebih Dulu</h2>
+          <p class="sub">Risiko teknis dari PRD 23 dengan titik deteksi dini di dalam rencana, lalu sepuluh keputusan terbuka dari PRD 24 yang memblokir fase tertentu.</p>
+        </header>
+
+        <h3>Risiko dan tempat menangkalnya</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Risiko</th><th>Dampak</th><th>Penangkal</th><th>Fase</th></tr></thead>
+            <tbody>
+              <tr><td>Akses lintas sekolah</td><td>Kebocoran data</td><td>Middleware tenant, query scope, policy, foreign key gabungan, test silang</td><td class="num">1</td></tr>
+              <tr><td>Presensi dimanipulasi</td><td>Ujian tanpa verifikasi</td><td>Validasi backend di <code>start</code> + log presensi append-only</td><td class="num">6–7</td></tr>
+              <tr><td>Attempt ganda</td><td>Jawaban dan nilai tidak konsisten</td><td>Transaksi + row locking + unique constraint</td><td class="num">7</td></tr>
+              <tr><td>Koneksi terputus</td><td>Jawaban hilang</td><td>Autosave dengan <code>version</code>, pemulihan sesi</td><td class="num">7</td></tr>
+              <tr><td>Timer perangkat dimanipulasi</td><td>Durasi ujian tidak akurat</td><td><code>deadline_at</code> dihitung dan disimpan server</td><td class="num">7</td></tr>
+              <tr><td>Kunci jawaban terekspos</td><td>Integritas ujian terganggu</td><td>Serializer terpisah untuk siswa; kunci hanya di jalur penilaian</td><td class="num">4–7</td></tr>
+              <tr><td>Ruang melebihi kapasitas</td><td>Gangguan pelaksanaan</td><td>Validasi kapasitas tampil di layar sesi</td><td class="num">5</td></tr>
+              <tr><td>Pengawas bentrok jadwal</td><td>Kekurangan petugas</td><td>Validasi benturan penugasan</td><td class="num">5</td></tr>
+              <tr><td>Beban akses bersamaan</td><td>Sistem lambat</td><td>Redis, indeks gabungan, queue untuk impor/ekspor, load testing</td><td class="num">9</td></tr>
+              <tr><td>Soal berubah setelah penjadwalan</td><td>Soal ujian berubah</td><td>Snapshot penuh di <code>exam_questions</code></td><td class="num">4–5</td></tr>
+              <tr><td>Kebingungan konteks event</td><td>Admin salah menetapkan data</td><td>Pemilih event di header, rail terikat event, validasi keanggotaan event</td><td class="num">3</td></tr>
+              <tr><td>Proteksi browser dilewati</td><td>Rasa aman yang palsu</td><td>Proteksi hanya penangkal; penjaga sebenarnya adalah kunci jawaban di server, validasi presensi, dan timer server</td><td class="num">7</td></tr>
+              <tr><td>Proteksi mengganggu siswa jujur</td><td>Ujian terhenti tanpa alasan curang</td><td>Tangga eskalasi bertingkat, ambang per ujian, deteksi ringan tidak menghentikan attempt</td><td class="num">7</td></tr>
+              <tr><td>Pelanggaran dicatat tanpa sepengetahuan siswa</td><td>Sengketa tidak dapat diselesaikan</td><td>Riwayat pelanggaran terlihat siswa pada halaman hasil dan riwayat</td><td class="num">7–8</td></tr>
+              <tr><td>Pergantian tahun ajaran</td><td>Data lama bercampur data baru</td><td>Kebijakan arsip dan penutupan tahun ajaran yang eksplisit</td><td class="num">2</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Keputusan terbuka</h3>
+        <div class="tw">
+          <table>
+            <thead><tr><th>#</th><th>Keputusan</th><th>Memblokir</th><th>Dampak bila ditunda</th></tr></thead>
+            <tbody>
+              <tr><td class="num">1</td><td>MySQL atau PostgreSQL</td><td class="num">Fase 1</td><td>Composite foreign key dan tipe JSON berperilaku berbeda; migrasi awal harus dirombak</td></tr>
+              <tr><td class="num">2</td><td>Satu perangkat aktif per attempt, atau perpindahan diizinkan</td><td class="num">Fase 7</td><td>Logika pemulihan sesi dan penandaan perangkat berubah bentuk</td></tr>
+              <tr><td class="num">3</td><td>Siapa boleh mengizinkan ujian ulang</td><td class="num">Fase 5</td><td>Aturan <code>max_attempts</code> dan alur persetujuan belum jelas</td></tr>
+              <tr><td class="num">4</td><td>Reset attempt: Admin atau Pengawas berwenang</td><td class="num">Fase 6–7</td><td>Kewenangan dan audit log tidak bisa dirancang</td></tr>
+              <tr><td class="num">5</td><td>Bank soal: pribadi, bersama, atau keduanya</td><td class="num">Fase 4</td><td>Skema kepemilikan dan policy soal berubah mendasar</td></tr>
+              <tr><td class="num">6</td><td>Token per sesi atau per ruang</td><td class="num">Fase 5</td><td>Struktur <code>exam_tokens</code> dan validasinya berubah</td></tr>
+              <tr><td class="num">7</td><td>Kebijakan siswa terlambat: batas waktu dan mekanisme persetujuan</td><td class="num">Fase 6–7</td><td>Status <code>late</code> tidak dapat diputuskan di endpoint start</td></tr>
+              <tr><td class="num">8</td><td>Pembatalan dan penjadwalan ulang event</td><td class="num">Fase 3</td><td>Siklus status dan penanganan attempt berjalan belum jelas</td></tr>
+              <tr><td class="num">9</td><td>Publikasi nilai per ujian atau per event</td><td class="num">Fase 8</td><td>Granularitas <code>published_at</code> dan laporan siswa berubah</td></tr>
+              <tr><td class="num">10</td><td>Penguncian dan pembukaan kembali hasil koreksi</td><td class="num">Fase 8</td><td>Arti status Fully Graded tidak dapat dijamin</td></tr>
+              <tr><td class="num">11</td><td>Ambang dan bentuk sanksi pelanggaran saat mengerjakan <span class="pill mute">di luar PRD 24</span></td><td class="num">Fase 7</td><td>Tanpa angka yang disepakati sekolah, penguncian attempt berisiko menghukum siswa jujur</td></tr>
+              <tr><td class="num">12</td><td>Bentuk username: NIS/NIP apa adanya, atau ada akun staf tersendiri <span class="pill mute">di luar PRD 24</span></td><td class="num">Fase 1–2</td><td>Menentukan validasi login dan pembuatan akun otomatis dari data induk</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note risk">
+          <b>Rekomendasi urutan keputusan</b>
+          <p>Putuskan nomor 1 dan 5 sebelum menulis migrasi pertama; nomor 6 dan 7 sebelum Fase 5 karena keduanya menembus skema; nomor 3, 4, 9, dan 10 sebelum Fase 8 saat aturan penilaian dikunci. Sisanya (2 dan 8) dapat diputuskan saat fasenya dimulai tanpa membongkar apa pun.</p>
+        </div>
+
+        <h3>Langkah pertama yang diusulkan</h3>
+        <div class="grid3">
+          <div class="card">
+            <span class="tag">Langkah 1</span>
+            <h4>Tutup keputusan yang memblokir</h4>
+            <p>Cukup satu sesi keputusan bersama pemilik produk untuk nomor 1, 5, 6, 7, 11, dan 12. Sisanya bisa menyusul sesuai fase.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Langkah 2</span>
+            <h4>Eksekusi Fase 1 sampai 3</h4>
+            <p>Fondasi tenant, master data, dan Event Workspace adalah fondasi yang menentukan apakah sisa tujuh fase berjalan mulus atau penuh tambalan.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Langkah 3</span>
+            <h4>Uji gerbang lebih awal</h4>
+            <p>Jangan menunggu Fase 7 untuk menguji attendance gating. Buat test penolakannya sejak Fase 6 agar integrasi presensi–attempt tidak jadi kejutan di akhir.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <span>School CBT · blueprint pra-eksekusi</span>
+        <span>sumber: prd.md v0.3 · 2 November 2026</span>
+        <span>dokumen lanjutan: Migration Spec · Models · Policies · Architecture</span>
+      </footer>
+
+    </main>
+  </div>
+</div>

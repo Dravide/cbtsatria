@@ -1,0 +1,1223 @@
+<title>Konsol Admin School CBT</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   Konsol Admin School CBT — galeri miniatur laman (wireframe)
+   Layout: kisi miniatur, tiap laman dirender sebagai skema kecil
+   di dalam rangka jendela. Satu anatomi besar beranotasi nomor.
+   Warna: netral slate + aksen tunggal; primitif wireframe punya
+   tokennya sendiri (--wf-*) supaya bisa dibaca di dua tema.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+/* ---------- kepala halaman ---------- */
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:70ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+/* ---------- filter ---------- */
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.fbtn{font:500 12px/1 var(--font-mono);letter-spacing:.04em;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.fbtn b{color:var(--ink-3);font-weight:500}
+.fbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.fbtn.on b{color:color-mix(in srgb,var(--on-accent) 70%,transparent)}
+.group{margin-bottom:38px;display:grid;gap:18px}
+.group[hidden]{display:none}
+.group > header{display:grid;gap:5px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.group > header h2{font-size:1.3rem;display:flex;gap:10px;align-items:baseline}
+.group > header em{font-style:normal;font-family:var(--font-mono);font-size:12px;color:var(--accent)}
+.group > header p{color:var(--ink-2);font-size:13.5px;max-width:72ch}
+
+/* ---------- kisi miniatur ---------- */
+.shots{display:grid;gap:22px;grid-template-columns:1fr}
+@media (min-width:720px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1080px){.shots{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.shot{display:grid;gap:8px;min-width:0;align-content:start}
+.shot > .cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.shot .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+.shot h3{font-size:.95rem}
+.shot .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.shot .note{font-size:12.5px;color:var(--ink-2)}
+.shot.lg{grid-column:1/-1}
+
+/* ============================================================
+   PRIMITIF WIREFRAME — dipakai di dalam rangka .wf
+   ============================================================ */
+.wf{
+  position:relative;height:216px;overflow:hidden;
+  background:var(--wf-bg);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);color:var(--wf-ink);font-size:10px;line-height:1.35;
+}
+.wf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:18px;background:linear-gradient(transparent,var(--wf-bg));pointer-events:none}
+.wf.lg{height:auto;min-height:400px;font-size:11.5px}
+.wf.lg::after{display:none}
+.chrome{display:flex;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:6px;height:6px;border-radius:99px;background:var(--wf-dash)}
+.chrome .url{font-family:var(--font-mono);font-size:9px;color:var(--wf-dim);margin-left:4px}
+.chrome .who{margin-left:auto;font-size:9px;color:var(--wf-dim)}
+.grid2{display:grid;grid-template-columns:46px minmax(0,1fr);min-height:0}
+.wf.lg .grid2{grid-template-columns:132px minmax(0,1fr)}
+
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:8px 6px;display:grid;gap:3px;align-content:start;min-width:0}
+.rail .mark{width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);font:700 9px/16px var(--font-display);text-align:center;margin:0 auto 6px}
+.ni{display:flex;gap:6px;align-items:center;padding:4px 5px;border-radius:4px;font-size:9px;color:var(--wf-dim);min-width:0}
+.ni i{width:8px;height:8px;border-radius:2px;background:var(--wf-line);flex:none}
+.ni span{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf.lg .ni{font-size:11px;padding:5px 7px}
+.wf.lg .ni span{display:block}
+.ni.on{background:var(--wf-bg);color:var(--wf-ink);box-shadow:inset 2px 0 0 var(--accent)}
+.ni.on i{background:var(--accent)}
+.rail .sep{height:1px;background:var(--wf-hair);margin:4px 0}
+.rail .glab{display:none;font:500 8.5px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--wf-dim);padding:2px 5px}
+.wf.lg .glab{display:block}
+
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.crumb{font-size:9px;color:var(--wf-dim);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.sel.ev{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.body{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sub{font-size:9px;color:var(--wf-dim)}
+.ph .sp{margin-left:auto}
+.ln{height:5px;border-radius:2px;background:var(--wf-line)}
+.ln.s{height:4px;background:var(--wf-hair)}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.tr{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.tr:last-child{border-bottom:0}
+.tr.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.tr .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.off{opacity:.5}
+.field{display:grid;gap:3px}
+.field .lb{font-size:9px;color:var(--wf-dim)}
+.input{height:16px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-bg)}
+.input.ta{height:34px}
+.input.code{display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);letter-spacing:.3em;font-size:11px;height:22px}
+.check{display:flex;gap:5px;align-items:center;font-size:9px;color:var(--wf-ink)}
+.check i{width:9px;height:9px;border:1px solid var(--wf-dash);border-radius:2px;flex:none}
+.check i.f{background:var(--accent);border-color:var(--accent)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--wf-hair);padding-bottom:0}
+.tab{font-size:9px;padding:4px 8px;color:var(--wf-dim);border-bottom:2px solid transparent}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* anatomi beranotasi */
+.mk{position:absolute;width:16px;height:16px;border-radius:99px;background:var(--accent);color:var(--on-accent);font:600 10px/16px var(--font-mono);text-align:center;z-index:2;box-shadow:0 0 0 2px var(--wf-bg)}
+.notes{display:grid;gap:7px;grid-template-columns:1fr;margin-top:12px}
+@media (min-width:680px){.notes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.notes div{display:grid;grid-template-columns:18px 1fr;gap:8px;font-size:13px;color:var(--ink-2)}
+.notes b{display:inline-block;width:18px;height:18px;border-radius:99px;background:var(--accent);color:var(--on-accent);font:600 10px/18px var(--font-mono);text-align:center}
+.notes span strong{color:var(--ink);font-weight:600}
+
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;display:grid;gap:5px;font-size:13.5px;color:var(--ink-2)}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+.meta{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:680px){.meta{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.meta div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px 13px;display:grid;gap:4px}
+.meta .lb{font:500 10px/1 var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.meta p{font-size:13px;color:var(--ink-2)}
+footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ wireframe konsol admin</span></div>
+    <div class="r">
+      <span>24 laman · 2 rincian · 1 anatomi</span><span>role: Admin</span><span>sumber: prd.md v0.3</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Miniatur per laman</div>
+    <h1>Konsol Admin, laman demi laman</h1>
+    <p class="lede">Setiap kotak adalah satu laman Admin yang dirender kecil: susunan sidebar, posisi pemilih event, jenis tabel, dan letak tombol aksinya. Warna, ikon, dan ilustrasi belum ditentukan di sini — yang dikunci adalah tata letak dan alur. Bagian A anatomi menjelaskan rangka yang dipakai berulang; nomor 01 sampai 24 mengikuti urutan pekerjaan Fase 1 sampai Fase 8 pada blueprint.</p>
+    <div class="scope">
+      <span class="tag">master data di luar event</span>
+      <span class="tag">event workspace</span>
+      <span class="tag">pelaksanaan ujian</span>
+      <span class="tag">hasil &amp; sistem</span>
+    </div>
+  </div>
+
+  <div class="filters" role="group" aria-label="Saring laman menurut kelompok">
+    <button class="fbtn on" data-g="all">Semua <b>26</b></button>
+    <button class="fbtn" data-g="masuk">Masuk <b>2</b></button>
+    <button class="fbtn" data-g="rangka">Rangka <b>1</b></button>
+    <button class="fbtn" data-g="master">Sekolah &amp; master <b>8</b></button>
+    <button class="fbtn" data-g="event">Event <b>9</b></button>
+    <button class="fbtn" data-g="ops">Pelaksanaan <b>2</b></button>
+    <button class="fbtn" data-g="hasil">Hasil <b>2</b></button>
+    <button class="fbtn" data-g="sistem">Sistem <b>2</b></button>
+  </div>
+
+  <!-- ================= ANATOMI ================= -->
+  <section class="group" data-g="masuk">
+    <header>
+      <h2><em>A</em> Masuk</h2>
+      <p>Pintu tunggal untuk keempat role. Admin tidak punya alamat login sendiri: satu form username + password, lalu role yang menentukan tujuan. Dua laman di bawah adalah yang pertama dan terakhir dilihat Admin sebelum masuk ke konsol.</p>
+    </header>
+
+    <div class="shots">
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">01</span><h3>Login</h3><span class="path">/login</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">cbt.sekolah.id/login</span></div>
+          <div class="body" style="grid-template-columns:1fr;place-content:center;justify-items:center;height:calc(100% - 24px);background:var(--wf-soft)">
+            <div class="box solid" style="width:74%;background:var(--wf-bg);gap:6px">
+              <div class="ph"><b>School CBT</b></div>
+              <span class="ln s" style="width:80%"></span>
+              <div class="field"><span class="lb">Username</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px;color:var(--wf-dim)">admin.sman1</span></span></div>
+              <div class="field"><span class="lb">Password</span><span class="input"></span></div>
+              <div style="display:flex;gap:6px;align-items:center;margin-top:2px"><span class="btn pri">Masuk</span><span class="sub" style="color:var(--wf-dim)">Lupa password?</span></div>
+            </div>
+            <span class="sub" style="color:var(--wf-dim);text-align:center;max-width:70%">Username tidak ada atau password salah — pesannya sama, supaya tidak bisa dipakai menebak akun mana yang ada.</span>
+          </div>
+        </div>
+        <p class="note">Satu form untuk Admin, Guru, Siswa, dan Pengawas. Dua kolom saja — tidak ada NPSN, tidak ada kode sekolah, tidak ada pemilih konteks. Role hanya menentukan halaman tujuan setelah autentikasi berhasil.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">02</span><h3>Reset password</h3><span class="path">/lupa-password</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">cbt.sekolah.id/lupa-password</span></div>
+          <div class="body" style="place-content:center;justify-items:center;height:calc(100% - 24px);background:var(--wf-soft)">
+            <div class="box solid" style="width:74%;background:var(--wf-bg)">
+              <div class="ph"><b>Lupa password</b></div>
+              <span class="ln s" style="width:88%"></span>
+              <div class="field"><span class="lb">Username atau email</span><span class="input"></span></div>
+              <span class="btn pri" style="justify-self:start">Kirim tautan</span>
+              <div class="check" style="color:var(--wf-dim)"><i></i><span>Email tidak masuk? Hubungi Admin sekolah Anda.</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Siswa tidak selalu punya email. Untuk mereka, reset dilakukan Admin lewat laman Pengguna, bukan lewat laman ini — dan itu alasan laman ini menyebut Admin sekolah secara eksplisit.</p>
+      </figure>
+    </div>
+  </section>
+
+  <section class="group" data-g="master">
+    <header>
+      <h2><em>B</em> Sekolah</h2>
+      <p>Enam laman yang berdiri di luar event, karena sekolah tidak boleh membuat ulang data yang sama untuk setiap kegiatan. Semuanya berbentuk daftar–filter–tabel dengan aksi serupa, jadi satu pola tabel dipakai berulang, bukan enam laman dengan kebiasaan berbeda.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">03</span><h3>Dashboard sekolah</h3><span class="path">/admin</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin</span></div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark">S</div>
+              <a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a>
+              <a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a>
+              <div class="sep"></div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a>
+            </div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">SMK Negeri 1</span><span class="sel">TA 2026/2027</span><span class="sel">Admin ▾</span></div>
+              <div class="body">
+                <div class="ph"><b>Ringkasan sekolah</b><span class="sp"><span class="btn pri">Buat event</span></span></div>
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Guru</span><b>64</b></div>
+                  <div class="kpi"><span class="lb">Siswa aktif</span><b>1.284</b></div>
+                  <div class="kpi"><span class="lb">Pengawas</span><b>38</b></div>
+                  <div class="kpi"><span class="lb">Ruang</span><b>24</b></div>
+                </div>
+                <div class="box solid">
+                  <span class="lb">Event berjalan &amp; mendatang</span>
+                  <div class="tbl">
+                    <div class="tr" style="grid-template-columns:1fr 66px 66px"><span class="c">UAS Ganjil 2026/2027</span><span class="chip warn">preparation</span><span class="c">02 Nov</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 66px 66px"><span class="c">Try Out Kelas XII</span><span class="chip info">ready</span><span class="c">18 Nov</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 66px 66px"><span class="c">PTS Genap 2025/2026</span><span class="chip mute">archived</span><span class="c">03 Mar</span></div>
+                  </div>
+                </div>
+                <div class="cols c2">
+                  <div class="box"><span class="lb">Kesiapan data master</span><span class="ln s" style="width:86%"></span><span class="ln s" style="width:62%"></span><span class="ln s" style="width:74%"></span></div>
+                  <div class="box"><span class="lb">Aktivitas terakhir</span><span class="ln s" style="width:90%"></span><span class="ln s" style="width:70%"></span><span class="ln s" style="width:80%"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Tanpa event aktif, sidebar kanan konsol belum muncul. Aksi utama di laman ini adalah membuat event, sesuai tesis produk: event dulu, komponen menyusul.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">04</span><h3>Profil sekolah</h3><span class="path">/admin/sekolah</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/sekolah</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Profil sekolah</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Simpan</span></div>
+              <div class="body">
+                <div class="tabs"><span class="tab on">Identitas</span><span class="tab">Kontak</span><span class="tab">Zona waktu</span><span class="tab">Logo</span></div>
+                <div class="cols c2">
+                  <div class="field"><span class="lb">Nama sekolah</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">SMK Negeri 1</span></span></div>
+                  <div class="field"><span class="lb">NPSN <span class="chip mute">terkunci</span></span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px;color:var(--wf-dim)">20512345</span></span></div>
+                  <div class="field"><span class="lb">Kode internal sekolah</span><span class="input"></span></div>
+                  <div class="field"><span class="lb">Zona waktu</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">Asia/Jakarta</span></span></div>
+                </div>
+                <div class="field"><span class="lb">Alamat</span><span class="input ta"></span></div>
+                <div class="cols c2">
+                  <div class="field"><span class="lb">Email</span><span class="input"></span></div>
+                  <div class="field"><span class="lb">Telepon</span><span class="input"></span></div>
+                </div>
+                <div class="box"><span class="lb">Logo sekolah</span><div style="display:flex;gap:7px;align-items:center"><span class="input" style="width:34px;height:34px"></span><span class="sub" style="color:var(--wf-dim)">PNG atau SVG, maks 1 MB</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">NPSN dikunci karena ia identitas tenant yang dipakai sistem di belakang layar: mengubahnya berarti memindahkan sekolah ke identitas lain, dan itu operasi di luar aplikasi. NPSN tidak pernah diketik siapa pun di layar login.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <section class="group" data-g="rangka">
+    <header>
+      <h2><em>C</em> Rangka yang dipakai semua laman</h2>
+      <p>Laman-laman berikutnya memakai rangka yang sama, jadi rangkanya dijelaskan sekali di sini dengan nomor. Sidebar bertingkat, pemilih event di bar atas, tabel dengan paginasi server-side.</p>
+    </header>
+
+    <figure class="shot lg" style="margin:0">
+      <div class="cap"><span class="n">--</span><h3>Anatomi konsol Admin (beranotasi)</h3><span class="path">semua laman /admin/*</span></div>
+      <div class="wf lg">
+        <span class="mk" style="left:118px;top:14px">1</span>
+        <span class="mk" style="left:calc(100% - 250px);top:14px">2</span>
+        <span class="mk" style="left:150px;top:52px">3</span>
+        <span class="mk" style="left:calc(100% - 90px);top:52px">4</span>
+        <span class="mk" style="left:150px;top:92px">5</span>
+        <span class="mk" style="left:150px;top:150px">6</span>
+        <span class="mk" style="left:calc(100% - 24px);bottom:12px">7</span>
+        <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">cbt.sekolah.id/admin/events/EV-2026-001/participants</span><span class="who">Admin · SMK Negeri 1</span></div>
+        <div class="grid2">
+          <div class="rail">
+            <div class="mark">S</div>
+            <div class="glab">Master</div>
+            <a class="ni on"><i></i><span>Dashboard</span></a>
+            <a class="ni"><i></i><span>Profil sekolah</span></a>
+            <a class="ni"><i></i><span>Tahun ajaran</span></a>
+            <a class="ni"><i></i><span>Kelas</span></a>
+            <a class="ni"><i></i><span>Mata pelajaran</span></a>
+            <a class="ni"><i></i><span>Ruang</span></a>
+            <a class="ni"><i></i><span>Pengguna</span></a>
+            <div class="sep"></div>
+            <div class="glab">Event aktif</div>
+            <a class="ni"><i></i><span>Ringkasan</span></a>
+            <a class="ni"><i></i><span>Kepanitiaan</span></a>
+            <a class="ni"><i></i><span>Kelas &amp; peserta</span></a>
+            <a class="ni"><i></i><span>Paket soal</span></a>
+            <a class="ni"><i></i><span>Jadwal &amp; sesi</span></a>
+            <a class="ni"><i></i><span>Pengawas</span></a>
+            <a class="ni"><i></i><span>Token</span></a>
+            <a class="ni"><i></i><span>Presensi</span></a>
+            <a class="ni"><i></i><span>Monitoring</span></a>
+            <a class="ni"><i></i><span>Hasil</span></a>
+            <a class="ni"><i></i><span>Laporan</span></a>
+          </div>
+          <div class="main">
+            <div class="tbar">
+              <span class="crumb">Events / UAS Ganjil 2026/2027 / Kelas &amp; peserta</span>
+              <span class="sp" style="margin-left:auto"></span>
+              <span class="sel ev">Event: UAS Ganjil 2026/2027</span>
+              <span class="sel">TA 2026/2027</span>
+              <span class="sel">Admin ▾</span>
+            </div>
+            <div class="body">
+              <div class="ph"><b>Kelas &amp; peserta event</b><span class="sub">1.284 peserta dari 6 kelas</span><span class="sp"><span class="btn">Ekspor</span> <span class="btn pri">Tambah peserta</span></span></div>
+              <div class="cols c4">
+                <div class="kpi"><span class="lb">Kelas</span><b>6</b></div>
+                <div class="kpi"><span class="lb">Peserta</span><b>1.284</b></div>
+                <div class="kpi"><span class="lb">Dikecualikan</span><b>12</b></div>
+                <div class="kpi"><span class="lb">Ganda</span><b>0</b></div>
+              </div>
+              <div class="cols" style="grid-template-columns:1fr 1fr 1fr 2fr">
+                <div class="input" style="display:flex;align-items:center;padding:0 6px"><span class="sub" style="color:var(--wf-dim)">Kelas</span></div>
+                <div class="input" style="display:flex;align-items:center;padding:0 6px"><span class="sub" style="color:var(--wf-dim)">Status</span></div>
+                <div class="input" style="display:flex;align-items:center;padding:0 6px"><span class="sub" style="color:var(--wf-dim)">Cari NIS / nama</span></div>
+                <div style="display:flex;gap:6px;align-items:center"><span class="btn">Terapkan</span><span class="btn">Reset</span></div>
+              </div>
+              <div class="tbl">
+                <div class="tr th" style="grid-template-columns:26px 74px 1fr 62px 78px 74px"><span></span><span>NIS</span><span>Nama</span><span>Kelas</span><span>Sumber</span><span>Status</span></div>
+                <div class="tr" style="grid-template-columns:26px 74px 1fr 62px 78px 74px"><span class="check"><i class="f"></i></span><span class="c">2024001</span><span class="c">Ahmad Fauzi</span><span class="c">X-1</span><span class="c">Kelas aktif</span><span class="chip ok">terdaftar</span></div>
+                <div class="tr" style="grid-template-columns:26px 74px 1fr 62px 78px 74px"><span class="check"><i class="f"></i></span><span class="c">2024002</span><span class="c">Bunga Lestari</span><span class="c">X-1</span><span class="c">Kelas aktif</span><span class="chip ok">terdaftar</span></div>
+                <div class="tr" style="grid-template-columns:26px 74px 1fr 62px 78px 74px"><span class="check"><i></i></span><span class="c">2024118</span><span class="c">Cahyo Nugroho</span><span class="c">X-2</span><span class="c">Manual</span><span class="chip warn">dikecualikan</span></div>
+                <div class="tr" style="grid-template-columns:26px 74px 1fr 62px 78px 74px"><span class="check"><i></i></span><span class="c">2024119</span><span class="c">Dewi Anggraini</span><span class="c">X-2</span><span class="c">Kelas aktif</span><span class="chip mute">nonaktif</span></div>
+              </div>
+              <div class="ph"><span class="sub">Menampilkan 1–50 dari 1.284</span><span class="sp"><span class="btn">‹ Sebelumnya</span> <span class="btn">Berikutnya ›</span></span></div>
+              <div class="box" style="justify-self:end;max-width:230px"><span class="chip ok">tersimpan</span><span class="ln s" style="width:70%"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        <div><b>1</b><span><strong>Sidebar dua kelompok.</strong> Master data selalu ada; kelompok event hanya muncul setelah satu event dipilih. Tanpa event aktif, kelompok kedua disembunyikan, bukan ditampilkan kosong.</span></div>
+        <div><b>2</b><span><strong>Pemilih event selalu terlihat.</strong> Menempel di bar atas setiap laman, dan bertanda warna saat event aktif. Ini penangkal kesalahan paling mahal di sistem ini: menetapkan peserta atau jadwal ke event yang salah.</span></div>
+        <div><b>3</b><span><strong>Breadcrumb + judul.</strong> Judul menyebut konteksnya; breadcrumb menyebut jalur kembalinya. Admin sering mendarat di laman dalam lewat tautan dari laporan, jadi jalur pulang harus tertulis.</span></div>
+        <div><b>4</b><span><strong>Baris aksi laman.</strong> Satu aksi utama (diwarnai) dan aksi pendukung di kanan. Tidak ada aksi utama di kiri bawah atau tersembunyi di menu titik-tiga.</span></div>
+        <div><b>5</b><span><strong>Bilah filter di atas tabel.</strong> Filter selalu berada di antara angka ringkasan dan tabelnya, supaya Admin melihat angka sebelum menyaring, bukan sesudah.</span></div>
+        <div><b>6</b><span><strong>Tabel dengan paginasi server-side.</strong> Pencarian, urutan, dan halaman dikerjakan server. Hitungan "1–50 dari 1.284" ditulis apa adanya; jumlah besar adalah hal biasa di sistem ini.</span></div>
+        <div><b>7</b><span><strong>Umpan balik tersimpan.</strong> Setiap aksi yang mengubah data menampilkan status singkat, karena banyak aksi di sini berjalan lama: penempatan peserta, penetapan paket soal, penugasan pengawas.</span></div>
+      </div>
+    </figure>
+  </section>
+
+  <section class="group" data-g="master">
+    <header>
+      <h2><em>D</em> Master data</h2>
+      <p>Lima laman sisanya: data pengguna, tahun ajaran, kelas, mata pelajaran, dan ruang. Polanya sama — daftar, filter, tabel, aksi massal — sehingga satu komponen tabel dipakai berulang.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">05</span><h3>Pengguna: Guru / Siswa / Pengawas</h3><span class="path">/admin/pengguna</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/pengguna</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Pengguna</span><span class="sp" style="margin-left:auto"></span><span class="btn">Impor</span><span class="btn">Ekspor</span><span class="btn pri">Tambah</span></div>
+              <div class="body">
+                <div class="tabs"><span class="tab on">Siswa 1.284</span><span class="tab">Guru 64</span><span class="tab">Pengawas 38</span><span class="tab">Admin 3</span></div>
+                <div class="cols c4">
+                  <div class="input" style="display:flex;align-items:center;padding:0 5px"><span class="sub" style="color:var(--wf-dim)">Kelas</span></div>
+                  <div class="input" style="display:flex;align-items:center;padding:0 5px"><span class="sub" style="color:var(--wf-dim)">Status</span></div>
+                  <div class="input" style="display:flex;align-items:center;padding:0 5px"><span class="sub" style="color:var(--wf-dim)">Cari NIS / nama</span></div>
+                  <div><span class="btn">Terapkan</span></div>
+                </div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:24px 66px 1fr 54px 56px"><span></span><span>NIS</span><span>Nama</span><span>Kelas</span><span>Aktif</span></div>
+                  <div class="tr" style="grid-template-columns:24px 66px 1fr 54px 56px"><span class="check"><i class="f"></i></span><span class="c">2024001</span><span class="c">Ahmad Fauzi</span><span class="c">X-1</span><span class="chip ok">ya</span></div>
+                  <div class="tr" style="grid-template-columns:24px 66px 1fr 54px 56px"><span class="check"><i class="f"></i></span><span class="c">2024002</span><span class="c">Bunga Lestari</span><span class="c">X-1</span><span class="chip ok">ya</span></div>
+                  <div class="tr" style="grid-template-columns:24px 66px 1fr 54px 56px"><span class="check"><i></i></span><span class="c">2024119</span><span class="c">Dewi Anggraini</span><span class="c">X-2</span><span class="chip mute">tidak</span></div>
+                  <div class="tr" style="grid-template-columns:24px 66px 1fr 54px 56px"><span class="check"><i></i></span><span class="c">2024120</span><span class="c">Fajar Ramadhan</span><span class="c">X-3</span><span class="chip ok">ya</span></div>
+                </div>
+                <div class="ph"><span class="sub">1–50 dari 1.284</span><span class="sp"><span class="btn">Nonaktifkan terpilih</span> <span class="btn">Reset password</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Empat tab role, satu tabel. Username diturunkan dari NIS atau NIP agar konsisten dengan layar login, dan impor memakai template Excel karena 1.284 akun tidak diketik satu per satu.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">06</span><h3>Tahun ajaran &amp; semester</h3><span class="path">/admin/tahun-ajaran</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/tahun-ajaran</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Tahun ajaran &amp; semester</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Tambah tahun ajaran</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:1fr 60px 60px 58px"><span>Tahun ajaran</span><span>Mulai</span><span>Selesai</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 60px 60px 58px"><span class="c">2026/2027</span><span class="c">01 Jul 26</span><span class="c">30 Jun 27</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 60px 60px 58px"><span class="c">2025/2026</span><span class="c">01 Jul 25</span><span class="c">30 Jun 26</span><span class="chip mute">arsip</span></div>
+                </div>
+                <div class="box solid">
+                  <div class="ph"><span class="lb">Semester di 2026/2027</span><span class="sp"><span class="btn">Tambah semester</span></span></div>
+                  <div class="tbl">
+                    <div class="tr" style="grid-template-columns:1fr 58px 58px 52px"><span class="c">Ganjil</span><span class="c">01 Jul 26</span><span class="c">31 Des 26</span><span class="chip ok">aktif</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 58px 58px 52px"><span class="c">Genap</span><span class="c">01 Jan 27</span><span class="c">30 Jun 27</span><span class="chip mute">belum</span></div>
+                  </div>
+                </div>
+                <div class="box gap"></div>
+                <div class="inbox warn">Menutup tahun ajaran tidak menghapus data. Kelas, penugasan, dan event lama diarsipkan dan tetap dapat dibuka sebagai arsip.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Hanya satu tahun ajaran aktif pada satu waktu. Peringatan penutupan ditulis di laman ini karena di sinilah keputusan paling berisiko diambil, dan Admin perlu tahu arsip bukan penghapusan.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">07</span><h3>Kelas</h3><span class="path">/admin/kelas</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/kelas</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Kelas</span><span class="sel">TA 2026/2027</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Tambah kelas</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:1fr 44px 1fr 56px 50px"><span>Kelas</span><span>Tingkat</span><span>Wali kelas</span><span>Siswa</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 1fr 56px 50px"><span class="c">X-1</span><span class="c">10</span><span class="c">Budi Santoso</span><span class="c">32</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 1fr 56px 50px"><span class="c">X-2</span><span class="c">10</span><span class="c">Siti Rahayu</span><span class="c">30</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 1fr 56px 50px"><span class="c">X-3</span><span class="c">10</span><span class="c">Ani Mulyani</span><span class="c">28</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 1fr 56px 50px"><span class="c">XI-1</span><span class="c">11</span><span class="c">Dedi Kurnia</span><span class="c">31</span><span class="chip ok">aktif</span></div>
+                </div>
+                <div class="box solid">
+                  <div class="ph"><span class="lb">X-1 · 32 siswa</span><span class="sp"><span class="btn">Kelola anggota</span></span></div>
+                  <span class="ln s" style="width:88%"></span><span class="ln s" style="width:72%"></span><span class="ln s" style="width:80%"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Kelas selalu terikat tahun ajaran, jadi pemilih TA ada di bar atas, bukan di dalam form. Berganti TA berarti berganti daftar kelas, bukan menyaring daftar yang sama.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">08</span><h3>Mata pelajaran</h3><span class="path">/admin/mata-pelajaran</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/mata-pelajaran</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Mata pelajaran</span><span class="sp" style="margin-left:auto"></span><span class="btn">Impor</span><span class="btn pri">Tambah mapel</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:52px 1fr 78px 46px"><span>Kode</span><span>Nama</span><span>Kelompok</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:52px 1fr 78px 46px"><span class="c">MAT-10</span><span class="c">Matematika</span><span class="c">Wajib</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:52px 1fr 78px 46px"><span class="c">BIN-10</span><span class="c">Bahasa Indonesia</span><span class="c">Wajib</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:52px 1fr 78px 46px"><span class="c">FIS-10</span><span class="c">Fisika</span><span class="c">Peminatan</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:52px 1fr 78px 46px"><span class="c">SEN-10</span><span class="c">Seni Budaya</span><span class="c">Muatan lokal</span><span class="chip mute">nonaktif</span></div>
+                </div>
+                <div class="box solid">
+                  <div class="ph"><span class="lb">Penugasan mengajar</span><span class="sp"><span class="btn">Tambah penugasan</span></span></div>
+                  <div class="tbl">
+                    <div class="tr" style="grid-template-columns:1fr 56px 56px"><span class="c">Budi Santoso</span><span class="c">Matematika</span><span class="c">X-1, X-2</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 56px 56px"><span class="c">Siti Rahayu</span><span class="c">Matematika</span><span class="c">X-3</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 56px 56px"><span class="c">Ani Mulyani</span><span class="c">Fisika</span><span class="c">X-1, X-3</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Penugasan mengajar ditempatkan di laman yang sama dengan mapel, bukan di laman Guru. Ini yang membatasi akses Guru ke bank soal, jadi Admin perlu melihat mapel dan penugasannya berdampingan.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">09</span><h3>Ruang</h3><span class="path">/admin/ruang</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/ruang</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Ruang</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Tambah ruang</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:50px 1fr 60px 50px 56px"><span>Kode</span><span>Nama / lokasi</span><span>Kapasitas</span><span>PC</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 60px 50px 56px"><span class="c">R-01</span><span class="c">Lab Komputer 1</span><span class="c">32</span><span class="c">32</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 60px 50px 56px"><span class="c">R-02</span><span class="c">Lab Komputer 2</span><span class="c">32</span><span class="c">32</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 60px 50px 56px"><span class="c">R-04</span><span class="c">Kelas XI-1</span><span class="c">28</span><span class="c">0</span><span class="chip warn">BYOD</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 60px 50px 56px"><span class="c">R-09</span><span class="c">Aula</span><span class="c">120</span><span class="c">0</span><span class="chip mute">perbaikan</span></div>
+                </div>
+                <div class="inbox">Ruang master dipakai ulang lintas event. Alokasi untuk event tertentu diatur di dalam workspace event, bukan di sini.</div>
+                <div class="cols c3">
+                  <div class="kpi"><span class="lb">Kapasitas</span><b>684</b></div>
+                  <div class="kpi"><span class="lb">Unit PC</span><b>412</b></div>
+                  <div class="kpi"><span class="lb">Ruang BYOD</span><b>6</b></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Kolom "PC" memisahkan ruang berkomputer dari ruang BYOD, karena jumlah perangkat menentukan berapa peserta yang bisa ditempatkan di sana saat ujian.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">--</span><h3>Magic link ruang + kode pengawas</h3><span class="path">/admin/ruang · rincian ruang</span></div>
+        <div class="cols c2" style="align-items:start">
+          <div class="wf">
+            <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/ruang/R-01</span></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Ruang / R-01</span><span class="sp" style="margin-left:auto"></span><span class="btn">Ubah</span></div>
+              <div class="body">
+                <div class="box solid">
+                  <div class="ph"><b>R-01 · Lab Komputer 1</b><span class="sp"><span class="chip info">pakai pengawas</span></span></div>
+                  <span class="sub">Pengawas: Budi Santoso · sesi S-01 · 07:30–09:00</span>
+                  <div class="ph"><span class="lb">Magic link ruang ini</span><span class="sp"><span class="chip ok">aktif</span></span></div>
+                  <div class="input" style="height:22px"><span class="sub" style="color:var(--wf-dim)">cbt.sekolah.id/p/</span><b style="font-family:var(--font-mono);font-size:10px">r01-7k4m</b></div>
+                  <div class="ph"><span class="lb">Kode pengawas</span><span class="sp"><span class="chip warn">diminta setelah tautan dibuka</span></span></div>
+                  <div class="input code"><span>4 8 2 9 1 6</span></div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">
+                    <span class="btn pri big">Salin tautan</span>
+                    <span class="btn big">Buka sebagai pengawas</span>
+                    <span class="btn big">Cetak kartu pintu</span>
+                  </div>
+                  <div class="ph"><span class="sub">Terbit 07:05 · kedaluwarsa 09:00 · 1 perangkat</span><span class="sp"><span class="chip warn">2 pemakaian</span></span></div>
+                </div>
+                <div class="inbox warn">Tautan ini unik untuk R-01. Ruang lain punya tautan dan kode sendiri; membuka tautan R-02 di perangkat yang sama tidak membuka R-01.</div>
+              </div>
+            </div>
+          </div>
+          <div class="wf">
+            <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/p/r01-7k4m</span></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Pengawas R-01</span></div>
+              <div class="body">
+                <div class="box solid" style="text-align:center">
+                  <b style="font-size:11px">Lab Komputer 1</b>
+                  <span class="sub">SMK Negeri 1 · sesi S-01 · Matematika X</span>
+                  <span class="sub">Masukkan kode pengawas ruang ini.</span>
+                  <div class="input code" style="height:26px"><span>4 8 2 9 1 6</span></div>
+                  <span class="btn pri big" style="text-align:center">Masuk</span>
+                </div>
+                <div class="inbox">Tautan hanya menunjuk ruang ini. Yang membuka sesi adalah kodenya — tanpa kode, tautan tidak membuka apa pun.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cols c2" style="align-items:start;margin-top:8px">
+          <div class="wf">
+            <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/pengawas</span></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Ruang tugas hari ini</span><span class="sp" style="margin-left:auto"></span><span class="chip ok">hadir</span></div>
+              <div class="body">
+                <div class="box solid">
+                  <div class="ph"><b>R-01 · Lab Komputer 1</b><span class="sp"><span class="chip info">sesi S-01</span></span></div>
+                  <span class="sub">Matematika · Kelas X · 32 peserta · 07:30–09:00</span>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px"><span class="btn pri big">Presensi</span><span class="btn big">Lihat token</span><span class="btn big">Monitoring</span></div>
+                </div>
+                <div class="inbox">Masuk lewat magic link: sesi ini terikat pada R-01 dan sesi yang sedang berjalan, bukan seluruh penempatan Budi Santoso hari ini.</div>
+              </div>
+            </div>
+          </div>
+          <div class="box solid" style="align-content:start">
+            <div class="ph"><span class="lb">Daftar tautan ruang</span><span class="sp"><span class="chip info">8 ruang</span></span></div>
+            <div class="tbl">
+              <div class="tr th" style="grid-template-columns:40px 1fr 62px 50px"><span>Ruang</span><span>Tautan</span><span>Kode</span><span>Status</span></div>
+              <div class="tr" style="grid-template-columns:40px 1fr 62px 50px"><span class="c">R-01</span><span class="c">/p/r01-7k4m</span><span class="c">482916</span><span class="chip ok">aktif</span></div>
+              <div class="tr" style="grid-template-columns:40px 1fr 62px 50px"><span class="c">R-02</span><span class="c">/p/r02-9x2q</span><span class="c">731048</span><span class="chip ok">aktif</span></div>
+              <div class="tr" style="grid-template-columns:40px 1fr 62px 50px"><span class="c">R-03</span><span class="c">/p/r03-4h8n</span><span class="c">205517</span><span class="chip warn">belum dicetak</span></div>
+              <div class="tr" style="grid-template-columns:40px 1fr 62px 50px"><span class="c">R-04</span><span class="c">—</span><span class="c">—</span><span class="chip mute">tanpa pengawas</span></div>
+            </div>
+            <div class="ph"><span class="sub">Satu tautan per ruang, satu kode per ruang</span></div>
+          </div>
+        </div>
+        <p class="note">Dua hal yang dipisah, dan pemisahan itulah pengamannya. Tautan yang unik per ruang menentukan <b>ruang mana</b> yang akan dibuka — ia boleh panjang, sulit ditebak, dan boleh tertempel di pintu karena ia sendiri tidak membuka apa pun. Kode pengawas menentukan <b>siapa</b> yang boleh masuk — ia pendek supaya bisa diketik cepat di depan pintu, dan justru karena pendek ia tidak boleh menjadi satu-satunya penjaga. Membuka tautan R-01 lalu mengetik kode R-01 berhasil; membuka tautan R-01 lalu mengetik kode R-02 ditolak, karena keduanya harus cocok pada ruang yang sama.</p>
+        <p class="note gap">Akibatnya tiap ruang punya sepasang kredensial sendiri, dan Admin melihat semuanya di satu daftar: siapa yang tautannya sudah dicetak, siapa yang belum, ruang mana yang belum punya pengawas sehingga tautannya belum perlu diterbitkan. Tautan dan kode kedaluwarsa bersama sesinya; mencabut salah satunya langsung memutus sesi yang sedang berjalan di perangkat itu, tanpa mengganggu ruang lain.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <section class="group" data-g="event">
+    <header>
+      <h2><em>E</em> Workspace event</h2>
+      <p>Sembilan laman di dalam satu event. Ini inti produk: event adalah tempat semua komponen bertemu, dan sidebar-nya berubah begitu sebuah event aktif — dari daftar master data menjadi daftar komponen event yang sedang dikerjakan.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">10</span><h3>Daftar event</h3><span class="path">/admin/events</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Event</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Buat event</span></div>
+              <div class="body">
+                <div class="tabs"><span class="tab on">Berjalan</span><span class="tab">Draft</span><span class="tab">Selesai</span><span class="tab">Arsip</span></div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:1fr 66px 56px 54px"><span>Nama event</span><span>Periode</span><span>Peserta</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 66px 56px 54px"><span class="c">UAS Ganjil 2026/2027</span><span class="c">02–14 Nov</span><span class="c">1.284</span><span class="chip info">berjalan</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 66px 56px 54px"><span class="c">PTS Ganjil 2026/2027</span><span class="c">21–26 Sep</span><span class="c">1.284</span><span class="chip ok">selesai</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 66px 56px 54px"><span class="c">Try Out AKM 2026</span><span class="c">07–08 Agu</span><span class="c">320</span><span class="chip ok">selesai</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 66px 56px 54px"><span class="c">UAS Genap 2026/2027</span><span class="c">—</span><span class="c">—</span><span class="chip mute">draft</span></div>
+                </div>
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Berjalan</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Draft</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Selesai</span><b>2</b></div>
+                  <div class="kpi"><span class="lb">Arsip</span><b>3</b></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Belum ada event dipilih, jadi sidebar masih sidebar master. Status "berjalan" dipakai, bukan "aktif" — istilah aktif sudah dipakai tahun ajaran dan semester, dan dua istilah itu tidak boleh bertukar tempat di seluruh aplikasi.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">11</span><h3>Buat / ubah event</h3><span class="path">/admin/events/create</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/create</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Event / Buat</span><span class="sp" style="margin-left:auto"></span><span class="btn">Batal</span><span class="btn pri">Simpan draft</span></div>
+              <div class="body">
+                <div class="cols c2">
+                  <div class="field"><span class="lb">Nama event</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">UAS Ganjil 2026/2027</span></span></div>
+                  <div class="field"><span class="lb">Jenis</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">Ujian akhir semester</span></span></div>
+                </div>
+                <div class="cols c3">
+                  <div class="field"><span class="lb">Tahun ajaran</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">2026/2027</span></span></div>
+                  <div class="field"><span class="lb">Semester</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">Ganjil</span></span></div>
+                  <div class="field"><span class="lb">Zona waktu</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">Asia/Jakarta</span></span></div>
+                </div>
+                <div class="box solid">
+                  <span class="lb">Ambang pelanggaran siswa</span>
+                  <div class="cols c3">
+                    <div class="field"><span class="lb">Peringatkan</span><span class="input"></span></div>
+                    <div class="field"><span class="lb">Tandai pengawas</span><span class="input"></span></div>
+                    <div class="field"><span class="lb">Kunci ujian</span><span class="input"></span></div>
+                  </div>
+                  <div class="check"><i class="f"></i><span>Wajib layar penuh selama ujian</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Ambang pelanggaran diletakkan di form event, bukan di pengaturan global, karena toleransi berbeda menurut jenis ujian: ujian harian dan ujian akhir tidak seharusnya memakai ambang yang sama. Nilai bawaannya diambil dari Pengaturan sekolah, lalu disimpan sendiri oleh event ini.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">12</span><h3>Ringkasan &amp; kesiapan</h3><span class="path">/admin/events/{event}</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil 2026/2027</span><span class="sp" style="margin-left:auto"></span><span class="btn off">Tandai Ready</span></div>
+              <div class="body">
+                <div class="tabs"><span class="tab on">Ringkasan</span><span class="tab">Kesiapan</span><span class="tab">Aktivitas</span></div>
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Peserta</span><b>1.284</b></div>
+                  <div class="kpi"><span class="lb">Ujian</span><b>12</b></div>
+                  <div class="kpi"><span class="lb">Ruang</span><b>24</b></div>
+                  <div class="kpi"><span class="lb">Pengawas</span><b>31</b></div>
+                </div>
+                <div class="box solid">
+                  <div class="ph"><span class="lb">Kesiapan 9 / 11</span><span class="sp"><span class="chip warn">2 belum</span></span></div>
+                  <div class="tbl">
+                    <div class="tr" style="grid-template-columns:1fr 30px"><span class="c">Identitas event lengkap</span><span class="chip ok">ok</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 30px"><span class="c">Kelas peserta ditetapkan · 6 kelas</span><span class="chip ok">ok</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 30px"><span class="c">Paket soal ditetapkan · 2 ujian kosong</span><span class="chip warn">!</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 30px"><span class="c">Pengawas ditugaskan · 31 orang</span><span class="chip ok">ok</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 30px"><span class="c">Konflik jadwal · 1 ruang bentrok</span><span class="chip bad">!</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Tombol "Tandai Ready" dirender nonaktif, bukan disembunyikan: Admin harus melihat syarat apa yang belum terpenuhi, bukan menebak kenapa tombolnya tidak ada. Baris yang gagal menunjuk langsung ke laman yang harus diperbaiki.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">13</span><h3>Kepanitiaan</h3><span class="path">/admin/events/{event}/panitia</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/panitia</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Tambah panitia</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:1fr 44px 78px 58px"><span>Nama</span><span>Peran</span><span>Cakupan</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px"><span class="c">Budi Santoso</span><span class="chip info">ketua</span><span class="c">Seluruh event</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px"><span class="c">Siti Rahayu</span><span class="chip mute">koordinator</span><span class="c">12 ujian</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px"><span class="c">Ani Mulyani</span><span class="chip mute">pengawas</span><span class="c">R-01, R-02</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px"><span class="c">Dedi Kurnia</span><span class="chip mute">pengawas</span><span class="c">R-04</span><span class="chip warn">belum konfirmasi</span></div>
+                </div>
+                <div class="inbox">Peran panitia berlaku di dalam event ini saja. Peran guru dan pengawas secara umum diatur di Master data.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Kolom "Cakupan" memisahkan panitia yang memegang seluruh event dari yang hanya memegang beberapa ruang. Inilah yang membatasi apa yang boleh mereka lihat dan ubah — dan itu sebabnya cakupan harus terlihat di tabel, bukan tersembunyi di halaman detail.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">14</span><h3>Kelas &amp; peserta</h3><span class="path">/admin/events/{event}/peserta</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/peserta</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn">Tarik dari kelas</span><span class="btn pri">Tambah manual</span></div>
+              <div class="body">
+                <div class="cols c3">
+                  <div class="kpi"><span class="lb">Kelas ditetapkan</span><b>6</b></div>
+                  <div class="kpi"><span class="lb">Siswa terdaftar</span><b>1.284</b></div>
+                  <div class="kpi"><span class="lb">Dikecualikan</span><b>7</b></div>
+                </div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:22px 62px 1fr 48px 62px"><span></span><span>NIS</span><span>Nama</span><span>Kelas</span><span>Sumber</span></div>
+                  <div class="tr" style="grid-template-columns:22px 62px 1fr 48px 62px"><span class="check"><i class="f"></i></span><span class="c">2024001</span><span class="c">Ahmad Fauzi</span><span class="c">X-1</span><span class="chip mute">kelas</span></div>
+                  <div class="tr" style="grid-template-columns:22px 62px 1fr 48px 62px"><span class="check"><i class="f"></i></span><span class="c">2024002</span><span class="c">Bunga Lestari</span><span class="c">X-1</span><span class="chip mute">kelas</span></div>
+                  <div class="tr" style="grid-template-columns:22px 62px 1fr 48px 62px"><span class="check"><i></i></span><span class="c">2024410</span><span class="c">Rizki Pratama</span><span class="c">XII-4</span><span class="chip info">manual</span></div>
+                  <div class="tr" style="grid-template-columns:22px 62px 1fr 48px 62px"><span class="check"><i></i></span><span class="c">2024311</span><span class="c">Nur Aisyah</span><span class="c">XI-3</span><span class="chip bad">dikecualikan</span></div>
+                </div>
+                <div class="ph"><span class="sub">1–50 dari 1.284</span><span class="sp"><span class="btn">Kecualikan terpilih</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Ini laman ber-annotasi di bagian C. Peserta ditarik sekali di sini, bukan ditentukan per ujian: kalau peserta ditentukan per ujian, menambah satu siswa di tengah event berarti mengulang pekerjaan di belasan tempat.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">15</span><h3>Mata pelajaran &amp; paket soal</h3><span class="path">/admin/events/{event}/mapel</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/mapel</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Tambah mapel</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:58px 1fr 78px 50px"><span>Kode</span><span>Mata pelajaran</span><span>Paket soal</span><span>Butir</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 78px 50px"><span class="c">MAT-10</span><span class="c">Matematika</span><span class="chip ok">terpasang</span><span class="c">40</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 78px 50px"><span class="c">BIN-10</span><span class="c">Bahasa Indonesia</span><span class="chip ok">terpasang</span><span class="c">45</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 78px 50px"><span class="c">FIS-10</span><span class="c">Fisika</span><span class="chip warn">belum</span><span class="c">—</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 78px 50px"><span class="c">SEJ-10</span><span class="c">Sejarah</span><span class="chip warn">belum</span><span class="c">—</span></div>
+                </div>
+                <div class="box solid">
+                  <div class="ph"><span class="lb">Paket Matematika · 40 butir</span><span class="sp"><span class="chip mute">acak</span></span></div>
+                  <div class="cols c5">
+                    <div class="kpi"><span class="lb">Pilihan ganda</span><b>24</b></div>
+                    <div class="kpi"><span class="lb">Ganda kompleks</span><b>4</b></div>
+                    <div class="kpi"><span class="lb">Menjodohkan</span><b>4</b></div>
+                    <div class="kpi"><span class="lb">Isian singkat</span><b>5</b></div>
+                    <div class="kpi"><span class="lb">Uraian</span><b>3</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Pemasangan paket soal dilakukan Admin di sini, bukan Guru: mengubah paket setelah jadwal tersimpan harus lewat satu pintu, dan pintu itu mencatat siapa yang mengubahnya serta kapan.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">16</span><h3>Jadwal &amp; sesi</h3><span class="path">/admin/events/{event}/jadwal</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/jadwal</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni on"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn">Deteksi konflik</span><span class="btn pri">Tambah sesi</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:52px 60px 46px 1fr 52px"><span>Sesi</span><span>Tanggal</span><span>Jam</span><span>Ujian</span><span>Ruang</span></div>
+                  <div class="tr" style="grid-template-columns:52px 60px 46px 1fr 52px"><span class="c">S-01</span><span class="c">02 Nov</span><span class="c">07:30</span><span class="c">Matematika · X</span><span class="c">6</span></div>
+                  <div class="tr" style="grid-template-columns:52px 60px 46px 1fr 52px"><span class="c">S-02</span><span class="c">02 Nov</span><span class="c">09:30</span><span class="c">B. Indonesia · X</span><span class="c">6</span></div>
+                  <div class="tr" style="grid-template-columns:52px 60px 46px 1fr 52px"><span class="c">S-03</span><span class="c">02 Nov</span><span class="c">09:30</span><span class="c">Fisika · XI</span><span class="chip bad">bentrok</span></div>
+                  <div class="tr" style="grid-template-columns:52px 60px 46px 1fr 52px"><span class="c">S-04</span><span class="c">03 Nov</span><span class="c">07:30</span><span class="c">Sejarah · XII</span><span class="c">5</span></div>
+                </div>
+                <div class="inbox bad">S-03 bentrok: R-02 sudah dipakai S-02 pada jam yang sama. Perbaiki sebelum event ditandai Ready.</div>
+                <div class="box">
+                  <span class="lb">Validasi jadwal</span>
+                  <div class="check"><i class="f"></i><span>Kapasitas ruang cukup untuk jumlah peserta</span></div>
+                  <div class="check"><i class="f"></i><span>Tidak ada ruang dipakai dua sesi sekaligus</span></div>
+                  <div class="check"><i></i><span>Tidak ada peserta punya dua ujian bersamaan</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Baris bentrok ditandai di tabelnya sendiri, bukan hanya diringkas di panel validasi, supaya Admin bisa memperbaiki langsung dari baris yang bermasalah. Kapasitas ruang diperiksa di sini karena inilah tempat ruang dan peserta pertama kali bertemu.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">17</span><h3>Pengawas &amp; penempatan ruang</h3><span class="path">/admin/events/{event}/pengawas</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/pengawas</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn">Tugaskan otomatis</span><span class="btn pri">Tugaskan</span></div>
+              <div class="body">
+                <div class="cols c3">
+                  <div class="kpi"><span class="lb">Ruang</span><b>24</b></div>
+                  <div class="kpi"><span class="lb">Pengawas ditugaskan</span><b>31</b></div>
+                  <div class="kpi"><span class="lb">Ruang tanpa pengawas</span><b>0</b></div>
+                </div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:50px 1fr 1fr 44px"><span>Ruang</span><span>Pengawas 1</span><span>Pengawas 2</span><span>Sesi</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 1fr 44px"><span class="c">R-01</span><span class="c">Ani Mulyani</span><span class="c">Dedi Kurnia</span><span class="c">4</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 1fr 44px"><span class="c">R-02</span><span class="c">Rina Wati</span><span class="c">—</span><span class="c">4</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 1fr 44px"><span class="c">R-03</span><span class="c">Hendra G.</span><span class="c">Lilis S.</span><span class="c">5</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 1fr 44px"><span class="c">R-04</span><span class="c">Yusuf A.</span><span class="c">Maya Sari</span><span class="c">3</span></div>
+                </div>
+                <div class="inbox warn">R-02 hanya satu pengawas. Ruang yang tidak punya pengawas tidak akan bisa dibuka siswanya, karena presensi harus diverifikasi orang.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Penugasan di sini bukan sekadar daftar nama: penugasan inilah yang memberi Pengawas hak melihat dan memverifikasi presensi di ruang itu. Tanpa penugasan, ia tidak melihat apa pun — dan itu batas isolasi yang harus tetap berlaku meskipun ia guru di sekolah yang sama.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">18</span><h3>Token ujian</h3><span class="path">/admin/events/{event}/token</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/token</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn">Cetak kartu token</span><span class="btn pri">Terbitkan</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:1fr 58px 62px 62px 46px"><span>Sesi</span><span>Token</span><span>Berlaku</span><span>Dibuka oleh</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 58px 62px 62px 46px"><span class="c">S-01 · Matematika X</span><span class="c">482916</span><span class="c">07:30–07:45</span><span class="c">Ani M.</span><span class="chip ok">aktif</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 58px 62px 62px 46px"><span class="c">S-02 · B.Indo X</span><span class="c">731048</span><span class="c">09:30–09:45</span><span class="c">Rina W.</span><span class="chip info">dibuka</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 58px 62px 62px 46px"><span class="c">S-03 · Fisika XI</span><span class="chip mute">belum</span><span class="c">—</span><span class="c">—</span><span class="chip mute">draft</span></div>
+                </div>
+                <div class="box solid">
+                  <div class="ph"><span class="lb">Riwayat pembukaan token</span><span class="sp"><span class="chip mute">tercatat</span></span></div>
+                  <div class="tbl">
+                    <div class="tr" style="grid-template-columns:1fr 44px 44px"><span class="c">S-01 dibuka Ani Mulyani</span><span class="c">07:31</span><span class="chip info">R-01</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 44px 44px"><span class="c">S-01 dilihat ulang Rina Wati</span><span class="c">07:33</span><span class="chip info">R-01</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Token dapat dilihat Pengawas di ruangnya sendiri sehingga ia tidak perlu bolak-balik ke ruang Admin. Konsekuensinya setiap pembukaan token dicatat: kalau token bocor, asalnya bisa ditelusuri ke satu akun, bukan berhenti pada "entah siapa".</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <section class="group" data-g="ops">
+    <header>
+      <h2><em>F</em> Pelaksanaan</h2>
+      <p>Dua laman yang dipakai sementara ujian berjalan — dipantau terus, dan keduanya juga terlihat dari sisi Pengawas dalam bentuk yang lebih sempit.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">19</span><h3>Presensi &amp; koreksi administratif</h3><span class="path">/admin/events/{event}/presensi</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/presensi</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sel">Ruang: R-01</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Buka sesi</span></div>
+              <div class="body">
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Peserta ruang</span><b>32</b></div>
+                  <div class="kpi"><span class="lb">Hadir</span><b>30</b></div>
+                  <div class="kpi"><span class="lb">Belum</span><b>2</b></div>
+                  <div class="kpi"><span class="lb">Dikunci</span><b>1</b></div>
+                </div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:58px 1fr 66px 54px"><span>NIS</span><span>Nama</span><span>Presensi</span><span>Aksi</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 66px 54px"><span class="c">2024001</span><span class="c">Ahmad Fauzi</span><span class="chip ok">terverifikasi</span><span class="btn">Koreksi</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 66px 54px"><span class="c">2024002</span><span class="c">Bunga Lestari</span><span class="chip ok">terverifikasi</span><span class="btn">Koreksi</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 66px 54px"><span class="c">2024003</span><span class="c">Citra Dewi</span><span class="chip warn">menunggu</span><span class="btn">Verifikasi</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 66px 54px"><span class="c">2024004</span><span class="c">Dimas P.</span><span class="chip bad">tidak hadir</span><span class="btn">Ubah</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Koreksi administratif ditandai sebagai koreksi, bukan sebagai verifikasi biasa — jejaknya berbeda di log, supaya perubahan presensi setelah ujian berjalan dapat dibedakan dari pencatatan normal. Tanpa pemisahan itu, nilai yang dipersoalkan tidak bisa ditelusuri asalnya.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">20</span><h3>Monitoring ujian</h3><span class="path">/admin/events/{event}/monitoring</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/monitoring</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sel">Sesi: S-01</span><span class="sp" style="margin-left:auto"></span><span class="chip ok">terhubung</span><span class="btn">Segarkan</span></div>
+              <div class="body">
+                <div class="cols c5">
+                  <div class="kpi"><span class="lb">Mengerjakan</span><b>278</b></div>
+                  <div class="kpi"><span class="lb">Selesai</span><b>24</b></div>
+                  <div class="kpi"><span class="lb">Terputus</span><b>3</b></div>
+                  <div class="kpi"><span class="lb">Dikunci</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Pelanggaran</span><b>11</b></div>
+                </div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:50px 1fr 58px 54px 52px"><span>Ruang</span><span>Ujian</span><span>Progres</span><span>Terakhir</span><span>Flag</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 58px 54px 52px"><span class="c">R-01</span><span class="c">Matematika · X</span><span class="c">18/32</span><span class="c">2s</span><span class="chip ok">—</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 58px 54px 52px"><span class="c">R-02</span><span class="c">Matematika · X</span><span class="c">21/32</span><span class="c">5s</span><span class="chip warn">2</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 58px 54px 52px"><span class="c">R-03</span><span class="c">Matematika · XI</span><span class="c">30/32</span><span class="c">12s</span><span class="chip bad">1 kunci</span></div>
+                  <div class="tr" style="grid-template-columns:50px 1fr 58px 54px 52px"><span class="c">R-05</span><span class="c">Matematika · XI</span><span class="c">29/32</span><span class="c">1m</span><span class="chip mute">—</span></div>
+                </div>
+                <div class="inbox">Progres dihitung dari jawaban yang sudah tersimpan di server. Jawaban yang masih mengantre di perangkat siswa belum ikut terhitung.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Pelanggaran dihitung di sini secara terpisah dari nilai, karena itu bukan urusan Guru pengampu soal melainkan urusan pengawas dan panitia. Menggabungkannya ke laman koreksi akan membuat guru ikut membaca catatan perilaku yang bukan wewenangnya.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <section class="group" data-g="hasil">
+    <header>
+      <h2><em>G</em> Hasil</h2>
+      <p>Dua laman penutup: satu untuk membuka nilai kepada siswa, satu untuk menarik datanya keluar sebagai berkas.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">21</span><h3>Publikasi hasil</h3><span class="path">/admin/events/{event}/hasil</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/hasil</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn off">Publikasikan</span></div>
+              <div class="body">
+                <div class="inbox warn">Publikasi nonaktif sampai seluruh uraian terkoreksi. 2 dari 12 ujian masih memiliki uraian belum dinilai.</div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:1fr 52px 62px 62px"><span>Ujian</span><span>Peserta</span><span>Objektif</span><span>Uraian</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 52px 62px 62px"><span class="c">Matematika · X</span><span class="c">278</span><span class="chip ok">278/278</span><span class="chip ok">26/26</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 52px 62px 62px"><span class="c">B. Indonesia · X</span><span class="c">278</span><span class="chip ok">278/278</span><span class="chip warn">112/278</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 52px 62px 62px"><span class="c">Fisika · XI</span><span class="c">268</span><span class="chip ok">268/268</span><span class="chip bad">0/40</span></div>
+                </div>
+                <div class="box solid">
+                  <div class="ph"><span class="lb">Setelah dipublikasikan</span><span class="sp"><span class="btn">Kirim pengumuman</span></span></div>
+                  <div class="check"><i class="f"></i><span>Tampilkan nilai objektif ke siswa</span></div>
+                  <div class="check"><i></i><span>Tampilkan pembahasan soal</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Publikasi adalah satu aksi untuk seluruh event, bukan per ujian, dan tombolnya nonaktif selama masih ada uraian belum dinilai. Membuka nilai sebagian membuat siswa membandingkan nilai yang belum final, dan keributan yang timbul dari situ harus diselesaikan panitia, bukan sistem.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">22</span><h3>Laporan &amp; ekspor</h3><span class="path">/admin/laporan</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/laporan</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Laporan</span><span class="sel">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn">XLSX</span><span class="btn">CSV</span><span class="btn">PDF</span></div>
+              <div class="body">
+                <div class="tabs"><span class="tab on">Nilai per siswa</span><span class="tab">Rekap kelas</span><span class="tab">Analisis butir</span><span class="tab">Kehadiran</span><span class="tab">Pelanggaran</span></div>
+                <div class="cols c2">
+                  <div class="field"><span class="lb">Kelas</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">Semua kelas</span></span></div>
+                  <div class="field"><span class="lb">Mata pelajaran</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">Semua mapel</span></span></div>
+                </div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:58px 1fr 44px 44px 56px"><span>NIS</span><span>Nama</span><span>Kelas</span><span>Nilai</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 44px 44px 56px"><span class="c">2024001</span><span class="c">Ahmad Fauzi</span><span class="c">X-1</span><span class="c">88</span><span class="chip ok">tuntas</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 44px 44px 56px"><span class="c">2024002</span><span class="c">Bunga Lestari</span><span class="c">X-1</span><span class="c">74</span><span class="chip ok">tuntas</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 44px 44px 56px"><span class="c">2024119</span><span class="c">Dewi Anggraini</span><span class="c">X-2</span><span class="c">61</span><span class="chip warn">remedial</span></div>
+                  <div class="tr" style="grid-template-columns:58px 1fr 44px 44px 56px"><span class="c">2024120</span><span class="c">Fajar Ramadhan</span><span class="c">X-3</span><span class="c">—</span><span class="chip bad">tidak hadir</span></div>
+                </div>
+                <div class="ph"><span class="sub">1–50 dari 1.284</span><span class="sp"><span class="chip mute">berkas besar: disiapkan di latar belakang</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Ekspor 1.284 baris tidak dikirim langsung sebagai satu respons ke browser; berkasnya disiapkan di latar belakang lalu diunduh. Pelanggaran berdiri sebagai tab terpisah — laporan nilai dan laporan perilaku tidak pernah digabung dalam satu berkas, karena keduanya dibaca orang yang berbeda.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <section class="group" data-g="sistem">
+    <header>
+      <h2><em>H</em> Sistem</h2>
+      <p>Dua laman pengaturan yang jarang dibuka tetapi menentukan perilaku seluruh aplikasi dan seluruh event setelahnya.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">23</span><h3>Pengaturan sekolah</h3><span class="path">/admin/pengaturan</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/pengaturan</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Pengaturan</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Simpan</span></div>
+              <div class="body">
+                <div class="tabs"><span class="tab on">Ujian</span><span class="tab">Keamanan</span><span class="tab">Nilai</span><span class="tab">Notifikasi</span></div>
+                <div class="cols c2">
+                  <div class="field"><span class="lb">Durasi token berlaku (menit)</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">15</span></span></div>
+                  <div class="field"><span class="lb">Ambang pelanggaran bawaan</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">5</span></span></div>
+                  <div class="field"><span class="lb">Simpan otomatis tiap (detik)</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">20</span></span></div>
+                  <div class="field"><span class="lb">Nilai minimum tuntas (KKM)</span><span class="input" style="display:flex;align-items:center;padding:0 5px"><span style="font-size:9px">70</span></span></div>
+                </div>
+                <div class="box solid">
+                  <span class="lb">Kebijakan proteksi ujian</span>
+                  <div class="check"><i class="f"></i><span>Kunci klik kanan dan salin</span></div>
+                  <div class="check"><i class="f"></i><span>Peringatkan saat keluar tab</span></div>
+                  <div class="check"><i class="f"></i><span>Kunci ujian setelah ambang terlampaui</span></div>
+                  <div class="check"><i></i><span>Izinkan tempel teks pada soal uraian</span></div>
+                </div>
+                <div class="inbox">Nilai di sini adalah bawaan untuk event baru. Event yang sudah dibuat menyimpan nilainya sendiri dan tidak ikut berubah.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Kebijakan proteksi berada di tab Keamanan dan berlaku sebagai bawaan event, sementara tiap event dapat menimpanya. Peringatan terakhir ditulis di laman ini karena Admin perlu tahu bahwa mengubahnya tidak menyentuh event yang sedang berjalan.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">24</span><h3>Log aktivitas</h3><span class="path">/admin/log</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/log</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">S</div><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Log aktivitas</span><span class="sp" style="margin-left:auto"></span><span class="btn">Saring</span><span class="btn">Ekspor</span></div>
+              <div class="body">
+                <div class="cols c4">
+                  <div class="input" style="display:flex;align-items:center;padding:0 5px"><span class="sub" style="color:var(--wf-dim)">Aktor</span></div>
+                  <div class="input" style="display:flex;align-items:center;padding:0 5px"><span class="sub" style="color:var(--wf-dim)">Jenis aksi</span></div>
+                  <div class="input" style="display:flex;align-items:center;padding:0 5px"><span class="sub" style="color:var(--wf-dim)">Tanggal</span></div>
+                  <div class="input" style="display:flex;align-items:center;padding:0 5px"><span class="sub" style="color:var(--wf-dim)">Cari</span></div>
+                </div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:40px 1fr 1fr 54px"><span>Jam</span><span>Aktor</span><span>Aksi</span><span>Objek</span></div>
+                  <div class="tr" style="grid-template-columns:40px 1fr 1fr 54px"><span class="c">07:31</span><span class="c">Ani Mulyani</span><span class="c">Membuka token sesi</span><span class="chip info">S-01</span></div>
+                  <div class="tr" style="grid-template-columns:40px 1fr 1fr 54px"><span class="c">07:44</span><span class="c">Sistem</span><span class="c">Mengunci ujian</span><span class="chip bad">2024007</span></div>
+                  <div class="tr" style="grid-template-columns:40px 1fr 1fr 54px"><span class="c">07:52</span><span class="c">Budi Santoso</span><span class="c">Koreksi presensi</span><span class="chip warn">R-03</span></div>
+                  <div class="tr" style="grid-template-columns:40px 1fr 1fr 54px"><span class="c">08:10</span><span class="c">Rina Wati</span><span class="c">Membuka kunci</span><span class="chip info">2024018</span></div>
+                </div>
+                <div class="ph"><span class="sub">1–50 dari 4.812</span><span class="sp"><span class="chip mute">hanya baca</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Laman ini tidak punya tombol hapus, dan itu disengaja: membuka token, mengoreksi presensi, dan membuka kunci ujian semuanya dapat dipersoalkan setelah ujian selesai, jadi catatannya harus tetap ada meskipun Admin-nya sudah berganti.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <footer>
+    <span>School CBT · wireframe konsol Admin</span>
+    <span>24 laman · 2 rincian · 1 anatomi · 8 kelompok</span>
+    <span>sumber: prd.md v0.3 + blueprint-cbt.html</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.fbtn'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.group[data-g]'));
+  function apply(g) {
+    groups.forEach(function (s) {
+      s.hidden = !(g === 'all' || s.getAttribute('data-g') === g);
+    });
+    btns.forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-g') === g);
+    });
+  }
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () { apply(b.getAttribute('data-g')); });
+  });
+})();
+</script>
+

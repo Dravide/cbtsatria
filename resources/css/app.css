@@ -1,0 +1,122 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/*
+|--------------------------------------------------------------------------
+| Token desain
+|--------------------------------------------------------------------------
+| Nilai-nilai ini disalin langsung dari wireframe-admin.html supaya konsol
+| React yang dibangun di sini memakai sistem yang sudah ditetapkan, bukan
+| mengarang tampilan baru. Yang dikunci wireframe adalah tata letak dan
+| alur; warna dan ikon kebetulan sudah ikut tertulis, dan tidak ada alasan
+| membuangnya.
+*/
+@theme {
+    /* Permukaan */
+    --color-paper: #eceff4;
+    --color-surface: #ffffff;
+    --color-surface-2: #e4e9f0;
+    --color-line: #d3d9e2;
+
+    /* Teks */
+    --color-ink: #161b24;
+    --color-ink-2: #4a5565;
+    --color-ink-3: #77808f;
+
+    /* Aksen */
+    --color-accent: #1e4fa3;
+    --color-accent-soft: #e3ebf9;
+    --color-on-accent: #ffffff;
+
+    /* Status - warna garis depan dan latarnya, dipakai chip dan lencana */
+    --color-ok: #186b47;
+    --color-ok-bg: #e2f2e9;
+    --color-warn: #8a5a06;
+    --color-warn-bg: #fbf0d9;
+    --color-bad: #9b2530;
+    --color-bad-bg: #fae4e6;
+    --color-info: #1f5f7a;
+    --color-info-bg: #e1eff4;
+
+    /* Primitif wireframe - dipakai bila sebuah laman masih menggambar rangka */
+    --color-wf-soft: #f2f4f8;
+    --color-wf-line: #c6cedb;
+    --color-wf-hair: #e6eaf0;
+    --color-wf-head: #edf1f7;
+
+    /* Huruf */
+    --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+    /* Bentuk */
+    --radius-wf: 8px;
+    --shadow-wf: 0 1px 2px rgba(16, 22, 32, 0.05), 0 10px 26px -18px rgba(16, 22, 32, 0.35);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Rangka ujian gelap - wireframe-peran.html `.wd.dark`
+|--------------------------------------------------------------------------
+| Nilainya disalin langsung dari blok `.wf.dark,.wd.dark` di wireframe,
+| dengan nama token yang SAMA seperti @theme di atas. Itu bukan kebetulan:
+| Tailwind 4 memancarkan setiap utility sebagai `var(--color-*)`, sehingga
+| menimpa custom property pada satu elemen pembungkus sudah cukup untuk
+| mengganti tema seluruh subtree tanpa satu kelas `dark:` pun.
+
+| Cara itu dipilih alih-alih varian `dark:` Tailwind karena alasan yang
+| menyangkut siswa: ujian dibuat gelap supaya anak yang berpindah tab lalu
+| kembali langsung mengenali bahwa ia sedang di dalam ujian (plate 22).
+| Itu keadaan HALAMAN, bukan preferensi sistem - dan varian `dark:` akan
+| membuatnya berubah sendiri mengikuti setelan ponsel anak, sehingga
+| separuh peserta melihat rangka yang berbeda dari separuh lainnya.
+*/
+.rangka-ujian {
+    --color-paper: #12161f;
+    --color-surface: #1a2029;
+    --color-surface-2: #232b36;
+    --color-line: #39424f;
+    --color-ink: #e2e8f1;
+    --color-ink-2: #b3bdcc;
+    --color-ink-3: #8b96a6;
+    --color-accent: #7aa8f0;
+    --color-accent-soft: #1a2740;
+    --color-on-accent: #0b0e14;
+    --color-ok: #6ecfa0;
+    --color-ok-bg: #122c22;
+    --color-warn: #e0b062;
+    --color-warn-bg: #2e2413;
+    --color-bad: #f08b93;
+    --color-bad-bg: #331a1d;
+    --color-info: #79c0da;
+    --color-info-bg: #12252d;
+
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+}
+
+@layer base {
+    body {
+        background-color: var(--color-paper);
+        color: var(--color-ink);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: var(--font-display);
+        text-wrap: balance;
+    }
+
+    /* Angka dan kode selalu monospasi - NIS, token, kode ruang, jam */
+    code,
+    kbd,
+    samp,
+    .font-mono {
+        font-family: var(--font-mono);
+    }
+}

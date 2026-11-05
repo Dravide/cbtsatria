@@ -1,0 +1,17 @@
+Uji beban CBT - http://127.0.0.1:8782
+  peniru: 40   putaran jawaban: 5
+
+
+Selesai dalam 94 detik.
+
+--- penyimpanan jawaban (PRD §19.3: p95 <= 2000ms) ---
+  simpan jawaban         n=200   min= 5673ms  p50= 7236ms  p95= 7842ms  p99= 8034ms  maks= 8308ms  [LEWAT p95 <= 2000ms]
+
+--- pemuatan halaman operasional (PRD §19.3: p95 <= 3000ms) ---
+  papan operasional      n=15    min=  164ms  p50=  231ms  p95=  475ms  p99=  475ms  maks=  475ms  [OK   p95 <= 3000ms]
+
+CATATAN: pada `php artisan serve` angka di atas adalah BATAS biaya
+per-permintaan, bukan kapasitas server - servernya satu-utas. Baca
+docs/BEBAN.md sebelum menyimpulkan apa pun dari keluaran ini.
+
+Catatan: p95 lewat sasaran pada simpan jawaban, tetapi CBT_SISWA=40 < 300 - pada server satu-utas itu yang diharapkan. Ini bukan penilaian lulus/tidak.

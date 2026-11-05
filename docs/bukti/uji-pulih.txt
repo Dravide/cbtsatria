@@ -1,0 +1,36 @@
+[18:30:12] Arsip: /c/Users/Dery Supriady/AppData/Local/Temp/cbt-backup-uji/cbt-20261104-120342.tar.gz
+[18:30:12] Mengukur sumber 'cbt_satria' ...
+  exam_attempts    4
+  exam_results     4
+  report_exports   2
+  users            19
+[18:30:12] Memulihkan ke 'cbt_satria_pulih' (basis data throwaway) ...
+[18:30:12] Membuka '/c/Users/Dery Supriady/AppData/Local/Temp/cbt-backup-uji/cbt-20261104-120342.tar.gz' ...
+[18:30:12] Membuat 'cbt_satria_pulih' bila belum ada ...
+[18:30:12] Memulihkan isinya (DROP TABLE lalu impor) ...
+[18:30:16] Media dilewati (--tanpa-media).
+[18:30:17] '.env' arsip disimpan sebagai '.env.dari-cadangan' - TIDAK ditimpa. Bandingkan manual.
+[18:30:17] Selesai. Basis data 'cbt_satria_pulih' sudah dipulihkan.
+--- jumlah baris yang dicatat saat pencadangan ---
+cap=20261104-120342
+basis_data=cbt_satria
+host=127.0.0.1:3307
+exam_attempts=4
+exam_results=4
+report_exports=2
+students=19
+--- jumlah baris SESUDAH pemulihan ---
+exam_attempts    4
+exam_results     4
+report_exports   2
+users            19
+[18:30:17] Membandingkan ...
+  OK    exam_attempts    4
+  OK    exam_results     4
+  OK    report_exports   2
+  OK    users            19
+[18:30:17] Menguji skema hasil pemulihan lewat aplikasi ...
+  OK    migrate:status terbaca
+
+PASS - pemulihan menghasilkan jumlah baris yang sama dengan sumbernya.
+       Basis data uji: cbt_satria_pulih (boleh dihapus).

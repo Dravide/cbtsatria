@@ -1,0 +1,713 @@
+import { Head, Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import GuruLayout from '@/Layouts/GuruLayout';
+import {
+    ButirJodohBuilder,
+    BarisButir,
+    BarisOpsi,
+    BarisRubrik,
+    EditorSoal,
+    OpsiBuilder,
+    RubrikBuilder,
+    UrutanBuilder,
+} from '@/Components/BuilderSoal';
+import { Chip, Field, Inbox, Kotak, Tombol, kelasInput } from '@/Components/ui';
+
+/**
+ * Laman Guru 03 - builder soal. Wireframe-peran.html plate 03.
+ *
+ * =====================================================================
+ * Sembilan jenis sebagai TAB, bukan menu turun
+ * =====================================================================
+ * Alasan wireframe `:434` dikutip apa adanya karena ia yang menentukan
+ * bentuk laman ini: Guru harus melihat seluruh jenis yang tersedia sekaligus,
+ * karena pilihan itulah yang menentukan bentuk form di bawahnya. Menu turun
+ * menyembunyikan delapan dari sembilan, sehingga Guru yang mencari "soal yang
+ * jawabannya diurutkan" harus membuka menu itu lebih dulu untuk tahu bahwa
+ * jenisnya ada.
+ *
+ * =====================================================================
+ * SATU state untuk sembilan bentuk, bukan sembilan form terpisah
+ * =====================================================================
+ * Godaannya adalah sembilan komponen form yang masing-masing mengurus
+ * payloadnya. Yang membuat itu salah: berpindah tab TIDAK boleh menghapus
+ * apa yang sudah ditulis. Guru yang menulis teks soal di tab Pilihan ganda,
+ * lalu menyadari jawabannya seharusnya diurutkan, harus menemukan teksnya
+ * masih ada di tab Mengurutkan.
+ *
+ * Karena itu seluruh bentuk hidup di satu state di sini, dan `key` pada
+ * editor dipakai untuk memasang ulang DOM-nya saat berpindah tab - lihat
+ * EditorSoal untuk mengapa itu perlu.
+ *
+ * =====================================================================
+ * Yang dikirim adalah `kunci`, dan `is_correct` tidak pernah dikirim
+ * =====================================================================
+ * Kolom `is_correct` di `question_options` DITURUNKAN server dari kunci
+ * (BankSoalService::tulisAnak). Mengirimnya dari sini berarti dua sumber
+ * untuk satu fakta - dan yang dinilai mesin adalah kuncinya, sehingga
+ * centang yang tampak benar di layar bisa saja tidak dihitung.
+ */
+type Mapel = { id: number; nama: string; kode: string };
+
+type SoalAda = {
+    id: number;
+    kode: string;
+    judul: string;
+    jenis: string;
+    tingkat: string | null;
+    status: string;
+    mapel_id: number;
+    prompt: Record<string, unknown> | null;
+    kunci: Record<string, unknown> | null;
+    skor: Record<string, unknown> | null;
+    pembahasan: Record<string, unknown> | null;
+    opsi: { option_key: string; content_json: { teks?: string }; position: number }[];
+    butir: {
+        item_key: string;
+        item_group: string | null;
+        content_json: { teks?: string };
+        correct_match_key: string | null;
+        position: number;
+    }[];
+    rubrik: { criterion: string; description: string | null; max_score: number; position: number }[];
+    penulis: string | null;
+};
+
+type Props = {
+    soal: SoalAda | null;
+    bolehUbah?: boolean;
+    mapel: Mapel[];
+    jenis: { nilai: string; label: string; pendek: string }[];
+    paketTujuan: number | null;
+};
+
+/** Ambil teks dari kolom JSON apa pun bentuknya. */
+const teks = (j: unknown): string => {
+    if (j && typeof j === 'object' && 'teks' in (j as Record<string, unknown>)) {
+        return String((j as { teks?: unknown }).teks ?? '');
+    }
+    return '';
+};
+
+const BENAR_SALAH: BarisOpsi[] = [
+    { option_key: 'b', teks: 'Benar' },
+    { option_key: 's', teks: 'Salah' },
+];
+
+export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTujuan }: Props) {
+    const baru = soal === null;
+    const kunciAwal = (soal?.kunci ?? {}) as Record<string, unknown>;
+
+    // ------------------------------------------------------------- State
+    const [tab, setTab] = useState(soal?.jenis ?? 'pilihan_ganda');
+    const [mapelId, setMapelId] = useState(String(soal?.mapel_id ?? mapel[0]?.id ?? ''));
+    const [judul, setJudul] = useState(soal?.judul ?? '');
+    const [kode, setKode] = useState(soal?.kode ?? '');
+    const [tingkat, setTingkat] = useState(soal?.tingkat ?? 'sedang');
+    const [status, setStatus] = useState(soal?.status ?? 'draft');
+    const [prompt, setPrompt] = useState(teks(soal?.prompt));
+    const [pembahasan, setPembahasan] = useState(teks(soal?.pembahasan));
+
+    const [opsi, setOpsi] = useState<BarisOpsi[]>(
+        soal?.opsi?.length
+            ? soal.opsi.map((o) => ({ option_key: o.option_key, teks: teks(o.content_json) }))
+            : [
+                  { option_key: 'a', teks: '' },
+                  { option_key: 'b', teks: '' },
+                  { option_key: 'c', teks: '' },
+                  { option_key: 'd', teks: '' },
+              ],
+    );
+    const [kunciOpsi, setKunciOpsi] = useState<string[]>(
+        ((kunciAwal.opsi as string[] | undefined) ?? []).map((s) => s.toLowerCase()),
+    );
+    const [varian, setVarian] = useState<string[]>(
+        ((kunciAwal.teks as string[] | undefined) ?? ['']).length
+            ? ((kunciAwal.teks as string[]) ?? [])
+            : [''],
+    );
+    const [nilai, setNilai] = useState(String(kunciAwal.nilai ?? ''));
+    const [toleransi, setToleransi] = useState(String(kunciAwal.toleransi ?? '0'));
+    const [satuan, setSatuan] = useState(String(kunciAwal.satuan ?? ''));
+
+    const [butir, setButir] = useState<BarisButir[]>(
+        soal?.butir?.length
+            ? soal.butir.map((b) => ({
+                  item_key: b.item_key,
+                  item_group: (b.item_group as 'kiri' | 'kanan') ?? 'kiri',
+                  teks: teks(b.content_json),
+                  correct_match_key: b.correct_match_key ?? '',
+              }))
+            : [],
+    );
+    const [pasangan, setPasangan] = useState<Record<string, string>>(
+        ((kunciAwal.pasangan as Record<string, string> | undefined) ?? {}),
+    );
+    const [urutan, setUrutan] = useState<string[]>(
+        (kunciAwal.urutan as string[] | undefined) ?? [],
+    );
+
+    const [rubrik, setRubrik] = useState<BarisRubrik[]>(
+        soal?.rubrik?.length
+            ? soal.rubrik.map((r) => ({
+                  criterion: r.criterion,
+                  description: r.description ?? '',
+                  max_score: String(r.max_score),
+              }))
+            : [],
+    );
+
+    const skorAwal = (soal?.skor ?? {}) as Record<string, unknown>;
+    const [bobot, setBobot] = useState(String(skorAwal.bobot ?? '1'));
+    const [skorParsial, setSkorParsial] = useState(Boolean(skorAwal.skor_parsial));
+    const [mekanisme, setMekanisme] = useState(String(skorAwal.mekanisme ?? 'pilihan'));
+
+    // ----------------------------------------------------------- Kiriman
+    //
+    // Tipe payload-nya ditulis lengkap, bukan `Record<string, unknown>`, dan
+    // itu bukan kerapian: `useForm<T>` di Inertia 3 menuntut T memenuhi
+    // FormDataType, dan Record<string, unknown> tidak memenuhinya - sehingga
+    // formulir ini tidak bisa dikompilasi sama sekali. Bentuknya ditulis apa
+    // adanya di sini, dan itu justru berguna: seluruh field yang dikirim
+    // server terbaca dari satu tempat.
+    type Kiriman = {
+        subject_id: string;
+        code: string | null;
+        title: string;
+        question_type: string;
+        difficulty: string;
+        status: string;
+        prompt_json: { teks: string };
+        explanation_json: { teks: string } | null;
+        // Kunci, bentuknya berbeda per jenis. Ditulis sebagai bentuk yang
+        // mungkin, bukan `Record<string, unknown>`, karena Inertia 3 menuntut
+        // tipenya memenuhi FormDataType - dan `Record<string, unknown>` tidak
+        // memenuhinya. Bentuk gabungan ini justru lebih jujur: dari lima
+        // kemungkinan, tidak ada satu pun yang memuat keduanya sekaligus.
+        answer_key_json:
+            | { opsi: string[] }
+            | { teks: string[] }
+            | { pasangan: Record<string, string> }
+            | { urutan: string[] }
+            | { nilai: number | null; toleransi: number; satuan?: string }
+            | null;
+        scoring_config_json: {
+            bobot: number;
+            skor_parsial?: boolean;
+            mekanisme?: string;
+        };
+        opsi: { option_key: string; content_json: { teks: string }; position: number }[];
+        butir: {
+            item_key: string;
+            item_group: string;
+            content_json: { teks: string };
+            correct_match_key: string | null;
+            position: number;
+        }[];
+        rubrik: {
+            criterion: string;
+            description: string | null;
+            max_score: number;
+            position: number;
+        }[];
+    };
+
+    const form = useForm<Kiriman>({
+        subject_id: '',
+        code: null,
+        title: '',
+        question_type: 'pilihan_ganda',
+        difficulty: 'sedang',
+        status: 'draft',
+        prompt_json: { teks: '' },
+        explanation_json: null,
+        answer_key_json: null,
+        scoring_config_json: { bobot: 1 },
+        opsi: [],
+        butir: [],
+        rubrik: [],
+    });
+
+    /** Susun `answer_key_json` menurut jenis yang SEDANG dipilih. */
+    const susunKunci = (): Record<string, unknown> | null => {
+        switch (tab) {
+            case 'pilihan_ganda':
+            case 'jawaban_ganda':
+            case 'benar_salah':
+                return { opsi: kunciOpsi };
+            case 'isian_singkat':
+                return { teks: varian.filter((v) => v.trim() !== '') };
+            case 'menjodohkan':
+                return { pasangan };
+            case 'mengurutkan':
+                return { urutan };
+            case 'angka':
+                return {
+                    nilai: nilai === '' ? null : parseFloat(nilai),
+                    toleransi: parseFloat(toleransi) || 0,
+                    ...(satuan ? { satuan } : {}),
+                };
+            case 'media':
+                // Media meminjam mekanisme yang sudah ada; kuncinya mengikuti.
+                return mekanisme === 'isian'
+                    ? { teks: varian.filter((v) => v.trim() !== '') }
+                    : mekanisme === 'urut'
+                      ? { urutan }
+                      : { opsi: kunciOpsi };
+            case 'uraian':
+                return null;
+            default:
+                return null;
+        }
+    };
+
+    const kirim = () => {
+        const kunci = susunKunci();
+        const pakaiOpsi = ['pilihan_ganda', 'jawaban_ganda', 'benar_salah'].includes(tab) ||
+            (tab === 'media' && mekanisme === 'pilihan');
+
+        form.transform(() => ({
+            subject_id: mapelId,
+            code: kode || null,
+            title: judul,
+            question_type: tab,
+            difficulty: tingkat,
+            status,
+            prompt_json: { teks: prompt },
+            explanation_json: pembahasan ? { teks: pembahasan } : null,
+            answer_key_json: kunci,
+            scoring_config_json: {
+                bobot: parseFloat(bobot) || 1,
+                ...(tab === 'jawaban_ganda' ? { skor_parsial: skorParsial } : {}),
+                ...(tab === 'media' ? { mekanisme } : {}),
+            },
+            opsi: pakaiOpsi
+                ? opsi.map((o, i) => ({
+                      option_key: o.option_key,
+                      content_json: { teks: o.teks },
+                      position: i,
+                  }))
+                : [],
+            butir: butir.map((b, i) => ({
+                item_key: b.item_key,
+                item_group: b.item_group,
+                content_json: { teks: b.teks },
+                correct_match_key: b.correct_match_key || null,
+                position: i,
+            })),
+            rubrik: rubrik.map((r, i) => ({
+                criterion: r.criterion,
+                description: r.description || null,
+                max_score: parseFloat(r.max_score) || 1,
+                position: i,
+            })),
+        }));
+
+        if (baru) {
+            form.post('/guru/bank-soal');
+            return;
+        }
+        form.put(`/guru/bank-soal/${soal.id}`);
+    };
+
+    const galat = (k: string) => (form.errors as Record<string, string>)[k];
+
+    // ------------------------------------------------------------ Render
+    return (
+        <GuruLayout
+            judul={baru ? 'Soal baru' : `Soal ${soal.kode}`}
+            breadcrumb={`/guru/bank-soal${baru ? ' / baru' : ' / ' + soal.kode}`}
+            aksi={
+                <>
+                    <Link
+                        href="/guru/bank-soal"
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                    >
+                        Batal
+                    </Link>
+                    <Tombol
+                        nada="pri"
+                        onClick={kirim}
+                        disabled={form.processing || !bolehUbah}
+                    >
+                        {baru ? 'Simpan ke bank' : 'Simpan perubahan'}
+                    </Tombol>
+                </>
+            }
+        >
+            <Head title={baru ? 'Soal baru' : `Soal ${soal.kode}`} />
+
+            {/* Soal Guru lain boleh dibuka, tetapi TIDAK boleh disimpan - dan
+                itu dinyatakan di layar, bukan baru ketahuan saat menekan
+                Simpan. Yang menegakkannya tetap QuestionPolicy (403). */}
+            {!bolehUbah && (
+                <div className="mb-3">
+                    <Inbox>
+                        Soal ini ditulis{' '}
+                        <b>{soal?.penulis ?? 'Guru lain'}</b>. Anda dapat membacanya dan
+                        memakainya di paket, tetapi hanya penulisnya yang dapat mengubahnya.
+                        Bila perlu disesuaikan, duplikat dulu dari laman bank soal.
+                    </Inbox>
+                </div>
+            )}
+
+            <div className="mb-3 flex flex-wrap gap-1 rounded-wf border border-line bg-surface p-1">
+                {jenis.map((j) => (
+                    <button
+                        key={j.nilai}
+                        type="button"
+                        disabled={!bolehUbah}
+                        onClick={() => setTab(j.nilai)}
+                        className={
+                            'rounded-wf px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed ' +
+                            (tab === j.nilai
+                                ? 'bg-accent-soft text-accent'
+                                : 'text-ink-2 hover:bg-surface-2 disabled:text-ink-3/50')
+                        }
+                    >
+                        {j.label}
+                    </button>
+                ))}
+            </div>
+
+            <div className="space-y-3">
+                <EditorSoal
+                    key={`prompt-${tab}`}
+                    nilai={prompt}
+                    padaUbah={setPrompt}
+                    galat={galat('prompt_json.teks')}
+                    placeholder="Tulis soal di sini…"
+                />
+
+                {tab === 'pilihan_ganda' && (
+                    <OpsiBuilder
+                        opsi={opsi}
+                        kunci={kunciOpsi}
+                        padaUbah={setOpsi}
+                        padaKunci={setKunciOpsi}
+                        tunggal
+                        galat={galat('answer_key_json')}
+                    />
+                )}
+
+                {tab === 'jawaban_ganda' && (
+                    <>
+                        <OpsiBuilder
+                            opsi={opsi}
+                            kunci={kunciOpsi}
+                            padaUbah={setOpsi}
+                            padaKunci={setKunciOpsi}
+                            tunggal={false}
+                            galat={galat('answer_key_json')}
+                        />
+                        <label className="flex items-center gap-2 text-xs text-ink-2">
+                            <input
+                                type="checkbox"
+                                checked={skorParsial}
+                                onChange={(e) => setSkorParsial(e.target.checked)}
+                                disabled={!bolehUbah}
+                            />
+                            Beri skor sebagian bila siswa memilih sebagian jawaban benar
+                        </label>
+                    </>
+                )}
+
+                {tab === 'benar_salah' && (
+                    <OpsiBuilder
+                        opsi={opsi.length === 2 ? opsi : BENAR_SALAH}
+                        kunci={kunciOpsi}
+                        padaUbah={(o) => setOpsi(o)}
+                        padaKunci={setKunciOpsi}
+                        tunggal
+                        galat={galat('answer_key_json')}
+                    />
+                )}
+
+                {tab === 'isian_singkat' && (
+                    <Kotak
+                        judul="Jawaban yang diterima"
+                        aksi={
+                            <Tombol onClick={() => setVarian([...varian, ''])}>Tambah varian</Tombol>
+                        }
+                    >
+                        <p className="mb-2 text-[11px] text-ink-3">
+                            Tulis setiap ejaan yang harus dianggap benar. Pencocokan mengabaikan
+                            huruf besar/kecil dan spasi di tepi.
+                        </p>
+                        {galat('answer_key_json') && (
+                            <p className="mb-2 text-[11px] text-bad">{galat('answer_key_json')}</p>
+                        )}
+                        <div className="space-y-2">
+                            {varian.map((v, i) => (
+                                <div key={i} className="flex gap-2">
+                                    <input
+                                        value={v}
+                                        onChange={(e) =>
+                                            setVarian(
+                                                varian.map((x, j) => (j === i ? e.target.value : x)),
+                                            )
+                                        }
+                                        placeholder={`Varian ${i + 1}`}
+                                        className={kelasInput}
+                                    />
+                                    <Tombol
+                                        nada="bahaya"
+                                        onClick={() => setVarian(varian.filter((_, j) => j !== i))}
+                                        disabled={varian.length <= 1}
+                                    >
+                                        Buang
+                                    </Tombol>
+                                </div>
+                            ))}
+                        </div>
+                    </Kotak>
+                )}
+
+                {tab === 'menjodohkan' && (
+                    <ButirJodohBuilder
+                        butir={butir}
+                        pasangan={pasangan}
+                        padaUbah={setButir}
+                        padaPasangan={setPasangan}
+                        galat={galat('answer_key_json') ?? galat('butir')}
+                    />
+                )}
+
+                {tab === 'mengurutkan' && (
+                    <UrutanBuilder
+                        butir={butir}
+                        urutan={urutan}
+                        padaUbah={setButir}
+                        padaUrutan={setUrutan}
+                        galat={galat('answer_key_json') ?? galat('butir')}
+                    />
+                )}
+
+                {tab === 'angka' && (
+                    <Kotak judul="Jawaban angka">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            <Field label="Nilai benar" galat={galat('answer_key_json')}>
+                                <input
+                                    value={nilai}
+                                    onChange={(e) => setNilai(e.target.value)}
+                                    inputMode="decimal"
+                                    placeholder="mis. 3.14"
+                                    className={kelasInput}
+                                />
+                            </Field>
+                            <Field
+                                label="Toleransi"
+                                petunjuk="Selisih yang masih dianggap benar"
+                            >
+                                <input
+                                    value={toleransi}
+                                    onChange={(e) => setToleransi(e.target.value)}
+                                    inputMode="decimal"
+                                    className={kelasInput}
+                                />
+                            </Field>
+                            <Field label="Satuan" petunjuk="Opsional, mis. cm">
+                                <input
+                                    value={satuan}
+                                    onChange={(e) => setSatuan(e.target.value)}
+                                    className={kelasInput}
+                                />
+                            </Field>
+                        </div>
+                    </Kotak>
+                )}
+
+                {tab === 'uraian' && (
+                    <>
+                        <RubrikBuilder
+                            rubrik={rubrik}
+                            padaUbah={setRubrik}
+                            galat={galat('rubrik') ?? galat('answer_key_json')}
+                        />
+                        <Inbox>
+                            Soal uraian dinilai manual, dan kuncinya <b>adalah rubriknya</b> —
+                            bukan jawaban benar/salah. Koreksi jawaban uraian ada di konsol ini
+                            pada Fase 8.
+                        </Inbox>
+                    </>
+                )}
+
+                {tab === 'media' && (
+                    <>
+                        <Kotak judul="Mekanisme jawaban soal media">
+                            <p className="mb-2 text-[11px] text-ink-3">
+                                Soal media adalah soal yang stimulusnya berupa berkas. Cara
+                                menjawabnya tetap salah satu dari yang sudah ada.
+                            </p>
+                            <select
+                                value={mekanisme}
+                                onChange={(e) => setMekanisme(e.target.value)}
+                                disabled={!bolehUbah}
+                                className={kelasInput + ' max-w-xs'}
+                            >
+                                <option value="pilihan">Pilihan — satu jawaban benar</option>
+                                <option value="isian">Isian singkat</option>
+                                <option value="urut">Mengurutkan</option>
+                            </select>
+                        </Kotak>
+
+                        {mekanisme === 'isian' && (
+                            <Kotak judul="Jawaban yang diterima">
+                                <div className="space-y-2">
+                                    {varian.map((v, i) => (
+                                        <input
+                                            key={i}
+                                            value={v}
+                                            onChange={(e) =>
+                                                setVarian(
+                                                    varian.map((x, j) =>
+                                                        j === i ? e.target.value : x,
+                                                    ),
+                                                )
+                                            }
+                                            className={kelasInput}
+                                        />
+                                    ))}
+                                </div>
+                                <Tombol onClick={() => setVarian([...varian, ''])}>
+                                    Tambah varian
+                                </Tombol>
+                            </Kotak>
+                        )}
+
+                        {mekanisme === 'pilihan' && (
+                            <OpsiBuilder
+                                opsi={opsi}
+                                kunci={kunciOpsi}
+                                padaUbah={setOpsi}
+                                padaKunci={setKunciOpsi}
+                                tunggal
+                                galat={galat('answer_key_json')}
+                            />
+                        )}
+
+                        {mekanisme === 'urut' && (
+                            <UrutanBuilder
+                                butir={butir}
+                                urutan={urutan}
+                                padaUbah={setButir}
+                                padaUrutan={setUrutan}
+                                galat={galat('answer_key_json')}
+                            />
+                        )}
+
+                        <Inbox>
+                            Berkas media (gambar, audio, video) diunggah ke penyimpanan privat
+                            sekolah, bukan ditautkan ke layanan luar — sehingga soal tetap utuh
+                            walau tautan luar itu mati. Unggahan berkas dikerjakan pada langkah
+                            berikutnya; soal dapat disimpan lebih dulu tanpa media.
+                        </Inbox>
+                    </>
+                )}
+
+                <EditorSoal
+                    key={`pembahasan-${tab}`}
+                    nilai={pembahasan}
+                    padaUbah={setPembahasan}
+                    label="Pembahasan (opsional)"
+                    tinggi="min-h-20"
+                    placeholder="Mengapa jawabannya begitu…"
+                />
+
+                <Kotak judul="Detail soal">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <Field label="Mata pelajaran" galat={galat('subject_id')}>
+                            <select
+                                value={mapelId}
+                                onChange={(e) => setMapelId(e.target.value)}
+                                disabled={!bolehUbah}
+                                className={kelasInput}
+                            >
+                                {mapel.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.nama}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+
+                        <Field
+                            label="Kode soal"
+                            galat={galat('code')}
+                            petunjuk="Kosongkan agar sistem memberi kode"
+                        >
+                            <input
+                                value={kode}
+                                onChange={(e) => setKode(e.target.value)}
+                                disabled={!bolehUbah}
+                                placeholder="otomatis"
+                                className={kelasInput}
+                            />
+                        </Field>
+
+                        <Field label="Judul" galat={galat('title')} petunjuk="Ringkasan untuk daftar">
+                            <input
+                                value={judul}
+                                onChange={(e) => setJudul(e.target.value)}
+                                disabled={!bolehUbah}
+                                className={kelasInput}
+                            />
+                        </Field>
+
+                        <Field label="Bobot">
+                            <input
+                                value={bobot}
+                                onChange={(e) => setBobot(e.target.value)}
+                                inputMode="decimal"
+                                disabled={!bolehUbah}
+                                className={kelasInput}
+                            />
+                        </Field>
+
+                        <Field label="Tingkat">
+                            <select
+                                value={tingkat}
+                                onChange={(e) => setTingkat(e.target.value)}
+                                disabled={!bolehUbah}
+                                className={kelasInput}
+                            >
+                                <option value="mudah">Mudah</option>
+                                <option value="sedang">Sedang</option>
+                                <option value="sulit">Sulit</option>
+                            </select>
+                        </Field>
+
+                        <Field label="Status">
+                            <select
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                                disabled={!bolehUbah}
+                                className={kelasInput}
+                            >
+                                <option value="draft">Draf — masih disunting</option>
+                                <option value="siap">Siap — boleh dipakai Guru lain</option>
+                                <option value="arsip">Arsip</option>
+                            </select>
+                        </Field>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-2 text-[11px] text-ink-3">
+                        <Chip nada="info">{jenis.find((j) => j.nilai === tab)?.label}</Chip>
+                        <span>
+                            {tab === 'uraian'
+                                ? 'Dinilai manual — rubrik wajib diisi.'
+                                : 'Dinilai otomatis oleh mesin.'}
+                        </span>
+                    </div>
+                </Kotak>
+
+                {paketTujuan && (
+                    <Inbox>
+                        Soal ini akan ditambahkan ke paket setelah disimpan. Paket lain dapat
+                        dipilih dari laman paket.
+                    </Inbox>
+                )}
+            </div>
+        </GuruLayout>
+    );
+}

@@ -1,0 +1,27 @@
+{
+    "nama": "bentrok",
+    "waktu": "2026-11-03T16:35:39.589Z",
+    "hasil": [
+        {
+            "jalur": "POST /admin/events/1/pengawas/ruang/2 (bentrok: Joko Prasetyo sudah di R-01 sesi S-1)",
+            "status": 200,
+            "panjang": 0,
+            "ok": true,
+            "keluhan": []
+        },
+        {
+            "jalur": "POST /admin/events/1/pengawas/ruang/2 (sah: Sri Handayani, 1 penugasan dilepas dulu)",
+            "status": 200,
+            "panjang": 0,
+            "ok": true,
+            "keluhan": []
+        },
+        {
+            "jalur": "keadaan kembali seperti semula",
+            "status": 200,
+            "panjang": 0,
+            "ok": true,
+            "keluhan": []
+        }
+    ]
+}

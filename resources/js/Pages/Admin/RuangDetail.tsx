@@ -1,0 +1,293 @@
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import AdminLayout from '@/Layouts/AdminLayout';
+import { Chip, Inbox, KodePengawas, Kotak, Tabel, Tombol, nadaStatus } from '@/Components/ui';
+
+/**
+ * Rincian ruang - tautan pintu & kode pengawas.
+ *
+ * Bagian wireframe plate 09 yang tidak punya jalur sendiri di sidebar.
+ *
+ * ---------------------------------------------------------------------
+ * Tautan menentukan RUANG; kode menentukan ORANG
+ * ---------------------------------------------------------------------
+ * Dua hal ini mudah tertukar, dan menukarnya adalah kesalahan yang mahal:
+ *
+ *   Tautan boleh panjang, boleh ditempel di pintu, dan sendirian ia tidak
+ *   membuka apa pun - ia hanya menampilkan satu kolom kode.
+ *
+ *   Kode pendek supaya bisa diketik di depan pintu, dan justru karena
+ *   pendek ia tidak boleh menjadi satu-satunya penjaga.
+ *
+ * Keduanya harus menunjuk ruang yang sama. Tautan R-01 dengan kode milik
+ * R-02 ditolak - bukan karena kodenya salah, tetapi karena keduanya tidak
+ * sedang berbicara tentang ruang yang sama.
+ *
+ * ---------------------------------------------------------------------
+ * Kode tampil sekali, dan itu ditulis di layar
+ * ---------------------------------------------------------------------
+ * Kode hanya dikirim pada respons yang menerbitkannya. Muat ulang kehilangan
+ * kodenya. Admin yang perlu lagi harus menerbitkan ulang - dan itu juga
+ * mencabut tautan lama, sehingga kartu pintu yang beredar tidak menumpuk.
+ */
+type Tautan = {
+    id: number;
+    slug: string;
+    url: string;
+    status: string;
+    berlaku: boolean;
+    dipakai: number;
+    terbit: string | null;
+    kedaluwarsa: string | null;
+    dicabut: string | null;
+};
+
+type Props = {
+    ruang: {
+        id: number;
+        kode: string;
+        nama: string | null;
+        lokasi: string | null;
+        kapasitas: number;
+        pc: number;
+        byod: boolean;
+        status: string;
+    };
+    tautan: Tautan[];
+    aktif: { id: number; url: string; slug: string; kedaluwarsa: string | null; dipakai: number } | null;
+};
+
+export default function RuangDetail({ ruang, tautan, aktif }: Props) {
+    // Kode dari flash dibaca di sini, bukan lewat props: flash hidup tepat
+    // satu respons, dan props laman ikut terkirim pada setiap navigasi
+    // Inertia berikutnya. Lewat props, kode itu akan bertahan di layar
+    // sepanjang sesi - persis yang tidak boleh terjadi.
+    const { flash } = usePage().props as unknown as {
+        flash?: { kode_pengawas?: string; slug_baru?: string };
+    };
+
+    const kodeBaru = flash?.kode_pengawas;
+
+    return (
+        <AdminLayout
+            judul={`Ruang ${ruang.kode}`}
+            breadcrumb={`/admin/ruang · ${ruang.nama ?? ruang.kode}`}
+            aksi={
+                <>
+                    <Link href="/admin/ruang">
+                        <Tombol>Kembali</Tombol>
+                    </Link>
+                    <Tombol
+                        nada="pri"
+                        onClick={() =>
+                            router.post(`/admin/ruang/${ruang.id}/terbitkan`, {}, {
+                                preserveScroll: true,
+                            })
+                        }
+                    >
+                        {aktif ? 'Terbitkan ulang' : 'Terbitkan tautan & kode'}
+                    </Tombol>
+                </>
+            }
+        >
+            <Head title={`Ruang ${ruang.kode}`} />
+
+            {kodeBaru && (
+                <div className="mb-3">
+                    <KodePengawas kode={kodeBaru} slug={flash?.slug_baru} />
+                </div>
+            )}
+
+            <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+                <div className="space-y-4">
+                    <Kotak judul="Tautan masuk ruang">
+                        {aktif ? (
+                            <>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <code className="rounded-wf border border-line bg-surface-2 px-3 py-2 font-mono text-sm text-ink">
+                                        {aktif.url}
+                                    </code>
+                                    <Tombol onClick={() => salin(aktif.url)}>Salin tautan</Tombol>
+                                </div>
+
+                                <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-3">
+                                    <span>
+                                        Terbit {tautan[0]?.terbit} &middot; kedaluwarsa{' '}
+                                        {aktif.kedaluwarsa} &middot;
+                                    </span>
+                                    <Chip nada={aktif.dipakai > 1 ? 'warn' : 'mute'}>
+                                        {aktif.dipakai} pemakaian
+                                    </Chip>
+                                </p>
+
+                                <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
+                                    Tautan ini tidak membuka apa pun sendirian. Ia hanya
+                                    menampilkan satu kolom kode di pintu ruang.
+                                </p>
+                            </>
+                        ) : (
+                            <p className="py-4 text-sm text-ink-3">
+                                Belum ada tautan yang berlaku untuk ruang ini. Terbitkan untuk
+                                membuat tautan pintu dan kode pengawasnya.
+                            </p>
+                        )}
+                    </Kotak>
+
+                    <Kotak
+                        judul="Riwayat tautan"
+                        aksi={
+                            aktif && (
+                                <Tombol
+                                    nada="bahaya"
+                                    onClick={() =>
+                                        router.post(`/admin/ruang/${ruang.id}/cabut`, {}, {
+                                            preserveScroll: true,
+                                        })
+                                    }
+                                >
+                                    Cabut semua
+                                </Tombol>
+                            )
+                        }
+                    >
+                        <Tabel<Tautan>
+                            hal={{ data: tautan, total: tautan.length }}
+                            kunci={(t) => t.id}
+                            kosong="Belum ada tautan pernah diterbitkan."
+                            kolom={[
+                                {
+                                    judul: 'Slug',
+                                    render: (t) => (
+                                        <span className="font-mono text-xs text-ink-2">
+                                            /p/{t.slug}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    judul: 'Status',
+                                    kelas: 'w-32',
+                                    render: (t) => (
+                                        <Chip nada={nadaStatus(t.status)}>{t.status}</Chip>
+                                    ),
+                                },
+                                {
+                                    judul: 'Dipakai',
+                                    kelas: 'w-20',
+                                    render: (t) => (
+                                        <span className="font-mono text-xs text-ink-2">
+                                            {t.dipakai}&times;
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    judul: 'Terbit',
+                                    kelas: 'w-28',
+                                    render: (t) => (
+                                        <span className="font-mono text-[11px] text-ink-3">
+                                            {t.terbit ?? '-'}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    judul: 'Berakhir',
+                                    kelas: 'w-28',
+                                    render: (t) => (
+                                        <span className="font-mono text-[11px] text-ink-3">
+                                            {t.dicabut ? `dicabut ${t.dicabut}` : (t.kedaluwarsa ?? '-')}
+                                        </span>
+                                    ),
+                                },
+                            ]}
+                        />
+                    </Kotak>
+                </div>
+
+                <div className="space-y-4">
+                    <Kotak judul="Ruang">
+                        <dl className="space-y-2 text-sm">
+                            <Baris label="Kode" nilai={ruang.kode} mono />
+                            <Baris label="Nama" nilai={ruang.nama ?? '-'} />
+                            <Baris label="Lokasi" nilai={ruang.lokasi ?? '-'} />
+                            <Baris label="Kapasitas" nilai={String(ruang.kapasitas)} mono />
+                            <Baris
+                                label="Perangkat"
+                                nilai={ruang.byod ? 'BYOD (perangkat siswa)' : `${ruang.pc} PC`}
+                                mono
+                            />
+                            <div className="flex items-center gap-2 pt-1">
+                                <dt className="text-xs text-ink-3">Status</dt>
+                                <dd className="ml-auto">
+                                    <Chip nada={nadaStatus(ruang.status)}>{ruang.status}</Chip>
+                                </dd>
+                            </div>
+                        </dl>
+                    </Kotak>
+
+                    <Kotak judul="Bagaimana keduanya bekerja">
+                        <div className="space-y-3 text-xs leading-relaxed text-ink-2">
+                            <div>
+                                <p className="font-medium text-ink">Tautan menentukan ruang</p>
+                                <p>
+                                    Boleh panjang, boleh ditempel di pintu. Sendirian ia tidak
+                                    membuka apa pun.
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-medium text-ink">Kode menentukan orang</p>
+                                <p>
+                                    Pendek supaya bisa diketik di depan pintu, dan karena itu
+                                    tidak boleh menjadi satu-satunya penjaga.
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-medium text-ink">Keduanya harus sepadan</p>
+                                <p>
+                                    Tautan {ruang.kode} dengan kode ruang lain ditolak &mdash;
+                                    bukan karena kodenya salah, tetapi karena keduanya tidak
+                                    berbicara tentang ruang yang sama.
+                                </p>
+                            </div>
+                        </div>
+                    </Kotak>
+
+                    <Inbox>
+                        Kode pengawas hanya ditampilkan sekali, tepat saat diterbitkan. Ia tidak
+                        disimpan dalam bentuk terbaca di mana pun &mdash; yang tersimpan hanya
+                        sidik jarinya.
+                    </Inbox>
+                </div>
+            </div>
+        </AdminLayout>
+    );
+}
+
+function Baris({ label, nilai, mono }: { label: string; nilai: string; mono?: boolean }) {
+    return (
+        <div className="flex items-center gap-2">
+            <dt className="text-xs text-ink-3">{label}</dt>
+            <dd className={'ml-auto text-ink ' + (mono ? 'font-mono text-xs' : 'text-sm')}>
+                {nilai}
+            </dd>
+        </div>
+    );
+}
+
+/**
+ * Salin ke papan klip, dengan jalur mundur untuk konteks yang tidak aman.
+ *
+ * navigator.clipboard tidak tersedia di luar HTTPS dan localhost, dan
+ * penggunaannya tanpa pemeriksaan menghasilkan promise yang gagal tanpa
+ * pesan - Admin akan mengklik "Salin tautan" dan tidak tahu apakah berhasil.
+ */
+function salin(teks: string) {
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(teks);
+        return;
+    }
+
+    const ta = document.createElement('textarea');
+    ta.value = teks;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+}

@@ -1,0 +1,75 @@
+{
+    "nama": "laman-pengawas",
+    "waktu": "2026-11-03T16:34:57.495Z",
+    "hasil": [
+        {
+            "jalur": "/login",
+            "status": 200,
+            "panjang": 1621,
+            "keluhan": [],
+            "ok": true
+        },
+        {
+            "jalur": "/lupa-password",
+            "status": 200,
+            "panjang": 1193,
+            "keluhan": [],
+            "ok": true
+        },
+        {
+            "jalur": "/p/r-01-e9iy",
+            "status": 200,
+            "panjang": 1674,
+            "keluhan": [],
+            "ok": true
+        },
+        {
+            "jalur": "/pengawas",
+            "status": 200,
+            "panjang": 3930,
+            "keluhan": [],
+            "ok": true,
+            "akun": "pengawas1"
+        },
+        {
+            "jalur": "/pengawas/ruang/2/presensi",
+            "status": 200,
+            "panjang": 3564,
+            "keluhan": [],
+            "ok": true,
+            "akun": "pengawas1"
+        },
+        {
+            "jalur": "/pengawas/ruang/2/koreksi",
+            "status": 200,
+            "panjang": 1791,
+            "keluhan": [],
+            "ok": true,
+            "akun": "pengawas1"
+        },
+        {
+            "jalur": "/pengawas/ruang/2/token",
+            "status": 200,
+            "panjang": 5054,
+            "keluhan": [],
+            "ok": true,
+            "akun": "pengawas1"
+        },
+        {
+            "jalur": "/pengawas/ruang/2/monitoring",
+            "status": 200,
+            "panjang": 3818,
+            "keluhan": [],
+            "ok": true,
+            "akun": "pengawas1"
+        },
+        {
+            "jalur": "/pengawas/ruang/2/berita-acara",
+            "status": 200,
+            "panjang": 9800,
+            "keluhan": [],
+            "ok": true,
+            "akun": "pengawas1"
+        }
+    ]
+}

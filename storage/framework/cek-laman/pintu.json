@@ -1,0 +1,62 @@
+{
+    "nama": "pintu",
+    "waktu": "2026-11-03T16:35:20.912Z",
+    "hasil": [
+        {
+            "jalur": "Menerbitkan tautan pintu (r-01-eba7)",
+            "ok": true,
+            "keluhan": [],
+            "status": 0,
+            "panjang": 0
+        },
+        {
+            "jalur": "GET /p/r-01-eba7",
+            "ok": true,
+            "keluhan": [],
+            "status": 0,
+            "panjang": 0
+        },
+        {
+            "jalur": "POST /p/r-01-eba7 - kode salah 000000",
+            "ok": true,
+            "keluhan": [],
+            "status": 0,
+            "panjang": 0
+        },
+        {
+            "jalur": "Tombol pintu nonaktif sebelum enam digit",
+            "ok": true,
+            "keluhan": [],
+            "status": 0,
+            "panjang": 0
+        },
+        {
+            "jalur": "POST /p/r-01-eba7 - kode benar",
+            "ok": true,
+            "keluhan": [],
+            "status": 0,
+            "panjang": 0
+        },
+        {
+            "jalur": "Dasbor pengawas menghibahkan ruang-sesi 1",
+            "ok": true,
+            "keluhan": [],
+            "status": 0,
+            "panjang": 0
+        },
+        {
+            "jalur": "Token tidak ada di DOM sebelum tombolnya ditekan",
+            "ok": true,
+            "keluhan": [],
+            "status": 0,
+            "panjang": 0
+        },
+        {
+            "jalur": "Token muncul di DOM setelah tombolnya ditekan",
+            "ok": true,
+            "keluhan": [],
+            "status": 0,
+            "panjang": 0
+        }
+    ]
+}

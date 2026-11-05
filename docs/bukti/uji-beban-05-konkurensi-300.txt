@@ -1,0 +1,22 @@
+Uji beban CBT - http://127.0.0.1:8782
+  peniru: 300   putaran jawaban: 5
+
+
+Selesai dalam 417 detik.
+
+--- penyimpanan jawaban (PRD §19.3: p95 <= 2000ms) ---
+  simpan jawaban         n=815   min=25673ms  p50=32628ms  p95=37616ms  p99=38118ms  maks=38407ms  [LEWAT p95 <= 2000ms]
+
+--- pemuatan halaman operasional (PRD §19.3: p95 <= 3000ms) ---
+  papan operasional      n=15    min=  153ms  p50=  263ms  p95=  504ms  p99=  504ms  maks=  504ms  [OK   p95 <= 3000ms]
+
+--- 137 permintaan GAGAL (tidak dirata-ratakan) ---
+  login/0 (ECONNREFUSED): 131
+  baca-peserta/0 (ECONNREFUSED): 5
+  kerjakan/0 (ECONNREFUSED): 1
+
+CATATAN: pada `php artisan serve` angka di atas adalah BATAS biaya
+per-permintaan, bukan kapasitas server - servernya satu-utas. Baca
+docs/BEBAN.md sebelum menyimpulkan apa pun dari keluaran ini.
+
+TIDAK SAH: 137 permintaan gagal, jadi p95 di atas TIDAK mengukur aplikasi di bawah beban penuh. Jelaskan dan perbaiki galatnya lebih dulu - lihat docs/BEBAN.md §5.
