@@ -5,22 +5,27 @@ namespace App\Support;
 use Illuminate\Support\Facades\RateLimiter;
 
 /**
- * Pembatas laju untuk dua kredensial enam angka - PRD §19.2 dan §19.5.
+ * Pembatas laju untuk tiga titik masuk berkredensial - PRD §19.2 dan §19.5.
  *
  * =====================================================================
  * Yang dijaga, dan mengapa enam angka perlu penjaga
  * =====================================================================
- * Dua tempat di aplikasi ini meminta kode enam angka dari orang yang belum
- * tentu punya akun:
+ * Tiga tempat di aplikasi ini meminta kredensial dari orang yang belum tentu
+ * punya akun - atau sudah punya, tetapi tidak tentu yang mengetiknya:
  *
- *   - pintu ruang (`POST /p/{slug}`), kode pengawas pada kartu yang ditempel
- *     di daun pintu;
+ *   - pintu ruang (`POST /p/{slug}`), kode pengawas enam angka yang dipegang
+ *     pengawasnya sendiri - diterbitkan di laman Kepanitiaan sejak
+ *     2026-11-07, ketika kodenya berhenti menempel di kartu pintu;
  *   - gerbang ujian (`POST /siswa/ujian/{peserta}/gerbang`), token yang
- *     ditulis di papan tulis.
+ *     ditulis di papan tulis;
+ *   - ganti sandi (`PUT /siswa/akun/sandi`), sandi lama yang diketik ulang.
  *
- * Keduanya 10^6 kemungkinan, dan keduanya diperiksa dengan biaya yang mahal:
- * kode pengawas lewat `Hash::check` (~100 ms, bcrypt), token lewat satu kueri
- * berindeks. Tanpa pembatas, satu skrip dapat mencoba ribuan kali per menit -
+ * Dua yang pertama 10^6 kemungkinan; yang ketiga bukan enam angka, melainkan
+ * sandi yang sudah diketahui pemiliknya sendiri. Ketiganya tetap perlu
+ * dibatasi: kode pengawas diperiksa dengan `hash_equals` atas kode
+ * terenkripsi (murah, tetapi 10^6 tebakan tetap harus dipersempit), token
+ * lewat satu kueri berindeks, dan sandi lama lewat `Hash::check` (~100 ms,
+ * bcrypt). Tanpa pembatas, satu skrip dapat mencoba ribuan kali per menit -
  * pada bcrypt, justru percobaan itulah yang menghabiskan CPU server, dan
  * ujian yang sedang berjalan adalah korban pertamanya.
  *
@@ -33,6 +38,13 @@ use Illuminate\Support\Facades\RateLimiter;
  * | pintu      | `slug`       | 30/menit |
  * | gerbang    | `user_id`    | 5/menit  |
  * | gerbang    | `IP`         | 600/menit |
+ * | sandi      | `user_id`    | 5/menit  |
+ *
+ * Kunci pintu tetap `slug + IP` meski kodenya tidak lagi milik ruang: yang
+ * dibatasi adalah percobaan pada satu PINTU, dan yang mengetiknya berdiri di
+ * depan pintu itu. Orangnya tidak dipakai sebagai kunci karena ia belum
+ * diketahui sebelum percobaannya berhasil - kunci yang menuntut hasil dari
+ * hal yang sedang dijaganya tidak bisa dipakai.
  *
  * Per-IP saja salah dan akan mengunci orang yang sah: satu ruang diawasi
  * beberapa pengawas di jaringan sekolah yang sama, dan **300 siswa memakai
@@ -47,6 +59,9 @@ use Illuminate\Support\Facades\RateLimiter;
  * keamanan melainkan penjaga penyalahgunaan, dan dengan start serentak 300
  * siswa ia tidak pernah tersentuh. Yang benar-benar menjaga token adalah
  * pembatas per siswa.
+ *
+ * Ganti sandi sengaja TANPA pasangan per-IP. Argumen NAT-nya sama persis
+ * dengan gerbang, dan pelakunya sudah tersahihkan - akun, bukan alamat.
  *
  * =====================================================================
  * Yang SUNGGUH menjaga token bukan pembatas ini
@@ -66,10 +81,11 @@ use Illuminate\Support\Facades\RateLimiter;
  * berbeda begitu salah satunya disunting.
  *
  * Kelas ini sengaja duduk di `App\Support`, bukan di dalam salah satu
- * domain: yang memakainya dua domain berbeda - Facility (pintu ruang) dan
- * Attendance (gerbang ujian) - dan menaruhnya di salah satunya berarti yang
- * lain mengimpornya lintas domain untuk sesuatu yang bukan modelnya.
- * `App\Support\TabelQuery` sudah lebih dulu berdiri dengan alasan yang sama.
+ * domain: yang memakainya tiga domain berbeda - Facility (pintu ruang),
+ * Attendance (gerbang ujian dan ganti sandi), serta Question (Generate AI) -
+ * dan menaruhnya di salah satunya berarti yang lain mengimpornya lintas
+ * domain untuk sesuatu yang bukan modelnya. `App\Support\TabelQuery` sudah
+ * lebih dulu berdiri dengan alasan yang sama.
  */
 final class PembatasLaju
 {
@@ -79,12 +95,47 @@ final class PembatasLaju
     /** Nama limiter untuk gerbang ujian siswa. */
     public const GERBANG = 'gerbang-ujian';
 
+    /** Nama limiter untuk Generate AI di builder soal. */
+    public const AI = 'ai-soal';
+
+    /** Nama limiter untuk ganti sandi mandiri. */
+    public const SANDI = 'ganti-sandi';
+
+    /**
+     * Permintaan AI per Guru, per menit.
+     *
+     * Sepuluh, dan angkanya dipilih dari cara laman itu dipakai: Guru menekan
+     * Generate, membaca hasilnya, menyunting, lalu menekan lagi untuk soal
+     * berikutnya. Sepuluh per menit sudah lebih cepat daripada membaca satu
+     * soal. Yang tersisa di atasnya bukan pemakaian wajar melainkan klik
+     * ganda, skrip, atau tab yang tertinggal menembak berulang.
+     *
+     * Ini pembatas UANG, bukan pembatas keamanan: setiap permintaan ditagih
+     * ke akun penyedia milik sekolah.
+     */
+    public const AI_PER_GURU = 10;
+
+    /** Pesan saat seorang Guru melampaui batas permintaan AI-nya. */
+    public const PESAN_AI = 'Terlalu banyak permintaan AI. Tunggu satu menit, lalu coba lagi.';
+
     /**
      * Percobaan kode pengawas per pasangan tautan + IP, per menit.
      *
      * Lima, dan bukan angka yang lebih longgar: pengawas mengetik kode ini
-     * sekali, dari kartu yang ada di tangannya. Lima kesalahan dalam satu
-     * menit berarti kartunya bukan untuk pintu itu.
+     * sekali, dan lima kesalahan dalam satu menit berarti ia salah membaca
+     * kartunya sendiri, atau tautan yang dibukanya bukan untuk ruang tempat
+     * ia berdiri.
+     *
+     * Sebelum 2026-11-07 alasan yang ditulis di sini berbeda - "kartunya
+     * bukan untuk pintu itu", karena kodenya tercetak pada kartu yang sama
+     * dengan tautannya. Itu tidak lagi berlaku: kartu pintu kini hanya
+     * memuat tautannya, dan kodenya dipegang orangnya.
+     *
+     * Angkanya TIDAK berubah karenanya, karena yang menentukan angka ini
+     * bukan asal kodenya melainkan ruangnya: satu percobaan berarti
+     * membandingkan kode terhadap satu-dua kandidat - lihat
+     * `PencocokKodePengawas`, yang menyaring kandidatnya lewat penugasan
+     * ruang sehingga jumlahnya tidak tumbuh seiring jumlah pengawas sekolah.
      *
      * Pada 5 percobaan/menit, seluruh ruang 10^6 membutuhkan ~139 hari dari
      * satu alamat. Yang membuat angkanya jauh lebih pendek adalah plafon per
@@ -132,6 +183,29 @@ final class PembatasLaju
     /** Pesan saat satu jaringan melampaui batas percobaan tokennya. */
     public const PESAN_GERBANG_IP = 'Terlalu banyak percobaan token dari jaringan ini. Tunggu satu menit.';
 
+    /**
+     * Percobaan ganti sandi per AKUN, per menit.
+     *
+     * Lima, dan alasannya sama dengan `GERBANG_PER_SISWA`: pemilik sandi
+     * mengetiknya dengan benar pada percobaan pertama atau kedua, dan lima
+     * kesalahan dalam satu menit berarti yang mengetik bukan pemiliknya.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa ini ada, padahal pelakunya sudah tersahihkan
+     * ---------------------------------------------------------------------
+     * Justru itu skenarionya: sesi yang dicuri dipakai MEMPELAJARI sandi
+     * korban, supaya pencurinya bisa masuk lagi setelah sesi lamanya mati.
+     * Tanpa pembatas, satu sesi yang dicuri adalah oracle bcrypt tanpa batas
+     * - dan setiap tebakan menagih ~100 ms CPU server ujian.
+     *
+     * Yang membedakannya dari pintu dan gerbang cuma satu: penebaknya sudah
+     * melewati login. Batasnya tetap perlu.
+     */
+    public const SANDI_PER_SISWA = 5;
+
+    /** Pesan saat satu akun melampaui batas percobaan ganti sandinya. */
+    public const PESAN_SANDI = 'Terlalu banyak percobaan. Tunggu satu menit, lalu coba lagi.';
+
     public static function kunciPintuPasangan(string $slug, string $ip): string
     {
         return "pintu:{$slug}|{$ip}";
@@ -150,6 +224,30 @@ final class PembatasLaju
     public static function kunciGerbangIp(string $ip): string
     {
         return "token.ip:{$ip}";
+    }
+
+    /**
+     * Kunci pembatas AI: per GURU, bukan per IP.
+     *
+     * Satu ruang guru memakai satu NAT sekolah, sehingga pembatas per-IP
+     * akan membuat dua puluh Guru berbagi satu jatah - dan yang pertama
+     * menyusun soal menghabiskan kuota seluruh ruangan. Yang membelanjakan
+     * uang sekolah adalah AKUN, jadi akun pula yang dibatasi.
+     */
+    public static function kunciAi(int|string $userId): string
+    {
+        return "ai:{$userId}";
+    }
+
+    /**
+     * Kunci pembatas ganti sandi: per AKUN, bukan per IP.
+     *
+     * Argumennya sama dengan `kunciAi()` dan dengan gerbang: seluruh sekolah
+     * keluar lewat satu NAT. Yang memiliki sandi adalah akun.
+     */
+    public static function kunciSandi(int|string $userId): string
+    {
+        return "sandi:{$userId}";
     }
 
     /**

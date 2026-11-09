@@ -93,6 +93,20 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                         ))}
                     </select>
 
+                    {/* Impor membuka laman impor DENGAN tahun ajarannya, dan
+                        itu bukan kenyamanan: nama kelas unik per tahun
+                        ajaran, sehingga berkas kelas tanpa tahun yang jelas
+                        tidak punya jawaban yang benar soal ke mana barisnya
+                        masuk. Yang sedang dibuka di sini adalah tahun yang
+                        akan menerimanya. */}
+                    <Tombol
+                        onClick={() =>
+                            router.visit(`/admin/impor/kelas?ta=${tahunDipilih?.id ?? ''}`)
+                        }
+                    >
+                        Impor
+                    </Tombol>
+
                     <Tombol nada="pri" onClick={() => setTambah(true)}>
                         Tambah kelas
                     </Tombol>
@@ -188,13 +202,23 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
             />
 
             <FormKelas
+                // Tahun ajaran yang sedang dipilih ikut jadi kunci: berpindah
+                // tab tahun lalu membuka "Tambah kelas" akan menyimpan kelas
+                // baru ke tahun yang PERTAMA dibuka, bukan yang sedang tampil.
+                key={'baru-' + (tahunDipilih?.id ?? 'kosong')}
                 terbuka={tambah}
                 tahunId={tahunDipilih?.id ?? null}
                 wali={wali}
                 padaTutup={() => setTambah(false)}
             />
 
+            {/* `key` bukan hiasan: `Modal` mengembalikan `null` dari dalam
+                dirinya sendiri, jadi form di luarnya tidak pernah dilepas dan
+                `useForm` menyimpan nilai awalnya sejak panel masih tertutup -
+                saat `kelas` masih kosong. Tanpa `key`, "Ubah" membuka kolom
+                kosong. */}
             <FormKelas
+                key={'ubah-' + (ubah?.id ?? 'kosong')}
                 terbuka={ubah !== null}
                 tahunId={tahunDipilih?.id ?? null}
                 wali={wali}

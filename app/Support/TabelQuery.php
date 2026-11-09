@@ -31,6 +31,20 @@ use Illuminate\Http\Request;
  * luar daftar itu diabaikan diam-diam - bukan diganti dengan urutan default
  * yang menipu, tetapi memang tidak menghasilkan urutan apa pun sampai
  * pemanggilnya menentukan.
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa penyaringnya dipisah dari paginasi
+ * ---------------------------------------------------------------------
+ * Laman yang mengelompokkan barisnya - "Tingkat 7 · 12 mapel" - tidak bisa
+ * memberi angka di kepala kelompoknya kalau yang dibaca hanya satu halaman:
+ * kepala kelompok yang berbunyi "12 mapel" sementara di bawahnya tampil tiga
+ * baris adalah angka yang salah, dan Admin membacanya sebagai data hilang.
+ *
+ * Karena itu laman seperti itu mengambil SELURUH hasil saringannya. Tetapi
+ * arti "cari" harus tetap satu: `%kata%` di tiga kolom, nilai kosong berarti
+ * tidak menyaring. Dua salinan aturan itu akan berbeda suatu hari - dan yang
+ * berbeda adalah halaman yang Admin pakai mencari, bukan kode yang belum
+ * pernah ditulis.
  */
 class TabelQuery
 {
@@ -38,20 +52,22 @@ class TabelQuery
     public const PER_HALAMAN = 50;
 
     /**
+     * Terapkan pencarian dan penyaring, tanpa memaginasi.
+     *
+     * Dipakai `buat()` sendiri; dipisah supaya laman yang mengelompokkan
+     * seluruh barisnya menyaring dengan aturan yang sama persis.
+     *
      * @param  Builder<*>  $query
      * @param  array<int, string>  $cariDi  Kolom yang boleh dicari.
-     * @param  array<int, string>  $bolehDiurut  Kolom yang boleh jadi kunci urutan.
      * @param  array<string, string>  $penyaring  Peta param => kolom, penyaring kesamaan.
+     * @return Builder<*>
      */
-    public static function buat(
+    public static function saring(
         Builder $query,
         Request $request,
         array $cariDi = [],
-        array $bolehDiurut = ['id'],
         array $penyaring = [],
-        string $urutBawaan = 'id',
-        string $arahBawaan = 'asc',
-    ): LengthAwarePaginator {
+    ): Builder {
         $cari = trim((string) $request->query('cari', ''));
 
         if ($cari !== '' && $cariDi !== []) {
@@ -74,6 +90,26 @@ class TabelQuery
                 $query->where($kolom, $nilai);
             }
         }
+
+        return $query;
+    }
+
+    /**
+     * @param  Builder<*>  $query
+     * @param  array<int, string>  $cariDi  Kolom yang boleh dicari.
+     * @param  array<int, string>  $bolehDiurut  Kolom yang boleh jadi kunci urutan.
+     * @param  array<string, string>  $penyaring  Peta param => kolom, penyaring kesamaan.
+     */
+    public static function buat(
+        Builder $query,
+        Request $request,
+        array $cariDi = [],
+        array $bolehDiurut = ['id'],
+        array $penyaring = [],
+        string $urutBawaan = 'id',
+        string $arahBawaan = 'asc',
+    ): LengthAwarePaginator {
+        $query = self::saring($query, $request, $cariDi, $penyaring);
 
         $urut = (string) $request->query('urut', $urutBawaan);
         $arah = strtolower((string) $request->query('arah', $arahBawaan)) === 'desc' ? 'desc' : 'asc';

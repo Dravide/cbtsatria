@@ -10,6 +10,7 @@ use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use DomainException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -104,9 +105,176 @@ class PenempatanService
      * "nama Anda ada di R-02" - dan urutan abjad adalah urutan yang bisa
      * dicari pengawas dengan mata.
      *
+     * ---------------------------------------------------------------------
+     * Urutan abjad adalah BAWAAN, bukan aturan
+     * ---------------------------------------------------------------------
+     * `orderBy('student_id')` di sini mengelompokkan peserta dari kelas yang
+     * sama, karena nomor induk siswa diterbitkan berurutan per angkatan.
+     * Akibatnya setiap ruang berisi satu tingkatan - kebalikan dari ujian
+     * campuran yang diminta. Karena itu penyebaran yang SUNGGUHAN dipakai
+     * laman penempatan adalah `PenempatanKocok::sebarEvent()`, yang menyusun
+     * peta `siswa -> ruang event` sekali untuk seluruh event lalu
+     * menerjemahkannya per sesi lewat `sebarKeRuang()`.
+     *
+     * Method ini tetap ada karena ia yang dipakai test, seeder, dan jalur
+     * "sebar cepat" - dan karena satu-satunya penulis `exam_session_room_id`
+     * harus tetap satu tempat.
+     *
      * @return array<int, int> Jumlah peserta per exam_session_room_id.
      */
     public function sebar(Exam $ujian, ExamSession $sesi): array
+    {
+        $peserta = ExamParticipant::query()
+            ->where('exam_id', $ujian->id)
+            ->where('status', ExamParticipant::STATUS_TERDAFTAR)
+            ->orderBy('student_id')
+            ->get();
+
+        return $this->sebarBerurutan($ujian, $sesi, $peserta);
+    }
+
+    /**
+     * Sebarkan dengan urutan peserta yang DIBERIKAN pemanggilnya.
+     *
+     * Satu-satunya penulis `exam_session_room_id`, persis seperti janji di
+     * docblock kelas ini. Urutannya diserahkan ke pemanggil karena urutan
+     * itulah keputusan yang diminta Admin - acak campur tingkatan - sementara
+     * penulisannya tetap satu: di sini, bersama presensinya.
+     *
+     * Antrean yang lebih panjang daripada kursinya ditolak SELURUHNYA, bukan
+     * dipotong. Memotong berarti sebagian siswa punya ruang dan sisanya
+     * menggantung tanpa penjelasan - lihat catatan kelas ini.
+     *
+     * @param  Collection<int, ExamParticipant>  $antrean
+     * @return array<int, int> Jumlah peserta per exam_session_room_id.
+     */
+    public function sebarBerurutan(Exam $ujian, ExamSession $sesi, Collection $antrean): array
+    {
+        $ruangan = $this->ruanganSesi($sesi);
+
+        $peserta = $antrean->values();
+
+        $kapasitas = $ruangan->sum(fn (ExamSessionRoom $r) => $r->kapasitasEfektif());
+
+        // Diperiksa lebih dulu, sebelum satu baris pun ditulis - lihat
+        // catatan kelas ini.
+        if ($peserta->count() > $kapasitas) {
+            throw new DomainException(
+                "Kapasitas sesi {$sesi->label()} hanya {$kapasitas} kursi untuk {$peserta->count()} peserta.",
+            );
+        }
+
+        // Pengisian berurutan: ruang pertama sampai penuh, lalu berikutnya.
+        // Urutannya peserta yang menentukan siapa di ruang mana, dan urutan itu
+        // datang dari pemanggil - lihat docblock method ini.
+        $peta = [];
+        $posisi = 0;
+
+        foreach ($ruangan as $r) {
+            $bagian = $peserta->slice($posisi, $r->kapasitasEfektif());
+
+            foreach ($bagian as $p) {
+                $peta[$p->id] = $r->id;
+            }
+
+            $posisi += $bagian->count();
+        }
+
+        return $this->sebarKeRuang($ujian, $sesi, $peta);
+    }
+
+    /**
+     * Sebarkan peserta ke ruang SESI menurut peta `peserta => ruang` yang tegas.
+     *
+     * Berbeda dari `sebarBerurutan()`, yang membagi menurut urutan, method ini
+     * menerima kursi setiap orang apa adanya. Itu yang dibutuhkan kocokan per
+     * EVENT: peta `siswa -> ruang` disusun sekali di tingkat event - sehingga
+     * seorang siswa memegang satu ruang yang sama sepanjang ujian - lalu
+     * diterjemahkan ke id ruang SESI untuk tiap sesi, karena satu ruang event
+     * muncul sebagai baris yang berbeda di setiap sesi.
+     *
+     * Tetap di kelas ini, dan tetap method ini, karena janji kelasnya: hanya
+     * ADA SATU penulis `exam_session_room_id`. Penerjemahan id ruang tidak
+     * mengubah janji itu - yang berubah hanya dari mana kursinya datang.
+     *
+     * Seluruh peta ditolak bila ADA SATU ruang kelebihan muatan, dan
+     * penolakannya terjadi sebelum satu baris pun ditulis. Sisa jaminan
+     * `sebarBerurutan()` berlaku sama: tidak ada penempatan setengah jadi.
+     *
+     * @param  array<int, int>  $peta  exam_participant_id => exam_session_room_id
+     * @return array<int, int> Jumlah peserta per exam_session_room_id.
+     */
+    public function sebarKeRuang(Exam $ujian, ExamSession $sesi, array $peta): array
+    {
+        $ruangan = $this->ruanganSesi($sesi);
+        $kunciRuangan = $ruangan->keyBy('id');
+
+        // Peserta yang peta-nya menunjuk ruang di luar sesi ini tidak diam-diam
+        // diabaikan: kalau id ruangnya milik sesi lain, hasilnya adalah siswa
+        // yang "sudah ditempatkan" tetapi tidak muncul di daftar ruang mana pun.
+        foreach ($peta as $idRuang) {
+            if (! $kunciRuangan->has($idRuang)) {
+                throw new DomainException(
+                    "Ruang itu bukan milik sesi {$sesi->label()}.",
+                );
+            }
+        }
+
+        $peserta = ExamParticipant::query()
+            ->whereIn('id', array_keys($peta))
+            ->get()
+            ->keyBy('id');
+
+        $muatan = [];
+
+        foreach ($peta as $idPeserta => $idRuang) {
+            if (! $peserta->has($idPeserta)) {
+                throw new DomainException('Ada peserta yang bukan milik ujian ini.');
+            }
+
+            $muatan[$idRuang] = ($muatan[$idRuang] ?? 0) + 1;
+        }
+
+        foreach ($muatan as $idRuang => $jumlah) {
+            $kapasitas = $kunciRuangan->get($idRuang)->kapasitasEfektif();
+
+            if ($jumlah > $kapasitas) {
+                $kode = $kunciRuangan->get($idRuang)->eventRoom?->room?->code ?? "ruang #{$idRuang}";
+
+                throw new DomainException(
+                    "Ruang {$kode} pada sesi {$sesi->label()} hanya {$kapasitas} kursi untuk {$jumlah} peserta.",
+                );
+            }
+        }
+
+        return DB::transaction(function () use ($sesi, $peta, $peserta) {
+            $hasil = [];
+
+            foreach ($peta as $idPeserta => $idRuang) {
+                $p = $peserta->get($idPeserta);
+
+                $p->forceFill([
+                    'exam_session_id' => $sesi->id,
+                    'exam_session_room_id' => $idRuang,
+                    'assigned_at' => now(),
+                ])->save();
+
+                // Presensi lahir BERSAMAAN dengan kursinya, dan lewat kontrak -
+                // bukan lewat model Attendance. Alasan lengkapnya ada di
+                // `sebarBerurutan()`; yang sama di sini adalah janjinya, dan
+                // dua jalur yang menjanjikan hal sama harus menepatinya dengan
+                // cara yang sama.
+                app(PencatatKehadiran::class)->pastikanUntuk($p);
+
+                $hasil[$idRuang] = ($hasil[$idRuang] ?? 0) + 1;
+            }
+
+            return $hasil;
+        });
+    }
+
+    /** @return Collection<int, ExamSessionRoom> */
+    private function ruanganSesi(ExamSession $sesi): Collection
     {
         $ruangan = ExamSessionRoom::query()
             ->where('exam_session_id', $sesi->id)
@@ -125,70 +293,7 @@ class PenempatanService
             throw new DomainException("Sesi {$sesi->label()} belum punya ruang.");
         }
 
-        $peserta = ExamParticipant::query()
-            ->where('exam_id', $ujian->id)
-            ->where('status', ExamParticipant::STATUS_TERDAFTAR)
-            ->orderBy('student_id')
-            ->get();
-
-        $kapasitas = $ruangan->sum(fn (ExamSessionRoom $r) => $r->kapasitasEfektif());
-
-        // Diperiksa lebih dulu, sebelum satu baris pun ditulis - lihat
-        // catatan kelas ini.
-        if ($peserta->count() > $kapasitas) {
-            throw new DomainException(
-                "Kapasitas sesi {$sesi->label()} hanya {$kapasitas} kursi untuk {$peserta->count()} peserta.",
-            );
-        }
-
-        return DB::transaction(function () use ($ruangan, $peserta, $sesi) {
-            $hasil = [];
-            $antrean = $peserta->values();
-            $posisi = 0;
-
-            foreach ($ruangan as $r) {
-                $muat = $r->kapasitasEfektif();
-                $bagian = $antrean->slice($posisi, $muat);
-
-                foreach ($bagian as $p) {
-                    $p->forceFill([
-                        'exam_session_id' => $sesi->id,
-                        'exam_session_room_id' => $r->id,
-                        'assigned_at' => now(),
-                    ])->save();
-
-                    // Presensi lahir BERSAMAAN dengan kursinya, dan lewat
-                    // kontrak - bukan lewat model Attendance.
-                    //
-                    // ------------------------------------------------------------------
-                    // Mengapa di sini dan bukan di observer Eloquent
-                    // ------------------------------------------------------------------
-                    // Observer tampak lebih murah: satu baris, dan barisnya
-                    // muncul sendiri. Tetapi observer juga menyala untuk
-                    // `lepas()` dan `kecualikan()` - yaitu tepat ketika peserta
-                    // DIKELUARKAN dari ruangnya - dan presensi atas penempatan
-                    // yang tidak punya ruang adalah baris yang tidak bisa
-                    // dijelaskan kepada pengawas mana pun.
-                    //
-                    // Selain itu method ini menjanjikan di docblock kelasnya
-                    // bahwa ia satu-satunya penulis `exam_session_room_id`.
-                    // Efek samping tersembunyi di dalam save() memutus janji
-                    // itu: pembacanya melihat penyimpanan tanpa melihat
-                    // pencatatannya.
-                    //
-                    // Panggilannya lewat container karena modul Exam tidak
-                    // boleh menyentuh model modul Attendance. Bentuknya sama
-                    // dengan ButirKesiapanUjian di Fase 5 - lihat
-                    // PencatatKehadiran.
-                    app(PencatatKehadiran::class)->pastikanUntuk($p);
-                }
-
-                $hasil[$r->id] = $bagian->count();
-                $posisi += $bagian->count();
-            }
-
-            return $hasil;
-        });
+        return $ruangan;
     }
 
     /**

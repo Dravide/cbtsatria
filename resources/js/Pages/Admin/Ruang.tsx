@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import {
@@ -60,9 +60,12 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
             judul="Ruang ujian"
             breadcrumb="/admin/ruang"
             aksi={
-                <Tombol nada="pri" onClick={() => setTambah(true)}>
-                    Tambah ruang
-                </Tombol>
+                <>
+                    <Tombol onClick={() => router.visit('/admin/impor/ruang')}>Impor</Tombol>
+                    <Tombol nada="pri" onClick={() => setTambah(true)}>
+                        Tambah ruang
+                    </Tombol>
+                </>
             }
         >
             <Head title="Ruang" />
@@ -186,7 +189,18 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
             </div>
 
             <FormRuang terbuka={tambah} padaTutup={() => setTambah(false)} />
-            <FormRuang terbuka={ubah !== null} ruang={ubah} padaTutup={() => setUbah(null)} />
+            {/* `key` BUKAN hiasan: `Modal` mengembalikan `null` dari dalam
+                dirinya sendiri, sehingga komponen form di luarnya TIDAK pernah
+                dilepas. `useForm` menangkap nilai awalnya sekali saja, saat
+                masih terpasang - dan saat itu `ruang` masih kosong. Tanpa
+                `key`, panel "Ubah" terbuka dengan kolom kosong, lalu menyimpan
+                akan menimpa ruang yang dipilih dengan isian kosong. */}
+            <FormRuang
+                key={'ubah-' + (ubah?.id ?? 'kosong')}
+                terbuka={ubah !== null}
+                ruang={ubah}
+                padaTutup={() => setUbah(null)}
+            />
         </AdminLayout>
     );
 }

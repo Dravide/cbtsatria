@@ -61,4 +61,29 @@ class UserPolicy
     {
         return $user->role->isAdmin();
     }
+
+    /**
+     * Siapa yang boleh mengekspor daftar pengguna.
+     *
+     * =====================================================================
+     * Namanya sama dengan `GradingPolicy::ekspor`, dan itu aman - bukan
+     * kebetulan
+     * =====================================================================
+     * `Gate::authorize('ekspor', User::class)` dan `Gate::authorize('ekspor')`
+     * berakhir di tempat yang berbeda. Gate memeriksa POLICY lebih dulu, dan
+     * baru jatuh ke `Gate::define()` bila tidak ada argumen kelas yang bisa
+     * dipetakan: yang pertama menemukan `UserPolicy::ekspor` lewat argumennya,
+     * yang kedua tidak punya argumen sehingga memakai definisi global modul
+     * Grading.
+     *
+     * Yang TIDAK boleh dilakukan: mendaftarkan `Gate::define('ekspor', …)`
+     * di modul Admin. Satu nama ability dengan dua arti berarti yang menang
+     * adalah provider yang kebetulan didaftarkan terakhir - dan kegagalannya
+     * muncul sebagai 403 pada laporan nilai, di modul yang tidak disentuh
+     * sama sekali.
+     */
+    public function ekspor(User $user): bool
+    {
+        return $user->role->isAdmin();
+    }
 }

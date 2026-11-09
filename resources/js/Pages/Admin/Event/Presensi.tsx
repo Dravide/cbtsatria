@@ -373,7 +373,7 @@ function Angka({ label, nilai, nada }: { label: string; nilai: number; nada?: 'o
 
     return (
         <div className="rounded-wf border border-line/70 bg-surface-2/50 px-2.5 py-1.5">
-            <p className="text-[10px] tracking-wide text-ink-3 uppercase">{label}</p>
+            <p className="text-[10px] text-ink-3">{label}</p>
             <p className={'font-mono text-sm ' + warna}>{nilai}</p>
         </div>
     );

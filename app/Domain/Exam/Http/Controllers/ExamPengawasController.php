@@ -119,11 +119,20 @@ class ExamPengawasController
                 'ditugaskan' => $penugasan->jumlahPenugasan($event),
                 'tanpa_pengawas' => $tanpaPengawas,
                 'saran_per_ruang' => PengawasService::SARAN_PER_RUANG,
+                'minimal_per_ruang' => PengawasService::MINIMAL_PER_RUANG,
             ],
 
-            // Ruang yang perhatiannya khusus: sudah punya pengawas, tetapi
-            // kurang dari yang disarankan. Inilah isi kotak peringatan plate 17.
-            'perhatian' => collect($baris)
+            // Ruang yang sudah punya pengawas, tetapi belum sampai dua.
+            //
+            // Prop ini BUKAN daftar masalah, dan namanya sengaja bukan
+            // "perhatian" lagi. Satu pengawas per ruang sah (PRD §9.6) dan
+            // sesinya tetap bisa dibuka - yang menolak hanya ruang tanpa
+            // pengawas sama sekali. Karena itu isinya disampaikan sebagai
+            // saran di layar, bukan sebagai peringatan: sekolah dengan 24
+            // ruang dan 26 pengawas memang hanya sanggup satu orang per ruang,
+            // dan memberi tahu mereka "salah" sepanjang hari adalah layar yang
+            // bertengkar dengan keadaan yang sudah benar.
+            'saran' => collect($baris)
                 ->filter(fn (array $b) => count($b['pengawas']) > 0
                     && count($b['pengawas']) < PengawasService::SARAN_PER_RUANG)
                 ->values()

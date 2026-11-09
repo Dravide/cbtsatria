@@ -182,29 +182,39 @@ class RoomController
     }
 
     /**
-     * Terbitkan tautan pintu + kode pengawas baru.
+     * Terbitkan tautan pintu baru untuk satu ruang.
      *
-     * Kode dikembalikan lewat flash, bukan lewat props laman. Perbedaan itu
-     * penting: props laman ikut terkirim pada setiap muat ulang dan setiap
-     * navigasi Inertia berikutnya, sementara flash hidup tepat satu respons.
+     * ---------------------------------------------------------------------
+     * Yang TIDAK lagi diterbitkan method ini: kode pengawas
+     * ---------------------------------------------------------------------
+     * Sampai 2026-11-07 ia mengirim kode enam angka lewat flash
+     * `kode_pengawas`, dan kode itu ikut tercetak pada kartu yang sama dengan
+     * tautannya di daun pintu - sehingga memfoto kartu itu sudah cukup untuk
+     * masuk. Kode pengawas kini milik ORANG dan terbit di laman Kepanitiaan
+     * (`EventCommitteeController::terbitkanKode()`).
+     *
+     * Yang tersisa di sini adalah tautan, dan tautan sendirian tidak membuka
+     * apa pun: ia hanya menampilkan satu kolom kode di pintu.
+     *
+     * `slug_baru` juga tidak dikirim lagi. Ia dulu dipakai `RuangDetail`
+     * untuk menyebut slug di bawah kode yang baru terbit - dan tanpa kode,
+     * slug barunya sudah terbaca dari `aktif.url` begitu lamannya dimuat
+     * ulang, sehingga yang tersisa hanyalah flash tanpa pembaca.
      */
     public function terbitkan(Room $ruang, RoomEntryLinkService $service, ActivityLogger $logger): RedirectResponse
     {
         Gate::authorize('terbitkanTautan', $ruang);
 
-        $hasil = $service->terbitkan($ruang);
+        $tautan = $service->terbitkan($ruang);
 
         $logger->log('Menerbitkan tautan ruang', $ruang, [
             'kode' => $ruang->code,
-            'slug' => $hasil['tautan']->slug,
+            'slug' => $tautan->slug,
         ]);
 
         // Tautan lama sudah dicabut oleh service. Admin perlu tahu itu,
         // supaya ia tidak mengira kartu pintu lama masih berlaku.
-        return back()
-            ->with('sukses', 'Tautan ruang diterbitkan. Tautan lama dicabut.')
-            ->with('kode_pengawas', $hasil['kode'])
-            ->with('slug_baru', $hasil['tautan']->slug);
+        return back()->with('sukses', 'Tautan ruang diterbitkan. Tautan lama dicabut.');
     }
 
     public function cabut(Room $ruang, RoomEntryLinkService $service, ActivityLogger $logger): RedirectResponse

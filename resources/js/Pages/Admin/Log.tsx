@@ -58,10 +58,18 @@ export default function Log({ baris, filter, jumlah }: Props) {
             aksi={
                 <>
                     <Tombol onClick={f.terapkan}>Saring</Tombol>
-                    {/* Ekspor belum ada dan tidak dipalsukan. Tombol yang
-                        mengunduh berkas kosong lebih buruk daripada tombol
-                        yang tidak ada. */}
-                    <Tombol disabled title="Ekspor tersedia di Fase 8 bersama laporan">
+                    {/* Ekspor log belum dibangun, dan tombolnya tidak
+                        dipalsukan: yang mengunduh berkas kosong lebih buruk
+                        daripada yang tidak ada.
+
+                        Kalimatnya dulu menunjuk "Fase 8 bersama laporan", dan
+                        itu menyesatkan sekarang. Fase 8 memang sudah menulis
+                        penulis XLSX/CSV - tetapi ekspor pengguna di Fase 10
+                        justru diberi tabel dan job SENDIRI, bukan menumpang
+                        `report_exports`, karena ekspor laporan terikat pada
+                        satu event. Ekspor log akan mengikuti bentuk yang sama:
+                        antrean, riwayat, dan rute unduh berwenang. */}
+                    <Tombol disabled title="Ekspor log aktivitas belum dibangun">
                         Ekspor
                     </Tombol>
                 </>

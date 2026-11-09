@@ -153,6 +153,12 @@ class KerjakanSiswaController extends SiswaDasar
                 // dibaca dengan menebak nomor idnya. Lihat
                 // ExamMediaSiswaController.
                 'media' => $this->mediaUntukSiswa($soal, $peserta->id),
+                // Opsi dilewatkan ulang untuk menyisipkan alamat berkas GAMBAR
+                // PILIHAN. Bentuknya sama dengan `opsi_json` snapshot, hanya
+                // `media[]` tiap opsi yang mendapat `url`/`gambar` - supaya
+                // gambar yang menempel pada pilihan B tampil DI DALAM tombol
+                // B, bukan sebagai gambar lepas di atas seluruh pilihan.
+                'opsi' => $this->opsiUntukSiswa($soal, $peserta->id),
                 'jawaban' => $b->jawaban === null ? null : [
                     'isi' => $b->jawaban->answer_json,
                     'versi' => $b->jawaban->version,
@@ -162,6 +168,55 @@ class KerjakanSiswaController extends SiswaDasar
                 'rusak' => false,
             ];
         })->all();
+    }
+
+    /**
+     * Opsi snapshot, dengan alamat berkas gambar pilihannya.
+     *
+     * Bentuknya SAMA persis dengan `opsi_json` dari `PembekuPaket::opsi()`
+     * ({kunci, teks, media}), hanya `media[]` tiap opsi yang mendapat `url`
+     * dan `gambar` - alasan yang sama dengan `mediaUntukSiswa`: alamat tidak
+     * disimpan di snapshot supaya tidak menjadi basi saat nama rute berubah.
+     *
+     * Bila opsi tidak punya media, `media` tetap null - dan layar siswa
+     * memperlakukannya sebagai pilihan teks biasa.
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function opsiUntukSiswa(ExamQuestion $soal, int $pesertaId): ?array
+    {
+        $opsi = $soal->opsi_json;
+
+        if (! is_array($opsi)) {
+            return null;
+        }
+
+        return collect($opsi)
+            ->map(function ($o) use ($soal, $pesertaId) {
+                if (! is_array($o)) {
+                    return $o;
+                }
+
+                $media = collect($o['media'] ?? [])
+                    ->filter(fn ($m) => is_array($m) && isset($m['id']))
+                    ->map(fn (array $m) => [
+                        ...$m,
+                        'url' => route('siswa.berkas', [
+                            'peserta' => $pesertaId,
+                            'soal' => $soal->id,
+                            'media' => $m['id'],
+                        ]),
+                        'gambar' => str_starts_with((string) ($m['mime'] ?? ''), 'image/'),
+                    ])
+                    ->values()
+                    ->all();
+
+                return [
+                    ...$o,
+                    'media' => $media === [] ? null : $media,
+                ];
+            })
+            ->all();
     }
 
     /**

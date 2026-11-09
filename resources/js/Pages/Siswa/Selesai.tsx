@@ -1,8 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
-import { Chip, Inbox, Peringatan } from '@/Components/ui';
-import { KpiPonsel, KotakPonsel } from '@/Components/ponsel';
+import { Inbox, Peringatan } from '@/Components/ui';
 
 /**
  * Konfirmasi dan penutupan - wireframe-peran.html plate 26 dan 27.
@@ -37,6 +36,21 @@ import { KpiPonsel, KotakPonsel } from '@/Components/ponsel';
  * dikumpulkan membuat siswa membandingkannya sebelum uraian selesai dinilai,
  * lalu menagih nilai yang belum final. Sampai Fase 8 memang belum ada tabel
  * nilai sama sekali.
+ *
+ * ---------------------------------------------------------------------
+ * Redesign: deretan nomor yang benar-benar bisa diketuk
+ * ---------------------------------------------------------------------
+ * Deretan nomor di plate 26 sudah berupa tautan sejak awal - tetapi
+ * petaknya 44px berisi angka 11px yang sama di keempat laman, dan yang
+ * menandai "soal ini ditandai ragu" hanyalah warna latar yang tipis.
+ *
+ * Sekarang petaknya bergaris, angkanya lebih besar, dan soal yang ditandai
+ * membawa tanda di sudutnya. Ukuran petaknya juga naik ke 44px: ini deretan
+ * angka yang diketuk berulang kali di bawah tekanan waktu, dan salah tekan
+ * berarti berpindah dari satu soal kosong ke soal kosong lainnya.
+ *
+ * Urutan nomornya naik karena ia memang urutan soal, dan deretan angka yang
+ * tidak berurut menuntut pembacaan satu per satu.
  */
 
 type Peserta = {
@@ -93,15 +107,19 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                 kiri={<span className="truncate text-[12px] text-ink-2">{crumb}</span>}
                 kanan={
                     attempt.kedaluwarsa ? (
-                        <Chip nada="warn">waktu habis</Chip>
+                        <span className="border border-line-2 bg-warn-bg px-1.5 py-0.5 text-[11px] font-medium text-warn">
+                            waktu habis
+                        </span>
                     ) : (
-                        <Chip nada="ok">dikumpulkan {attempt.jam_kumpul}</Chip>
+                        <span className="border border-line-2 bg-ok-bg px-1.5 py-0.5 text-[11px] font-medium text-ok">
+                            dikumpulkan {attempt.jam_kumpul}
+                        </span>
                     )
                 }
                 aksiBawah={
                     <a
                         href="/siswa"
-                        className="block rounded-wf border border-line bg-surface px-3 py-2.5 text-center text-sm text-ink"
+                        className="tombol w-full"
                     >
                         Lihat jadwal berikutnya
                     </a>
@@ -114,12 +132,16 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                         "diterima" di atasnya akan membuat siswa menduga
                         ujiannya lengkap. */}
                     {attempt.kedaluwarsa ? (
-                        <Chip nada="warn">waktu ujian habis</Chip>
+                        <span className="border border-line-2 bg-warn-bg px-1.5 py-0.5 text-[11px] font-medium text-warn">
+                            waktu ujian habis
+                        </span>
                     ) : (
-                        <Chip nada="ok">jawaban diterima</Chip>
+                        <span className="border border-line-2 bg-ok-bg px-1.5 py-0.5 text-[11px] font-medium text-ok">
+                            jawaban diterima
+                        </span>
                     )}
 
-                    <b className="font-display text-[14px] text-ink">
+                    <b className="font-display text-base text-ink">
                         {attempt.kedaluwarsa
                             ? 'Waktu ujian Anda sudah habis'
                             : 'Ujian Anda sudah dikumpulkan'}
@@ -131,9 +153,7 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                     </p>
 
                     {attempt.dikumpulkan && (
-                        <p className="font-mono text-[11px] text-ink-3">
-                            {attempt.status_label}
-                        </p>
+                        <p className="catatan">{attempt.status_label}</p>
                     )}
                 </div>
 
@@ -156,7 +176,7 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
             tanpaKeluar
             kiri={<span className="truncate text-[12px] text-ink-2">Selesai ujian</span>}
             kanan={
-                <span className="rounded-wf bg-surface-2 px-2 py-0.5 font-mono text-[12px] tabular-nums text-ink-2">
+                <span className="angka border border-line-2 bg-surface-2 px-2 py-0.5 text-[12px] text-ink-2">
                     {formatSisa(attempt.sisa_detik)}
                 </span>
             }
@@ -166,25 +186,29 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                         type="button"
                         onClick={kumpulkan}
                         disabled={mengirim}
-                        className="w-full rounded-wf border border-accent bg-accent px-3 py-2.5 text-sm font-medium text-on-accent disabled:opacity-60"
+                        className="tombol tombol--pri w-full"
                     >
                         {mengirim ? 'Mengumpulkan…' : 'Kumpulkan jawaban'}
                     </button>
                     <a
                         href={`/siswa/ujian/${peserta.peserta_id}/kerjakan`}
-                        className="block rounded-wf border border-line bg-surface px-3 py-2.5 text-center text-sm text-ink"
+                        className="tombol w-full"
                     >
                         Kembali mengerjakan
                     </a>
                 </div>
             }
         >
-            <div className="grid grid-cols-4 gap-1.5">
-                <KpiPonsel label="Terjawab" nilai={progres.terjawab} nada="ok" />
-                <KpiPonsel label="Kosong" nilai={progres.kosong} nada={adaKosong ? 'warn' : undefined} />
-                <KpiPonsel label="Ditandai" nilai={progres.ditandai} />
-                <KpiPonsel label="Sisa" nilai={`${menitSisa}′`} />
-            </div>
+            <section className="papan grid grid-cols-4 overflow-hidden">
+                <SelAngka label="Terjawab" nilai={String(progres.terjawab)} nada="ok" />
+                <SelAngka
+                    label="Kosong"
+                    nilai={String(progres.kosong)}
+                    nada={adaKosong ? 'warn' : undefined}
+                />
+                <SelAngka label="Ditandai" nilai={String(progres.ditandai)} />
+                <SelAngka label="Sisa" nilai={`${menitSisa}′`} />
+            </section>
 
             {adaKosong && (
                 <Peringatan>
@@ -198,8 +222,12 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
             )}
 
             {adaKosong && (
-                <KotakPonsel solid padat judul="Nomor yang belum terjawab">
-                    <div className="grid grid-cols-6 gap-1">
+                <section className="papan overflow-hidden">
+                    <header className="papan-kepala">
+                        <span>Nomor yang belum terjawab</span>
+                    </header>
+
+                    <div className="grid grid-cols-5 gap-1.5 p-3">
                         {belum_terjawab.map((b) => (
                             // Diketuk, dan pindah ke butirnya. Deretan angka
                             // yang hanya bisa dilihat berarti memberi siswa
@@ -208,19 +236,39 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                                 key={b.id}
                                 href={`/siswa/ujian/${peserta.peserta_id}/kerjakan`}
                                 className={
-                                    'rounded-wf border py-1.5 text-center font-mono text-[11px] ' +
+                                    'angka grid min-h-[2.75rem] place-items-center border text-sm ' +
                                     (b.ditandai
-                                        ? 'border-warn/60 bg-warn-bg text-warn'
-                                        : 'border-line bg-surface text-ink')
+                                        ? 'border-warn bg-warn-bg text-warn'
+                                        : 'border-line-2 bg-surface text-ink')
                                 }
                             >
                                 {b.nomor}
                             </a>
                         ))}
                     </div>
-                </KotakPonsel>
+                </section>
             )}
         </KerangkaSiswa>
+    );
+}
+
+/** Satu sel angka di papan ringkas. Label di atas, angkanya besar. */
+function SelAngka({
+    label,
+    nilai,
+    nada,
+}: {
+    label: string;
+    nilai: string;
+    nada?: 'ok' | 'warn';
+}) {
+    const warna = nada ? { ok: 'text-ok', warn: 'text-warn' }[nada] : 'text-ink';
+
+    return (
+        <div className="min-w-0 border-r border-line px-2 py-2 text-center last:border-r-0">
+            <b className={'angka block font-display text-lg leading-none ' + warna}>{nilai}</b>
+            <span className="mt-1 block truncate text-[11px] text-ink-2">{label}</span>
+        </div>
     );
 }
 

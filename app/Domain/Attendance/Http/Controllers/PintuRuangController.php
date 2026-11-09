@@ -3,6 +3,7 @@
 namespace App\Domain\Attendance\Http\Controllers;
 
 use App\Domain\Attendance\Services\KonteksRuang;
+use App\Domain\Attendance\Services\PencocokKodePengawas;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
@@ -87,55 +88,62 @@ class PintuRuangController
      * 403 memberi tahu pemegangnya bahwa ia benar-benar ada di sistem orang
      * lain. Yang gagal di sini bukan izinnya, melainkan KODENYA - dan kode
      * yang salah dijawab dengan form yang sama beserta alasannya.
+     *
+     * ---------------------------------------------------------------------
+     * Sejak 2026-11-07 kodenya milik ORANG, bukan milik RUANG
+     * ---------------------------------------------------------------------
+     * Pencocokannya pindah ke `PencocokKodePengawas`, dan yang dikembalikan
+     * bukan `bool` melainkan pengawasnya. Kartu yang ditempel di daun pintu
+     * berhenti membawa kredensial apa pun: yang tertinggal di sana hanya
+     * tautan, dan tautan sendirian tidak membuka apa pun.
      */
-    public function buka(string $slug, Request $request, RoomEntryLinkService $service, ActivityLogger $logger): RedirectResponse
-    {
+    public function buka(
+        string $slug,
+        Request $request,
+        PencocokKodePengawas $pencocok,
+        RoomEntryLinkService $tautanService,
+        ActivityLogger $logger,
+    ): RedirectResponse {
         $tautan = $this->tautan($slug);
 
         $valid = $request->validate([
             'kode' => ['required', 'string', 'size:6'],
         ], [], ['kode' => 'kode pengawas']);
 
-        // `cocokkan()` menjalankan urutan yang benar di dalam dirinya:
-        // berlaku -> Hash::check -> naikkan use_count. Urutan itu adalah
-        // keamanannya - kalau dibalik, use_count naik untuk percobaan yang
-        // GAGAL, dan Admin melihat "5 pemakaian" pada tautan yang belum
-        // pernah dipakai siapa pun. Lihat RoomEntryLinkService.
-        if (! $service->cocokkan($tautan, $valid['kode'])) {
+        $ruang = $this->ruang($tautan);
+
+        if ($ruang === null || $ruang->session === null) {
             $logger->log('Percobaan kode pengawas ditolak', $tautan, [
                 'slug' => $slug,
+                'sebab' => $tautan->berlaku() ? 'ruang_tanpa_sesi' : 'tautan_tidak_berlaku',
+            ]);
+
+            return back()->with('galat', $tautan->berlaku()
+                ? 'Ruang ini belum dipakai sesi mana pun.'
+                : $this->alasanTidakBerlaku($tautan));
+        }
+
+        // ------------------------------------------------------------------
+        // Tautan diperiksa LEBIH DULU, sebelum satu pun kode dibandingkan
+        // ------------------------------------------------------------------
+        // Bukan urutan gaya: tautan yang sudah dicabut atau kedaluwarsa tidak
+        // boleh menjadi alasan untuk memeriksa kodenya - bahkan ketika
+        // seseorang masih mengingat enam angkanya. Kalau urutannya dibalik,
+        // tautan mati masih bisa dipakai selama ada yang mengetik kodenya.
+        $pengawas = $tautan->berlaku()
+            ? $pencocok->cocokkan($ruang, $valid['kode'])
+            : null;
+
+        if ($pengawas === null) {
+            $logger->log('Percobaan kode pengawas ditolak', $tautan, [
+                'slug' => $slug,
+                'ruang' => $ruang->eventRoom?->room?->code,
                 'sebab' => $tautan->berlaku() ? 'kode_salah' : 'tautan_tidak_berlaku',
             ]);
 
             return back()->with('galat', $tautan->berlaku()
                 ? 'Kode pengawas tidak cocok. Periksa kembali enam angkanya.'
                 : $this->alasanTidakBerlaku($tautan));
-        }
-
-        $ruang = $this->ruang($tautan);
-
-        // ------------------------------------------------------------------
-        // Jatah percobaan dibersihkan SESUDAH kredensialnya cocok
-        // ------------------------------------------------------------------
-        // Pembatasnya sendiri (`throttle:pintu-ruang`) sudah memeriksa lebih
-        // dulu, sebelum sampai ke sini - dan urutan itu yang penting, karena
-        // `Hash::check` (~100 ms) justru beban yang diserang.
-        //
-        // Yang dikerjakan di sini adalah kebalikannya: pengawas yang berhasil
-        // TIDAK menghukum dirinya sendiri karena satu kali salah ketik. Tanpa
-        // baris ini, kartu yang benar pada percobaan keempat tetap membuka
-        // pintunya, tetapi percobaan kelima - misalnya karena menyerahkan
-        // ponsel ke pengawas berikutnya - sudah tertutup.
-        //
-        // Dua kunci dibersihkan, bukan satu: yang per-pasangan dan yang
-        // per-tautan, karena keduanya dihitung berdampingan.
-        //
-        // Sesudah pemeriksaan ruang dan jendela sesi, BUKAN sebelum: kode yang
-        // benar untuk ruang yang sesinya sudah tutup tidak membuka apa pun,
-        // dan jatah percobaan yang terhapus di situ akan membuat kode yang
-        // sudah tidak berguna tetap bisa ditebak tanpa batas.
-        if ($ruang === null || $ruang->session === null) {
-            return back()->with('galat', 'Ruang ini belum dipakai sesi mana pun.');
         }
 
         $sesi = $ruang->session;
@@ -149,6 +157,25 @@ class PintuRuangController
             return back()->with('galat', 'Sesi ini sudah berakhir pukul '.$sesi->hard_end_at->format('H:i').'.');
         }
 
+        // Pemakaiannya dicatat SESUDAH kredensialnya cocok dan sesudah ruang
+        // serta jendela sesinya lolos - lihat `catatPemakaian()`.
+        $tautanService->catatPemakaian($tautan);
+
+        // ------------------------------------------------------------------
+        // Jatah percobaan dibersihkan SESUDAH kredensialnya cocok
+        // ------------------------------------------------------------------
+        // Pembatasnya sendiri (`throttle:pintu-ruang`) sudah memeriksa lebih
+        // dulu, sebelum sampai ke sini - dan urutan itu yang penting, karena
+        // yang diserang justru percobaan kode yang berulang.
+        //
+        // Yang dikerjakan di sini adalah kebalikannya: pengawas yang berhasil
+        // TIDAK menghukum dirinya sendiri karena satu kali salah ketik. Tanpa
+        // baris ini, kartu yang benar pada percobaan keempat tetap membuka
+        // pintunya, tetapi percobaan kelima - misalnya karena menyerahkan
+        // ponsel ke pengawas berikutnya - sudah tertutup.
+        //
+        // Dua kunci dibersihkan, bukan satu: yang per-pasangan dan yang
+        // per-tautan, karena keduanya dihitung berdampingan.
         PembatasLaju::bersihkan(PembatasLaju::PINTU, PembatasLaju::kunciPintuPasangan($slug, (string) $request->ip()));
         PembatasLaju::bersihkan(PembatasLaju::PINTU, PembatasLaju::kunciPintuTautan($slug));
 
@@ -162,15 +189,25 @@ class PintuRuangController
         // laporan yang berbohong lebih buruk daripada laporan yang menyebut
         // ruangnya.
         //
-        // Yang disimpan hanya DUA id. Bukan salinan status, bukan waktu
-        // kedaluwarsa: keduanya dibaca ulang dari basis data di setiap
-        // permintaan, dan itulah yang membuat pencabutan berlaku seketika.
+        // Sejak kodenya milik orang, `pengguna_id` yang disimpan di bawah
+        // BUKAN karangan: ia hasil pencocokan kredensial yang hanya dipegang
+        // orang itu. Itulah yang membuat presensinya boleh menyebut namanya.
+        // Yang tetap tidak dilakukan adalah `Auth::login()` - pemegangnya
+        // harus tetap tamu bagi framework, karena identitas di sini adalah
+        // akibat satu kali pencocokan, bukan sesi terautentikasi.
+        //
+        // Yang disimpan hanya EMPAT nilai, dan semuanya ID. Bukan salinan
+        // status, bukan waktu kedaluwarsa: keduanya dibaca ulang dari basis
+        // data di setiap permintaan, dan itulah yang membuat pencabutan
+        // berlaku seketika.
         $request->session()->regenerate();
 
         $request->session()->put(KonteksRuang::KUNCI_SESI, [
             'exam_session_room_id' => $ruang->id,
             'room_id' => $tautan->room_id,
             'room_entry_link_id' => $tautan->id,
+            'school_id' => $tautan->school_id,
+            'pengguna_id' => $pengawas->id,
             'sejak' => now()->toIso8601String(),
         ]);
 
@@ -178,6 +215,7 @@ class PintuRuangController
             'slug' => $slug,
             'ruang' => $ruang->eventRoom?->room?->code,
             'sesi' => $sesi->label(),
+            'pengawas' => $pengawas->name,
             'perangkat' => substr((string) $request->userAgent(), 0, 200),
         ]);
 

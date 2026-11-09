@@ -82,7 +82,13 @@ function dariIp(string $ip): TestCase
     return test()->withServerVariables(['REMOTE_ADDR' => $ip]);
 }
 
-/** Terbitkan tautan pintu untuk satu ruang, dengan kode yang bisa dibaca test. */
+/**
+ * Terbitkan tautan pintu untuk satu ruang, beserta kode pengawas ruang itu.
+ *
+ * Kodenya datang dari baris KEPANITIAAN pengawas yang ditugaskan di ruang
+ * tersebut - lihat `siapkanPresensi()` - bukan dari tautannya. Tautan hanya
+ * menentukan ruang mana.
+ */
 function tautanPintu(string $slugRuang = 'R-01'): array
 {
     $data = siapkanPresensi(
@@ -94,10 +100,13 @@ function tautanPintu(string $slugRuang = 'R-01'): array
         2,
     );
 
-    return app(RoomEntryLinkService::class)->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
+    return [
+        'tautan' => app(RoomEntryLinkService::class)->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4),
+        'kode' => $data['kode'][$data['ruang'][0]->id],
+    ];
 }
 
-it('mendaftarkan kedua limiter bernama', function () {
+it('mendaftarkan ketiga limiter bernama', function () {
     // Penjaga terhadap kesalahan yang paling mudah terjadi dan paling sulit
     // terlihat: nama limiter di `RateLimiter::for()` berbeda satu huruf dari
     // nama di `middleware('throttle:...')`. Ketika itu terjadi, middleware
@@ -105,7 +114,8 @@ it('mendaftarkan kedua limiter bernama', function () {
     // dan batasnya menjadi 60/menit yang TIDAK diinginkan siapa pun - tanpa
     // satu pun galat.
     expect(RateLimiter::limiter(PembatasLaju::PINTU))->not->toBeNull()
-        ->and(RateLimiter::limiter(PembatasLaju::GERBANG))->not->toBeNull();
+        ->and(RateLimiter::limiter(PembatasLaju::GERBANG))->not->toBeNull()
+        ->and(RateLimiter::limiter(PembatasLaju::SANDI))->not->toBeNull();
 });
 
 /* =====================================================================
@@ -211,8 +221,14 @@ it('tidak menutup tautan ruang lain karena lima tebakan di satu tautan', functio
     );
 
     $layanan = app(RoomEntryLinkService::class);
-    $a = $layanan->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
-    $b = $layanan->terbitkan(ruangMaster($data['ruang'][1]), berlakuJam: 4);
+    $a = [
+        'tautan' => $layanan->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4),
+        'kode' => $data['kode'][$data['ruang'][0]->id],
+    ];
+    $b = [
+        'tautan' => $layanan->terbitkan(ruangMaster($data['ruang'][1]), berlakuJam: 4),
+        'kode' => $data['kode'][$data['ruang'][1]->id],
+    ];
 
     // Kunci per-pasangan memuat slug DAN ip; kunci per-tautan hanya slug.
     // Tanpa komponen slug pada yang pertama, lima tebakan di koridor satu akan

@@ -66,7 +66,13 @@ use Illuminate\Support\Facades\Session;
  * memerlukan User, dan mengarang satu - misalnya dengan Auth::login() pada
  * akun pengawas mana pun - berarti mengubah tiket masuk menjadi akun. Itu
  * tepat yang ditolak keputusan fase ini: pemegang tautan mendapat kunci
- * sesi, bukan identitas.
+ * sesi, bukan identitas TERAUTENTIKASI.
+ *
+ * Sejak 2026-11-07 `pengguna` terisi juga untuk permintaan ber-tautan. Itu
+ * tidak membatalkan keputusan di atas, dan perbedaannya penting: yang
+ * dipegang pemegang tautan bukan sesi login melainkan hasil satu kali
+ * pencocokan kode pengawas. `Auth::login()` tetap tidak pernah dipanggil -
+ * lihat `penggunaSesi()`.
  *
  * ---------------------------------------------------------------------
  * Mengapa tiap permintaan memeriksa ULANG barisnya
@@ -99,7 +105,11 @@ class KonteksRuang
         $tautan = self::tautanUntuk($ruang);
 
         if ($tautan !== null) {
-            return new self($ruang, null, $tautan);
+            // Penggunanya dibaca dari hibah sesi, bukan dari Auth - lihat
+            // `penggunaSesi()`. Sejak 2026-11-07 nilainya memang ada, karena
+            // kode pengawas menentukan ORANG dan orangnya tersimpan bersama
+            // hibaknya.
+            return new self($ruang, self::penggunaSesi(), $tautan);
         }
 
         $pengguna = Auth::user();
@@ -217,6 +227,77 @@ class KonteksRuang
         Session::forget(self::KUNCI_SESI);
     }
 
+    /**
+     * Pengawas yang membuka pintu ini, bila masuknya lewat kode pengawas.
+     *
+     * =====================================================================
+     * Sejak 2026-11-07 identitasnya ADA - dan itu perubahan yang disengaja
+     * =====================================================================
+     * Sampai saat itu hibah sesi hanya menyimpan dua id, dan pemegangnya
+     * sengaja tidak dikenali siapa pun: kode pengawas waktu itu menempel
+     * pada RUANG, sehingga tidak ada orang yang bisa disebut, dan mengarang
+     * satu berarti log yang berbohong. Itu sebabnya `pelakuLabel()` berbunyi
+     * "R-01 (tautan ruang)".
+     *
+     * Kode pengawas kini menempel pada ORANG (`PenerbitKodePengawas`), dan
+     * orangnya diketahui dari hasil pencocokan yang hanya bisa berhasil bagi
+     * pemegang kode itu. Menyebut namanya di log bukan lagi karangan.
+     *
+     * ---------------------------------------------------------------------
+     * Yang TIDAK dilakukan: `Auth::login()`
+     * ---------------------------------------------------------------------
+     * Pemegang tautan tetap TAMU bagi framework, dan itu tetap benar.
+     * Identitas di sini adalah akibat satu kali pencocokan kredensial, bukan
+     * sesi terautentikasi: tidak ada sandi yang tersimpan, tidak ada
+     * `remember_token`, dan tidak ada apa pun yang bertahan sesudah hibaknya
+     * dibuang. Yang berubah hanyalah siapa yang boleh DISEBUT, bukan siapa
+     * yang boleh masuk.
+     *
+     * ---------------------------------------------------------------------
+     * Sekolahnya diperiksa ulang, dan itu bukan kehati-hatian berlebih
+     * ---------------------------------------------------------------------
+     * Kunci sesi memuat `school_id` dari baris tautan, dan `User` memakai
+     * SchoolScope. Pada permintaan ber-tautan SchoolResolver sudah ditetapkan
+     * oleh `AksesPengawas`, jadi kueri ini tersaring seperti biasa - tetapi
+     * pemeriksaan eksplisit di sini menutup satu urutan yang sulit ditemukan:
+     * kode yang membaca konteks SEBELUM middleware menyetel resolver akan
+     * mendapat user mana pun yang id-nya kebetulan sama. Id pengguna unik
+     * global, jadi itu tidak mungkin hari ini; yang dijaga adalah hari ketika
+     * ia tidak lagi begitu.
+     *
+     * ---------------------------------------------------------------------
+     * Yang sengaja TIDAK diperiksa ulang: penugasannya
+     * ---------------------------------------------------------------------
+     * `supervision_assignments` diperiksa saat pintu dibuka, tidak di setiap
+     * permintaan. Memeriksanya di sini berarti penugasan yang dicabut Admin
+     * di tengah sesi membuat laman presensi **404** - bukan mengalihkan
+     * pemegangnya ke pintu seperti yang terjadi pada tautan yang dicabut.
+     * Yang pertama adalah perubahan perilaku yang tidak diminta siapa pun;
+     * yang kedua sudah berlaku dan sudah diuji.
+     */
+    public static function penggunaSesi(): ?User
+    {
+        $data = Session::get(self::KUNCI_SESI);
+
+        if (! is_array($data) || ! isset($data['pengguna_id'])) {
+            return null;
+        }
+
+        $pengguna = User::query()->find($data['pengguna_id']);
+
+        if ($pengguna === null) {
+            return null;
+        }
+
+        $sekolah = $data['school_id'] ?? null;
+
+        if ($sekolah !== null && (int) $pengguna->school_id !== (int) $sekolah) {
+            return null;
+        }
+
+        return $pengguna;
+    }
+
     /** Tautan yang membuka ruang INI, atau null bila pintunya lewat akun. */
     private static function tautanUntuk(ExamSessionRoom $ruang): ?RoomEntryLink
     {
@@ -250,14 +331,40 @@ class KonteksRuang
      * Nama pelaku yang ditulis ke setiap baris log.
      *
      * Inilah yang dirender plate 13 sebagai "Diverifikasi 07:42 oleh R-01
-     * (Anda)". Untuk pemegang tautan, labelnya menyebut RUANGNYA dan bukan
-     * nama orang - karena memang tidak ada nama orang yang bisa disebut,
-     * dan mengarang satu berarti log yang berbohong.
+     * (Anda)".
      *
-     * Bentuk "R-01 (tautan ruang)" dipilih karena ia bisa ditelusuri balik:
-     * kredensial ruangnya sendiri dapat diaudit - diterbitkan Admin, tiap
-     * pemakaian menaikkan use_count, tiap pembukaan tercatat di
-     * activity_logs.
+     * ---------------------------------------------------------------------
+     * Bagi pemegang tautan, jawabannya berbalik 2026-11-07
+     * ---------------------------------------------------------------------
+     * Sampai saat itu cabang ini mengembalikan "R-01 (tautan ruang)", dan
+     * alasannya ditulis di sini: "memang tidak ada nama orang yang bisa
+     * disebut, dan mengarang satu berarti log yang berbohong". Alasan itu
+     * benar untuk bentuk datanya waktu itu - kodenya milik ruang, jadi tidak
+     * ada orang yang bisa ditunjuk.
+     *
+     * Sekarang kodenya milik orang, dan orangnya diketahui dari pencocokan
+     * yang hanya bisa berhasil bagi pemegang kode itu. Menyebut namanya
+     * bukan lagi karangan; yang mengarang justru menulis "tautan ruang"
+     * untuk presensi yang jelas-jelas ditandatangani seseorang.
+     *
+     * ---------------------------------------------------------------------
+     * Fallback-nya TETAP ADA, dan itu bukan sisa yang lupa dihapus
+     * ---------------------------------------------------------------------
+     * `penggunaSesi()` membaca baris `users`, dan baris itu bisa berhenti
+     * cocok di tengah sesi: akunnya dihapus, atau ia dipindahkan ke sekolah
+     * lain sementara hibak sesinya masih memegang `school_id` yang lama.
+     * Hibaknya sendiri tidak ikut mati karenanya, sehingga `$this->pengguna`
+     * bisa null sementara tautannya masih sah.
+     *
+     * Perhatikan bahwa yang TIDAK memicu fallback ini adalah baris
+     * kepanitiaannya dihapus. Itu disengaja, dan bukan kelalaian: `User`
+     * dibaca langsung dari `pengguna_id` di hibak, bukan lewat baris
+     * kepanitiaan - karena memeriksa ulang keterkaitan itu di setiap
+     * permintaan adalah pemeriksaan yang sama dengan memeriksa ulang
+     * penugasannya, dan itu justru yang ditolak di atas.
+     *
+     * Di keadaan itu label ruang tetap jawaban yang benar, dan log tidak
+     * boleh meledak hanya karena satu baris di tabel lain hilang.
      */
     public function pelakuLabel(): string
     {

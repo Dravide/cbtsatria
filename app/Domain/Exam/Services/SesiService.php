@@ -114,6 +114,56 @@ class SesiService
     }
 
     /**
+     * Siapkan sesi: jendelanya sudah final, tinggal dijalankan.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa langkah ini ADA, padahal dulu tidak ada penghasilnya
+     * ---------------------------------------------------------------------
+     * Graf `StatusSesi` sudah sejak Fase 5 mewajibkan
+     * `Draft -> Siap -> Berjalan`. Tetapi sampai 2026-11-07 tidak ada satu pun
+     * kode di `app/` yang memindahkan sesi ke `Siap`: hanya seeder dan helper
+     * test, lewat `forceFill`. Artinya sesi yang dibuat Admin lewat laman
+     * jadwal SELALU ditolak saat dibuka - "berstatus Draft dan tidak bisa
+     * dibuka" - dan tidak ada tombol apa pun di seluruh aplikasi yang bisa
+     * memperbaikinya. Bug itu bukan salah ketik di graf; yang kurang adalah
+     * penghasilnya.
+     *
+     * ---------------------------------------------------------------------
+     * Yang TIDAK diperiksa di sini, dan itu keputusan
+     * ---------------------------------------------------------------------
+     * Ruang dan pengawas TIDAK diperiksa. Itu tugas `mulai()`. Menaruh aturan
+     * yang sama di dua tempat berarti aturan itu ditulis dua kali lalu
+     * diam-diam berbeda suatu hari. Arti `Siap` di graf adalah "jendelanya
+     * sudah final", bukan "siap dijalankan" - dan yang menjawab "siap
+     * dijalankan" tetap `mulai()`, yang masih menolak bila ruangnya kosong
+     * atau ada ruang tanpa pengawas.
+     *
+     * `Siap -> Draft` tetap boleh, karena grafnya memang begitu: Admin harus
+     * bisa memperbaiki jendela yang ternyata salah tanpa membatalkan sesinya
+     * lebih dulu.
+     */
+    public function siapkan(ExamSession $sesi): ExamSession
+    {
+        if (! $sesi->status->bolehPindahKe(StatusSesi::Siap)) {
+            throw new DomainException(
+                "Sesi {$sesi->label()} berstatus {$sesi->status->label()} dan tidak bisa disiapkan.",
+            );
+        }
+
+        // Paket yang dipasang SESUDAH ujiannya lahir dibekukan di sini - lihat
+        // catatan panjang di `ExamRegistrar::bekukanPaketMapel()`. Dipanggil
+        // SEBELUM statusnya berpindah: paket yang kosong ditolak
+        // `PembekuPaket` dengan ValidationException, dan penolakan itu harus
+        // terjadi selagi sesinya masih Draft - bukan sesudah ia berstatus Siap
+        // dan dilaporkan siap dijalankan.
+        app(ExamRegistrar::class)->bekukanPaketMapel($sesi);
+
+        $sesi->forceFill(['status' => StatusSesi::Siap])->save();
+
+        return $sesi->refresh();
+    }
+
+    /**
      * Buka sesi: peserta boleh mulai masuk.
      *
      * Sesi hanya boleh dibuka bila sudah punya ruang DAN setiap ruangnya

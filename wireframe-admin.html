@@ -166,6 +166,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);bo
 .c3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .c4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.c6{grid-template-columns:repeat(6,minmax(0,1fr))}
 .box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
 .box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
 .box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
@@ -225,7 +226,7 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
   <div class="top-in">
     <div class="brand">School CBT <span>/ wireframe konsol admin</span></div>
     <div class="r">
-      <span>24 laman · 2 rincian · 1 anatomi</span><span>role: Admin</span><span>sumber: prd.md v0.3</span>
+      <span>25 laman · 2 rincian · 1 anatomi</span><span>role: Admin</span><span>sumber: prd.md v0.3</span>
     </div>
   </div>
 </div>
@@ -245,11 +246,11 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
   </div>
 
   <div class="filters" role="group" aria-label="Saring laman menurut kelompok">
-    <button class="fbtn on" data-g="all">Semua <b>26</b></button>
+    <button class="fbtn on" data-g="all">Semua <b>27</b></button>
     <button class="fbtn" data-g="masuk">Masuk <b>2</b></button>
     <button class="fbtn" data-g="rangka">Rangka <b>1</b></button>
     <button class="fbtn" data-g="master">Sekolah &amp; master <b>8</b></button>
-    <button class="fbtn" data-g="event">Event <b>9</b></button>
+    <button class="fbtn" data-g="event">Event <b>10</b></button>
     <button class="fbtn" data-g="ops">Pelaksanaan <b>2</b></button>
     <button class="fbtn" data-g="hasil">Hasil <b>2</b></button>
     <button class="fbtn" data-g="sistem">Sistem <b>2</b></button>
@@ -626,7 +627,7 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
       </figure>
 
       <figure class="shot" style="margin:0">
-        <div class="cap"><span class="n">--</span><h3>Magic link ruang + kode pengawas</h3><span class="path">/admin/ruang · rincian ruang</span></div>
+        <div class="cap"><span class="n">--</span><h3>Magic link ruang</h3><span class="path">/admin/ruang · rincian ruang</span></div>
         <div class="cols c2" style="align-items:start">
           <div class="wf">
             <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/ruang/R-01</span></div>
@@ -638,8 +639,6 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
                   <span class="sub">Pengawas: Budi Santoso · sesi S-01 · 07:30–09:00</span>
                   <div class="ph"><span class="lb">Magic link ruang ini</span><span class="sp"><span class="chip ok">aktif</span></span></div>
                   <div class="input" style="height:22px"><span class="sub" style="color:var(--wf-dim)">cbt.sekolah.id/p/</span><b style="font-family:var(--font-mono);font-size:10px">r01-7k4m</b></div>
-                  <div class="ph"><span class="lb">Kode pengawas</span><span class="sp"><span class="chip warn">diminta setelah tautan dibuka</span></span></div>
-                  <div class="input code"><span>4 8 2 9 1 6</span></div>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">
                     <span class="btn pri big">Salin tautan</span>
                     <span class="btn big">Buka sebagai pengawas</span>
@@ -647,7 +646,7 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
                   </div>
                   <div class="ph"><span class="sub">Terbit 07:05 · kedaluwarsa 09:00 · 1 perangkat</span><span class="sp"><span class="chip warn">2 pemakaian</span></span></div>
                 </div>
-                <div class="inbox warn">Tautan ini unik untuk R-01. Ruang lain punya tautan dan kode sendiri; membuka tautan R-02 di perangkat yang sama tidak membuka R-01.</div>
+                <div class="inbox warn">Tautan ini unik untuk R-01, dan ia sendirian tidak membuka apa pun: yang membukanya adalah kode pengawas, yang diterbitkan di laman Kepanitiaan — satu per orang. Tautan boleh ditempel di pintu karena ia bukan kredensial.</div>
               </div>
             </div>
           </div>
@@ -659,7 +658,7 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
                 <div class="box solid" style="text-align:center">
                   <b style="font-size:11px">Lab Komputer 1</b>
                   <span class="sub">SMK Negeri 1 · sesi S-01 · Matematika X</span>
-                  <span class="sub">Masukkan kode pengawas ruang ini.</span>
+                  <span class="sub">Masukkan kode pengawas Anda.</span>
                   <div class="input code" style="height:26px"><span>4 8 2 9 1 6</span></div>
                   <span class="btn pri big" style="text-align:center">Masuk</span>
                 </div>
@@ -686,17 +685,17 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
           <div class="box solid" style="align-content:start">
             <div class="ph"><span class="lb">Daftar tautan ruang</span><span class="sp"><span class="chip info">8 ruang</span></span></div>
             <div class="tbl">
-              <div class="tr th" style="grid-template-columns:40px 1fr 62px 50px"><span>Ruang</span><span>Tautan</span><span>Kode</span><span>Status</span></div>
-              <div class="tr" style="grid-template-columns:40px 1fr 62px 50px"><span class="c">R-01</span><span class="c">/p/r01-7k4m</span><span class="c">482916</span><span class="chip ok">aktif</span></div>
-              <div class="tr" style="grid-template-columns:40px 1fr 62px 50px"><span class="c">R-02</span><span class="c">/p/r02-9x2q</span><span class="c">731048</span><span class="chip ok">aktif</span></div>
-              <div class="tr" style="grid-template-columns:40px 1fr 62px 50px"><span class="c">R-03</span><span class="c">/p/r03-4h8n</span><span class="c">205517</span><span class="chip warn">belum dicetak</span></div>
-              <div class="tr" style="grid-template-columns:40px 1fr 62px 50px"><span class="c">R-04</span><span class="c">—</span><span class="c">—</span><span class="chip mute">tanpa pengawas</span></div>
+              <div class="tr th" style="grid-template-columns:40px 1fr 50px"><span>Ruang</span><span>Tautan</span><span>Status</span></div>
+              <div class="tr" style="grid-template-columns:40px 1fr 50px"><span class="c">R-01</span><span class="c">/p/r01-7k4m</span><span class="chip ok">aktif</span></div>
+              <div class="tr" style="grid-template-columns:40px 1fr 50px"><span class="c">R-02</span><span class="c">/p/r02-9x2q</span><span class="chip ok">aktif</span></div>
+              <div class="tr" style="grid-template-columns:40px 1fr 50px"><span class="c">R-03</span><span class="c">/p/r03-4h8n</span><span class="chip warn">belum dicetak</span></div>
+              <div class="tr" style="grid-template-columns:40px 1fr 50px"><span class="c">R-04</span><span class="c">—</span><span class="chip mute">tanpa pengawas</span></div>
             </div>
-            <div class="ph"><span class="sub">Satu tautan per ruang, satu kode per ruang</span></div>
+            <div class="ph"><span class="sub">Satu tautan per ruang; kodenya milik orang, terbit di Kepanitiaan</span></div>
           </div>
         </div>
-        <p class="note">Dua hal yang dipisah, dan pemisahan itulah pengamannya. Tautan yang unik per ruang menentukan <b>ruang mana</b> yang akan dibuka — ia boleh panjang, sulit ditebak, dan boleh tertempel di pintu karena ia sendiri tidak membuka apa pun. Kode pengawas menentukan <b>siapa</b> yang boleh masuk — ia pendek supaya bisa diketik cepat di depan pintu, dan justru karena pendek ia tidak boleh menjadi satu-satunya penjaga. Membuka tautan R-01 lalu mengetik kode R-01 berhasil; membuka tautan R-01 lalu mengetik kode R-02 ditolak, karena keduanya harus cocok pada ruang yang sama.</p>
-        <p class="note gap">Akibatnya tiap ruang punya sepasang kredensial sendiri, dan Admin melihat semuanya di satu daftar: siapa yang tautannya sudah dicetak, siapa yang belum, ruang mana yang belum punya pengawas sehingga tautannya belum perlu diterbitkan. Tautan dan kode kedaluwarsa bersama sesinya; mencabut salah satunya langsung memutus sesi yang sedang berjalan di perangkat itu, tanpa mengganggu ruang lain.</p>
+        <p class="note">Dua hal yang dipisah, dan pemisahan itulah pengamannya. Tautan yang unik per ruang menentukan <b>ruang mana</b> yang akan dibuka — ia boleh panjang, sulit ditebak, dan boleh tertempel di pintu karena ia sendiri tidak membuka apa pun. Kode pengawas menentukan <b>siapa</b> yang boleh masuk — ia pendek supaya bisa diketik cepat di depan pintu, dan justru karena pendek ia tidak boleh menjadi satu-satunya penjaga. Membuka tautan R-01 lalu mengetik kode pengawas yang ditugaskan di R-01 berhasil; mengetik kode pengawas yang ditugaskan di R-02 ditolak, karena orang itu memang tidak memegang R-01.</p>
+        <p class="note gap">Karena kodenya menempel pada orang dan bukan pada ruang, laman ini hanya mengurus tautan: menerbitkan, menyalin, mencetak, mencabut. Kodenya terbit di laman Kepanitiaan, satu per pengawas, dan tampil permanen di sana supaya bisa dicetak menjadi kartu. Tautan kedaluwarsa bersama sesinya; mencabutnya langsung memutus sesi yang sedang berjalan di perangkat itu, tanpa mengganggu ruang lain. Ruang yang belum punya pengawas belum perlu tautan sama sekali.</p>
       </figure>
 
     </div>
@@ -705,7 +704,7 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
   <section class="group" data-g="event">
     <header>
       <h2><em>E</em> Workspace event</h2>
-      <p>Sembilan laman di dalam satu event. Ini inti produk: event adalah tempat semua komponen bertemu, dan sidebar-nya berubah begitu sebuah event aktif — dari daftar master data menjadi daftar komponen event yang sedang dikerjakan.</p>
+      <p>Sepuluh laman di dalam satu event. Ini inti produk: event adalah tempat semua komponen bertemu, dan sidebar-nya berubah begitu sebuah event aktif — dari daftar master data menjadi daftar komponen event yang sedang dikerjakan.</p>
     </header>
 
     <div class="shots">
@@ -817,18 +816,19 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
               <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn pri">Tambah panitia</span></div>
               <div class="body">
                 <div class="tbl">
-                  <div class="tr th" style="grid-template-columns:1fr 44px 78px 58px"><span>Nama</span><span>Peran</span><span>Cakupan</span><span>Status</span></div>
-                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px"><span class="c">Budi Santoso</span><span class="chip info">ketua</span><span class="c">Seluruh event</span><span class="chip ok">aktif</span></div>
-                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px"><span class="c">Siti Rahayu</span><span class="chip mute">koordinator</span><span class="c">12 ujian</span><span class="chip ok">aktif</span></div>
-                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px"><span class="c">Ani Mulyani</span><span class="chip mute">pengawas</span><span class="c">R-01, R-02</span><span class="chip ok">aktif</span></div>
-                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px"><span class="c">Dedi Kurnia</span><span class="chip mute">pengawas</span><span class="c">R-04</span><span class="chip warn">belum konfirmasi</span></div>
+                  <div class="tr th" style="grid-template-columns:1fr 44px 78px 58px 66px"><span>Nama</span><span>Peran</span><span>Cakupan</span><span>Status</span><span>Kode pengawas</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px 66px"><span class="c">Budi Santoso</span><span class="chip info">ketua</span><span class="c">Seluruh event</span><span class="chip ok">aktif</span><span class="c">—</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px 66px"><span class="c">Siti Rahayu</span><span class="chip mute">koordinator</span><span class="c">12 ujian</span><span class="chip ok">aktif</span><span class="c">—</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px 66px"><span class="c">Ani Mulyani</span><span class="chip mute">pengawas</span><span class="c">R-01, R-02</span><span class="chip ok">aktif</span><span class="c" style="font-family:var(--font-mono)">482916</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 44px 78px 58px 66px"><span class="c">Dedi Kurnia</span><span class="chip mute">pengawas</span><span class="c">R-04</span><span class="chip warn">belum konfirmasi</span><span class="c"><span class="chip mute">belum ada</span></span></div>
                 </div>
-                <div class="inbox">Peran panitia berlaku di dalam event ini saja. Peran guru dan pengawas secara umum diatur di Master data.</div>
+                <div class="inbox">Peran panitia berlaku di dalam event ini saja. Peran guru dan pengawas secara umum diatur di Master data. Kode pengawas selalu terlihat di kolom paling kanan karena dicetak menjadi kartu pengawas; "Terbitkan ulang" menggantinya, dan kode lama langsung berhenti berlaku.</div>
               </div>
             </div>
           </div>
         </div>
         <p class="note">Kolom "Cakupan" memisahkan panitia yang memegang seluruh event dari yang hanya memegang beberapa ruang. Inilah yang membatasi apa yang boleh mereka lihat dan ubah — dan itu sebabnya cakupan harus terlihat di tabel, bukan tersembunyi di halaman detail.</p>
+        <p class="note gap">Kolom "Kode pengawas" adalah satu-satunya tempat kode pintu ruang terbit. Kodenya menempel pada ORANG, bukan pada ruang: sepasang pengawas yang berbagi R-01 memegang dua kode berbeda, dan masing-masing bisa diganti tanpa menyentuh yang lain. Kode yang hanya tampil sekali tidak bisa dicetak, jadi kodenya tampil permanen di sini.</p>
       </figure>
 
       <figure class="shot" style="margin:0">
@@ -921,6 +921,67 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
           </div>
         </div>
         <p class="note">Baris bentrok ditandai di tabelnya sendiri, bukan hanya diringkas di panel validasi, supaya Admin bisa memperbaiki langsung dari baris yang bermasalah. Kapasitas ruang diperiksa di sini karena inilah tempat ruang dan peserta pertama kali bertemu.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">16b</span><h3>Penempatan peserta ke ruang</h3><span class="path">/admin/events/{event}/penempatan</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/penempatan</span></div>
+          <div class="grid2">
+            <div class="rail"><div class="mark">E</div><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni"><i></i></a><a class="ni on"><i></i></a><a class="ni"><i></i></a></div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp" style="margin-left:auto"></span><span class="btn">Pratinjau kocokan</span><span class="btn">Kocok ulang</span><span class="btn pri">Sebar peserta</span></div>
+              <div class="body">
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Peserta event</span><b>240</b></div>
+                  <div class="kpi"><span class="lb">Kursi sesi terketat</span><b>248</b></div>
+                  <div class="kpi"><span class="lb">Seisi satu kelas</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Belum ketempatan</span><b>0</b></div>
+                </div>
+                <div class="box">
+                  <div class="ph">
+                    <span class="lb">Matematika · S-01 · 02 Nov 07:30</span>
+                    <span class="sp"><span class="chip ok">terkunci</span><span class="chip mute">benih #7K2M</span></span>
+                  </div>
+                  <div class="cols c6">
+                    <div class="kpi"><span class="lb">R-01</span><b>40/40</b></div>
+                    <div class="kpi"><span class="lb">R-02</span><b>40/40</b></div>
+                    <div class="kpi"><span class="lb">R-03</span><b>40/40</b></div>
+                    <div class="kpi"><span class="lb">R-04</span><b>40/40</b></div>
+                    <div class="kpi"><span class="lb">R-05</span><b>40/40</b></div>
+                    <div class="kpi"><span class="lb">R-06</span><b>40/40</b></div>
+                  </div>
+                  <div class="tbl" style="margin-top:6px">
+                    <div class="tr th" style="grid-template-columns:62px 1fr 46px 1fr"><span>Peserta</span><span>Kelas</span><span>Kursi</span><span>Ruang</span></div>
+                    <div class="tr" style="grid-template-columns:62px 1fr 46px 1fr"><span class="c">2401</span><span class="c">Ani Mulyani</span><span class="c">X-1</span><span class="chip info">R-01</span></div>
+                    <div class="tr" style="grid-template-columns:62px 1fr 46px 1fr"><span class="c">2418</span><span class="c">Maya Sari</span><span class="c">X-2</span><span class="chip info">R-01</span></div>
+                    <div class="tr" style="grid-template-columns:62px 1fr 46px 1fr"><span class="c">2533</span><span class="c">Yusuf Adi</span><span class="c">XI-1</span><span class="chip info">R-01</span></div>
+                    <div class="tr" style="grid-template-columns:62px 1fr 46px 1fr"><span class="c">2587</span><span class="c">Rina Wati</span><span class="c">XI-2</span><span class="chip info">R-01</span></div>
+                    <div class="tr" style="grid-template-columns:62px 1fr 46px 1fr"><span class="c">2704</span><span class="c">Dedi Kurnia</span><span class="c">XII-1</span><span class="chip info">R-01</span></div>
+                    <div class="tr" style="grid-template-columns:62px 1fr 46px 1fr"><span class="c">2710</span><span class="c">Lilis Suryani</span><span class="c">XII-3</span><span class="chip warn">R-04 · seisi XII-3</span></div>
+                  </div>
+                </div>
+                <div class="tbl" style="margin-top:6px">
+                  <div class="tr th" style="grid-template-columns:1fr 62px 62px 56px 76px 52px"><span>Ujian · sesi</span><span>Peserta</span><span>Kursi</span><span>Ruang</span><span>Kocokan</span><span>Pratinjau</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 62px 62px 56px 76px 52px"><span class="c">S-01 · Matematika</span><span class="c">240</span><span class="c">248</span><span class="c">6</span><span class="chip ok">terkunci</span><span class="c">buka</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 62px 62px 56px 76px 52px"><span class="c">S-02 · B. Indonesia</span><span class="c">240</span><span class="c">248</span><span class="c">6</span><span class="chip ok">terkunci</span><span class="c">buka</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 62px 62px 56px 76px 52px"><span class="c">S-03 · B. Inggris</span><span class="c">240</span><span class="c">248</span><span class="c">6</span><span class="chip mute">belum</span><span class="c">buka</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 62px 62px 56px 76px 52px"><span class="c">S-04 · Fisika</span><span class="c">180</span><span class="c">160</span><span class="chip bad">kurang 20</span><span class="chip info">biarkan manual</span><span class="c">buka</span></div>
+                </div>
+                <div class="inbox warn">S-04 · Fisika: 180 peserta untuk 160 kursi. Sesi ini dilewati, bukan diisi sebagian &mdash; peserta yang tidak kebagian ruang tidak akan muncul di daftar pengawas mana pun.</div>
+                <div class="box" style="margin-top:6px">
+                  <span class="lb">Cara mengocok</span>
+                  <div class="check"><i class="f"></i><span>Rotasi antar kelas &mdash; satu dari X-1, satu dari XI-2, satu dari XII-1, lalu ulang</span></div>
+                  <div class="check"><i class="f"></i><span>Urutan kejutan diacak berbenih; benih disimpan, sehingga halaman ini bisa dibuka ulang dan isinya sama persis</span></div>
+                  <div class="check"><i class="f"></i><span>Kocokan dibekukan saat disebar. Daftar ruang yang sudah dicetak tetap cocok dengan layarnya</span></div>
+                  <div class="check"><i class="f"></i><span>Peserta lintas kelas &mdash; satu tingkatan tidak pernah memenuhi satu ruang</span></div>
+                  <div class="check"><i></i><span>Satu peta untuk seluruh event (sekarang: kocokan per sesi)</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Satu laman untuk satu keputusan: siapa duduk di ruang mana, dan bukti bahwa keputusan itu diacak. Yang menentukan bentuknya dua hal. <b>Kocokan dibekukan</b> &mdash; ruang siswa tidak berubah hanya karena Admin membuka laman ini lagi, karena daftar ruang dicetak dan ditempel di pintu, dan daftar cetak yang tidak lagi cocok dengan layar adalah daftar yang tidak dipercaya siapa pun. <b>Rotasi antar kelas</b> &mdash; peserta diambil bergiliran dari tiap kelas, bukan dikocok rata, karena kocokan rata <i>boleh jadi</i> menumpuk satu kelas di satu ruang, dan itu justru yang ingin dihindari ujian campuran. Kotak <b>Pratinjau kocokan</b> adalah satu-satunya tempat angka "seisi satu kelas" bisa dibuktikan sebelum disebar; sesudah disebar, satu-satunya cara memperbaikinya adalah mengocok ulang &mdash; dan itu membatalkan daftar yang sudah tercetak.</p>
       </figure>
 
       <figure class="shot" style="margin:0">
@@ -1197,7 +1258,7 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
 
   <footer>
     <span>School CBT · wireframe konsol Admin</span>
-    <span>24 laman · 2 rincian · 1 anatomi · 8 kelompok</span>
+    <span>25 laman · 2 rincian · 1 anatomi · 8 kelompok</span>
     <span>sumber: prd.md v0.3 + blueprint-cbt.html</span>
   </footer>
 

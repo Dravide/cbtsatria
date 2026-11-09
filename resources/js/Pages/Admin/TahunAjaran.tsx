@@ -134,7 +134,7 @@ export default function TahunAjaran({ tahun }: { tahun: Tahun[] }) {
 
                         {/* Semester bersarang di dalam tahun ajarannya. */}
                         <div className="mt-3 rounded-wf border border-line bg-surface-2/40 p-3">
-                            <p className="text-[11px] font-medium tracking-wide text-ink-3 uppercase">
+                            <p className="text-[11px] text-ink-3">
                                 Semester di {t.nama}
                             </p>
 
@@ -184,6 +184,11 @@ export default function TahunAjaran({ tahun }: { tahun: Tahun[] }) {
             <FormTahun terbuka={tambah} padaTutup={() => setTambah(false)} />
 
             <FormSemester
+                // `key` bukan hiasan: `Modal` mengembalikan `null` dari dalam
+                // dirinya sendiri, jadi form di luarnya tidak pernah dilepas.
+                // Berpindah tahun ajaran lalu membuka "Tambah semester" tanpa
+                // menutup panelnya akan membawa isian tahun sebelumnya.
+                key={'semester-' + (semesterUntuk?.id ?? 'kosong')}
                 tahun={semesterUntuk}
                 padaTutup={() => setSemesterUntuk(null)}
             />

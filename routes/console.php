@@ -68,9 +68,35 @@ Schedule::command('laporan:pangkas-ekspor')
     ->withoutOverlapping();
 
 // ---------------------------------------------------------------------------
-// Sesi kedaluwarsa - setiap malam pukul 03:30
+// Pangkas ekspor pengguna lama - setiap malam pukul 03:15
 // ---------------------------------------------------------------------------
-// Tabel `sessions` tumbuh satu baris per peramban yang pernah membuka
+// Perintah KEDUA, bukan satu perintah untuk keduanya - lihat catatan di
+// `PangkasEksporPengguna`. Yang penting di sini adalah ia ADA: ekspor pengguna
+// meninggalkan berkas sebesar ekspor laporan, dan berkas itu tinggal di disk
+// privat yang sama dengan berita acara.
+//
+// Pukul 03:15, lima belas menit sesudah pemangkasan laporan, supaya keduanya
+// tidak berebut I/O di malam yang sama.
+Schedule::command('pengguna:pangkas-ekspor')
+    ->dailyAt('03:15')
+    ->withoutOverlapping();
+
+// ---------------------------------------------------------------------------
+// Pangkas media soal draf - setiap malam pukul 03:20
+// ---------------------------------------------------------------------------
+// Gambar yang diunggah sebelum soalnya disimpan (draf) menumpuk di disk privat
+// bila peramban ditutup sebelum Guru menekan Simpan. Lihat `PangkasMediaDraf`
+// untuk mengapa batasnya 24 jam dan bukan satu jam.
+//
+// Pukul 03:20, di antara kedua pemangkasan ekspor, supaya ketiganya tidak
+// berebut I/O pada malam yang sama.
+Schedule::command('soal:pangkas-media-draf')
+    ->dailyAt('03:20')
+    ->withoutOverlapping();
+
+// ---------------------------------------------------------------------------
+// Sesi kedaluwarsa - setiap malam pukul 03:30
+// ---------------------------------------------------------------------------// Tabel `sessions` tumbuh satu baris per peramban yang pernah membuka
 // aplikasi, dan ratusan siswa yang lulus tidak pernah kembali untuk menutup
 // sesinya. Bawaan Laravel juga memangkasnya lewat undian di tengah permintaan
 // (2 dari 100), tetapi itu berarti pemangkasan terjadi pada request siswa yang

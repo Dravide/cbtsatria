@@ -1,11 +1,10 @@
 import { Link } from '@inertiajs/react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
-import { Chip, Inbox } from '@/Components/ui';
-import { KotakPonsel } from '@/Components/ponsel';
+import { Inbox } from '@/Components/ui';
 import { formatPoin } from '@/Components/angka';
 
 /**
- * Nilai saya - wireframe-peran.html plate 28.
+ * Nilai saya - wireframe-peran.html plate 28. `/siswa/nilai`.
  *
  * =====================================================================
  * Angkanya sekarang ADA, dan bentuk lamannya tidak berubah
@@ -15,6 +14,22 @@ import { formatPoin } from '@/Components/angka';
  * barisnya mendapat kolom Nilai. Struktur lamannya sengaja TIDAK berubah
  * bentuk: laman yang mengubah bentuknya saat nilai mulai ada adalah laman
  * yang tidak pernah diuji dalam bentuk yang benar-benar dipakai.
+ *
+ * =====================================================================
+ * Redesign: satu papan, dan angka yang bisa dibandingkan ke bawah
+ * =====================================================================
+ * Laman ini memakai material yang sama dengan beranda - papan bergaris 2px -
+ * karena keduanya menjawab pertanyaan yang sama tentang daftar ujian yang
+ * sama; yang berbeda hanya kolom terakhirnya. Sebelumnya nilai tinggal di
+ * kotak membulat dengan bayangan, dan anak yang berpindah dari beranda ke
+ * sini melihat dua benda yang tidak mengaku satu keluarga.
+ *
+ * Susunan barisnya juga diubah satu hal, dan hanya satu: NILAI pindah ke
+ * KIRI baris kedua, di bawah nama mapel, sebagai angka besar. Sebelumnya ia
+ * mengambang di kanan dan `objektif`, `uraian`, serta `tuntas` berbaris di
+ * bawahnya dengan ukuran 10px - sehingga angka yang justru dicari anak
+ * adalah yang paling kecil di barisnya. Di sini angkanya terbaca lebih dulu,
+ * lalu rinciannya menjelaskan.
  *
  * =====================================================================
  * Tiga keadaan, tiga kalimat, dan tidak boleh tertukar
@@ -80,7 +95,13 @@ export default function Nilai({
             judul="Nilai saya"
             tabbarAktif="nilai"
             kiri={<span className="truncate text-[12px] text-ink">Nilai · {nama}</span>}
-            kanan={kelas ? <Chip nada="mute">{kelas}</Chip> : undefined}
+            kanan={
+                kelas ? (
+                    <span className="border border-line-2 px-1.5 py-0.5 text-[11px] text-ink-2">
+                        {kelas}
+                    </span>
+                ) : undefined
+            }
         >
             {!ada_nilai && (
                 <Inbox>
@@ -90,99 +111,34 @@ export default function Nilai({
                 </Inbox>
             )}
 
-            {daftar.length === 0 ? (
-                <KotakPonsel padat>
-                    <p className="py-6 text-center text-[12px] text-ink-3">
-                        Belum ada ujian yang Anda kerjakan.
-                    </p>
-                </KotakPonsel>
-            ) : (
-                <KotakPonsel padat judul="Ujian yang sudah dikerjakan">
-                    <div className="space-y-0">
-                        {daftar.map((b) => (
-                            <div
-                                key={b.peserta_id}
-                                className="border-b border-line/60 py-2.5 last:border-0"
-                            >
-                                <div className="flex items-start gap-2">
-                                    <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-[12px] text-ink">
-                                            {b.mapel ?? 'Tanpa mapel'}
-                                        </span>
-                                        <span className="block truncate text-[10px] text-ink-3">
-                                            {[b.tanggal_label, b.status_label]
-                                                .filter(Boolean)
-                                                .join(' · ')}
-                                        </span>
-                                    </span>
+            {/*
+             * Papan selalu digambar, seperti di beranda - wadah yang tergambar
+             * itulah yang membedakan "nilainya belum keluar" dari "lamannya
+             * kosong".
+             */}
+            <section className="papan overflow-hidden">
+                <header className="papan-kepala">
+                    <span>Ujian yang sudah dikerjakan</span>
+                    {daftar.length > 0 && (
+                        <span className="angka ml-auto text-ink">{daftar.length}</span>
+                    )}
+                </header>
 
-                                    {/* Kolom kanan adalah NILAI bila ada, dan
-                                        kalimat-keadaan bila belum. Tidak
-                                        pernah keduanya - angka dan "belum
-                                        dipublikasikan" berdampingan terbaca
-                                        sebagai nilai nol. */}
-                                    {b.nilai !== null ? (
-                                        <span className="shrink-0 text-right">
-                                            <span className="block font-mono text-lg leading-none font-semibold text-ink">
-                                                {formatPoin(b.nilai)}
-                                            </span>
-                                            {!b.final && (
-                                                <span className="mt-0.5 block text-[10px] text-warn">
-                                                    sementara
-                                                </span>
-                                            )}
-                                        </span>
-                                    ) : (
-                                        <Chip nada="mute">
-                                            {b.dipublikasikan ? 'belum dikoreksi' : 'belum dibuka'}
-                                        </Chip>
-                                    )}
-                                </div>
+                <div className="papan-kolom flex items-center gap-2 px-3">
+                    <span className="min-w-0 flex-1">Mata pelajaran dan rincian</span>
+                    <span className="w-[64px] shrink-0 text-right">Nilai</span>
+                </div>
 
-                                {/* Rincian per bagian. Keduanya hanya muncul
-                                    saat angka akhirnya ada - rincian tanpa
-                                    angka akhir adalah potongan nilai yang
-                                    membingungkan. */}
-                                {b.nilai !== null && (
-                                    <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[10px] text-ink-3">
-                                        {b.objektif !== null && (
-                                            <span>
-                                                objektif{' '}
-                                                <span className="font-mono text-ink-2">
-                                                    {formatPoin(b.objektif)}
-                                                </span>
-                                            </span>
-                                        )}
-                                        {b.uraian !== null && (
-                                            <span>
-                                                uraian{' '}
-                                                <span className="font-mono text-ink-2">
-                                                    {formatPoin(b.uraian)}
-                                                </span>
-                                            </span>
-                                        )}
-                                        {b.lulus !== null && (
-                                            <Chip nada={b.lulus ? 'ok' : 'warn'}>
-                                                {b.lulus ? 'tuntas' : 'remedial'}
-                                            </Chip>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Uraian yang belum dikoreksi dijelaskan
-                                    sebagai pekerjaan yang sedang berjalan,
-                                    bukan sebagai kabar buruk. */}
-                                {b.nilai !== null && !b.final && b.sisa_uraian > 0 && (
-                                    <p className="mt-1 text-[10px] text-ink-3">
-                                        {b.sisa_uraian} jawaban uraian masih dikoreksi Guru — angka
-                                        di atas bisa berubah.
-                                    </p>
-                                )}
-                            </div>
-                        ))}
+                {daftar.length === 0 ? (
+                    <div className="px-3 py-6">
+                        <p className="text-[12px] leading-relaxed text-ink-2">
+                            Belum ada ujian yang Anda kerjakan.
+                        </p>
                     </div>
-                </KotakPonsel>
-            )}
+                ) : (
+                    daftar.map((b) => <BarisNilai key={b.peserta_id} baris={b} />)
+                )}
+            </section>
 
             {/* Kalimat KKM hanya muncul saat ada nilai yang SUDAH FINAL.
                 Menyebut ambang kelulusan di atas nilai sementara berarti
@@ -196,25 +152,102 @@ export default function Nilai({
             )}
 
             {remedial.length > 0 && (
-                <KotakPonsel padat judul="Perlu remedial">
-                    <div className="space-y-1.5 py-1">
-                        {remedial.map((r, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                                <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
-                                    {r.mapel ?? 'Tanpa mapel'}
-                                </span>
-                                <span className="font-mono text-[12px] text-warn">
-                                    {formatPoin(r.nilai)}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </KotakPonsel>
+                <section className="papan overflow-hidden">
+                    <header className="papan-kepala">
+                        <span>Perlu remedial</span>
+                    </header>
+
+                    {remedial.map((r, i) => (
+                        <div key={i} className="papan-baris flex items-center gap-2 px-3 py-2">
+                            <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                                {r.mapel ?? 'Tanpa mapel'}
+                            </span>
+                            <span className="angka shrink-0 text-[12px] text-warn">
+                                {formatPoin(r.nilai)}
+                            </span>
+                        </div>
+                    ))}
+                </section>
             )}
 
-            <Link href="/siswa" className="block px-1 text-[11px] text-accent underline">
+            <Link href="/siswa" className="catatan underline">
                 Kembali ke jadwal ujian
             </Link>
         </KerangkaSiswa>
+    );
+}
+
+/**
+ * Satu baris nilai.
+ *
+ * Kolom kanannya SATU hal saja: angka bila ada, kalimat keadaan bila belum -
+ * tidak pernah keduanya, karena angka dan "belum dipublikasikan" yang
+ * berdampingan terbaca sebagai nilai nol.
+ */
+function BarisNilai({ baris }: { baris: Baris }) {
+    return (
+        <div className="papan-baris px-3 py-2">
+            <div className="flex items-baseline gap-2">
+                <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                    {baris.mapel ?? 'Tanpa mapel'}
+                </span>
+
+                {baris.nilai !== null ? (
+                    <b className="angka shrink-0 text-base leading-none text-ink">
+                        {formatPoin(baris.nilai)}
+                    </b>
+                ) : (
+                    <span className="shrink-0 border border-line-2 bg-surface-2 px-1.5 py-0.5 text-[11px] whitespace-nowrap text-ink-2">
+                        {baris.dipublikasikan ? 'belum dikoreksi' : 'belum dibuka'}
+                    </span>
+                )}
+            </div>
+
+            {/* SATU titik, dan itu memang yang diizinkan lantai 63 - "one dot
+                in a byline". Papan di beranda memakai kolom karena ia empat
+                hal yang dibandingkan sekilas; baris ini dua keterangan satu
+                ujian, dan memisahkannya jadi sel tidak menambah apa pun. */}
+            <p className="catatan mt-0.5 truncate">
+                {[baris.tanggal_label, baris.status_label].filter(Boolean).join(' · ')}
+            </p>
+
+            {/* Rincian per bagian. Keduanya hanya muncul saat angka akhirnya
+                ada - rincian tanpa angka akhir adalah potongan nilai yang
+                membingungkan. */}
+            {baris.nilai !== null && (
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-2">
+                    {baris.objektif !== null && (
+                        <span>
+                            objektif <span className="angka text-ink">{formatPoin(baris.objektif)}</span>
+                        </span>
+                    )}
+                    {baris.uraian !== null && (
+                        <span>
+                            uraian <span className="angka text-ink">{formatPoin(baris.uraian)}</span>
+                        </span>
+                    )}
+                    {!baris.final && <span className="text-warn">sementara</span>}
+                    {baris.lulus !== null && (
+                        <span
+                            className={
+                                'border border-line-2 px-1.5 py-0.5 ' +
+                                (baris.lulus ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn')
+                            }
+                        >
+                            {baris.lulus ? 'tuntas' : 'remedial'}
+                        </span>
+                    )}
+                </div>
+            )}
+
+            {/* Uraian yang belum dikoreksi dijelaskan sebagai pekerjaan yang
+                sedang berjalan, bukan sebagai kabar buruk. */}
+            {baris.nilai !== null && !baris.final && baris.sisa_uraian > 0 && (
+                <p className="catatan mt-1">
+                    {baris.sisa_uraian} jawaban uraian masih dikoreksi Guru. Angka di atas
+                    bisa berubah.
+                </p>
+            )}
+        </div>
     );
 }

@@ -60,7 +60,13 @@ export type ButirPratinjau = {
     kunci: Record<string, unknown> | null;
     skor: Record<string, unknown> | null;
     pembahasan: Record<string, unknown> | null;
-    opsi: { option_key: string; content_json: Record<string, unknown>; is_correct: boolean; position: number }[];
+    opsi: {
+        option_key: string;
+        content_json: Record<string, unknown>;
+        is_correct: boolean;
+        position: number;
+        media?: MediaButir[];
+    }[];
     butir: { item_key: string; item_group: string; content_json: Record<string, unknown>; position: number }[];
     rubrik: { criterion: string; description: string | null; max_score: number; position: number }[];
     media: MediaButir[];
@@ -191,6 +197,30 @@ export function KartuButir({
                                 </span>
                                 <span className="min-w-0 flex-1">
                                     <Html nilai={o.content_json?.teks} />
+                                    {o.media && o.media.length > 0 && (
+                                        <span className="mt-1 flex flex-wrap gap-1.5">
+                                            {o.media.map((m) => (
+                                                <span key={m.id} className="block">
+                                                    {m.gambar ? (
+                                                        <img
+                                                            src={m.url}
+                                                            alt={m.nama ?? `Media ${m.id}`}
+                                                            className="max-h-40 max-w-full rounded-wf border border-line"
+                                                        />
+                                                    ) : (
+                                                        <a
+                                                            href={m.url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] text-accent hover:underline"
+                                                        >
+                                                            {m.nama ?? 'Buka berkas'}
+                                                        </a>
+                                                    )}
+                                                </span>
+                                            ))}
+                                        </span>
+                                    )}
                                 </span>
                                 {o.is_correct && <Chip nada="ok">kunci</Chip>}
                             </li>

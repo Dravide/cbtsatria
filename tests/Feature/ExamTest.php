@@ -19,6 +19,7 @@ use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Enums\StatusToken;
 use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamParticipant;
+use App\Domain\Exam\Models\ExamQuestion;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Models\ExamToken;
@@ -695,6 +696,198 @@ it('menolak membuka sesi yang ruangnya belum punya pengawas', function () {
     expect($sesi->refresh()->status)->toBe(StatusSesi::Siap);
 });
 
+/* ------------------------------------------------- Siapkan sesi (2026-11-07) */
+
+it('menyiapkan sesi lalu membukanya', function () {
+    // Test ini yang membuktikan bugnya tertutup dari ujung ke ujung, bukan
+    // sekadar bahwa methodnya ada. Sebelum `siapkan()`, langkah kedua di sini
+    // SELALU ditolak: sesi yang lahir dari laman jadwal berstatus Draft, dan
+    // graf StatusSesi melarang Draft -> Berjalan.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Draft);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/siapkan")
+        ->assertSessionHasNoErrors();
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Siap);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/mulai")
+        ->assertSessionHasNoErrors();
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Berjalan);
+});
+
+it('menolak menyiapkan sesi yang sudah berjalan', function () {
+    // Graf menolak Berjalan -> Siap, dan penolakannya harus muncul sebagai
+    // pesan yang bisa dibaca Admin - bukan 500.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    app(SesiService::class)->siapkan($data['sesi']);
+    app(SesiService::class)->mulai($data['sesi']);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/siapkan")
+        ->assertSessionHas('galat');
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Berjalan);
+});
+
+it('menolak sesi milik ujian lain lewat rute siapkan', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $lain = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$lain['sesi']->id}/siapkan")
+        ->assertNotFound();
+
+    expect($lain['sesi']->refresh()->status)->toBe(StatusSesi::Draft);
+});
+
+it('tidak lagi mengirim status ujian ke panel', function () {
+    // `exams.status` dijatuhkan 2026-11-07 (migrasi 0016_01_01_000030). Kalau
+    // propnya muncul lagi di sini, berarti ada yang menambahkan kolomnya
+    // kembali - dan chip yang selalu berbunyi "draft" ikut kembali bersamanya.
+    jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->missing('ujian.0.status')
+            ->has('ujian.0.sesi')
+        );
+});
+
+it('mewarisi paket yang sudah terpasang di mapel saat ujian dibuat', function () {
+    // Cacat 07 Nov 2026, dan bentuknya satu baris yang tidak ada.
+    //
+    // Admin memasang paket di plate 15 lewat `PemasanganPaket`, lalu membuat
+    // ujiannya di plate 16 untuk mapel YANG SAMA. Paket itu sudah diketahui
+    // pada saat ujiannya lahir - tetapi `simpanUjian()` tidak pernah
+    // mengirimkan `question_package_id` (field itu tidak ada di daftar
+    // validasinya), sehingga setiap ujian lahir dengan paket null, snapshot
+    // `exam_questions` kosong, dan anak yang membuka gerbangnya menerima
+    // "Ujian ini tidak punya butir soal. Hubungi Admin sebelum memulai." -
+    // di ruang ujian, pada hari ujian.
+    $sekolah = School::find($this->event->school_id);
+    $guru = User::factory()->guru()->untukSekolah($sekolah)->create();
+
+    $paket = QuestionPackage::factory()->oleh($guru, $this->mapel)->siap()->create([
+        'name' => 'Paket '.$this->mapel->name,
+    ]);
+
+    QuestionPackageItem::factory()->create([
+        'school_id' => $this->event->school_id,
+        'question_package_id' => $paket->id,
+        'question_id' => Question::factory()->oleh($guru, $this->mapel)->create()->id,
+    ]);
+
+    $baris = $this->event->subjects()->where('subject_id', $this->mapel->id)->firstOrFail();
+
+    app(PemasanganPaket::class)->pasang((int) $baris->id, $paket->id, $this->admin->id);
+
+    masukSebagai($this, $this->admin)->post("/admin/events/{$this->event->id}/ujian", [
+        'subject_id' => $this->mapel->id,
+        'title' => 'ASAS '.$this->mapel->name,
+        'duration_minutes' => 90,
+        'class_id' => [],
+    ])->assertSessionHasNoErrors();
+
+    $ujian = Exam::query()->orderByDesc('id')->firstOrFail();
+
+    expect($ujian->question_package_id)->toBe($paket->id)
+        // Dan yang menentukan bagi siswa: SNAPSHOTNYA benar-benar tertulis.
+        // Paket yang tercatat di kolom tetapi tidak dibekukan menghasilkan
+        // gerbang yang menerima ujiannya dan pengerjaan yang kosong.
+        ->and(ExamQuestion::query()->where('exam_id', $ujian->id)->count())->toBe(1);
+
+    // Panel jadwal membacanya sebagai "sudah dibekukan" - dan itu yang
+    // mengunci mapelnya dari penggantian.
+    masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->where('ujian.0.ada_paket', true)
+        );
+});
+
+it('membekukan paket yang dipasang sesudah ujiannya lahir, saat sesinya disiapkan', function () {
+    // Urutan kerja yang docblock `ExamRegistrar::bekukanPaket()` janjikan
+    // sendiri: "Admin menyusun jadwal lebih dulu, dan paketnya dipasang
+    // Gurunya belakangan." Janji itu tidak punya pelaksananya sampai
+    // 07 Nov 2026 - `bekukanPaket()` hanya dipanggil `buat()`, sekali, pada
+    // saat paketnya belum ada. Ujian seperti itu tetap kosong selamanya,
+    // walau paketnya kemudian dipasang, dan kegagalannya baru muncul di
+    // depan siswa.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    expect($data['ujian']->question_package_id)->toBeNull()
+        ->and(ExamQuestion::query()->where('exam_id', $data['ujian']->id)->count())->toBe(0);
+
+    $sekolah = School::find($this->event->school_id);
+    $guru = User::factory()->guru()->untukSekolah($sekolah)->create();
+
+    $paket = QuestionPackage::factory()->oleh($guru, $this->mapel)->siap()->create([
+        'name' => 'Paket '.$this->mapel->name,
+    ]);
+
+    foreach (range(1, 3) as $i) {
+        QuestionPackageItem::factory()->create([
+            'school_id' => $this->event->school_id,
+            'question_package_id' => $paket->id,
+            'question_id' => Question::factory()->oleh($guru, $this->mapel)->create()->id,
+            'position' => $i,
+        ]);
+    }
+
+    $baris = $this->event->subjects()->where('subject_id', $this->mapel->id)->firstOrFail();
+
+    // Dipasang SESUDAH ujian dan sesinya ada.
+    app(PemasanganPaket::class)->pasang((int) $baris->id, $paket->id, $this->admin->id);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/siapkan")
+        ->assertSessionHasNoErrors();
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Siap)
+        ->and($data['ujian']->refresh()->question_package_id)->toBe($paket->id)
+        ->and(ExamQuestion::query()->where('exam_id', $data['ujian']->id)->count())->toBe(3);
+});
+
+it('menolak menyiapkan sesi ketika paket mapelnya belum berisi butir soal', function () {
+    // Paket kosong adalah ujian yang bisa dijadwalkan, ditempati 300 siswa,
+    // dan baru ketahuan kosong saat tokennya dibuka. `PembekuPaket` sudah
+    // menolaknya dengan ValidationException sejak Fase 4 - yang belum ada
+    // sampai 07 Nov 2026 adalah jalur yang MEMANGGILNYA sesudah ujian lahir,
+    // sehingga penolakan itu tidak pernah sampai ke Admin yang menyiapkan
+    // sesinya.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $sekolah = School::find($this->event->school_id);
+    $guru = User::factory()->guru()->untukSekolah($sekolah)->create();
+
+    $kosong = QuestionPackage::factory()->oleh($guru, $this->mapel)->siap()->create([
+        'name' => 'Paket Kosong',
+    ]);
+
+    $baris = $this->event->subjects()->where('subject_id', $this->mapel->id)->firstOrFail();
+
+    app(PemasanganPaket::class)->pasang((int) $baris->id, $kosong->id, $this->admin->id);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/siapkan")
+        ->assertSessionHasErrors('question_package_id');
+
+    // Dan sesinya TETAP Draft. Penolakannya terjadi sebelum statusnya
+    // berpindah - sesi yang berstatus Siap dengan snapshot kosong adalah sesi
+    // yang dilaporkan siap dijalankan padahal tidak.
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Draft)
+        ->and(ExamQuestion::query()->where('exam_id', $data['ujian']->id)->count())->toBe(0);
+});
+
 /* --------------------------------------------------------- Penempatan §9.5 */
 
 it('menolak menyebar peserta ketika kursinya kurang', function () {
@@ -905,4 +1098,388 @@ it('menghitung butir kesiapan ujian secara nyata', function () {
         ->and($ujianButir['paket']['keadaan'])->toBe('ok')
         ->and($laporan['menunggu'])->toBe(0)
         ->and($laporan['gagal'])->toBe(0);
+});
+
+/* ------------------------------------------- Ubah ujian (panel plate 16) */
+
+it('mengubah ujian dari laman jadwal', function () {
+    // Ujian lahir di laman ini, jadi salah ketik durasinya harus bisa
+    // ditambal di laman ini juga. Tanpa jalur ubah, satu-satunya jalan
+    // adalah menghapus ujiannya - dan menghapusnya berarti kehilangan
+    // sesinya, penempatannya, dan tokennya.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $kelas = SchoolClass::query()
+        ->where('id', $this->event->classes()->pluck('class_id'))
+        ->first();
+
+    masukSebagai($this, $this->admin)->put(
+        "/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}",
+        [
+            'subject_id' => $this->mapel->id,
+            'title' => 'UAS Matematika Revisi',
+            'exam_type' => 'Try out',
+            'instructions' => 'Baca soal dengan teliti.',
+            'duration_minutes' => 120,
+            'max_attempts' => 3,
+            'class_id' => [$kelas->id],
+            'shuffle_questions' => true,
+            'allow_back_navigation' => false,
+        ],
+    )->assertRedirect();
+
+    $ujian = $data['ujian']->refresh();
+
+    expect($ujian->title)->toBe('UAS Matematika Revisi')
+        ->and($ujian->exam_type)->toBe('Try out')
+        ->and($ujian->instructions)->toBe('Baca soal dengan teliti.')
+        ->and($ujian->duration_minutes)->toBe(120)
+        ->and($ujian->max_attempts)->toBe(3)
+        ->and($ujian->shuffle_questions)->toBeTrue()
+        ->and($ujian->allow_back_navigation)->toBeFalse()
+        ->and($ujian->classes()->pluck('class_id')->all())->toBe([$kelas->id]);
+});
+
+it('mengirim nilai ujian untuk panel ubah', function () {
+    // Panel ubah memuat seluruh nilainya dari props. Tanpa `mapel_id`,
+    // `jenis`, dan `kelas_id`, formnya terbuka dengan mapel pertama di
+    // daftar dan centang kelas yang KOSONG - dan menyimpan durasi saja akan
+    // menghapus seluruh kelas sasaran ujiannya tanpa satu pun galat, karena
+    // daftar kosong berarti "seluruh peserta event".
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $kelas = SchoolClass::query()
+        ->where('id', $this->event->classes()->pluck('class_id'))
+        ->first();
+
+    app(ExamRegistrar::class)->perbarui($data['ujian'], [
+        'exam_type' => 'Try out',
+        'instructions' => 'Kerjakan sendiri.',
+        'max_attempts' => 2,
+        'shuffle_questions' => true,
+        'allow_back_navigation' => false,
+        'class_id' => [$kelas->id],
+    ]);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->where('ujian.0.mapel_id', $this->mapel->id)
+            ->where('ujian.0.jenis', 'Try out')
+            ->where('ujian.0.instruksi', 'Kerjakan sendiri.')
+            ->where('ujian.0.percobaan', 2)
+            ->where('ujian.0.acak_soal', true)
+            ->where('ujian.0.boleh_kembali', false)
+            ->where('ujian.0.kelas_id', [$kelas->id])
+            ->where('ujian.0.ada_paket', false)
+        );
+});
+
+it('menolak mapel yang tidak ditetapkan di event ini saat ujian diubah', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    // Mapel sekolah yang sama, tetapi tidak ditetapkan di event ini. Scope
+    // tenant tidak menutupnya - yang menutupnya pemeriksaan di controller,
+    // dan ujian yang mapelnya di luar event tidak muncul di laporan mana pun.
+    $asing = Subject::factory()->create(['school_id' => $this->event->school_id]);
+
+    masukSebagai($this, $this->admin)->put(
+        "/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}",
+        [
+            'subject_id' => $asing->id,
+            'title' => 'UAS',
+            'duration_minutes' => 60,
+        ],
+    )->assertSessionHasErrors('subject_id');
+
+    expect($data['ujian']->refresh()->subject_id)->toBe($this->mapel->id);
+});
+
+it('mengunci mapel ujian yang soalnya sudah dibekukan', function () {
+    // Snapshot soal berasal dari mapel yang lama. Ujian berlabel Fisika yang
+    // isinya soal Matematika tidak terlihat di layar mana pun - ia baru
+    // ketahuan saat siswa membuka soal pertama di ruang ujian.
+    $sekolah = School::find($this->event->school_id);
+    $guru = User::factory()->guru()->untukSekolah($sekolah)->create();
+
+    $paket = QuestionPackage::factory()->oleh($guru, $this->mapel)->siap()->create([
+        'name' => 'Paket '.$this->mapel->name,
+    ]);
+
+    QuestionPackageItem::factory()->create([
+        'school_id' => $this->event->school_id,
+        'question_package_id' => $paket->id,
+        'question_id' => Question::factory()->oleh($guru, $this->mapel)->create()->id,
+    ]);
+
+    $ujian = app(ExamRegistrar::class)->buat($this->event, [
+        'subject_id' => $this->mapel->id,
+        'title' => 'UAS '.$this->mapel->name,
+        'duration_minutes' => 60,
+        'question_package_id' => $paket->id,
+        'class_id' => [],
+    ], $this->admin->id);
+
+    expect($ujian->question_package_id)->not->toBeNull();
+
+    $lain = Subject::factory()->create(['school_id' => $sekolah->id]);
+
+    EventSubject::create([
+        'school_id' => $sekolah->id,
+        'event_id' => $this->event->id,
+        'subject_id' => $lain->id,
+    ]);
+
+    masukSebagai($this, $this->admin)->put(
+        "/admin/events/{$this->event->id}/ujian/{$ujian->id}",
+        [
+            'subject_id' => $lain->id,
+            'title' => 'UAS',
+            'duration_minutes' => 60,
+        ],
+    )->assertSessionHasErrors('subject_id');
+
+    expect($ujian->refresh()->subject_id)->toBe($this->mapel->id);
+
+    // Yang lain tetap bisa disimpan: yang dikunci mapelnya saja, bukan
+    // ujiannya. Judul dan durasi masih perlu bisa diperbaiki.
+    masukSebagai($this, $this->admin)->put(
+        "/admin/events/{$this->event->id}/ujian/{$ujian->id}",
+        [
+            'subject_id' => $this->mapel->id,
+            'title' => 'UAS Matematika (revisi)',
+            'duration_minutes' => 100,
+        ],
+    )->assertRedirect()->assertSessionHasNoErrors();
+
+    expect($ujian->refresh()->title)->toBe('UAS Matematika (revisi)')
+        ->and($ujian->duration_minutes)->toBe(100)
+        ->and($ujian->question_package_id)->toBe($paket->id);
+});
+
+it('menolak Guru mengubah ujian', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $guru = User::factory()->guru()->untukSekolah($this->sekolah)->create();
+
+    masukSebagai($this, $guru)->put(
+        "/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}",
+        [
+            'subject_id' => $this->mapel->id,
+            'title' => 'Dirusak',
+            'duration_minutes' => 60,
+        ],
+    )->assertForbidden();
+
+    expect($data['ujian']->refresh()->title)->not->toBe('Dirusak');
+});
+
+/* ------------------------------------------- Ubah sesi (panel plate 16) */
+
+it('mengubah jendela waktu dan ruang sebuah sesi', function () {
+    // Sesi punya tiga waktu yang berbeda-beda artinya (ExamSession), dan
+    // panel "Ubah" menyunting ketiganya sekaligus. Kalau salah satu tidak
+    // ikut tersimpan, jadwalnya berubah diam-diam tanpa satu pun galat.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $ruangPertama = $data['ruang']->first();
+
+    masukSebagai($this, $this->admin)->put(
+        "/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}",
+        [
+            'access_opens_at' => '2026-12-02 08:00',
+            'access_closes_at' => '2026-12-02 09:30',
+            'hard_end_at' => '2026-12-02 10:00',
+            'event_room_id' => [$ruangPertama->event_room_id],
+        ],
+    )->assertRedirect();
+
+    $sesi = $data['sesi']->refresh();
+
+    expect($sesi->access_opens_at->format('Y-m-d H:i'))->toBe('2026-12-02 08:00')
+        ->and($sesi->access_closes_at->format('Y-m-d H:i'))->toBe('2026-12-02 09:30')
+        ->and($sesi->hard_end_at->format('Y-m-d H:i'))->toBe('2026-12-02 10:00')
+        ->and($sesi->rooms()->pluck('event_room_id')->all())->toBe([$ruangPertama->event_room_id]);
+});
+
+it('mengirim nilai mentah jendela sesi untuk panel ubah', function () {
+    // Panel ubah memuat ulang jendelanya dari props. Tanpa nilai `*_iso`,
+    // formnya terbuka KOSONG pada sesi yang sudah dijadwalkan - dan form
+    // kosong terbaca seperti "jadwalnya hilang". Bentuknya `Y-m-d\TH:i`,
+    // bentuk yang diminta `datetime-local`.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->where('baris.0.buka_iso', '2026-12-01T07:30')
+            ->where('baris.0.tutup_iso', '2026-12-01T09:00')
+            ->where('baris.0.akhir_iso', '2026-12-01T09:30')
+            ->has('baris.0.ruang_id')
+        );
+});
+
+it('menolak jendela sesi yang urutannya terbalik', function () {
+    // Urutannya diperiksa SesiService, bukan form. Panel ubah mengirim tiga
+    // waktu apa adanya, dan jendela yang terbalik harus ditolak dengan pesan
+    // di fieldnya - bukan tersimpan lalu baru ketahuan saat sesinya dibuka.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)->put(
+        "/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}",
+        [
+            'access_opens_at' => '2026-12-02 10:00',
+            'access_closes_at' => '2026-12-02 09:00',
+            'hard_end_at' => '2026-12-02 09:30',
+        ],
+    )->assertSessionHasErrors('access_closes_at');
+
+    expect($data['sesi']->refresh()->access_opens_at->format('Y-m-d H:i'))->toBe('2026-12-01 07:30');
+});
+
+it('menolak sesi milik ujian lain saat diubah', function () {
+    // Sama dengan jalur `mulai`/`tutup`: yang menangkapnya adalah
+    // pastikanSesiMilikUjian, bukan scope tenant - sekolahnya sama.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $lain = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)->put(
+        "/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$lain['sesi']->id}",
+        [
+            'access_opens_at' => '2026-12-02 08:00',
+            'access_closes_at' => '2026-12-02 09:00',
+            'hard_end_at' => '2026-12-02 09:30',
+        ],
+    )->assertNotFound();
+});
+
+it('menolak Guru mengubah sesi', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $guru = User::factory()->guru()->untukSekolah($this->sekolah)->create();
+
+    masukSebagai($this, $guru)->put(
+        "/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}",
+        [
+            'access_opens_at' => '2026-12-02 08:00',
+            'access_closes_at' => '2026-12-02 09:00',
+            'hard_end_at' => '2026-12-02 09:30',
+        ],
+    )->assertForbidden();
+});
+
+/* ---------------------------------------- Pengawas 1 atau 2 per ruang §9.6 */
+
+/**
+ * Satu sesi tanpa penugasan, plus sejumlah panitia berjabatan pengawas.
+ *
+ * Dipisahkan dari `jadwalkan()` karena test di bawah justru menguji APA YANG
+ * DILAKUKAN penugasan otomatis terhadap ruang yang masih kosong - memakai
+ * helper yang sudah menugaskan satu orang tiap ruang akan menyembunyikan
+ * seluruh perilaku yang ingin dibuktikan.
+ *
+ * @return array{sesi: ExamSession, ruang: Collection<int, ExamSessionRoom>, calon: array<int, User>}
+ */
+function siapkanCalon(SchoolEvent $event, Subject $mapel, User $admin, int $jumlahCalon): array
+{
+    $ujian = app(ExamRegistrar::class)->buat($event, [
+        'subject_id' => $mapel->id,
+        'title' => 'Otomatis '.$jumlahCalon,
+        'duration_minutes' => 60,
+        'class_id' => [],
+    ], $admin->id);
+
+    $sesi = app(SesiService::class)->buat($ujian, [
+        'access_opens_at' => '2026-12-01 07:30:00',
+        'access_closes_at' => '2026-12-01 09:00:00',
+        'hard_end_at' => '2026-12-01 09:30:00',
+        'event_room_id' => $event->rooms()->pluck('id')->all(),
+    ]);
+
+    $calon = [];
+
+    for ($i = 0; $i < $jumlahCalon; $i++) {
+        $orang = User::factory()->pengawas()->untukSekolah(School::find($event->school_id))->create();
+
+        EventCommitteeMember::create([
+            'school_id' => $event->school_id,
+            'event_id' => $event->id,
+            'user_id' => $orang->id,
+            'name' => $orang->name,
+            'position' => 'pengawas',
+            'scope' => 'event',
+            'status' => 'aktif',
+        ]);
+
+        $calon[] = $orang;
+    }
+
+    return ['sesi' => $sesi, 'ruang' => $sesi->rooms()->orderBy('id')->get(), 'calon' => $calon];
+}
+
+it('membagi satu pengawas per ruang lebih dulu ketika calonnya kurang', function () {
+    // Dua ruang, dua calon. Versi yang mengisi tiap ruang sampai DUA orang
+    // sebelum pindah akan menaruh keduanya di R-01 dan meninggalkan R-02
+    // KOSONG - dan ruang tanpa pengawas adalah ruang yang tidak bisa dibuka.
+    // Tombol yang gunanya menolong justru membuat separuh ujian tidak jalan.
+    $data = siapkanCalon($this->event, $this->mapel, $this->admin, 2);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/pengawas/otomatis")
+        ->assertRedirect();
+
+    $jumlah = $data['ruang']->map(fn ($r) => $r->supervisors()->count());
+
+    expect($jumlah->all())->toBe([1, 1])
+        ->and($jumlah->min())->toBe(1);
+});
+
+it('menambah pengawas kedua setelah setiap ruang punya satu', function () {
+    // Empat calon, dua ruang: putaran kedua baru berjalan setelah putaran
+    // pertama selesai - jadi dua orang di tiap ruang, bukan tiga di R-01.
+    $data = siapkanCalon($this->event, $this->mapel, $this->admin, 4);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/pengawas/otomatis")
+        ->assertRedirect();
+
+    expect($data['ruang']->map(fn ($r) => $r->supervisors()->count())->all())->toBe([2, 2]);
+});
+
+it('membuka sesi yang setiap ruangnya baru punya satu pengawas', function () {
+    // PRD §9.6: "satu ruang dapat memiliki beberapa Pengawas". Satu orang
+    // sudah sah, jadi sesinya HARUS bisa dibuka. Kalau gerbang kesiapan
+    // memakai angka saran (dua), sekolah dengan 24 ruang dan 26 pengawas tidak
+    // akan pernah bisa memulai ujiannya - dan tidak ada satu pesan pun yang
+    // menjelaskan bahwa yang salah adalah angkanya, bukan susunannya.
+    $data = siapkanCalon($this->event, $this->mapel, $this->admin, 2);
+
+    foreach ($data['ruang'] as $i => $r) {
+        app(PengawasService::class)->tugaskan($r, $data['calon'][$i], $this->admin->id);
+    }
+
+    $data['sesi']->forceFill(['status' => StatusSesi::Siap])->save();
+
+    app(SesiService::class)->mulai($data['sesi']);
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Berjalan);
+});
+
+it('mengirim saran sebagai saran, bukan sebagai perhatian', function () {
+    // Nama propnya ikut menentukan perilakunya: apa pun yang bernama
+    // "perhatian" akan dirender kuning di layar, dan layar yang menandai
+    // keadaan yang sah sebagai peringatan membuat peringatan yang
+    // benar-benar penting ikut diabaikan.
+    jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/pengawas")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Pengawas')
+            ->where('angka.minimal_per_ruang', 1)
+            ->where('angka.saran_per_ruang', 2)
+            ->has('saran', 2)
+            ->missing('perhatian')
+        );
 });

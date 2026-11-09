@@ -91,9 +91,11 @@ beforeEach(function () {
  * Status sesinya dijadikan `siap` lebih dulu
  * ---------------------------------------------------------------------
  * `StatusSesi` hanya mengizinkan Draft -> Siap -> Berjalan; Draft -> Berjalan
- * DITOLAK. Pemindahan itu dilakukan di sini lewat `forceFill` karena graf
- * status sesi memang belum punya layanannya sendiri. Kalau kelak ada
- * `SesiService::siapkan()`, dua tempat inilah yang harus berubah.
+ * DITOLAK. Pemindahan itu dilakukan lewat `SesiService::siapkan()` - jalur
+ * yang sama dengan Admin - sejak metode itu ada (2026-11-07). Sebelumnya di
+ * sini ada `forceFill`, dan justru itulah yang menyembunyikan bugnya: aplikasi
+ * tidak punya penghasil `Siap` sama sekali, sehingga tombol "Buka" di laman
+ * jadwal selalu ditolak sementara test-test ini hijau.
  *
  * ---------------------------------------------------------------------
  * Kode ruang memuat id eventnya
@@ -204,8 +206,9 @@ it('permintaan lewat tautan ruang tidak pernah melihat baris sekolah lain', func
 
     $tautan = app(RoomEntryLinkService::class)->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
 
-    // Masuk lewat pintunya, seperti pengawas di depan kelas.
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => $tautan['kode']])
+    // Masuk lewat pintunya, seperti pengawas di depan kelas. Kodenya milik
+    // pengawas yang ditugaskan di ruang itu - bukan milik tautannya.
+    $this->post("/p/{$tautan->slug}", ['kode' => $data['kode'][$data['ruang'][0]->id]])
         ->assertRedirect(route('pengawas.dashboard'));
 
     // ------------------------------------------------------------------
@@ -709,8 +712,8 @@ it('mencabut tautan R-01 tidak menyentuh R-02', function () {
     // Pencabutan menempel pada RUANGNYA, bukan pada sekolahnya: setiap ruang
     // punya barisnya sendiri, sehingga memutus satu pintu tidak memutus pintu
     // lain - tanpa satu baris kode tambahan.
-    expect($tautanR01['tautan']->fresh()->berlaku())->toBeFalse()
-        ->and($tautanR02['tautan']->fresh()->berlaku())->toBeTrue();
+    expect($tautanR01->fresh()->berlaku())->toBeFalse()
+        ->and($tautanR02->fresh()->berlaku())->toBeTrue();
 });
 
 it('mencabut tautan memutus permintaan berikutnya di tengah sesi', function () {
@@ -720,7 +723,7 @@ it('mencabut tautan memutus permintaan berikutnya di tengah sesi', function () {
     $tautan = app(RoomEntryLinkService::class)->terbitkan(ruangMaster($ruang), berlakuJam: 4);
 
     // Masuk lewat pintunya, lalu buktikan hibahnya memang bekerja.
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => $tautan['kode']])
+    $this->post("/p/{$tautan->slug}", ['kode' => $data['kode'][$ruang->id]])
         ->assertRedirect(route('pengawas.dashboard'));
 
     $this->get("/pengawas/ruang/{$ruang->id}/presensi")->assertOk();
@@ -744,7 +747,7 @@ it('sesi ditutup memutus hibah ruang yang sedang berjalan', function () {
 
     $tautan = app(RoomEntryLinkService::class)->terbitkan(ruangMaster($ruang), berlakuJam: 4);
 
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => $tautan['kode']])
+    $this->post("/p/{$tautan->slug}", ['kode' => $data['kode'][$ruang->id]])
         ->assertRedirect(route('pengawas.dashboard'));
 
     $this->get("/pengawas/ruang/{$ruang->id}/presensi")->assertOk();
@@ -762,7 +765,7 @@ it('sesi ditutup memutus hibah ruang yang sedang berjalan', function () {
     // dan presensi yang ditulis sesudah ujiannya berakhir adalah presensi
     // yang tidak bisa dipertanggungjawabkan.
     $this->get("/pengawas/ruang/{$ruang->id}/presensi")
-        ->assertRedirect(route('pintu.ruang', $tautan['tautan']->slug));
+        ->assertRedirect(route('pintu.ruang', $tautan->slug));
 });
 
 it('menolak permintaan ber-tautan yang sesinya belum dibuka', function () {
@@ -780,7 +783,7 @@ it('menolak permintaan ber-tautan yang sesinya belum dibuka', function () {
     // mana pun" - dan itu memang jawaban yang benar bagi pertanyaan "boleh
     // masuk sekarang?". Tautan yang sah untuk sesi yang belum dibuka bukan
     // kegagalan izin, melainkan waktu yang belum tiba.
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => $tautan['kode']])
+    $this->post("/p/{$tautan->slug}", ['kode' => $data['kode'][$data['ruang'][0]->id]])
         ->assertRedirect()
         ->assertSessionHas('galat');
 
@@ -797,39 +800,42 @@ it('menolak kode pengawas yang salah meski tautannya sah', function () {
 
     $tautan = app(RoomEntryLinkService::class)->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
 
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => '000000'])
+    $this->post("/p/{$tautan->slug}", ['kode' => '000000'])
         ->assertRedirect()
         ->assertSessionHas('galat');
 
     // Dan pemakaiannya TIDAK dihitung. Ini yang membedakan urutan benar dari
-    // urutan terbalik di dalam `cocokkan()`: kalau `use_count` dinaikkan
-    // sebelum `Hash::check`, Admin akan melihat "1 pemakaian" pada tautan yang
-    // belum pernah dipakai siapa pun.
-    expect($tautan['tautan']->fresh()->use_count)->toBe(0);
+    // urutan terbalik di `PintuRuangController::buka()`: kalau
+    // `catatPemakaian()` dipanggil sebelum kodenya dicocokkan, Admin akan
+    // melihat "1 pemakaian" pada tautan yang belum pernah dipakai siapa pun.
+    expect($tautan->fresh()->use_count)->toBe(0);
 
     $this->get('/pengawas')->assertRedirect(route('login'));
 });
 
 /* =====================================================================
- | Kode ruang lain ditolak meski sah
+ | Kode pengawas ruang lain ditolak meski sah
  |===================================================================== */
 
-it('kode ruang lain ditolak meski sah', function () {
+it('kode pengawas ruang lain ditolak meski sah', function () {
     $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01', 'R-02']);
 
     [$ruangR01, $ruangR02] = [$data['ruang'][0], $data['ruang'][1]];
 
-    $layanan = app(RoomEntryLinkService::class);
-    $tautanR01 = $layanan->terbitkan(ruangMaster($ruangR01), berlakuJam: 4);
+    $tautanR01 = app(RoomEntryLinkService::class)->terbitkan(ruangMaster($ruangR01), berlakuJam: 4);
 
-    // Tautan R-01 dicabut lebih dulu supaya yang diuji benar-benar kode R-02,
-    // bukan sekadar tautan R-01 yang kebetulan masih hidup.
-    $tautanR02 = $layanan->terbitkan(ruangMaster($ruangR02), berlakuJam: 4);
-
-    // Kode R-02 dimasukkan pada pintu R-01. Kodenya SAH - ia baru saja
-    // diterbitkan, belum kedaluwarsa, dan cocok dengan baris R-02 - tetapi
-    // baris itulah yang bukan pintunya.
-    $this->post("/p/{$tautanR01['tautan']->slug}", ['kode' => $tautanR02['kode']])
+    // Kode R-02 dimasukkan pada pintu R-01.
+    //
+    // Sampai 2026-11-07 penolakannya berbunyi "kodenya milik baris ruang
+    // lain". Sebabnya sekarang berbeda, dan akibatnya lebih baik: yang
+    // ditolak bukan kodenya, melainkan ORANGNYA - pengawas R-02 memang tidak
+    // ditugaskan di R-01, sehingga kodenya tidak pernah sampai ke
+    // perbandingan sama sekali. Kandidatnya disaring penugasan ruang
+    // (`PencocokKodePengawas`), bukan dicocokkan lalu ditolak.
+    //
+    // Kode itu sendiri SAH: baru saja diterbitkan, belum kedaluwarsa, dan
+    // cocok dengan baris kepanitiaan pengawas R-02.
+    $this->post("/p/{$tautanR01->slug}", ['kode' => $data['kode'][$ruangR02->id]])
         ->assertRedirect()
         ->assertSessionHas('galat');
 
@@ -837,4 +843,7 @@ it('kode ruang lain ditolak meski sah', function () {
     // ruang R-02 tidak ikut terbuka lewat tautan R-01.
     $this->get('/pengawas')->assertRedirect(route('login'));
     $this->get("/pengawas/ruang/{$ruangR02->id}/presensi")->assertRedirect(route('login'));
+
+    // Satu percobaan yang gagal tidak menaikkan pemakaian tautannya.
+    expect($tautanR01->fresh()->use_count)->toBe(0);
 });

@@ -230,7 +230,7 @@ function TabelToken({ jalur, baris }: { jalur: string; baris: Baris[] }) {
                             {['Sesi', 'Token', 'Berlaku', 'Dibuka oleh', 'Status', ''].map((h) => (
                                 <th
                                     key={h}
-                                    className="px-3 py-2 text-[11px] font-medium tracking-wide text-ink-2 uppercase"
+                                    className="px-3 py-2 text-[11px] font-medium text-ink-3"
                                 >
                                     {h}
                                 </th>

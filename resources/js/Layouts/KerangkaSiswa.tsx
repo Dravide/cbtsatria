@@ -26,6 +26,19 @@ import { UmpanBalik } from '@/Components/ui';
  * bentuk tampilan yang harus dipelajari anak yang sama".
  *
  * =====================================================================
+ * Material papan - `.konsol-siswa`, dan mengapa ia kelas dan bukan :root
+ * =====================================================================
+ * Konsol siswa memakai tema Wayfind (references/themes/wayfind.md): kertas
+ * abu sejuk, Chivo Mono pada seluruh halaman, kotak bergaris 2px, pelat
+ * tinta, kobalt untuk yang hidup dan amber untuk angka di atas tinta.
+ *
+ * Tokennya TIDAK boleh tinggal di `:root`: `app.css` dipakai lima peran -
+ * Admin, Guru, Pengawas, Siswa dan pintu ujian - dan tema di `:root` akan
+ * menata ulang empat peran yang tidak diminta berubah. Karena itu seluruhnya
+ * hidup di bawah `.konsol-siswa`, dan kelas itu dipasang DI SINI, di rangka
+ * terang saja.
+ *
+ * =====================================================================
  * Rangka GELAP untuk pengerjaan, dan itu keadaan halaman
  * =====================================================================
  * Plate 22: "Rangka ujian dibuat gelap dan berbeda dari rangka lain, supaya
@@ -37,6 +50,11 @@ import { UmpanBalik } from '@/Components/ui';
  * melihat rangka terang dan separuhnya gelap untuk ujian yang sama, dan
  * justru pembeda yang diandalkan plate 22 itu hilang pada perangkat yang
  * memakai mode terang. Nilai tokennya ada di `app.css` (`.rangka-ujian`).
+ *
+ * Rangka gelap TIDAK memakai `.konsol-siswa`. Itu disengaja: mata yang sudah
+ * menyesuaikan diri dengan layar gelap tidak boleh disambut huruf mono
+ * bergaris 2px saat anak berpindah ke halaman ujian, dan sebaliknya. Dua
+ * rangka itu memang dua tempat yang berbeda.
  *
  * ---------------------------------------------------------------------
  * Rangka gelap TIDAK menawarkan jalan keluar
@@ -51,48 +69,33 @@ import { UmpanBalik } from '@/Components/ui';
  * dari ujian.
  */
 
-/** Empat tab siswa - dan yang keempat belum punya laman. */
+/**
+ * Empat tab siswa. Keempatnya punya laman sejak laman Akun dibangun.
+ *
+ * Tab "Akun" sempat dirender sebagai teks abu bertanda fase selama lamanya
+ * belum ada - niatnya supaya tabbar tidak tumbuh satu tab setiap fase dan
+ * anak tidak perlu mempelajari ulang letak navigasinya. Penanda itu kini
+ * basi: lamannya ada di `/siswa/akun`, jadi keempatnya tautan.
+ */
 const TAB = [
     { label: 'Ujian', segmen: 'ujian', href: '/siswa' },
     { label: 'Nilai', segmen: 'nilai', href: '/siswa/nilai' },
     { label: 'Pelanggaran', segmen: 'pelanggaran', href: '/siswa/pelanggaran' },
-    // "Akun" tidak punya laman di Fase 7, dan ia TIDAK dihilangkan. Alasan
-    // yang sama dengan item bertanda fase di sidebar Guru: tabbar yang
-    // tumbuh satu tab setiap fase membuat anak mempelajari ulang letak
-    // navigasinya, dan tab yang muncul sendiri tanpa penjelasan adalah tab
-    // yang dicari orang dua kali. Ia karena itu dirender sebagai teks abu
-    // bertanda fase - bukan sebagai tautan mati.
-    { label: 'Akun', segmen: 'akun', href: null, fase: 'Fase 8' },
+    { label: 'Akun', segmen: 'akun', href: '/siswa/akun' },
 ] as const;
 
 export function TabbarSiswa({ aktif }: { aktif: string }) {
     return (
-        <nav className="sticky bottom-0 z-20 grid grid-cols-4 border-t border-line bg-surface">
+        <nav className="tabbar grid grid-cols-4">
             {TAB.map((t) => {
                 const on = t.segmen === aktif;
-
-                if (t.href === null) {
-                    return (
-                        <span
-                            key={t.segmen}
-                            title={`Belum dibangun - ${t.fase}`}
-                            className="border-t-2 border-transparent py-2.5 text-center text-[11px] text-ink-3/50"
-                        >
-                            {t.label}
-                        </span>
-                    );
-                }
 
                 return (
                     <Link
                         key={t.segmen}
                         href={t.href}
-                        className={
-                            'border-t-2 py-2.5 text-center text-[11px] font-medium transition-colors ' +
-                            (on
-                                ? 'border-accent text-accent'
-                                : 'border-transparent text-ink-2 hover:text-ink')
-                        }
+                        aria-current={on ? 'page' : undefined}
+                        className={on ? 'sel-hidup' : undefined}
                     >
                         {t.label}
                     </Link>
@@ -129,19 +132,22 @@ export default function KerangkaSiswa({
     children,
     aksiBawah,
 }: Props) {
+    // Material papan hanya di rangka terang - lihat catatan berkas ini.
+    const rangka = gelap ? 'rangka-ujian' : 'konsol-siswa bg-paper';
+
     return (
         <>
             <Head title={judul} />
 
-            <div className={'min-h-screen ' + (gelap ? 'rangka-ujian' : 'bg-paper')}>
+            <div className={'min-h-screen ' + rangka}>
                 <div
                     className={
                         'mx-auto flex min-h-screen w-full max-w-[26rem] flex-col border-line sm:border-x ' +
-                        (gelap ? 'rangka-ujian' : 'bg-paper')
+                        rangka
                     }
                 >
                     {bilah && (
-                        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur">
+                        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface px-3 py-2">
                             <div className="flex min-w-0 items-center gap-2">
                                 {kiri ?? (
                                     <span className="truncate text-[12px] font-medium text-ink">
@@ -177,7 +183,7 @@ export default function KerangkaSiswa({
                                 href="/logout"
                                 method="post"
                                 as="button"
-                                className="text-[11px] text-ink-3 hover:text-bad"
+                                className="catatan font-medium hover:text-bad"
                             >
                                 Keluar dari akun
                             </Link>

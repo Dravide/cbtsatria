@@ -19,11 +19,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * ---------------------------------------------------------------------
  * Mengapa token_hash BUKAN bcrypt - dan ini bukan detail gaya
  * ---------------------------------------------------------------------
- * `room_entry_links.code_hash` memakai Hash::make, dan di sana itu BENAR.
- * Alasannya: yang menjadi kunci pencarian tautan adalah **slug**, bukan
- * kodenya. Kode hanya diverifikasi terhadap satu baris yang sudah ditemukan
- * lewat slug, dan verifikasi satu baris memang persis yang bisa dilakukan
- * bcrypt.
+ * `users.password` (sandi akun) memakai Hash::make, dan di sana itu BENAR.
+ * Alasannya: yang menjadi kunci pencariannya adalah **baris penggunanya**,
+ * bukan sandinya. Sandi hanya diverifikasi terhadap satu baris yang sudah
+ * ditemukan lewat username, dan verifikasi satu baris memang persis yang
+ * bisa dilakukan bcrypt.
+ *
+ * (Kode pengawas dulu memakai bcrypt dengan alasan yang sama, tetapi sejak
+ * permintaan "kode harus selalu terlihat untuk dicetak ke kartu" ia berubah
+ * menjadi kolom TERENKRIPSI - lihat `EventCommitteeMember`. Kode pengawas
+ * tetap tidak pernah di-query lewat nilainya, jadi ia bukan pembanding yang
+ * tepat untuk token di bawah, yang justru di-query lewat nilainya.)
  *
  * Token tidak begitu. Siswa mengirim **hanya** token - tidak ada slug, tidak
  * ada id sesi di permintaannya. Token itulah satu-satunya kunci yang

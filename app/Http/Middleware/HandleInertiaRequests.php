@@ -40,19 +40,17 @@ class HandleInertiaRequests extends Middleware
                 'sukses' => fn () => $request->session()->get('sukses'),
                 'galat' => fn () => $request->session()->get('galat'),
 
-                // Kode pengawas hidup TEPAT satu respons. Ia tidak disimpan
-                // di mana pun dalam bentuk terbaca - hanya hash-nya yang ada
-                // di basis data - sehingga muat ulang berikutnya kehilangan
-                // kodenya, dan itu memang yang diinginkan. Lihat
-                // RoomEntryLinkService.
-                'kode_pengawas' => fn () => $request->session()->get('kode_pengawas'),
-                'slug_baru' => fn () => $request->session()->get('slug_baru'),
+                // Kode pengawas TIDAK lagi lewat flash. Ia disimpan
+                // terenkripsi di baris kepanitiaan dan SELALU dikirim sebagai
+                // prop laman Kepanitiaan, karena Admin mencetaknya menjadi
+                // kartu pengawas dan harus bisa membacanya kapan saja - bukan
+                // sekali saja pada respons yang menerbitkannya. Lihat
+                // EventCommitteeController::index() dan PenerbitKodePengawas.
 
-                // Token sesi hidup TEPAT satu respons, dengan alasan yang sama
-                // seperti kode pengawas: ia hanya ditampilkan sekali untuk
-                // dibacakan di depan kelas, dan menyimpannya di props berarti
-                // ia ikut terkirim ke setiap laman berikutnya - termasuk laman
-                // yang tidak berhubungan dengan ujian itu.
+                // Token sesi hidup TEPAT satu respons: ia hanya ditampilkan
+                // sekali untuk dibacakan di depan kelas, dan menyimpannya di
+                // props berarti ia ikut terkirim ke setiap laman berikutnya -
+                // termasuk laman yang tidak berhubungan dengan ujian itu.
                 //
                 // Ada DUA jalur yang mengisinya: penerbitan token (Admin, belum
                 // tercatat sebagai pembukaan) dan pembacaan berwenang (Pengawas,
@@ -81,9 +79,17 @@ class HandleInertiaRequests extends Middleware
             // tidak menyebut ruangnya membuat orang salah menandai presensi
             // tanpa sadar.
             //
-            // Sengaja hanya tiga nilai: ruang, sekolah, dan tautannya.
-            // Menaruh daftar peserta di sini berarti mengirim seluruh daftar
-            // kursi ke SETIAP laman, termasuk laman token.
+            // Sengaja hanya empat nilai: ruang, sekolah, tautannya, dan nama
+            // pengawas yang membukanya. Menaruh daftar peserta di sini
+            // berarti mengirim seluruh daftar kursi ke SETIAP laman, termasuk
+            // laman token.
+            //
+            // Yang keempat ditambahkan 2026-11-07, dan ia tidak melanggar
+            // batas yang sama: yang dijaga batas itu adalah hal-hal tentang
+            // ORANG DI DALAM RUANGAN (daftar siswa, jumlah kursi). Nama
+            // pengawas bukan salah satunya - ia justru pemegang ponsel yang
+            // sedang membaca laman ini, dan satu ponsel bisa dipakai dua
+            // orang bergantian.
             'pengawasRuang' => fn () => $this->pengawasRuang(),
 
             // Tahun ajaran aktif dikirim ke setiap laman karena bar atas
@@ -155,6 +161,12 @@ class HandleInertiaRequests extends Middleware
             'event' => $ruang->session?->exam?->event?->name,
             'sekolah' => $sekolah?->name,
             'slug' => $tautan->slug,
+            // Nama pengawas yang membuka pintu ini, sejak 2026-11-07.
+            // Sebelumnya null - dulu kodenya milik RUANG, jadi tidak ada
+            // orang yang bisa disebut. Kini kodenya milik orang, sehingga
+            // kepala laman bisa menyebut siapa yang sedang berdiri di sini
+            // dan bukan hanya ruang mana.
+            'pengawas' => KonteksRuang::penggunaSesi()?->name,
         ];
     }
 

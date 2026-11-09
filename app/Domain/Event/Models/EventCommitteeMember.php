@@ -7,6 +7,7 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Concerns\BelongsToSchool;
 use App\Domain\Tenancy\Scopes\SchoolScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,8 +36,48 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * dibaca apa adanya. Staf TU yang hanya membantu di hari-H boleh masuk daftar
  * panitia tanpa pernah punya akun, dan memaksanya punya akun berarti membuat
  * akun yang tidak akan pernah dipakai login.
+ *
+ * ---------------------------------------------------------------------
+ * code: kode pengawas menempel pada ORANG, bukan pada ruang
+ * ---------------------------------------------------------------------
+ * Sejak 2026-11-07 kolom inilah tempat kode pengawas enam angka disimpan -
+ * bukan lagi `room_entry_links.code_hash`. Pembagiannya persis seperti yang
+ * ditulis blueprint `:995`: TAUTAN menentukan RUANG (boleh panjang, boleh
+ * ditempel di pintu, dan sendirian tidak membuka apa pun), KODE menentukan
+ * ORANG.
+ *
+ * Bentuk data yang lama membuat kalimat itu mustahil: kode disimpan di baris
+ * ruang, sehingga satu kode membuka satu ruang untuk siapa pun yang
+ * memegangnya - dan kartu pintu yang memuat tautannya sekaligus memuat
+ * kodenya, sehingga memfotonya sudah cukup.
+ *
+ * ---------------------------------------------------------------------
+ * TERENKRIPSI, bukan ter-hash - dan itu perubahan yang disengaja
+ * ---------------------------------------------------------------------
+ * Kolom ini sempat berupa `code_hash` (satu arah): kode hanya tampil SEKALI,
+ * dan yang tersisa tidak bisa dibaca kembali. Pemilik produk kemudian meminta
+ * kode pengawas SELALU terlihat di laman Kepanitiaan, karena ia mencetaknya
+ * menjadi kartu pengawas - dan kode yang hanya berupa hash tidak bisa
+ * ditampilkan lagi, sehingga tidak ada yang bisa dicetak.
+ *
+ * Karena itu ia disimpan dengan cast `encrypted` (Lihat `casts()`): aplikasi
+ * bisa membacanya kembali untuk ditampilkan, tetapi di dalam basis data ia
+ * tetap teks acak. Doktrinnya tidak berubah - kredensial tidak boleh ada
+ * dalam bentuk yang bisa dibaca siapa pun yang memegang dump.
+ *
+ * NULLABLE, dan null itulah keadaan normal bagi sebagian besar baris: ketua,
+ * koordinator, dan anggota tidak pernah butuh kode pintu ruang, dan panitia
+ * tanpa akun tidak bisa ditugaskan ke ruang mana pun sehingga kodenya tidak
+ * akan pernah punya pintu.
+ *
+ * Kolom `code` juga `#[Hidden]`, dan itu lapis kedua yang murah: kalau suatu
+ * hari model ini ter-serialize ke array/JSON (mis. ikut terkirim sebagai
+ * prop mentah), kodenya tidak ikut bocor. Ia hanya dikirim ke peramban lewat
+ * prop yang SANGAT eksplisit di `EventCommitteeController::index()`, tempat
+ * kodenya memang ingin ditampilkan.
  */
 #[ScopedBy(SchoolScope::class)]
+#[Hidden(['code'])]
 #[Fillable([
     'school_id',
     'event_id',
@@ -45,6 +86,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'position',
     'email',
     'phone',
+    'code',
+    'code_issued_at',
     'scope',
     'status',
 ])]
@@ -55,6 +98,44 @@ class EventCommitteeMember extends Model
     public const SCOPE_EVENT = 'event';
 
     public const SCOPE_ROOMS = 'ruang';
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            // `encrypted`, bukan `hashed`: kodenya harus bisa DIBACA KEMBALI
+            // untuk ditampilkan di laman Kepanitiaan dan dicetak ke kartu
+            // pengawas. Cast ini yang menjamin ia tidak pernah tersimpan
+            // terbaca di basis data - lihat catatan kelas.
+            'code' => 'encrypted',
+            'code_issued_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Apakah baris ini boleh punya kode pintu ruang.
+     *
+     * Dua syarat, dan keduanya bukan kehati-hatian berlebih:
+     *
+     *   - JABATANNYA memuat "pengawas". Ketua panitia memegang seluruh
+     *     event, bukan satu pintu; kodenya tidak akan pernah diketik di mana
+     *     pun.
+     *   - ADA AKUNNYA. `PengawasService::tugaskan()` hanya menerima akun
+     *     berperan Guru atau Pengawas, sehingga panitia tanpa akun tidak
+     *     bisa ditugaskan ke ruang mana pun - dan kode yang tidak terhubung
+     *     ke satu ruang pun adalah kode yang tidak punya pintu.
+     *
+     * Frasa "memuat" dan bukan "sama dengan" mengikuti `PengawasService::
+     * calonPengawas()`: `position` di tabel ini adalah teks bebas sepanjang
+     * 40 karakter, bukan enum, dan sekolah yang menulis "pengawas ruang"
+     * tidak boleh kehilangan fiturnya karena ejaan.
+     */
+    public function bolehPunyaKode(): bool
+    {
+        return $this->user_id !== null
+            && $this->status === 'aktif'
+            && str_contains(mb_strtolower($this->position), 'pengawas');
+    }
 
     /** @return BelongsTo<SchoolEvent, $this> */
     public function event(): BelongsTo

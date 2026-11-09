@@ -20,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -111,6 +112,18 @@ class ExamJadwalController
         // tiga kali dengan jawaban yang identik.
         $label = $this->labelUjian($ujian);
 
+        // Kelas sasaran per ujian, satu query untuk seluruh ujian - sama
+        // alasannya dengan `$label` di atas. Panel "Ubah ujian" membuka dengan
+        // kelas yang SEKARANG dicentang; form yang terbuka dengan centang
+        // kosong pada ujian yang sudah punya kelas sasaran akan membuat Admin
+        // yang menyunting durasinya sekaligus menghapus seluruh kelas
+        // sasarannya - tanpa satu pun galat, karena `simpanKelas()` menerima
+        // daftar kosong sebagai "seluruh peserta event".
+        $kelasUjian = ExamClass::query()
+            ->whereIn('exam_id', $ujian->pluck('id'))
+            ->get()
+            ->groupBy('exam_id');
+
         // Konflik diperiksa SEKALI, lalu hasilnya dipakai untuk dua keperluan:
         // peta per sesi (yang menandai barisnya) dan daftar temuan. Memanggil
         // periksa() dua kali berarti membaca seluruh jadwal event dua kali.
@@ -157,6 +170,24 @@ class ExamJadwalController
                 'status' => $s->status->value,
                 'status_label' => $s->status->label(),
 
+                // Nilai untuk panel "Ubah sesi". Tiga waktu dikirim dalam
+                // bentuk `Y-m-d\TH:i` - bentuk yang diminta `datetime-local`,
+                // sama seperti field Mulai/Selesai di form event. Dikirim
+                // terpisah dari `tanggal`/`jam` yang sudah diformat untuk
+                // DIBACA: yang satu untuk mata, yang satu untuk input, dan
+                // menurunkan yang kedua dari yang pertama berarti mengurai
+                // tampilan kembali menjadi nilai.
+                'buka_iso' => $s->access_opens_at?->format('Y-m-d\TH:i'),
+                'tutup_iso' => $s->access_closes_at?->format('Y-m-d\TH:i'),
+                'akhir_iso' => $s->hard_end_at?->format('Y-m-d\TH:i'),
+                // Id ruang-EVENT yang sedang dipakai sesi ini - yang perlu
+                // dicentang ulang di panel ubah. Bukan id ruang-sesi: layar
+                // mencentang ruang event, dan SesiService memetakannya kembali.
+                'ruang_id' => $s->rooms
+                    ->map(fn (ExamSessionRoom $r) => $r->event_room_id)
+                    ->values()
+                    ->all(),
+
                 // Temuan menempel pada barisnya. Bentuknya daftar, bukan
                 // boolean: satu sesi bisa bentrok di dua ruang sekaligus, dan
                 // "bentrok: ya" tidak memberi tahu Admin mana yang harus
@@ -182,9 +213,35 @@ class ExamJadwalController
                 'kode' => $u->code,
                 'judul' => $u->title,
                 'mapel' => $u->subject?->name,
+                'mapel_id' => $u->subject_id,
+                // Ada-tidaknya paket menentukan apakah mapelnya masih boleh
+                // diganti. Dikirim sebagai penanda, bukan sebagai id paketnya:
+                // yang dibutuhkan layar hanyalah "sudah dibekukan atau belum",
+                // dan id paket di peramban adalah rujukan yang tidak dipakai
+                // siapa pun di sana.
+                'ada_paket' => $u->question_package_id !== null,
+                'jenis' => $u->exam_type,
                 'durasi' => $u->duration_minutes,
+                'instruksi' => $u->instructions,
+                'percobaan' => $u->max_attempts,
+                'acak_soal' => $u->shuffle_questions,
+                'acak_opsi' => $u->shuffle_options,
+                'boleh_kembali' => $u->allow_back_navigation,
+                'boleh_terlambat' => $u->allow_late_entry,
+                // Kelas sasaran yang sedang berlaku, untuk mencentang ulang
+                // panel ubah. Bentuknya daftar id, bukan nama: yang dicentang
+                // kotaknya adalah id kelasnya.
+                'kelas_id' => ($kelasUjian->get($u->id) ?? collect())
+                    ->pluck('class_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->values()
+                    ->all(),
                 'sesi' => (int) $u->sessions_count,
-                'status' => $u->status,
+
+                // Tidak ada `status` di sini sejak 2026-11-07. Kolomnya
+                // dijatuhkan; yang menyatakan status adalah tiap baris sesi di
+                // tabel `baris`, dan chip ujian yang selalu berbunyi "draft"
+                // hanya membuat Admin mengira ada yang belum tertinjau.
             ])->all(),
 
             // Ruang yang sudah dialokasikan ke event - satu-satunya yang boleh
@@ -296,6 +353,7 @@ class ExamJadwalController
         $this->pastikanMilikEvent($ujian->event_id, $event);
 
         $data = $request->validate([
+            'subject_id' => ['required', 'integer'],
             'title' => ['required', 'string', 'max:120'],
             'exam_type' => ['nullable', 'string', 'max:60'],
             'instructions' => ['nullable', 'string', 'max:2000'],
@@ -308,6 +366,26 @@ class ExamJadwalController
             'allow_back_navigation' => ['nullable', 'boolean'],
             'allow_late_entry' => ['nullable', 'boolean'],
         ]);
+
+        // Mapel hanya boleh berpindah selama belum ada paket yang dibekukan.
+        // Snapshot soal berasal dari mapel yang lama, dan ujian yang
+        // berlabel Fisika sementara isinya soal Matematika adalah kesalahan
+        // yang tidak bisa dilihat dari layar mana pun - ia baru ketahuan
+        // saat siswa membuka soal pertama di ruang ujian.
+        if ((int) $data['subject_id'] !== (int) $ujian->subject_id
+            && $ujian->question_package_id !== null) {
+            throw ValidationException::withMessages([
+                'subject_id' => 'Mata pelajaran tidak bisa diganti setelah paket soal dipasang: soal yang sudah dibekukan berasal dari mapel yang lama.',
+            ]);
+        }
+
+        $sah = $event->subjects()->where('subject_id', $data['subject_id'])->exists();
+
+        if (! $sah) {
+            throw ValidationException::withMessages([
+                'subject_id' => 'Mata pelajaran itu tidak ditetapkan di event ini.',
+            ]);
+        }
 
         $registrar->perbarui($ujian, $data);
 
@@ -392,6 +470,36 @@ class ExamJadwalController
         $logger->log('Membuka sesi ujian', $event, ['sesi' => $sesi->label()]);
 
         return back()->with('sukses', "Sesi {$sesi->label()} dibuka.");
+    }
+
+    /**
+     * Siapkan sesi: jendelanya final, dan sesudah ini barulah ia bisa dibuka.
+     *
+     * Tanpa langkah ini, sesi yang lahir dari laman jadwal tidak pernah bisa
+     * dibuka sama sekali - lihat docblock `SesiService::siapkan()`. Karena
+     * itu tombolnya berdampingan dengan Ubah, bukan disembunyikan di panel
+     * pengaturan: ia bagian dari alur menyusun jadwal, bukan tindakan khusus.
+     */
+    public function siapkanSesi(
+        SchoolEvent $event,
+        Exam $ujian,
+        ExamSession $sesi,
+        SesiService $service,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $sesi);
+        $this->pastikanMilikEvent($ujian->event_id, $event);
+        $this->pastikanSesiMilikUjian($sesi->exam_id, $ujian);
+
+        try {
+            $service->siapkan($sesi);
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $logger->log('Menyiapkan sesi ujian', $event, ['sesi' => $sesi->label()]);
+
+        return back()->with('sukses', "Sesi {$sesi->label()} disiapkan.");
     }
 
     public function tutupSesi(

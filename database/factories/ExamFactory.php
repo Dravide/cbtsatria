@@ -59,7 +59,8 @@ class ExamFactory extends Factory
             'allow_back_navigation' => true,
             'allow_late_entry' => false,
             'late_entry_deadline' => null,
-            'status' => 'draft',
+            // Tidak ada `status` di sini: kolomnya dijatuhkan 2026-11-07.
+            // Lihat migrasi 0016_01_01_000030.
         ];
     }
 

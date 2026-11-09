@@ -38,7 +38,6 @@ use App\Domain\Event\Models\EventSubject;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Event\Services\EventParticipantService;
 use App\Domain\Event\Services\EventRegistrar;
-use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
@@ -205,9 +204,10 @@ function siapkanUjianSiswa(
 
     ['kode' => $kode] = app(TokenSesi::class)->terbitkan($sesi, $admin->id);
 
-    // Draft -> Siap. Draft -> Berjalan DITOLAK graf status sesi - lihat
-    // catatan yang sama di AttendanceTest.
-    $sesi->forceFill(['status' => StatusSesi::Siap])->save();
+    // Draft -> Siap lewat `SesiService::siapkan()`, jalur yang sama dengan
+    // Admin. Draft -> Berjalan DITOLAK graf status sesi - lihat catatan yang
+    // sama di AttendanceTest.
+    app(SesiService::class)->siapkan($sesi);
 
     $peserta = ExamParticipant::query()
         ->where('exam_id', $ujian->id)

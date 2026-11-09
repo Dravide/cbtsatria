@@ -67,6 +67,27 @@ class PenjajarPengguna extends PenjajarKolom
     public const WAJIB = ['peran', 'nama'];
 
     /**
+     * Judul kolom ekspor: kolom template + `username`.
+     *
+     * `username` TIDAK ada di `KOLOM` - ia diturunkan dari nomor identitas dan
+     * tidak boleh diketik Admin. Ia ada di ekspor karena tanpanya berkas
+     * hasilnya tidak bisa dipakai untuk menjawab pertanyaan yang paling sering
+     * ditanyakan pada hari ujian: "username saya apa?"
+     *
+     * Kolomnya tidak mengganggu impor. `PenjajarKolom` mencari kolom lewat
+     * NAMANYA, dan judul yang tidak dikenal diabaikan - sehingga berkas ekspor
+     * bisa langsung diunggah kembali, dan itulah yang membuat mode "perbarui
+     * akun lama" punya nilai ujung-ke-ujung: ekspor, perbaiki di Excel, unggah
+     * ulang; barisnya cocok lewat NIS, username dan sandi tak tersentuh.
+     *
+     * @return array<int, string>
+     */
+    public static function judulEkspor(): array
+    {
+        return array_merge(['username'], static::KOLOM);
+    }
+
+    /**
      * Sinonim nama kolom, supaya Admin tidak perlu menghafal template.
      *
      * `protected`, bukan `private`: kelas induknyalah yang membacanya, dan

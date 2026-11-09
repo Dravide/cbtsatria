@@ -2,6 +2,7 @@
 
 namespace App\Domain\Admin\Http\Controllers;
 
+use App\Domain\Admin\Models\UserExport;
 use App\Domain\Admin\Services\UserRegistrar;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Identity\Enums\Role;
@@ -12,8 +13,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use InvalidArgumentException;
 
 /**
  * Pengguna - wireframe plate 05.
@@ -80,6 +83,40 @@ class UserController
                 'status' => $request->query('status', ''),
             ],
             'jumlah' => $halaman->total(),
+            // Riwayat ekspor ikut dikirim karena ekspornya berjalan di latar
+            // belakang: tanpa daftar ini Admin yang menekan tombol lalu
+            // berpindah tab tidak punya cara menemukan berkasnya. Pola yang
+            // sama dipakai plate 22 Fase 8.
+            //
+            // Lima terakhir, bukan dua belas seperti laporan: di sini ekspornya
+            // bukan keluaran utama lamannya, dan daftar panjang di bawah tabel
+            // 1.284 baris hanya menambah gulir.
+            'ekspor' => UserExport::query()
+                ->with('peminta:id,name')
+                ->orderByDesc('id')
+                ->limit(5)
+                ->get()
+                ->map(fn (UserExport $satu) => [
+                    'id' => $satu->id,
+                    'format' => strtoupper($satu->format),
+                    'peran' => $satu->parameter_json['role'] ?? null,
+                    'status' => $satu->status,
+                    'status_label' => $satu->labelStatus(),
+                    // Dihitung di model, bukan di React: `nadaStatus()` di
+                    // `ui.tsx` memetakan kosakata status event, presensi, dan
+                    // master data - ia tidak mengenal `menunggu`/`diproses`.
+                    // Mengirimnya dari sini berarti komponen bersama itu tidak
+                    // perlu disentuh.
+                    'status_nada' => $satu->nadaStatus(),
+                    'total_baris' => $satu->total_baris,
+                    'ukuran' => $satu->ukuran,
+                    'nama_berkas' => $satu->nama_berkas,
+                    'pesan_gagal' => $satu->pesan_gagal,
+                    'peminta' => $satu->peminta?->name,
+                    'diminta_pada' => $satu->created_at?->format('d M Y H:i'),
+                ])
+                ->all(),
+            'format' => UserExport::FORMAT,
         ]);
     }
 
@@ -103,7 +140,7 @@ class UserController
                 // tidak menyertakan password sama sekali bukan berarti "pakai
                 // sandi awal" - ia berarti "undefined array key", dan di
                 // bawah error handler Laravel itu berakhir sebagai 500.
-                'password' => ($data['password'] ?? '') ?: 'password',
+                'password' => ($data['password'] ?? '') ?: User::SANDI_BAWAAN,
                 'username' => $registrar->usernameDari(
                     $registrar->nomorIdentitas($data),
                     $sekolah->code,
@@ -132,6 +169,57 @@ class UserController
         $logger->log('Memperbarui pengguna', $pengguna, ['username' => $pengguna->username]);
 
         return back()->with('sukses', 'Data pengguna tersimpan.');
+    }
+
+    /**
+     * Ganti username satu akun.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa rute tersendiri, bukan kolom di form Ubah
+     * ---------------------------------------------------------------------
+     * Username tertempel di kartu login siswa. Menaruhnya sebagai satu kolom
+     * di antara nama, email, dan telepon berarti ia ikut tersimpan setiap kali
+     * Admin memperbaiki alamat surel seseorang - dan satu salah ketik yang
+     * tidak disadari langsung mengunci siswa itu pada hari ujian.
+     *
+     * Sebagai tindakan tersendiri, ia menuntut niat: Admin membukanya karena
+     * memang ingin menggantinya. Dan layarnya bisa menyebut akibatnya lebih
+     * dulu, karena di sinilah akibat itu sungguh terjadi.
+     *
+     * Gate-nya `update` yang sama, bukan izin baru: mengganti username adalah
+     * mengubah akun, dan Admin yang sudah boleh mengubah nama serta emailnya
+     * tidak menjadi tidak boleh hanya karena kolomnya berbeda.
+     */
+    public function gantiUsername(Request $request, User $pengguna, UserRegistrar $registrar, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('update', $pengguna);
+
+        $data = $request->validate([
+            'username' => ['required', 'string', 'min:3', 'max:60'],
+        ], [], ['username' => 'username']);
+
+        try {
+            $lama = $registrar->gantiUsername($pengguna, $data['username']);
+        } catch (InvalidArgumentException $e) {
+            // Ditolak sebagai galat VALIDASI pada kolomnya, bukan sebagai
+            // flash: pesannya milik kolom itu, dan `Field` sudah punya tempat
+            // untuk menampilkannya tepat di bawah input yang salah.
+            throw ValidationException::withMessages(['username' => $e->getMessage()]);
+        }
+
+        if ($lama === $pengguna->username) {
+            return back()->with('sukses', 'Username tidak berubah.');
+        }
+
+        // Username lama ikut dicatat. Inilah satu-satunya tempat ia masih
+        // berguna: saat siswa melapor tidak bisa masuk karena masih mengetik
+        // nomor lama dari kartunya, yang dicari adalah username LAMA itu.
+        $logger->log('Mengganti username pengguna', $pengguna, [
+            'username_lama' => $lama,
+            'username_baru' => $pengguna->username,
+        ]);
+
+        return back()->with('sukses', 'Username diganti menjadi '.$pengguna->username.'.');
     }
 
     /**
@@ -191,7 +279,7 @@ class UserController
         foreach (User::query()->whereIn('id', $data['id'])->get() as $pengguna) {
             Gate::authorize('resetPassword', $pengguna);
 
-            $pengguna->forceFill(['password' => 'password'])->save();
+            $pengguna->forceFill(['password' => User::SANDI_BAWAAN])->save();
             $jumlah++;
         }
 

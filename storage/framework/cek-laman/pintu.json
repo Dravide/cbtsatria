@@ -1,23 +1,23 @@
 {
     "nama": "pintu",
-    "waktu": "2026-11-03T16:35:20.912Z",
+    "waktu": "2026-11-07T22:43:43.675Z",
     "hasil": [
         {
-            "jalur": "Menerbitkan tautan pintu (r-01-eba7)",
+            "jalur": "Menerbitkan tautan pintu (r-33-g9ac)",
             "ok": true,
             "keluhan": [],
             "status": 0,
             "panjang": 0
         },
         {
-            "jalur": "GET /p/r-01-eba7",
+            "jalur": "GET /p/r-33-g9ac",
             "ok": true,
             "keluhan": [],
             "status": 0,
             "panjang": 0
         },
         {
-            "jalur": "POST /p/r-01-eba7 - kode salah 000000",
+            "jalur": "POST /p/r-33-g9ac - kode salah 000000",
             "ok": true,
             "keluhan": [],
             "status": 0,
@@ -31,14 +31,14 @@
             "panjang": 0
         },
         {
-            "jalur": "POST /p/r-01-eba7 - kode benar",
+            "jalur": "POST /p/r-33-g9ac - kode benar",
             "ok": true,
             "keluhan": [],
             "status": 0,
             "panjang": 0
         },
         {
-            "jalur": "Dasbor pengawas menghibahkan ruang-sesi 1",
+            "jalur": "Dasbor pengawas menghibahkan ruang-sesi 66",
             "ok": true,
             "keluhan": [],
             "status": 0,

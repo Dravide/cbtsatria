@@ -3,6 +3,7 @@
 namespace App\Domain\Question\Http\Controllers;
 
 use App\Domain\Question\Models\QuestionMedia;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -53,17 +54,29 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class MediaSoalController
 {
-    public function tampilkan(QuestionMedia $media): StreamedResponse
+    public function tampilkan(Request $request, QuestionMedia $media): StreamedResponse
     {
         $soal = $media->question()->first();
 
+        // Media DRAF - diunggah sebelum soalnya disimpan, jadi `question_id`
+        // masih NULL. Yang boleh membacanya hanya pengunggahnya sendiri, di
+        // sekolah yang sama: itulah satu-satunya orang yang berhak melihat
+        // gambar yang belum menjadi bagian soal mana pun.
         if ($soal === null) {
-            abort(404, 'Berkas media tidak ditemukan.');
-        }
+            $user = $request->user();
+            $pengunggah = (int) ($media->metadata_json['diunggah_oleh'] ?? 0);
 
-        // 404, bukan 403 - pola yang sama dengan seluruh QuestionPolicy:
-        // bagi Guru yang mapelnya berbeda, soalnya memang tidak ada.
-        if (! Gate::allows('view', $soal)) {
+            $bolehDraf = $user !== null
+                && $media->question_id === null
+                && (int) $media->school_id === (int) $user->school_id
+                && $pengunggah === (int) $user->id;
+
+            if (! $bolehDraf) {
+                abort(404, 'Berkas media tidak ditemukan.');
+            }
+        } elseif (! Gate::allows('view', $soal)) {
+            // 404, bukan 403 - pola yang sama dengan seluruh QuestionPolicy:
+            // bagi Guru yang mapelnya berbeda, soalnya memang tidak ada.
             abort(404, 'Berkas media tidak ditemukan.');
         }
 

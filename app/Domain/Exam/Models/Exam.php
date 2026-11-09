@@ -68,6 +68,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * akan berbeda suatu hari, dan saat berbeda tidak ada yang tahu mana yang
  * benar. Yang menjawab "apakah ujian ini hasilnya boleh dilihat siswa"
  * sekarang `$exam->event->hasilTerbit()`.
+ *
+ * ---------------------------------------------------------------------
+ * `status` juga dijatuhkan, dan alasannya berbeda dari `publish_results`
+ * ---------------------------------------------------------------------
+ * `exams.status` lahir di Fase 5 dengan `default('draft')`, diisi `'draft'`
+ * sekali oleh `ExamRegistrar::buat()`, dan tidak pernah ditulis lagi oleh
+ * kode mana pun selama enam fase. Yang membacanya satu: satu chip di laman
+ * jadwal. Tidak ada gerbang, tidak ada pemeriksaan kesiapan, tidak ada
+ * kueri - sehingga chip itu secara struktural tidak mungkin berbunyi selain
+ * "draft", dan Admin yang melihatnya menyimpulkan ujiannya belum tertinjau
+ * padahal tidak ada satu pun tindakan yang bisa mengubahnya.
+ *
+ * Yang membuatnya tidak perlu dipertahankan: **ujian bukan pemilik kata
+ * "status" di sistem ini**. PRD §9.2 sengaja tidak mencantumkan status pada
+ * daftar field ujian, sementara §9.3 memang mencantumkannya untuk SESI. Yang
+ * ditinjau adalah jendela sesinya, dan `StatusSesi` - yang benar-benar
+ * bergerak dan benar-benar dibaca - sudah menyatakannya.
+ *
+ * Dijatuhkan 2026-11-07; lihat migrasi 0016_01_01_000030.
  */
 #[ScopedBy(SchoolScope::class)]
 #[Fillable([
@@ -88,7 +107,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'allow_back_navigation',
     'allow_late_entry',
     'late_entry_deadline',
-    'status',
 ])]
 class Exam extends Model
 {

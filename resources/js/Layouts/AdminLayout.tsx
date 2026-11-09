@@ -1,6 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import { ReactNode } from 'react';
-import KonsolLayout, { KelompokNav } from './KonsolLayout';
+import KonsolLayout, { ItemNav, KelompokNav } from './KonsolLayout';
 
 /**
  * Kerangka konsol Admin - anatomi beranotasi di wireframe-admin.html.
@@ -36,22 +36,22 @@ type Props = {
     children: ReactNode;
 };
 
-const MASTER = [
-    { label: 'Dashboard', href: '/admin', awalan: false },
-    { label: 'Profil sekolah', href: '/admin/sekolah', awalan: false },
-    { label: 'Tahun ajaran', href: '/admin/tahun-ajaran', awalan: false },
-    { label: 'Kelas', href: '/admin/kelas', awalan: false },
-    { label: 'Mata pelajaran', href: '/admin/mapel', awalan: false },
+const MASTER: ItemNav[] = [
+    { label: 'Dashboard', href: '/admin', awalan: false, ikon: 'dashboard' },
+    { label: 'Profil sekolah', href: '/admin/sekolah', awalan: false, ikon: 'sekolah' },
+    { label: 'Tahun ajaran', href: '/admin/tahun-ajaran', awalan: false, ikon: 'kalender' },
+    { label: 'Kelas', href: '/admin/kelas', awalan: false, ikon: 'kelas' },
+    { label: 'Mata pelajaran', href: '/admin/mapel', awalan: false, ikon: 'buku' },
     // Rincian ruang (/admin/ruang/R-01) harus tetap menyalakan "Ruang" di
     // sidebar; tanpa awalan ini, Admin yang membuka satu ruang melihat tidak
     // ada menu yang aktif dan merasa tersesat.
-    { label: 'Ruang', href: '/admin/ruang', awalan: true },
-    { label: 'Pengguna', href: '/admin/pengguna', awalan: false },
+    { label: 'Ruang', href: '/admin/ruang', awalan: true, ikon: 'ruang' },
+    { label: 'Pengguna', href: '/admin/pengguna', awalan: false, ikon: 'pengguna' },
 ];
 
-const SISTEM = [
-    { label: 'Log aktivitas', href: '/admin/log', awalan: false },
-    { label: 'Pengaturan', href: '/admin/pengaturan', awalan: false },
+const SISTEM: ItemNav[] = [
+    { label: 'Log aktivitas', href: '/admin/log', awalan: false, ikon: 'daftar' },
+    { label: 'Pengaturan', href: '/admin/pengaturan', awalan: false, ikon: 'pengaturan' },
 ];
 
 /**
@@ -64,25 +64,36 @@ const SISTEM = [
  * /admin/events/12 dan /admin/events/12/jadwal adalah dua menu yang berbeda,
  * dan yang pertama tidak boleh menyala saat yang kedua dibuka.
  */
-type MenuEvent = { label: string; segmen?: string; href?: string; fase?: string };
+type MenuEvent = {
+    label: string;
+    segmen?: string;
+    href?: string;
+    fase?: string;
+    ikon?: ItemNav['ikon'];
+};
 
 const EVENT: MenuEvent[] = [
-    { label: 'Daftar event', href: '', segmen: '' },
-    { label: 'Ringkasan', segmen: '' },
-    { label: 'Kepanitiaan', segmen: 'panitia' },
-    { label: 'Kelas & peserta', segmen: 'peserta' },
-    { label: 'Paket soal', segmen: 'mapel' },
-    { label: 'Jadwal & sesi', segmen: 'jadwal' },
-    { label: 'Pengawas', segmen: 'pengawas' },
-    { label: 'Token', segmen: 'token' },
-    { label: 'Presensi', segmen: 'presensi' },
-    { label: 'Monitoring', segmen: 'monitoring' },
-    { label: 'Hasil', segmen: 'hasil' },
+    { label: 'Daftar event', href: '', segmen: '', ikon: 'bendera' },
+    { label: 'Ringkasan', segmen: '', ikon: 'ringkasan' },
+    { label: 'Kepanitiaan', segmen: 'panitia', ikon: 'panitia' },
+    { label: 'Kelas & peserta', segmen: 'peserta', ikon: 'peserta' },
+    { label: 'Paket soal', segmen: 'mapel', ikon: 'paket' },
+    { label: 'Jadwal & sesi', segmen: 'jadwal', ikon: 'jam' },
+    // Penempatan duduk SEBELUM Pengawas, dan urutannya bukan selera: ruang
+    // harus terisi lebih dulu sebelum ada yang bisa ditugaskan menjaganya.
+    // Menaruhnya sesudah berarti sidebar menyuruh Admin menugaskan pengawas
+    // untuk ruang yang belum tentu dipakai sesi mana pun.
+    { label: 'Penempatan', segmen: 'penempatan', ikon: 'peserta' },
+    { label: 'Pengawas', segmen: 'pengawas', ikon: 'perisai' },
+    { label: 'Token', segmen: 'token', ikon: 'kunci' },
+    { label: 'Presensi', segmen: 'presensi', ikon: 'presensi' },
+    { label: 'Monitoring', segmen: 'monitoring', ikon: 'denyut' },
+    { label: 'Hasil', segmen: 'hasil', ikon: 'grafik' },
     // Laporan BUKAN di bawah event, dan bedanya nyata: plate 22 beralamat
     // /admin/laporan, dan laporannya mengikuti event AKTIF dari sesi - bukan
     // event yang idnya ada di URL. Admin yang berpindah event melakukannya
     // lewat sidebar, dan laporannya ikut berpindah.
-    { label: 'Laporan', href: '/admin/laporan' },
+    { label: 'Laporan', href: '/admin/laporan', ikon: 'laporan' },
 ];
 
 export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props) {
@@ -106,6 +117,7 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
                     label: 'Event',
                     href: '/admin/events',
                     awalan: false,
+                    ikon: 'bendera',
                 },
             ],
         },
@@ -129,6 +141,7 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
                 href: item.href ?? (item.segmen ? `${dasarEvent}/${item.segmen}` : dasarEvent),
                 awalan: false,
                 fase: item.fase,
+                ikon: item.ikon,
             })),
         });
     }

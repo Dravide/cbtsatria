@@ -36,6 +36,21 @@ import {
  * sisanya dihitung. Memaksa dua kolom berarti orang ketiga tersimpan tanpa
  * pernah terlihat di laman yang menugaskannya, dan itu bentuk kehilangan data
  * yang paling sulit disadari.
+ *
+ * ---------------------------------------------------------------------
+ * Satu pengawas per ruang sah, dan laman ini tidak boleh bilang sebaliknya
+ * ---------------------------------------------------------------------
+ * Plate 17 menggambar `R-02` berisi satu nama lalu menandainya sebagai
+ * peringatan. Yang dilanggar R-02 bukan aturan: PRD §9.6 berbunyi "satu ruang
+ * dapat memiliki beberapa Pengawas", dan yang benar-benar menghalangi ujian
+ * hanyalah ruang yang NOL pengawas - presensi harus diverifikasi orang, dan
+ * orang yang tidak ditugaskan tidak bisa membuka ruangnya.
+ *
+ * Bedanya bukan hiasan kata. Sekolah dengan 24 ruang dan 26 pengawas memang
+ * hanya sanggup satu orang per ruang, dan laman yang menandai seluruh
+ * jadwalnya kuning setiap hari akan diabaikan tepat pada saat peringatan itu
+ * benar-benar perlu dibaca. Karena itu dua hal dipisahkan di layar:
+ * ruang tanpa pengawas adalah TEMUAN, ruang berpengawas satu adalah SARAN.
  */
 type PengawasBaris = {
     id: number;
@@ -62,8 +77,14 @@ type Baris = {
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     baris: Baris[];
-    angka: { ruang: number; ditugaskan: number; tanpa_pengawas: number; saran_per_ruang: number };
-    perhatian: Baris[];
+    angka: {
+        ruang: number;
+        ditugaskan: number;
+        tanpa_pengawas: number;
+        saran_per_ruang: number;
+        minimal_per_ruang: number;
+    };
+    saran: Baris[];
     calon: { id: number; nama: string; username: string; peran: string }[];
     sesi_tanpa_ruang: { id: number; label: string; ujian: string | null }[];
 };
@@ -72,7 +93,7 @@ export default function EventPengawas({
     event,
     baris,
     angka,
-    perhatian,
+    saran,
     calon,
     sesi_tanpa_ruang,
 }: Props) {
@@ -143,10 +164,18 @@ export default function EventPengawas({
             <Head title={`Pengawas · ${event.nama}`} />
 
             {/* Tiga angka, dan yang ketiga yang menentukan: ruang tanpa
-                pengawas adalah ruang yang siswanya tidak akan bisa masuk. */}
+                pengawas adalah ruang yang siswanya tidak akan bisa masuk.
+                Angka pertama diberi keterangan jumlah pengawas per ruang,
+                supaya "1 atau 2" terbaca sebagai keadaan yang disengaja dan
+                bukan sebagai angka yang lupa diisi. */}
             <div className="mb-3 grid gap-3 sm:grid-cols-3">
                 <KPI label="Ruang" nilai={angka.ruang} />
-                <KPI label="Pengawas ditugaskan" nilai={angka.ditugaskan} nada="ok" />
+                <KPI
+                    label="Pengawas ditugaskan"
+                    nilai={angka.ditugaskan}
+                    nada="ok"
+                    catatan={`${angka.minimal_per_ruang}–${angka.saran_per_ruang} orang per ruang`}
+                />
                 <KPI
                     label="Ruang tanpa pengawas"
                     nilai={angka.tanpa_pengawas}
@@ -203,10 +232,11 @@ export default function EventPengawas({
                         </div>
 
                         <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
-                            Penugasan yang bentrok ditolak di sini, bukan hanya dilaporkan di laman
-                            jadwal. Satu pengawas tidak bisa berdiri di dua ruang pada jam yang sama,
-                            dan menolaknya saat menyimpan berarti Admin tidak perlu menemukannya
-                            belakangan.
+                            Satu ruang cukup dijaga {angka.minimal_per_ruang} orang, dan boleh
+                            sampai {angka.saran_per_ruang}. Penugasan yang bentrok ditolak di sini,
+                            bukan hanya dilaporkan di laman jadwal &mdash; satu pengawas tidak bisa
+                            berdiri di dua ruang pada jam yang sama, dan menolaknya saat menyimpan
+                            berarti Admin tidak perlu menemukannya belakangan.
                         </p>
                     </Kotak>
                 </div>
@@ -325,15 +355,23 @@ export default function EventPengawas({
             )}
 
             <div className="mt-3 space-y-3">
-                {perhatian.length > 0 && (
-                    <Peringatan>
-                        {perhatian
+                {/* Saran, BUKAN temuan. Ruang yang berisi satu pengawas sudah
+                    memenuhi syarat PRD §9.6 dan sesinya tetap bisa dibuka -
+                    yang menghalangi hanya ruang tanpa pengawas sama sekali.
+                    Karena itu kotaknya biru `Inbox`, bukan kuning `Peringatan`:
+                    mewarnai keadaan yang sah sebagai peringatan membuat
+                    peringatan yang benar-benar penting ikut diabaikan. */}
+                {saran.length > 0 && (
+                    <Inbox>
+                        {saran
                             .slice(0, 3)
-                            .map((b) => `${b.ruang} (${b.sesi}) hanya ${b.pengawas.length} pengawas`)
+                            .map((b) => `${b.ruang} (${b.sesi}) baru ${b.pengawas.length} pengawas`)
                             .join('. ')}
-                        . Ruang yang tidak punya pengawas tidak akan bisa dibuka siswanya, karena
-                        presensi harus diverifikasi orang.
-                    </Peringatan>
+                        . Satu pengawas per ruang sudah sah &mdash; sesinya tetap bisa dibuka.
+                        Menambah pengawas kedua sebaiknya dilakukan pada ujian yang pengawasnya
+                        cukup, karena ruang yang benar-benar tidak akan bisa dibuka siswanya
+                        hanyalah ruang yang belum punya pengawas sama sekali.
+                    </Inbox>
                 )}
 
                 <Inbox>
@@ -366,10 +404,12 @@ function KPI({
     label,
     nilai,
     nada,
+    catatan,
 }: {
     label: string;
     nilai: number;
     nada?: 'ok' | 'warn' | 'bad';
+    catatan?: string;
 }) {
     const warna =
         nada === 'ok'
@@ -386,6 +426,7 @@ function KPI({
             <p className={'mt-1 font-mono text-2xl font-medium ' + warna}>
                 {nilai.toLocaleString('id-ID')}
             </p>
+            {catatan && <p className="mt-0.5 text-[11px] text-ink-3">{catatan}</p>}
         </div>
     );
 }

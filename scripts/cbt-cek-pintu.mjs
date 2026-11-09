@@ -20,12 +20,17 @@
 | ---------------------------------------------------------------------------
 | Nothing here is hardcoded, because everything here is generated
 | ---------------------------------------------------------------------------
-| The slug is random per issue and the code is stored only as a hash, so
-| neither can be read out of the database afterwards. Both come back from the
-| ONE response that issues them - an Admin re-issuing the link - which is also
-| how the application itself hands the code to a human. Re-issuing revokes the
-| previous link, which is harmless on a seeded database and is what an Admin
-| would do anyway to get a code they can read.
+| The slug is random per issue. The CODE, sejak 2026-11-08, tidak lagi ikut
+| terbit bersama tautan: kodenya milik ORANG, tersimpan terenkripsi, dan
+| SELALU terlihat di laman Kepanitiaan (karena dipakai membuat kartu
+| pengawas). Karena itu kodenya dibaca dari sana - lewat pengawas yang
+| DITUGASKAN di ruang itu, yang terdaftar di laman Pengawas event.
+|
+| Set CBT_KODE untuk memaksa satu kode tertentu (berguna ketika ruang itu
+| belum punya pengawas yang ditugaskan).
+|
+| Re-issuing the link revokes the previous one, which is harmless on a seeded
+| database.
 |
 | The room-session id is read from the Pengawas dashboard after the door opens,
 | not from an env var: the door grants exactly one room, and which one depends
@@ -55,12 +60,12 @@ async function props(halaman) {
 }
 
 /**
- * Terbitkan tautan pintu baru untuk satu ruang, lalu baca slug dan kode dari
- * respons yang menerbitkannya.
+ * Terbitkan tautan pintu baru untuk satu ruang.
  *
- * `redirect: 'manual'` disengaja: yang dicari adalah flash pada respons
- * PENGALIHAN itu. Mengikutinya berarti memakan flash-nya, dan kode yang baru
- * saja diterbitkan sudah hilang sebelum terbaca.
+ * Slug-nya dibaca dari props laman rincian sesudahnya (`aktif.slug`), bukan
+ * dari respons penerbitannya. `redirect: 'manual'` tetap dipakai supaya
+ * pengalihan tidak diikuti di sini - laman dibuka ulang secara eksplisit di
+ * pemanggilnya.
  */
 async function terbitkan(halaman, ruangId) {
     return halaman.evaluate(async (ruangId) => {
@@ -83,14 +88,66 @@ async function terbitkan(halaman, ruangId) {
             redirect: 'manual',
         });
 
-        // Flash hidup di SESI, dan sesi dibaca saat tujuan pengalihan
-        // dirender. Jadi langkah keduanya bukan opsional: tanpa membuka
-        // tujuan itu, flash-nya belum pernah ditulis ke mana pun yang bisa
-        // dibaca.
-        const tujuan = respons.headers.get('location');
-
-        return { status: respons.status, tujuan };
+        return { status: respons.status, tujuan: respons.headers.get('location') };
     }, ruangId);
+}
+
+/**
+ * Kode pengawas untuk satu ruang, dibaca dari laman Kepanitiaan.
+ *
+ * Kodenya tidak lagi ikut terbit bersama tautan - ia milik ORANG. Yang
+ * menghubungkan ruang ke orangnya adalah PENUGASAN, dan penugasan itu terlihat
+ * di `/admin/events/{event}/pengawas` sebagai daftar pengawas per baris ruang.
+ * Jadi jalannya dua langkah: cari pengawas ruang itu di sana, lalu cari baris
+ * kepanitiaan orang itu (dicocokkan lewat `akun`, yang berisi username-nya) dan
+ * baca `kode` dari situ.
+ *
+ * `CBT_KODE` tetap ada untuk memaksa satu kode tertentu, dan memang dibutuhkan
+ * ketika ruang itu belum punya pengawas sama sekali.
+ */
+async function bacaKodePengawas(halaman, kodeRuang) {
+    const paksa = process.env.CBT_KODE ?? null;
+
+    if (paksa !== null) {
+        return paksa;
+    }
+
+    await halaman.goto(`${BASE}/admin/events`, { waitUntil: 'networkidle0' });
+
+    // `baris` di laman daftar event adalah paginator, bukan array - `.map()`
+    // atasnya melempar, dan galatnya menunjuk ke skrip ini alih-alih ke
+    // bentuk propnya.
+    const daftar = await props(halaman);
+    const barisEvent = daftar.baris?.data ?? daftar.baris ?? [];
+    const idEvent = barisEvent.map((b) => b.id);
+
+    for (const id of idEvent) {
+        await halaman.goto(`${BASE}/admin/events/${id}/pengawas`, { waitUntil: 'networkidle0' });
+
+        const pengawas = await props(halaman);
+        const barisRuang = (pengawas.baris ?? []).find((b) => b.ruang === kodeRuang);
+
+        if (barisRuang === undefined) {
+            continue;
+        }
+
+        const akun = barisRuang.pengawas?.[0]?.username ?? null;
+
+        if (akun === null) {
+            continue;
+        }
+
+        await halaman.goto(`${BASE}/admin/events/${id}/panitia`, { waitUntil: 'networkidle0' });
+
+        const panitia = await props(halaman);
+        const cocok = (panitia.panitia ?? []).find((p) => p.akun === akun && p.kode);
+
+        if (cocok) {
+            return cocok.kode;
+        }
+    }
+
+    return null;
 }
 
 async function main() {
@@ -107,21 +164,24 @@ async function main() {
 
         await terbitkan(halaman, RUANG);
 
-        // Membuka halaman rincian sekali lagi menampilkan flash yang tadi
-        // ditulis, dan sekaligus memberi slug yang sedang berlaku.
+        // Membuka halaman rincian sekali lagi memberi slug yang sedang
+        // berlaku, dan kode ruangnya untuk mencari kode pengawasnya di laman
+        // Kepanitiaan.
         await halaman.goto(`${BASE}/admin/ruang/${RUANG}`, { waitUntil: 'networkidle0' });
 
         const rincian = await props(halaman);
-        const slug = rincian.flash?.slug_baru ?? rincian.aktif?.slug ?? null;
-        const kode = rincian.flash?.kode_pengawas ?? null;
+        const slug = rincian.aktif?.slug ?? null;
+        const kodeRuang = rincian.ruang?.kode ?? null;
+        const kode = kodeRuang === null ? null : await bacaKodePengawas(halaman, kodeRuang);
 
         if (slug === null || kode === null) {
             catat(
                 'Menerbitkan tautan pintu lewat /admin/ruang/{id}/terbitkan',
                 false,
                 [
-                    `slug=${slug}, kode=${kode}. Flash tidak memuat keduanya - ` +
-                        'pintu tidak bisa diuji tanpa kode yang bisa dibaca.',
+                    `slug=${slug}, kode=${kode} (ruang ${kodeRuang}). ` +
+                        'Tautannya harus berlaku, dan kode pengawas ruang itu harus ' +
+                        'terbaca dari laman Kepanitiaan - setel CBT_KODE untuk memaksanya.',
                 ],
             );
 

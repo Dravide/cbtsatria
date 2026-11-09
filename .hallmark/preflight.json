@@ -1,0 +1,24 @@
+{
+  "scanned": "2026-11-07",
+  "target": "http://localhost:8781/siswa",
+  "verb": "redesign",
+  "depth": "full",
+  "scope": "app",
+  "findings": {
+    "designMD": "none — no design.md or DESIGN.md at the root",
+    "brandSpec": "none — no .hallmark/brand-spec.md, no logo/brand file named",
+    "inspo": "none — no mcp__inspo__* tools in this session",
+    "together": "TOGETHER_API_KEY unset — the comp step does not run",
+    "fonts": "Archivo (display), IBM Plex Sans (body), IBM Plex Mono (mono) — Google-hosted (resources/views/app.blade.php:8-11), declared as @theme tokens at resources/css/app.css:50-52",
+    "palette": "Tailwind 4 @theme custom properties, resources/css/app.css:16-57 (paper/surface/ink/accent/ok/warn/bad/info + wf-*), plus a second dark palette in the .rangka-ujian override block at :76-98",
+    "motion": "no motion library; CSS transition-colors duration-150 only, plus a prefers-reduced-motion blanket at resources/css/app.css:150-159",
+    "spacing": "Tailwind 4 defaults; radius --radius-wf: 8px, shadow --shadow-wf",
+    "framework": "Laravel 13 + Inertia 3.11 + React 19 + Tailwind 4 + Vite 8 (dev :8781, Vite :5179)"
+  },
+  "preserve": ["font stack", "palette", "spacing scale"],
+  "introduce": ["shape", "theme", "gates", "hero discipline", "slots"],
+  "notes": [
+    "the target sits behind a sign-in; sloplint's render tier has no cookie hook, so --before records through a local read-only proxy that adds the session cookie (dev harness in the scratchpad, not in the repo)",
+    "dev data holds 0 exam participants, so /siswa/ujian/* cannot be recorded"
+  ]
+}

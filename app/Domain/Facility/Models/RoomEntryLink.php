@@ -11,12 +11,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Tautan masuk ruang + kode pengawas.
+ * Tautan masuk ruang - dan HANYA tautan.
  *
  * ---------------------------------------------------------------------
- * Dua faktor yang menunjuk hal yang sama
+ * Kolom kodenya pindah 2026-11-07, dan pemindahan itu isi laporannya
  * ---------------------------------------------------------------------
- * Wireframe detail plate 09 memisahkan perannya dengan tajam:
+ * Sampai 2026-11-07 kelas ini memegang dua hal: `slug` dan `code_hash`.
+ * Keduanya diterbitkan sekali oleh Admin dan keduanya tercetak pada kartu
+ * yang sama yang ditempel di daun pintu - sehingga memfoto kartu itu sudah
+ * cukup untuk masuk ke ruang, dan kode yang seharusnya "menentukan orang"
+ * justru menentukan ruang untuk siapa pun yang memegangnya.
+ *
+ * Kode pengawas kini hidup di `event_committee_members.code`, milik
+ * ORANG-nya - dan disimpan TERENKRIPSI, bukan ter-hash, karena ia harus bisa
+ * ditampilkan kembali untuk dicetak ke kartu pengawas. Pembagiannya persis
+ * seperti yang ditulis blueprint `:995`:
  *
  *   Tautan menentukan RUANG. Boleh panjang, boleh ditempel di pintu, dan
  *   sendirian ia tidak membuka apa pun - hanya menampilkan satu kolom kode.
@@ -24,33 +33,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *   Kode menentukan ORANG. Pendek supaya bisa diketik di depan pintu, dan
  *   justru karena pendek ia tidak boleh menjadi satu-satunya penjaga.
  *
- * Keduanya harus menunjuk ruang yang SAMA. Tautan R-01 dengan kode ruang R-02
- * ditolak - bukan karena kodenya salah, tetapi karena keduanya tidak sedang
- * berbicara tentang ruang yang sama. Pemeriksaan itu milik service di Fase 6,
- * dan bentuk datanya disiapkan di sini: kode tersimpan di baris milik ruangnya,
- * sehingga "kode ini milik ruang mana" selalu punya jawaban.
- *
  * ---------------------------------------------------------------------
- * code_hash, bukan code
+ * Yang TETAP tinggal di sini: use_count dan last_used_at
  * ---------------------------------------------------------------------
- * Kode pengawas adalah kredensial. Menyimpannya apa adanya berarti siapa pun
- * yang membaca tabel ini - lewat backup, dump, atau satu query yang bocor -
- * dapat masuk ke setiap ruang tanpa pernah berdiri di depan pintunya.
+ * Pencatatannya masih milik tautan, dan maknanya tidak berubah sedikit pun:
+ * wireframe menampilkan chip "2 pemakaian", dan Admin perlu melihat bahwa
+ * sebuah tautan sudah dipakai lebih dari sekali - sebab itu bisa berarti
+ * kartunya difoto orang lain.
  *
- * Yang disimpan hanya hash-nya. Kode mentahnya ditampilkan SEKALI, saat
- * diterbitkan, dan sesudah itu tidak ada cara membacanya kembali. Tombolnya
- * karena itu berbunyi "Terbitkan ulang", bukan "Lihat kode".
- *
- * use_count dicatat karena wireframe menampilkan chip "2 pemakaian" - Admin
- * perlu melihat bahwa sebuah tautan sudah dipakai lebih dari sekali, sebab
- * itu bisa berarti kartunya difoto orang lain.
+ * Justru karena kodenya sudah tidak lagi menempel di kartu, angka ini
+ * menjadi satu-satunya tanda kebocoran yang tersisa pada kartu itu.
  */
 #[ScopedBy(SchoolScope::class)]
 #[Fillable([
     'school_id',
     'room_id',
     'slug',
-    'code_hash',
     'expires_at',
     'revoked_at',
     'use_count',

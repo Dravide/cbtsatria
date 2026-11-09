@@ -22,13 +22,39 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!--
+            Zona waktu disematkan di sini dengan sengaja, dan itu yang membuat
+            suite ini tidak pernah bisa menangkap cacat 07 Nov 2026: seluruh
+            test membangun jendela sesi dari `now()` lalu membandingkannya
+            terhadap `now()` yang sama, sehingga zona apa pun menghasilkan
+            jawaban yang sama.
+
+            Yang dijaga baris ini sekarang bukan kebenaran zona - itu dijaga
+            test fitur - melainkan KEMAMPUAN test untuk salah: dengan zona yang
+            tidak nol, sebuah test yang lupa memakai `Carbon` dan membaca
+            `date()` mentah akan meleset, bukan kebetulan lulus.
+        -->
+        <env name="APP_TIMEZONE" value="Asia/Jakarta"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_HOST" value="127.0.0.1"/>
-        <env name="DB_PORT" value="3307"/>
+        <!--
+            3306 dan `cbt_satria_test`: instance MySQL bawaan mesin ini, sama
+            dengan yang dipakai `.env` untuk pengembangan.
+
+            Sampai 07 Nov 2026 barisnya menunjuk 3307 - instance MySQL 8
+            tersendiri untuk proyek ini. Yang menentukan bukan nomor portnya,
+            melainkan NAMA basis datanya: `RefreshDatabase` menjalankan
+            `migrate:fresh`, dan satu-satunya hal yang menahannya menghapus
+            pekerjaan orang adalah gerbang `_test` di
+            `tests/RefreshDatabaseAman.php`. Basis data pengembangan bernama
+            `cbt_satria`; basis data ujinya `cbt_satria_test`, dan keduanya
+            harus tetap berbeda nama.
+        -->
+        <env name="DB_PORT" value="3306"/>
         <env name="DB_DATABASE" value="cbt_satria_test"/>
         <env name="DB_USERNAME" value="root"/>
         <env name="DB_PASSWORD" value=""/>

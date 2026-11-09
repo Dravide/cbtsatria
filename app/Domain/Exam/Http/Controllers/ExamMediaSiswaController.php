@@ -104,11 +104,24 @@ class ExamMediaSiswaController
      */
     private function tercantumDiSnapshot(ExamQuestion $soal, int $idMedia): bool
     {
+        // Media tingkat SOAL.
         $daftar = $soal->media_json ?? [];
 
         foreach ($daftar as $berkas) {
             if (is_array($berkas) && (int) ($berkas['id'] ?? 0) === $idMedia) {
                 return true;
+            }
+        }
+
+        // Media PILIHAN JAWABAN - tinggal di dalam `media` masing-masing opsi.
+        // Tanpa cabang ini, gambar yang menempel pada pilihan tak akan pernah
+        // lolos pemeriksaan, dan soal yang gambarnya ada di pilihan B tampil
+        // tanpa gambarnya di layar siswa.
+        foreach ($soal->opsi_json ?? [] as $opsi) {
+            foreach ((is_array($opsi) ? ($opsi['media'] ?? []) : []) as $berkas) {
+                if (is_array($berkas) && (int) ($berkas['id'] ?? 0) === $idMedia) {
+                    return true;
+                }
             }
         }
 

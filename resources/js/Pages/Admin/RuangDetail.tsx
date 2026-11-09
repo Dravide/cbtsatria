@@ -1,14 +1,14 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Chip, Inbox, KodePengawas, Kotak, Tabel, Tombol, nadaStatus } from '@/Components/ui';
+import { Chip, Inbox, Kotak, Tabel, Tombol, nadaStatus } from '@/Components/ui';
 
 /**
- * Rincian ruang - tautan pintu & kode pengawas.
+ * Rincian ruang - tautan pintu.
  *
  * Bagian wireframe plate 09 yang tidak punya jalur sendiri di sidebar.
  *
  * ---------------------------------------------------------------------
- * Tautan menentukan RUANG; kode menentukan ORANG
+ * Tautan menentukan RUANG; kode menentukan ORANG - dan kodenya TIDAK di sini
  * ---------------------------------------------------------------------
  * Dua hal ini mudah tertukar, dan menukarnya adalah kesalahan yang mahal:
  *
@@ -18,16 +18,19 @@ import { Chip, Inbox, KodePengawas, Kotak, Tabel, Tombol, nadaStatus } from '@/C
  *   Kode pendek supaya bisa diketik di depan pintu, dan justru karena
  *   pendek ia tidak boleh menjadi satu-satunya penjaga.
  *
- * Keduanya harus menunjuk ruang yang sama. Tautan R-01 dengan kode milik
- * R-02 ditolak - bukan karena kodenya salah, tetapi karena keduanya tidak
- * sedang berbicara tentang ruang yang sama.
+ * Sampai 2026-11-07 kodenya terbit DI SINI, menempel pada ruang - sehingga
+ * kartu pintu yang difoto orang lewat membawa tautan sekaligus kodenya, dan
+ * keduanya cukup untuk masuk. Kini kodenya menempel pada ORANG, dan
+ * diterbitkan di laman Kepanitiaan (`/admin/events/{id}/panitia`). Laman ini
+ * hanya mengurus tautannya.
  *
  * ---------------------------------------------------------------------
- * Kode tampil sekali, dan itu ditulis di layar
+ * Yang tampil di sini tidak pernah berupa kode
  * ---------------------------------------------------------------------
- * Kode hanya dikirim pada respons yang menerbitkannya. Muat ulang kehilangan
- * kodenya. Admin yang perlu lagi harus menerbitkan ulang - dan itu juga
- * mencabut tautan lama, sehingga kartu pintu yang beredar tidak menumpuk.
+ * Tidak ada kode dalam bentuk terbaca di laman ini, dan tidak ada di mana
+ * pun setelah respons penerbitannya. Tautan yang perlu diganti diterbitkan
+ * ulang - dan itu mencabut tautan lama, sehingga kartu pintu yang beredar
+ * tidak menumpuk.
  */
 type Tautan = {
     id: number;
@@ -57,16 +60,6 @@ type Props = {
 };
 
 export default function RuangDetail({ ruang, tautan, aktif }: Props) {
-    // Kode dari flash dibaca di sini, bukan lewat props: flash hidup tepat
-    // satu respons, dan props laman ikut terkirim pada setiap navigasi
-    // Inertia berikutnya. Lewat props, kode itu akan bertahan di layar
-    // sepanjang sesi - persis yang tidak boleh terjadi.
-    const { flash } = usePage().props as unknown as {
-        flash?: { kode_pengawas?: string; slug_baru?: string };
-    };
-
-    const kodeBaru = flash?.kode_pengawas;
-
     return (
         <AdminLayout
             judul={`Ruang ${ruang.kode}`}
@@ -84,18 +77,12 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
                             })
                         }
                     >
-                        {aktif ? 'Terbitkan ulang' : 'Terbitkan tautan & kode'}
+                        {aktif ? 'Terbitkan ulang' : 'Terbitkan tautan'}
                     </Tombol>
                 </>
             }
         >
             <Head title={`Ruang ${ruang.kode}`} />
-
-            {kodeBaru && (
-                <div className="mb-3">
-                    <KodePengawas kode={kodeBaru} slug={flash?.slug_baru} />
-                </div>
-            )}
 
             <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
                 <div className="space-y-4">
@@ -127,7 +114,7 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
                         ) : (
                             <p className="py-4 text-sm text-ink-3">
                                 Belum ada tautan yang berlaku untuk ruang ini. Terbitkan untuk
-                                membuat tautan pintu dan kode pengawasnya.
+                                membuat tautan pintu.
                             </p>
                         )}
                     </Kotak>
@@ -235,24 +222,30 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
                                 <p className="font-medium text-ink">Kode menentukan orang</p>
                                 <p>
                                     Pendek supaya bisa diketik di depan pintu, dan karena itu
-                                    tidak boleh menjadi satu-satunya penjaga.
+                                    tidak boleh menjadi satu-satunya penjaga. Ia milik
+                                    pengawasnya sendiri, dan diterbitkan di laman{' '}
+                                    <Link href="/admin/events" className="text-accent hover:underline">
+                                        Kepanitiaan
+                                    </Link>{' '}
+                                    event yang bersangkutan.
                                 </p>
                             </div>
                             <div>
-                                <p className="font-medium text-ink">Keduanya harus sepadan</p>
+                                <p className="font-medium text-ink">Keduanya tidak lagi sepasang</p>
                                 <p>
-                                    Tautan {ruang.kode} dengan kode ruang lain ditolak &mdash;
-                                    bukan karena kodenya salah, tetapi karena keduanya tidak
-                                    berbicara tentang ruang yang sama.
+                                    Tautan {ruang.kode} menentukan RUANG; kode menentukan SIAPA
+                                    yang masuk. Kode pengawas ruang lain memang ditolak di
+                                    pintu ini &mdash; bukan karena kodenya salah, tetapi karena
+                                    pengawas itu tidak ditugaskan di sini.
                                 </p>
                             </div>
                         </div>
                     </Kotak>
 
                     <Inbox>
-                        Kode pengawas hanya ditampilkan sekali, tepat saat diterbitkan. Ia tidak
-                        disimpan dalam bentuk terbaca di mana pun &mdash; yang tersimpan hanya
-                        sidik jarinya.
+                        Kode pengawas tidak diterbitkan di laman ini, melainkan di laman
+                        Kepanitiaan event &mdash; satu kode per pengawas. Ia ditampilkan sekali
+                        tepat saat diterbitkan, dan yang tersimpan hanya sidik jarinya.
                     </Inbox>
                 </div>
             </div>

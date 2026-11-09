@@ -45,8 +45,27 @@ use Illuminate\Validation\ValidationException;
  */
 class PengawasService
 {
-    /** Jumlah pengawas per ruang yang disarankan plate 17. */
+    /**
+     * Jumlah pengawas per ruang yang disarankan plate 17.
+     *
+     * Ini ANGKASARAN, bukan syarat. PRD §9.6 berbunyi "satu ruang dapat
+     * memiliki beberapa Pengawas" - satu orang sudah sah mengawas satu ruang,
+     * dan sekolah dengan 24 ruang tetapi 26 pengawas memang hanya bisa
+     * menugaskan satu per ruang. Karena itu ruang berisi satu pengawas BUKAN
+     * temuan, dan tidak boleh diperlakukan seperti ruang yang belum siap.
+     */
     public const SARAN_PER_RUANG = 2;
+
+    /**
+     * Jumlah pengawas paling sedikit yang membuat ruang bisa dibuka.
+     *
+     * Angka ini yang dipakai gerbang kesiapan: SesiService menolak membuka
+     * sesi, dan TokenSesi menolak menerbitkan token, hanya bila ada ruang
+     * yang NOL pengawas. Bedanya dengan SARAN_PER_RUANG menentukan seluruh
+     * perilaku laman plate 17 - mencampur keduanya membuat "kurang dari dua"
+     * terbaca sebagai "tidak bisa dibuka", dan itu tidak benar.
+     */
+    public const MINIMAL_PER_RUANG = 1;
 
     public function __construct(
         private readonly KonflikJadwal $konflik,
@@ -99,7 +118,24 @@ class PengawasService
     }
 
     /**
-     * Tugaskan otomatis seluruh ruang yang belum punya pengawas cukup.
+     * Tugaskan otomatis: SATU pengawas dulu untuk setiap ruang, baru ditambah
+     * yang kedua bila pengawasnya masih tersisa.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa dua putaran, bukan satu
+     * ---------------------------------------------------------------------
+     * Versi satu-putaran mengisi tiap ruang sampai DUA orang sebelum pindah ke
+     * ruang berikutnya. Pada sekolah yang pengawasnya lebih sedikit daripada
+     * dua kali jumlah ruangnya, hasilnya adalah bencana yang sunyi: delapan
+     * ruang pertama berisi dua orang, dan sisanya NOL. Ruang tanpa pengawas
+     * adalah ruang yang tidak bisa dibuka, jadi tombol "Tugaskan otomatis" -
+     * yang gunanya menolong - justru meninggalkan separuh ujian tanpa
+     * pengawas, dan Admin baru menyadarinya saat sesinya menolak dibuka.
+     *
+     * Putaran pertama memastikan setiap ruang punya SATU orang; putaran kedua
+     * baru menambah orang kedua selama calonnya masih ada. Dengan begitu
+     * keadaan terburuknya adalah "semua ruang satu pengawas" - dan itu keadaan
+     * yang sah, bukan kegagalan.
      *
      * Gilirannya diambil dari kepanitiaan berjabatan pengawas - itu daftar
      * orang yang sekolah sudah tetapkan untuk mengawas. Yang bentrok
@@ -129,45 +165,55 @@ class PengawasService
             ->get();
 
         $dibuat = 0;
-        $dilewati = 0;
-        $tersentuh = 0;
+        $tersentuh = [];
+        $dilewati = [];
 
-        foreach ($ruangan as $r) {
-            $kurang = self::SARAN_PER_RUANG - $r->supervisors->count();
+        foreach ([self::MINIMAL_PER_RUANG, self::SARAN_PER_RUANG] as $target) {
+            foreach ($ruangan as $r) {
+                $kurang = $target - $r->supervisors->count();
 
-            if ($kurang <= 0) {
-                continue;
-            }
-
-            $tersentuh++;
-
-            foreach ($calon as $orang) {
                 if ($kurang <= 0) {
-                    break;
-                }
-
-                $sudah = $r->supervisors->contains('supervisor_id', $orang->id);
-
-                if ($sudah) {
                     continue;
                 }
 
-                try {
-                    $this->tugaskan($r, $orang, $olehUserId);
-                    $dibuat++;
-                    $kurang--;
-                } catch (ValidationException) {
-                    // Bentrok - coba orang berikutnya.
-                    $dilewati++;
-                }
-            }
+                foreach ($calon as $orang) {
+                    if ($kurang <= 0) {
+                        break;
+                    }
 
-            // Dibaca ulang supaya orang berikutnya tidak dipilih dua kali
-            // untuk ruang yang sama.
-            $r->load('supervisors');
+                    $sudah = $r->supervisors->contains('supervisor_id', $orang->id);
+
+                    if ($sudah) {
+                        continue;
+                    }
+
+                    try {
+                        $this->tugaskan($r, $orang, $olehUserId);
+                        $dibuat++;
+                        $kurang--;
+                        $tersentuh[$r->id] = true;
+                    } catch (ValidationException) {
+                        // Bentrok - coba orang berikutnya. Dihitung sekali per
+                        // ORANG, bukan sekali per percobaan: calon yang sama
+                        // dicoba lagi di putaran kedua, dan "2 calon dilewati"
+                        // untuk satu orang yang bentrok adalah angka yang
+                        // membuat Admin mencari orang kedua yang tidak ada.
+                        $dilewati[$orang->id] = true;
+                    }
+                }
+
+                // Dibaca ulang supaya orang berikutnya tidak dipilih dua kali
+                // untuk ruang yang sama, dan supaya putaran kedua melihat
+                // penugasan yang baru saja dibuat putaran pertama.
+                $r->load('supervisors');
+            }
         }
 
-        return ['ruang' => $tersentuh, 'penugasan' => $dibuat, 'dilewati' => $dilewati];
+        return [
+            'ruang' => count($tersentuh),
+            'penugasan' => $dibuat,
+            'dilewati' => count($dilewati),
+        ];
     }
 
     /**

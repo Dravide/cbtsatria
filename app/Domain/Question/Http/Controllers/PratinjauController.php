@@ -71,7 +71,7 @@ class PratinjauController
             abort(404, 'Soal tidak ditemukan.');
         }
 
-        $soal->load(['options', 'items', 'rubrik', 'media', 'penulis:id,name', 'subject:id,name']);
+        $soal->load(['options.media', 'items', 'rubrik', 'media', 'penulis:id,name', 'subject:id,name']);
 
         return Inertia::render('Guru/BankSoal/Pratinjau', [
             'soal' => $this->bentukSoal($soal),
@@ -97,7 +97,7 @@ class PratinjauController
         $paket->load([
             'subject:id,name',
             'penulis:id,name',
-            'butir.question.options',
+            'butir.question.options.media',
             'butir.question.items',
             'butir.question.rubrik',
             'butir.question.media',
@@ -178,6 +178,7 @@ class PratinjauController
                 'content_json' => $o->content_json,
                 'is_correct' => (bool) $o->is_correct,
                 'position' => $o->position,
+                'media' => $o->media->map(fn (QuestionMedia $m) => $this->bentukMedia($m))->all(),
             ])->all(),
             'butir' => $soal->items->map(fn ($b) => [
                 'item_key' => $b->item_key,
@@ -191,16 +192,34 @@ class PratinjauController
                 'max_score' => (float) $r->max_score,
                 'position' => $r->position,
             ])->all(),
-            'media' => $soal->media->map(fn (QuestionMedia $m) => [
-                'id' => $m->id,
-                'tipe' => $m->media_type,
-                'mime' => $m->mime_type,
-                'nama' => $m->nama_asli,
-                'ukuran' => (int) $m->ukuran,
-                'metadata' => $m->metadata_json,
-                'url' => route('guru.media', $m->id),
-                'gambar' => $m->berkasGambar(),
-            ])->all(),
+            'media' => $soal->media
+                ->whereNull('option_id')
+                ->map(fn (QuestionMedia $m) => $this->bentukMedia($m))
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * Satu penunjuk media untuk pratinjau: metadata + URL rute pembacanya.
+     *
+     * `url` menunjuk `guru.media`, bukan jalur disk - lihat catatan
+     * `bentukSoal`. Dipakai media tingkat soal DAN media pilihan jawaban
+     * supaya keduanya dirender dengan bentuk yang sama.
+     *
+     * @return array<string, mixed>
+     */
+    private function bentukMedia(QuestionMedia $m): array
+    {
+        return [
+            'id' => $m->id,
+            'tipe' => $m->media_type,
+            'mime' => $m->mime_type,
+            'nama' => $m->nama_asli,
+            'ukuran' => (int) $m->ukuran,
+            'metadata' => $m->metadata_json,
+            'url' => route('guru.media', $m->id),
+            'gambar' => $m->berkasGambar(),
         ];
     }
 }

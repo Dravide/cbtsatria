@@ -6,6 +6,7 @@ use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamQuestion;
 use App\Domain\Question\Enums\JenisSoal;
 use App\Domain\Question\Models\Question;
+use App\Domain\Question\Models\QuestionOption;
 use App\Domain\Question\Models\QuestionPackage;
 use App\Domain\Tenancy\Scopes\SchoolScope;
 use Illuminate\Support\Facades\DB;
@@ -90,8 +91,10 @@ class PembekuPaket
 
         // Dimuat lengkap di muka, bukan satu kueri per butir: paket berisi 40
         // soal berarti 40 kueri soal ditambah 40 kueri opsi bila dimuat malas.
+        // Media opsinya ikut dimuat supaya gambar pilihan jawaban terbawa ke
+        // snapshot tanpa kueri tambahan per baris.
         $butir = $paket->butir()
-            ->with(['question.options', 'question.items', 'question.rubrik', 'question.media'])
+            ->with(['question.options.media', 'question.items', 'question.rubrik', 'question.media'])
             ->orderBy('position')
             ->get();
 
@@ -174,6 +177,40 @@ class PembekuPaket
         return $opsi->map(fn ($o) => [
             'kunci' => $o->option_key,
             'teks' => $o->content_json,
+            // Gambar/audio/video yang melekat pada PILIHAN ini - bentuk
+            // penunjuk yang sama dengan media tingkat soal, supaya layar siswa
+            // merender keduanya dengan satu jalur. GAMBAR OPSI BUKAN media
+            // tingkat soal: ia tinggal di dalam `teks` pilihannya sendiri.
+            'media' => $this->mediaOpsi($o),
+        ])->all();
+    }
+
+    /**
+     * Penunjuk media satu pilihan jawaban, atau null bila tidak ada.
+     *
+     * `option_id` tidak ikut: yang dibaca layar siswa adalah daftar berkas ini,
+     * dan id baris opsi berubah setiap penyuntingan. Yang stabil bagi seluruh
+     * rantai baca adalah `id` baris media - dan itulah yang dipakai
+     * ExamMediaSiswaController untuk memeriksa "apakah berkas ini memang
+     * dikirim ke butir ini".
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function mediaOpsi(QuestionOption $opsi): ?array
+    {
+        $media = $opsi->media;
+
+        if ($media->isEmpty()) {
+            return null;
+        }
+
+        return $media->map(fn ($m) => [
+            'id' => $m->id,
+            'tipe' => $m->media_type,
+            'mime' => $m->mime_type,
+            'nama' => $m->nama_asli,
+            'ukuran' => $m->ukuran === null ? null : (int) $m->ukuran,
+            'metadata' => $m->metadata_json,
         ])->all();
     }
 
@@ -223,7 +260,11 @@ class PembekuPaket
      */
     private function media(Question $soal): ?array
     {
-        $media = $soal->media;
+        // `option_id` NULL = media tingkat SOAL. Media pilihan jawaban
+        // disalin ke dalam `opsi_json` masing-masing (lihat opsi()), bukan ke
+        // sini - supaya ia tetap menempel pada pilihannya dan tidak muncul
+        // sebagai gambar lepas di atas pilihan.
+        $media = $soal->media->whereNull('option_id');
 
         if ($media->isEmpty()) {
             return null;

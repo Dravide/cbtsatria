@@ -228,11 +228,11 @@ abstract class PenjajarKolom
      *
      * @param  array<int, array<int, string>>  $baris
      * @param  class-string<PenjajarKolom>  $kelasPenjajar  Penjajar yang dipakai
-     *         untuk menguji setiap baris awal. Diberikan EKSPLISIT, bukan
-     *         diambil lewat `static::class`: method ini statis, dan `static`
-     *         di dalamnya menunjuk ke kelas yang dipanggil - yaitu kelas
-     *         abstrak ini sendiri, sehingga `new static` melempar
-     *         "Cannot instantiate abstract class" pada setiap berkas.
+     *                                                      untuk menguji setiap baris awal. Diberikan EKSPLISIT, bukan
+     *                                                      diambil lewat `static::class`: method ini statis, dan `static`
+     *                                                      di dalamnya menunjuk ke kelas yang dipanggil - yaitu kelas
+     *                                                      abstrak ini sendiri, sehingga `new static` melempar
+     *                                                      "Cannot instantiate abstract class" pada setiap berkas.
      * @return array{0: int, 1: array<int, string>}|null
      */
     public static function temukan(array $baris, string $kelasPenjajar): ?array

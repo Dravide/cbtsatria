@@ -220,7 +220,7 @@ export default function Hasil({ event, ujian, publikasi }: Props) {
             <div className="mt-3 grid gap-3 lg:grid-cols-2">
                 <section className="rounded-wf border border-line bg-surface">
                     <header className="flex items-center gap-2 border-b border-line px-4 py-2.5">
-                        <h2 className="text-xs font-medium tracking-wide text-ink-2 uppercase">
+                        <h2 className="font-display text-sm font-semibold text-ink">
                             Setelah dipublikasikan
                         </h2>
                         <div className="ml-auto">
@@ -294,7 +294,7 @@ export default function Hasil({ event, ujian, publikasi }: Props) {
 
                 <section className="rounded-wf border border-line bg-surface">
                     <header className="border-b border-line px-4 py-2.5">
-                        <h2 className="text-xs font-medium tracking-wide text-ink-2 uppercase">
+                        <h2 className="font-display text-sm font-semibold text-ink">
                             Koreksi &amp; publikasi
                         </h2>
                     </header>

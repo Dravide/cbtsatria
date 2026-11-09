@@ -182,6 +182,89 @@ class UserRegistrar
     }
 
     /**
+     * Ganti username akun yang sudah ada.
+     *
+     * =====================================================================
+     * Mengapa ini ada, padahal username sengaja diturunkan dari NIS/NIP
+     * =====================================================================
+     * Karena NIS dan NIP memang salah ketik. Siswa yang NIS-nya terlanjur
+     * dimasukkan sebagai `20240017` padahal kartunya berbunyi `20240071`
+     * mendapat username yang salah, dan ia akan menghafal nomor yang salah
+     * itu selama satu tahun ajaran. Selama tidak ada jalan memperbaikinya,
+     * satu-satunya cara adalah menonaktifkan akun lalu membuat yang baru -
+     * dan itu memutus riwayat ujian, presensi, serta jawabannya.
+     *
+     * Yang TIDAK dilakukan fungsi ini: menurunkan username ulang dari nomor
+     * identitas. Adminlah yang mengetik username barunya, dan itu disengaja.
+     * Memperbaiki NIS tidak boleh diam-diam mengubah username, karena username
+     * tertempel di kartu login dan setiap siswa yang sudah menghafalnya akan
+     * terkunci pada hari ujian.
+     *
+     * =====================================================================
+     * Mengapa normanya diperiksa DI SINI, bukan di form
+     * =====================================================================
+     * Username adalah satu-satunya identitas yang diketik saat login, dan ia
+     * unik GLOBAL - bentrokan antar sekolah tidak akan terlihat dari layar
+     * satu sekolah. Aturan bentuknya karena itu harus hidup di tempat yang
+     * sama dengan pemeriksaan ketersediaannya; form yang memeriksanya sendiri
+     * hanya akan sepakat dengan server sampai keduanya berbeda diam-diam.
+     *
+     * Yang ditolak, dan alasannya masing-masing:
+     * - spasi di tengah: tidak terlihat di layar login, mustahil diketik ulang
+     *   dengan benar dari kartu;
+     * - huruf besar: bentuk yang didokumentasikan blueprint adalah huruf
+     *   kecil, dan `2024001` vs `2024001` yang berbeda hanya pada kasus akan
+     *   tampak identik saat dicetak;
+     * - karakter selain huruf, angka, dan titik: `/`, `\`, `@`, dan `+` punya
+     *   arti di jalur URL dan di surel, dan username yang memuatnya akan
+     *   rusak di salah satu tempat itu tanpa galat.
+     *
+     * @return string Username LAMA, supaya pemanggil bisa mencatatnya di log.
+     *
+     * @throws \InvalidArgumentException Bila bentuknya tidak sah atau sudah terpakai.
+     */
+    public function gantiUsername(User $user, string $username): string
+    {
+        $baru = strtolower(trim($username));
+
+        if (preg_match('/^[a-z0-9][a-z0-9.]*$/', $baru) !== 1) {
+            throw new \InvalidArgumentException(
+                'Username hanya boleh berisi huruf, angka, dan titik, serta tidak boleh diawali titik.'
+            );
+        }
+
+        if (mb_strlen($baru) < 3) {
+            throw new \InvalidArgumentException('Username minimal 3 karakter.');
+        }
+
+        // Melewati tenant, seperti `usernameDari`: yang dicegah adalah
+        // bentrokan ANTAR sekolah, dan query yang ter-scope tidak akan pernah
+        // melihat baris sekolah lain - sehingga ia melaporkan "bebas" untuk
+        // username yang sudah dipakai, lalu gagal di tingkat basis data.
+        //
+        // Akun itu sendiri dikecualikan: menyimpan tanpa mengubah username
+        // adalah hal yang wajar, dan menolaknya berarti form yang tidak
+        // mengubah apa pun tetap berbunyi sebagai galat.
+        $terpakai = User::tanpaTenant()
+            ->where('username', $baru)
+            ->whereKeyNot($user->getKey())
+            ->exists();
+
+        if ($terpakai) {
+            throw new \InvalidArgumentException(
+                'Username '.$baru.' sudah dipakai akun lain. Username dipakai lintas sekolah, '
+                .'jadi bentrokannya bisa datang dari sekolah lain.'
+            );
+        }
+
+        $lama = $user->username;
+
+        $user->forceFill(['username' => $baru])->save();
+
+        return $lama;
+    }
+
+    /**
      * Aktifkan/nonaktifkan sekumpulan akun.
      *
      * @param  array<int, int>  $id

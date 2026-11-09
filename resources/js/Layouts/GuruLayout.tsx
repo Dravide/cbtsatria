@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import KonsolLayout, { KelompokNav } from './KonsolLayout';
+import KonsolLayout, { ItemNav, KelompokNav } from './KonsolLayout';
 
 /**
  * Kerangka konsol Guru - wireframe-peran.html plate 01-08.
@@ -42,27 +42,27 @@ type Props = {
     children: ReactNode;
 };
 
-const BANK_SOAL = [
+const BANK_SOAL: ItemNav[] = [
     // Bank soal berdiri di luar event - soal adalah milik Guru dan sekolah,
     // bukan milik satu ujian (wireframe plate 02). Karena itu tidak ada
     // pemilih event di bar atas konsol ini, dan tautan di bawah ini tidak
     // pernah memuat id event.
-    { label: 'Bank soal', href: '/guru/bank-soal', awalan: false },
-    { label: 'Paket soal', href: '/guru/paket', awalan: true },
+    { label: 'Bank soal', href: '/guru/bank-soal', awalan: false, ikon: 'bank-soal' },
+    { label: 'Paket soal', href: '/guru/paket', awalan: true, ikon: 'paket' },
     // Impor berada DI DALAM bank soal (/guru/bank-soal/impor) supaya Guru
     // yang sedang menyaring soal tidak kehilangan tempatnya. Menu tersendiri
     // ke laman yang sama akan membuat dua tautan menyalakan satu laman.
-    { label: 'Impor soal', href: '/guru/bank-soal/impor', awalan: false },
+    { label: 'Impor soal', href: '/guru/bank-soal/impor', awalan: false, ikon: 'impor' },
 ];
 
-const NILAI = [
+const NILAI: ItemNav[] = [
     // Ketiganya `awalan: false` karena ketiganya punya laman DETAIL di bawah
     // dirinya (`/guru/koreksi/{ujian}`, `/guru/nilai/{ujian}`,
     // `/guru/analisis/{ujian}`), dan menu utama harus tetap menyala saat
     // Guru sedang berada di salah satunya.
-    { label: 'Koreksi uraian', href: '/guru/koreksi', awalan: true },
-    { label: 'Nilai kelas', href: '/guru/nilai', awalan: false },
-    { label: 'Analisis butir', href: '/guru/analisis', awalan: false },
+    { label: 'Koreksi uraian', href: '/guru/koreksi', awalan: true, ikon: 'koreksi' },
+    { label: 'Nilai kelas', href: '/guru/nilai', awalan: false, ikon: 'nilai' },
+    { label: 'Analisis butir', href: '/guru/analisis', awalan: false, ikon: 'analisis' },
 ];
 
 export default function GuruLayout({ judul, breadcrumb, aksi, children }: Props) {

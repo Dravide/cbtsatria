@@ -520,7 +520,7 @@ class ImporPenggunaService
                 'username' => $this->registrar->usernameDari($nomor, (string) $this->kodeSekolah($sekolahId)),
                 // Kunci ini WAJIB ada: `UserRegistrar::buat()` membacanya
                 // tanpa syarat. Nilainya sama dengan jalur buat manual.
-                'password' => 'password',
+                'password' => User::SANDI_BAWAAN,
             ]),
             $sekolahId,
         );

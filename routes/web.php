@@ -3,12 +3,15 @@
 use App\Domain\Admin\Http\Controllers\AcademicYearController;
 use App\Domain\Admin\Http\Controllers\ActivityLogController;
 use App\Domain\Admin\Http\Controllers\DashboardController;
+use App\Domain\Admin\Http\Controllers\MasterImportController;
+use App\Domain\Admin\Http\Controllers\PengaturanAiController;
 use App\Domain\Admin\Http\Controllers\RoomController;
 use App\Domain\Admin\Http\Controllers\SchoolClassController;
 use App\Domain\Admin\Http\Controllers\SchoolProfileController;
 use App\Domain\Admin\Http\Controllers\SchoolSettingController;
 use App\Domain\Admin\Http\Controllers\SubjectController;
 use App\Domain\Admin\Http\Controllers\UserController;
+use App\Domain\Admin\Http\Controllers\UserExportController;
 use App\Domain\Admin\Http\Controllers\UserImportController;
 use App\Domain\Attendance\Http\Controllers\BeritaAcaraController;
 use App\Domain\Attendance\Http\Controllers\BerkasLaporanController;
@@ -18,6 +21,7 @@ use App\Domain\Attendance\Http\Controllers\PemantauanEventController;
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
 use App\Domain\Attendance\Http\Controllers\PresensiController;
 use App\Domain\Attendance\Http\Controllers\RuangTugasController;
+use App\Domain\Attendance\Http\Controllers\Siswa\AkunSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\GerbangSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\JadwalSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\KerjakanSiswaController;
@@ -33,6 +37,7 @@ use App\Domain\Event\Http\Controllers\EventSubjectController;
 use App\Domain\Event\Http\Controllers\PemasanganPaketController;
 use App\Domain\Exam\Http\Controllers\ExamJadwalController;
 use App\Domain\Exam\Http\Controllers\ExamMediaSiswaController;
+use App\Domain\Exam\Http\Controllers\ExamPenempatanController;
 use App\Domain\Exam\Http\Controllers\ExamPengawasController;
 use App\Domain\Exam\Http\Controllers\ExamTokenController;
 use App\Domain\Grading\Http\Controllers\Admin\HasilController;
@@ -44,10 +49,12 @@ use App\Domain\Identity\Http\Controllers\Auth\LoginController;
 use App\Domain\Identity\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Domain\Question\Http\Controllers\DashboardGuruController;
 use App\Domain\Question\Http\Controllers\MediaSoalController;
+use App\Domain\Question\Http\Controllers\MediaUnggahController;
 use App\Domain\Question\Http\Controllers\PratinjauController;
 use App\Domain\Question\Http\Controllers\QuestionController;
 use App\Domain\Question\Http\Controllers\QuestionImportController;
 use App\Domain\Question\Http\Controllers\QuestionPackageController;
+use App\Domain\Question\Http\Controllers\SoalAiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -154,6 +161,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/pengaturan', [SchoolSettingController::class, 'edit'])->name('pengaturan');
         Route::put('/pengaturan', [SchoolSettingController::class, 'update']);
 
+        // Tab AI - penyedia model bahasa untuk Generate soal di bank soal.
+        // Alamatnya lebih spesifik daripada `/pengaturan` dan metodenya
+        // berbeda, sehingga tidak membayangi apa pun. Isinya terpisah karena
+        // form Pengaturan menulis kolom `settings` secara UTUH - lihat
+        // docblock PengaturanAiController.
+        Route::put('/pengaturan/ai', [PengaturanAiController::class, 'update'])->name('pengaturan.ai');
+        Route::post('/pengaturan/ai/uji', [PengaturanAiController::class, 'uji'])->name('pengaturan.ai.uji');
+
         // 24 - log aktivitas. Hanya baca; tidak ada route hapus, selamanya.
         Route::get('/log', [ActivityLogController::class, 'index'])->name('log');
 
@@ -161,6 +176,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/pengguna', [UserController::class, 'index'])->name('pengguna');
         Route::post('/pengguna', [UserController::class, 'store']);
         Route::put('/pengguna/{pengguna}', [UserController::class, 'update']);
+        // Ganti username berdiri sendiri, bukan kolom di form Ubah: ia
+        // tertempel di kartu login, dan satu salah ketik yang tidak disadari
+        // langsung mengunci siswa pada hari ujian. Lihat docblock methodnya.
+        Route::put('/pengguna/{pengguna}/username', [UserController::class, 'gantiUsername'])
+            ->name('pengguna.username');
         Route::post('/pengguna/massal', [UserController::class, 'massal'])->name('pengguna.massal');
         Route::post('/pengguna/reset-password', [UserController::class, 'resetPassword'])
             ->name('pengguna.reset');
@@ -187,6 +207,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/pengguna/impor/template', [UserImportController::class, 'template'])->name('pengguna.impor.template');
         Route::post('/pengguna/impor/{batch}/konfirmasi', [UserImportController::class, 'konfirmasi'])->name('pengguna.impor.konfirmasi');
         Route::get('/pengguna/impor/{batch}/laporan', [UserImportController::class, 'laporan'])->name('pengguna.impor.laporan');
+
+        // 05c - ekspor pengguna. TIDAK ada `GET /pengguna/ekspor`: riwayatnya
+        // dikirim sebagai prop dari `UserController@index`, karena pertanyaan
+        // "berkas saya jadi belum?" muncul tepat setelah tombolnya ditekan -
+        // dan jawabannya harus ada di laman yang sedang ia lihat.
+        //
+        // `{ekspor}` aman dari bayangan `impor/*` di atas: seluruh segmen
+        // statis di sini didaftarkan lebih dulu, dan tidak ada nama yang
+        // bertabrakan di antara keduanya.
+        Route::post('/pengguna/ekspor', [UserExportController::class, 'minta'])->name('pengguna.ekspor');
+        Route::get('/pengguna/ekspor/{ekspor}/unduh', [UserExportController::class, 'unduh'])->name('pengguna.ekspor.unduh');
 
         // 06 - tahun ajaran & semester
         Route::get('/tahun-ajaran', [AcademicYearController::class, 'index'])->name('tahun-ajaran');
@@ -227,6 +258,42 @@ Route::middleware('auth')->group(function () {
 
         /*
         |------------------------------------------------------------------
+        | Impor master data - mata pelajaran dan ruang
+        |------------------------------------------------------------------
+        | Satu blok untuk dua jenis, dan `{jenis}` ada di URL karena itu
+        | satu-satunya hal yang membedakan keduanya. Jenisnya divalidasi
+        | menjadi enum SEBELUM satu baris pun dibaca, sehingga URL yang
+        | menyebut jenis tidak dikenal menerima 404.
+        |
+        | Didaftarkan di SATU tempat, bukan di bawah `/mapel` dan `/ruang`
+        | masing-masing: dua blok kembar adalah dua tempat yang harus tetap
+        | sepakat soal urutan rute - dan yang kedua selalu yang terlupakan
+        | saat salah satunya ditambah.
+        |
+        | Jalurnya `/impor/{jenis}`, bukan `/mapel/impor` dan `/ruang/impor`,
+        | dan itu bukan pilihan gaya: `PUT /ruang/{ruang}` sudah ada, dan
+        | `GET /ruang/impor` akan bertabrakan dengannya pada hari seseorang
+        | menambahkan rute itu. `/impor/*` tidak berbagi satu pun segmen
+        | dengan rute yang sudah terdaftar.
+        |
+        | URUTANNYA tetap dijaga seperti importer lain: seluruh segmen
+        | statis (`unggah`, `template`) didaftarkan SEBELUM rute yang memuat
+        | `{batch}`. Di blok ini keduanya kebetulan tidak bertabrakan -
+        | `/impor/{jenis}/template` punya tiga segmen dan
+        | `/impor/{jenis}/{batch}/laporan` punya empat - tetapi
+        | `php artisan route:list --path=admin/impor` tetap yang memeriksanya,
+        | bukan ingatan siapa pun.
+        */
+        Route::get('/impor/{jenis}', [MasterImportController::class, 'index'])->name('master.impor');
+        Route::post('/impor/{jenis}/unggah', [MasterImportController::class, 'unggah'])->name('master.impor.unggah');
+        Route::get('/impor/{jenis}/template', [MasterImportController::class, 'template'])->name('master.impor.template');
+        Route::post('/impor/{jenis}/{batch}/konfirmasi', [MasterImportController::class, 'konfirmasi'])
+            ->name('master.impor.konfirmasi');
+        Route::get('/impor/{jenis}/{batch}/laporan', [MasterImportController::class, 'laporan'])
+            ->name('master.impor.laporan');
+
+        /*
+        |------------------------------------------------------------------
         | 10-15 Event Workspace
         |------------------------------------------------------------------
         | Rute event bersarang di bawah /admin/events, dan id event selalu
@@ -249,6 +316,11 @@ Route::middleware('auth')->group(function () {
         // 13 - kepanitiaan
         Route::get('/events/{event}/panitia', [EventCommitteeController::class, 'index'])->name('events.panitia');
         Route::post('/events/{event}/panitia', [EventCommitteeController::class, 'store']);
+        Route::post('/events/{event}/panitia/massal', [EventCommitteeController::class, 'massal'])->name('events.panitia.massal');
+        // Tiga segmen, jadi tidak pernah bertabrakan dengan `{panitia}` di
+        // bawahnya - dan urutannya sengaja sesudah `massal`, supaya kedua
+        // rute tambahan itu terbaca berdampingan.
+        Route::post('/events/{event}/panitia/{panitia}/kode', [EventCommitteeController::class, 'terbitkanKode'])->name('events.panitia.kode');
         Route::put('/events/{event}/panitia/{panitia}', [EventCommitteeController::class, 'update']);
         Route::delete('/events/{event}/panitia/{panitia}', [EventCommitteeController::class, 'destroy']);
 
@@ -282,9 +354,31 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/events/{event}/ujian/{ujian}/sesi', [ExamJadwalController::class, 'simpanSesi'])->name('events.sesi.store');
         Route::put('/events/{event}/ujian/{ujian}/sesi/{sesi}', [ExamJadwalController::class, 'ubahSesi'])->name('events.sesi.update');
+        // Graf StatusSesi mewajibkan Draft -> Siap -> Berjalan, dan sampai
+        // 2026-11-07 tidak ada satu pun rute yang bisa memindahkan sesi ke
+        // Siap. Akibatnya "Buka" SELALU ditolak untuk sesi yang dibuat lewat
+        // laman jadwal. Rute ini penghasilnya - lihat `SesiService::siapkan()`.
+        Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/siapkan', [ExamJadwalController::class, 'siapkanSesi'])->name('events.sesi.siapkan');
         Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/mulai', [ExamJadwalController::class, 'mulaiSesi'])->name('events.sesi.mulai');
         Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/tutup', [ExamJadwalController::class, 'tutupSesi'])->name('events.sesi.tutup');
         Route::delete('/events/{event}/ujian/{ujian}/sesi/{sesi}', [ExamJadwalController::class, 'hapusSesi'])->name('events.sesi.hapus');
+
+        // 16b - penempatan peserta ke ruang (wireframe plate 16b, PRD §9.5).
+        // Laman tersendiri, bukan tombol di laman jadwal: keputusan yang
+        // diambil di sini - siapa duduk di ruang mana - dicetak dan ditempel
+        // di pintu, dan sampai sekarang tidak ada satu pun layar yang
+        // memperlihatkannya SEBELUM ia berlaku.
+        //
+        // Rutenya bersaudara dengan `/jadwal/sebar` di atas, dan yang lama
+        // tetap ada: ia jalur cepat "sebar apa adanya", tanpa pratinjau.
+        //
+        // Keduanya rute EVENT, tanpa `{sesi}` di lintasannya. Peta ruangnya
+        // berlaku sepanjang event, jadi sesi bukan bagian dari alamatnya -
+        // dan rute yang menyebut sesi akan menyiratkan peta yang berbeda per
+        // sesi, persis yang dibalik pada 07 Nov 2026.
+        Route::get('/events/{event}/penempatan', [ExamPenempatanController::class, 'index'])->name('events.penempatan');
+        Route::post('/events/{event}/penempatan', [ExamPenempatanController::class, 'sebar'])->name('events.penempatan.sebar');
+        Route::post('/events/{event}/penempatan/kocok-ulang', [ExamPenempatanController::class, 'kocokUlang'])->name('events.penempatan.kocok-ulang');
 
         // 17 - pengawas & penempatan ruang. Barisnya ruang-SESI, bukan ruang:
         // pengawas sesi pagi belum tentu pengawas sesi siang.
@@ -435,6 +529,19 @@ Route::middleware(['auth', 'siswa'])->prefix('siswa')->name('siswa.')->group(fun
     // Plate 28-29 - nilai dan riwayat pelanggaran sendiri.
     Route::get('/nilai', [NilaiSiswaController::class, 'index'])->name('nilai');
     Route::get('/pelanggaran', [PelanggaranSiswaController::class, 'index'])->name('pelanggaran');
+
+    // Tab keempat konsol siswa - identitas, ganti sandi, dan keluar. Tidak
+    // digambar wireframe mana pun; isinya dikunci pemilik produk 2026-11-07
+    // (identitas + ganti sandi + keluar, peringatan sandi bawaan TANPA
+    // penegakan). Lihat AkunSiswaController.
+    Route::get('/akun', [AkunSiswaController::class, 'index'])->name('akun');
+
+    // `throttle:ganti-sandi` - pembatas laju ketiga. Yang dijaga bukan tebakan
+    // enam angka melainkan biaya `Hash::check` bcrypt: sesi yang dicuri dipakai
+    // mempelajari sandi korban. Per AKUN, tanpa pasangan per-IP. Lihat
+    // App\Support\PembatasLaju.
+    Route::put('/akun/sandi', [AkunSiswaController::class, 'gantiSandi'])
+        ->middleware('throttle:ganti-sandi')->name('akun.sandi');
 });
 
 /*
@@ -467,6 +574,37 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     // Plate 03 - builder. `/baru` didaftarkan SEBELUM `/{soal}/ubah`, dan
     // urutannya menentukan: tanpa itu "baru" dicoba sebagai {soal} lebih dulu.
     Route::get('/bank-soal/baru', [QuestionController::class, 'create'])->name('bank-soal.baru');
+
+    /*
+    |----------------------------------------------------------------------
+    | Generate AI - laman builder
+    |----------------------------------------------------------------------
+    | Didaftarkan SEBELUM seluruh segmen dinamis `/bank-soal/{soal}/...`,
+    | dengan alasan yang sama seperti `/bank-soal/baru` di atas: "ai" adalah
+    | segmen yang sah-sah saja dicocokkan sebagai id soal.
+    |
+    | `throttle:ai-soal` bukan hiasan - setiap permintaan di sini ditagih ke
+    | akun penyedia milik sekolah. Lihat PembatasLaju::AI_PER_GURU.
+    */
+    Route::post('/bank-soal/ai', [SoalAiController::class, 'generate'])
+        ->middleware('throttle:ai-soal')
+        ->name('bank-soal.ai');
+
+    /*
+    |----------------------------------------------------------------------
+    | Unggah media soal - gambar/audio/video pada soal DAN pilihan jawaban
+    |----------------------------------------------------------------------
+    | Didaftarkan SEBELUM seluruh segmen dinamis `/bank-soal/{soal}/...`,
+    | dengan alasan yang sama seperti `/bank-soal/baru` dan `/bank-soal/ai`:
+    | "media" adalah segmen yang sah-sah saja dicocokkan sebagai id soal.
+    |
+    | Keduanya menjawab JSON, bukan redirect Inertia, karena dipanggil dari
+    | dalam builder lewat `fetch` TANPA memuat ulang laman - lihat docblock
+    | MediaUnggahController. Path-nya statis; soal tujuan disebut di body
+    | (`soal_id`), dan boleh kosong untuk media draf soal baru.
+    */
+    Route::post('/bank-soal/media', [MediaUnggahController::class, 'unggah'])->name('bank-soal.media');
+    Route::delete('/bank-soal/media/{media}', [MediaUnggahController::class, 'hapus'])->name('bank-soal.media.hapus');
 
     /*
     |----------------------------------------------------------------------

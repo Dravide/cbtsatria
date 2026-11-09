@@ -6,23 +6,25 @@ use App\Domain\Facility\Models\Room;
 use App\Domain\Facility\Models\RoomEntryLink;
 use App\Domain\Tenancy\Services\SchoolResolver;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * Penerbitan tautan masuk ruang + kode pengawas.
+ * Penerbitan tautan masuk ruang.
  *
  * ---------------------------------------------------------------------
- * Mengapa kode dikembalikan, bukan disimpan
+ * Kelas ini dulu juga menerbitkan dan memeriksa KODE pengawas
  * ---------------------------------------------------------------------
- * Kode ditampilkan SEKALI, pada respons yang menerbitkannya. Ia tidak
- * disimpan dalam bentuk terbaca di mana pun - hanya hash-nya. Konsekuensinya
- * yang tidak nyaman tapi benar: kode yang hilang hanya bisa diganti, tidak
- * bisa dilihat lagi. Itu memang sifat kredensial yang baik.
+ * Sampai 2026-11-07 ia memegang `kodeAcak()` dan `cocokkan()`. Keduanya
+ * pindah 2026-11-07 - bukan ditambahkan di tempat lain, melainkan
+ * DIPINDAHKAN, karena kode pengawas bukan lagi milik ruang:
  *
- * Karena itu pula fungsi ini mengembalikan kode sebagai nilai kembalian,
- * bukan lewat properti model: nilai kembalian tidak bisa terbawa ke respons
- * berikutnya secara tidak sengaja.
+ *   menerbitkan  -> Event\Services\PenerbitKodePengawas
+ *   mencocokkan  -> Attendance\Services\PencocokKodePengawas
+ *
+ * Yang tersisa di sini hanyalah tautan, dan itu memang seluruh tugasnya
+ * sekarang. Menerbitkan tautan tidak lagi menerbitkan kredensial apa pun -
+ * konsekuensi yang nyata di lapangan dan disengaja: kartu yang ditempel di
+ * daun pintu berhenti memuat apa pun yang bisa membuka pintunya.
  *
  * ---------------------------------------------------------------------
  * Menerbitkan ulang mencabut yang lama
@@ -31,6 +33,11 @@ use Illuminate\Support\Str;
  * otomatis mencabut yang lama - kalau tidak, kartu pintu yang difoto orang
  * lain tetap berfungsi, dan tidak ada yang tahu berapa banyak tautan sah
  * yang beredar untuk satu pintu.
+ *
+ * `use_count` yang menjawab pertanyaan itu sekarang, dan ia menjadi lebih
+ * penting setelah kodenya pindah: pada kartu yang tidak lagi memuat kode,
+ * "tautan ini dipakai lima kali" adalah satu-satunya tanda kebocoran yang
+ * masih bisa dibaca Admin dari kartunya.
  */
 class RoomEntryLinkService
 {
@@ -41,31 +48,22 @@ class RoomEntryLinkService
 
     /**
      * Terbitkan tautan baru untuk satu ruang.
-     *
-     * @return array{tautan: RoomEntryLink, kode: string}
      */
-    public function terbitkan(Room $ruang, ?int $berlakuJam = null, ?string $kodeManual = null): array
+    public function terbitkan(Room $ruang, ?int $berlakuJam = null): RoomEntryLink
     {
-        $kode = $kodeManual ?? $this->kodeAcak();
         $berlakuJam ??= self::BERLAKU_JAM;
 
-        $tautan = DB::transaction(function () use ($ruang, $kode, $berlakuJam) {
+        return DB::transaction(function () use ($ruang, $berlakuJam) {
             $this->cabutSemua($ruang);
 
             return RoomEntryLink::create([
                 'school_id' => $ruang->school_id,
                 'room_id' => $ruang->id,
                 'slug' => $this->slugUnik($ruang),
-                // Hash dengan cost bawaan. Kode ini diketik beberapa kali
-                // sehari di depan pintu, jadi biayanya tidak terasa; tetapi
-                // ia juga satu-satunya penjaga selain panjang tautan.
-                'code_hash' => Hash::make($kode),
                 'expires_at' => now()->addHours($berlakuJam),
                 'use_count' => 0,
             ]);
         });
-
-        return ['tautan' => $tautan, 'kode' => $kode];
     }
 
     /**
@@ -80,52 +78,38 @@ class RoomEntryLinkService
     }
 
     /**
-     * Cocokkan kode yang diketik dengan tautan yang membawanya.
+     * Catat satu pemakaian tautan - dan HANYA dipanggil sesudah kodenya cocok.
      *
-     * Perhatikan urutan pemeriksaannya, karena urutan itu adalah keamanannya:
+     * ---------------------------------------------------------------------
+     * Mengapa methodnya terpisah dari pencocokan kode
+     * ---------------------------------------------------------------------
+     * Urutan "cocok dulu, baru naikkan" adalah keamanannya, dan ia dulu
+     * dijamin oleh satu method yang memuat keduanya. Sejak kodenya pindah ke
+     * modul lain, jaminan itu tidak lagi bisa ditegakkan oleh kompilator -
+     * yang menjaga sekarang adalah nama method ini dan pemanggilnya di
+     * `PintuRuangController::buka()`, yang memanggilnya SESUDAH pemeriksaan
+     * ruang dan jendela sesi.
      *
-     *   1. Tautannya masih berlaku? Kalau tidak, berhenti - tidak ada gunanya
-     *      memeriksa kode pada tautan yang sudah mati.
-     *   2. Kodenya cocok? Baru sesudah itu penghitung pemakaian naik.
-     *
-     * Kalau urutannya dibalik, use_count akan naik untuk percobaan yang gagal,
+     * Kalau urutannya terbalik, `use_count` naik untuk percobaan yang GAGAL,
      * dan Admin melihat "5 pemakaian" pada tautan yang belum pernah dipakai
      * siapa pun - angka yang tidak lagi bisa dipercaya untuk pertanyaan yang
      * justru paling penting: apakah kartu pintu ini difoto orang lain.
+     *
+     * Pemeriksaan `berlaku()` di sini bukan pengulangan yang sia-sia:
+     * pemanggilnya sudah memeriksanya, tetapi method ini juga menulis, dan
+     * yang menulis ke baris yang sudah dicabut adalah cara paling sunyi
+     * untuk menghidupkan kembali sesuatu yang sudah dimatikan Admin.
      */
-    public function cocokkan(RoomEntryLink $tautan, string $kode): bool
+    public function catatPemakaian(RoomEntryLink $tautan): void
     {
         if (! $tautan->berlaku()) {
-            return false;
-        }
-
-        if (! Hash::check($kode, $tautan->code_hash)) {
-            return false;
+            return;
         }
 
         $tautan->forceFill([
             'use_count' => $tautan->use_count + 1,
             'last_used_at' => now(),
         ])->save();
-
-        return true;
-    }
-
-    /**
-     * Kode enam digit.
-     *
-     * Enam digit karena itu yang bisa diketik di depan pintu sambil berdiri
-     * (wireframe: "482916"). Kode yang lebih panjang lebih aman tetapi akan
-     * ditulis di kertas dan ditempel di meja - dan kertas di meja adalah
-     * kredensial yang jauh lebih bocor daripada kode enam digit.
-     *
-     * str_pad menutup satu kasus yang mudah terlewat: random_int bisa
-     * mengembalikan angka di bawah 100000, dan tanpa padding kode itu menjadi
-     * lima digit - panjangnya berbeda dari yang tertulis di instruksi.
-     */
-    private function kodeAcak(): string
-    {
-        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     }
 
     /**

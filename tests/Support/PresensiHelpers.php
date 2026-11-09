@@ -32,7 +32,7 @@ use App\Domain\Event\Models\EventRoom;
 use App\Domain\Event\Models\EventSubject;
 use App\Domain\Event\Services\EventParticipantService;
 use App\Domain\Event\Services\EventRegistrar;
-use App\Domain\Exam\Enums\StatusSesi;
+use App\Domain\Event\Services\PenerbitKodePengawas;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Services\ExamRegistrar;
 use App\Domain\Exam\Services\PenempatanService;
@@ -141,11 +141,24 @@ function siapkanPresensi(
 
     $ruang = $sesi->rooms()->orderBy('id')->get();
 
+    // Kode pengawas per ruang, terbit dari baris kepanitiaannya sendiri.
+    //
+    // Sejak 2026-11-07 kodenya tidak lagi menempel pada RUANG: ia milik
+    // ORANG, dan yang membuatnya berlaku di sebuah pintu adalah penugasan
+    // orang itu ke ruang-sesi tersebut. Karena helper ini sudah membuat satu
+    // baris kepanitiaan berjabatan `pengawas` plus satu penugasan per ruang,
+    // kodenya cukup diterbitkan di sini - dan testnya tidak perlu tahu dari
+    // mana asalnya.
+    //
+    // Kode MENTAHNYA hanya ada di sini dan di variabel test yang memakainya:
+    // di basis data yang tersimpan hanya hash-nya.
+    $kode = [];
+
     foreach ($ruang as $i => $r) {
         $orang = $pengawasPerRuang[$i]
             ?? User::factory()->pengawas()->untukSekolah($sekolah)->create();
 
-        EventCommitteeMember::create([
+        $panitia = EventCommitteeMember::create([
             'school_id' => $sekolah->id,
             'event_id' => $event->id,
             'user_id' => $orang->id,
@@ -156,13 +169,19 @@ function siapkanPresensi(
         ]);
 
         app(PengawasService::class)->tugaskan($r, $orang, $admin->id);
+
+        $kode[$r->id] = app(PenerbitKodePengawas::class)->terbitkan($panitia);
     }
 
     app(TokenSesi::class)->terbitkan($sesi, $admin->id);
 
-    // Draft -> Siap, lalu berhenti. Membuka sesinya adalah tindakan testnya
-    // sendiri, bukan sesuatu yang dilakukan penyiapan data.
-    $sesi->forceFill(['status' => StatusSesi::Siap])->save();
+    // Draft -> Siap lewat jalur yang sama dengan Admin, bukan `forceFill`.
+    // Dulu di sini ada `forceFill` karena `SesiService::siapkan()` belum ada -
+    // dan justru itu yang menyembunyikan bugnya: aplikasi tidak punya
+    // penghasil `Siap` sama sekali, sehingga "Buka" selalu ditolak di laman
+    // jadwal padahal test-test ini hijau. Membuka sesinya tetap tindakan
+    // testnya sendiri; yang dipindahkan hanya penyiapan datanya.
+    app(SesiService::class)->siapkan($sesi);
 
     return [
         'event' => $event->refresh(),
@@ -170,6 +189,8 @@ function siapkanPresensi(
         'sesi' => $sesi,
         'ruang' => $ruang,
         'siswa' => $siswa,
+        // kode pengawas per ruang-sesi: [ exam_session_room_id => '482916' ]
+        'kode' => $kode,
     ];
 }
 

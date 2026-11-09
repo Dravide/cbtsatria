@@ -2,6 +2,7 @@
 
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\Semester;
+use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Facility\Models\RoomEntryLink;
 use App\Domain\Facility\Services\RoomEntryLinkService;
 use App\Domain\Identity\Models\User;
@@ -72,7 +73,7 @@ it('halaman pintu hanya membocorkan nama ruang, nama sekolah, dan nama sesi', fu
 
     $tautan = app(RoomEntryLinkService::class)->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
 
-    $props = propsPintu($this, $tautan['tautan']->slug);
+    $props = propsPintu($this, $tautan->slug);
 
     // Batasnya diperiksa sebagai daftar kunci yang TEPAT. `has()` akan lulus
     // meski propnya bertambah sepuluh; yang ini gagal begitu satu kunci baru
@@ -98,10 +99,15 @@ it('halaman pintu hanya membocorkan nama ruang, nama sekolah, dan nama sesi', fu
         ->and($props['ruang'])->not->toHaveKeys(['peserta', 'kursi', 'jumlah', 'kapasitas']);
 
     // Nama pengawasnya bahkan tidak boleh muncul di dalam teks mentah
-    // responsnya. Satu kali ikut terkirim sebagai prop yang "tidak
-    // ditampilkan" tetap berarti namanya sampai di peramban orang yang
-    // memindai kartu di daun pintu.
-    $isi = $this->get("/p/{$tautan['tautan']->slug}")->getContent();
+    // responsnya - sebelum pintunya dibuka. Satu kali ikut terkirim sebagai
+    // prop yang "tidak ditampilkan" tetap berarti namanya sampai di peramban
+    // orang yang memindai kartu di daun pintu.
+    //
+    // Sejak kode pengawas menempel pada ORANG, batas ini menjadi lebih
+    // penting, bukan kurang: yang tidak boleh bocor kini termasuk nama
+    // pengawas mana pun yang ditugaskan di ruang itu - dan itu nama yang
+    // tersedia di `supervision_assignments`, bukan sesuatu yang jauh.
+    $isi = $this->get("/p/{$tautan->slug}")->getContent();
 
     expect($isi)->not->toContain('Siswa 1');
 });
@@ -110,24 +116,31 @@ it('membuka pintu mencatat pemakaian tautan dan mengarahkan ke portal pengawas',
     $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
 
     $tautan = app(RoomEntryLinkService::class)->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
+    $kode = $data['kode'][$data['ruang'][0]->id];
 
-    expect($tautan['tautan']->use_count)->toBe(0)
-        ->and($tautan['tautan']->last_used_at)->toBeNull();
+    expect($tautan->use_count)->toBe(0)
+        ->and($tautan->last_used_at)->toBeNull();
 
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => $tautan['kode']])
+    $this->post("/p/{$tautan->slug}", ['kode' => $kode])
         ->assertRedirect(route('pengawas.dashboard'));
 
-    $dipakai = $tautan['tautan']->fresh();
+    $dipakai = $tautan->fresh();
 
-    // Pemakaiannya naik TEPAT satu - dan itu satu-satunya hal di tabel ini
-    // yang membuat "R-01 (tautan ruang)" bisa ditelusuri balik ke kredensial
-    // yang benar-benar dipakai.
+    // Pemakaiannya naik TEPAT satu. Ia satu-satunya hal di tabel ini yang
+    // membuat tautan bisa ditelusuri balik ke pembukaan yang benar-benar
+    // berhasil - dan pada kartu yang tidak lagi memuat kode, ia satu-satunya
+    // tanda kebocoran yang masih bisa dibaca Admin.
     expect($dipakai->use_count)->toBe(1)
         ->and($dipakai->last_used_at)->not->toBeNull();
 
     // Pemegangnya tidak di-login: kalau ia menjadi akun, setiap baris presensi
     // yang ditandatanganinya akan menjadi presensi atas nama orang itu.
     $this->assertGuest();
+
+    // Tetapi namanya TIDAK lagi hilang: yang membuka pintu adalah pengawas
+    // yang memegang kode itu, dan namanya tersimpan bersama hibaknya.
+    expect(session(KonteksRuang::KUNCI_SESI)['pengguna_id'])
+        ->not->toBeNull();
 });
 
 it('menolak tautan yang sudah dicabut dengan alasan tertulis', function () {
@@ -135,12 +148,13 @@ it('menolak tautan yang sudah dicabut dengan alasan tertulis', function () {
 
     $layanan = app(RoomEntryLinkService::class);
     $tautan = $layanan->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
+    $kode = $data['kode'][$data['ruang'][0]->id];
 
     $layanan->cabutSemua(ruangMaster($data['ruang'][0]));
 
     // GET-nya 200, bukan 404: tautannya memang ada, dan yang perlu diketahui
     // pemegangnya adalah APA yang terjadi padanya.
-    $props = propsPintu($this, $tautan['tautan']->slug);
+    $props = propsPintu($this, $tautan->slug);
 
     expect($props['berlaku'])->toBeFalse()
         ->and($props['alasan'])->toContain('dicabut')
@@ -148,14 +162,14 @@ it('menolak tautan yang sudah dicabut dengan alasan tertulis', function () {
         // pun tidak lagi perlu diketahui orang yang memegang kertas kemarin.
         ->and($props['ruang'])->toBeNull();
 
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => $tautan['kode']])
+    $this->post("/p/{$tautan->slug}", ['kode' => $kode])
         ->assertRedirect()
         ->assertSessionHas('galat');
 
-    // Kodenya BENAR dan tautannya dicabut - dan itu tetap tidak membuka apa
-    // pun. Urutan itu yang penting: kalau kodenya diperiksa lebih dulu,
-    // tautan yang sudah dicabut masih bisa dipakai selama seseorang masih
-    // mengingat enam angkanya.
+    // Kodenya BENAR - ia kode pengawas yang sah untuk ruang itu - dan
+    // tautannya dicabut, dan itu tetap tidak membuka apa pun. Urutan itu yang
+    // penting: kalau kodenya diperiksa lebih dulu, tautan yang sudah dicabut
+    // masih bisa dipakai oleh siapa pun yang menghafal enam angkanya.
     $this->get('/pengawas')->assertRedirect(route('login'));
 });
 
@@ -171,18 +185,19 @@ it('menolak tautan yang sudah kedaluwarsa dengan alasan tertulis', function () {
         ruangMaster($data['ruang'][0]),
         berlakuJam: -1,
     );
+    $kode = $data['kode'][$data['ruang'][0]->id];
 
-    expect($tautan['tautan']->berlaku())->toBeFalse();
+    expect($tautan->berlaku())->toBeFalse();
 
-    $props = propsPintu($this, $tautan['tautan']->slug);
+    $props = propsPintu($this, $tautan->slug);
 
     expect($props['berlaku'])->toBeFalse()
         ->and($props['alasan'])->toContain('kedaluwarsa');
 
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => $tautan['kode']])
+    $this->post("/p/{$tautan->slug}", ['kode' => $kode])
         ->assertSessionHas('galat');
 
-    expect($tautan['tautan']->fresh()->use_count)->toBe(0);
+    expect($tautan->fresh()->use_count)->toBe(0);
 });
 
 it('menerbitkan tautan baru mencabut yang lama untuk ruang yang sama', function () {
@@ -192,18 +207,17 @@ it('menerbitkan tautan baru mencabut yang lama untuk ruang yang sama', function 
     $lama = $layanan->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
     $baru = $layanan->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
 
-    // Dua tautan hidup untuk satu pintu berarti kode lama yang sudah ditulis
-    // di papan tulis masih bisa dipakai setelah Admin menerbitkan yang baru -
-    // dan Admin yang menerbitkan ulang hampir selalu melakukannya JUSTRU
-    // karena kode lamanya bocor.
-    expect($lama['tautan']->fresh()->berlaku())->toBeFalse()
-        ->and($baru['tautan']->fresh()->berlaku())->toBeTrue()
-        ->and($baru['tautan']->fresh()->revoked_at)->toBeNull();
+    // Dua tautan hidup untuk satu pintu berarti kartu lama yang tertinggal di
+    // daun pintu masih membuka ruang yang sama - dan Admin yang menerbitkan
+    // ulang hampir selalu melakukannya JUSTRU karena kartu lamanya bocor.
+    expect($lama->fresh()->berlaku())->toBeFalse()
+        ->and($baru->fresh()->berlaku())->toBeTrue()
+        ->and($baru->fresh()->revoked_at)->toBeNull();
 
-    $this->post("/p/{$lama['tautan']->slug}", ['kode' => $lama['kode']])
+    $this->post("/p/{$lama->slug}", ['kode' => $data['kode'][$data['ruang'][0]->id]])
         ->assertSessionHas('galat');
 
-    $this->post("/p/{$baru['tautan']->slug}", ['kode' => $baru['kode']])
+    $this->post("/p/{$baru->slug}", ['kode' => $data['kode'][$data['ruang'][0]->id]])
         ->assertRedirect(route('pengawas.dashboard'));
 });
 
@@ -217,7 +231,7 @@ it('menolak kode yang bukan enam angka', function () {
     // sehingga percobaan yang jelas salah tidak membayar biaya bcrypt - dan
     // pintu di depan kelas tidak bisa dijadikan alat untuk membebani server.
     foreach (['12345', '1234567', ''] as $salah) {
-        $this->post("/p/{$tautan['tautan']->slug}", ['kode' => $salah])
+        $this->post("/p/{$tautan->slug}", ['kode' => $salah])
             ->assertSessionHasErrors('kode');
     }
 
@@ -228,17 +242,18 @@ it('menolak kode yang bukan enam angka', function () {
     // jatuh ke pemeriksaan HASH - di mana ia ditolak sebagai kode yang salah,
     // bukan sebagai kode yang bentuknya salah. Dua penolakan itu memang
     // berbeda, dan yang penting bagi pengawas di depan pintu adalah yang
-    // terakhir: kartu yang hurufnya salah ketik mendapat pesan yang sama
-    // dengan kartu yang angkanya salah.
-    $this->post("/p/{$tautan['tautan']->slug}", ['kode' => 'abcdef'])
+    // terakhir: kode yang hurufnya salah ketik mendapat pesan yang sama
+    // dengan kode yang angkanya salah.
+    $this->post("/p/{$tautan->slug}", ['kode' => 'abcdef'])
         ->assertRedirect()
         ->assertSessionHas('galat')
         ->assertSessionHasNoErrors();
 
-    // Tidak satu pun percobaan di atas menaikkan pemakaiannya: `cocokkan()`
-    // menaikkan hitungan itu SESUDAH hashnya cocok, sehingga Admin tidak
-    // pernah melihat "5 pemakaian" pada tautan yang belum dipakai siapa pun.
-    expect($tautan['tautan']->fresh()->use_count)->toBe(0);
+    // Tidak satu pun percobaan di atas menaikkan pemakaiannya:
+    // `catatPemakaian()` menaikkan hitungan itu SESUDAH hashnya cocok,
+    // sehingga Admin tidak pernah melihat "5 pemakaian" pada tautan yang
+    // belum dipakai siapa pun.
+    expect($tautan->fresh()->use_count)->toBe(0);
 });
 
 it('menolak tautan ruang milik sekolah lain lewat pintu sekolah ini', function () {
@@ -260,7 +275,7 @@ it('menolak tautan ruang milik sekolah lain lewat pintu sekolah ini', function (
     // menegakkannya adalah `whereHas('eventRoom', ... where('room_id',
     // $tautan->room_id))` di dalam controller - dan kalau baris itu hilang,
     // yang terjadi bukan galat melainkan ruang sekolah lain yang terbuka.
-    $props = propsPintu($this, $tautanSini['tautan']->slug);
+    $props = propsPintu($this, $tautanSini->slug);
 
     expect($props['sekolah'])->toBe('SMK Negeri 1');
 
@@ -273,7 +288,7 @@ it('menolak tautan ruang milik sekolah lain lewat pintu sekolah ini', function (
     // dikenali - bukan bahwa ia menunjuk ruang yang salah.
     expect($slugLain)->toBeNull();
 
-    $this->get("/p/{$tautanSini['tautan']->slug}")
+    $this->get("/p/{$tautanSini->slug}")
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('Pengawas/Pintu'));
 });

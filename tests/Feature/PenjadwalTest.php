@@ -224,7 +224,7 @@ it('tidak mengubah apa pun dalam mode kering', function () {
  | Jadwal
  |===================================================================== */
 
-it('menjadwalkan keempat tugas, bukan sekadar menuliskannya', function () {
+it('menjadwalkan kelima tugas, bukan sekadar menuliskannya', function () {
     // Perintah yang tertulis tetapi lupa didaftarkan ke `Schedule` tidak
     // pernah berjalan dan tidak pernah berbunyi - satu-satunya cara
     // menemukannya adalah membuka `routes/console.php` dan membacanya.
@@ -234,6 +234,12 @@ it('menjadwalkan keempat tugas, bukan sekadar menuliskannya', function () {
 
     expect($perintah)->toContain('ujian:tutup-kedaluwarsa')
         ->and($perintah)->toContain('laporan:pangkas-ekspor')
+        // Perintah KELIMA, dan yang paling mudah terlupa: ekspor pengguna
+        // meninggalkan berkas sebesar ekspor laporan, di disk privat yang
+        // sama dengan berita acara. Perintah yang ditulis tetapi tidak
+        // dijadwalkan tidak pernah berbunyi - disknya hanya penuh setahun
+        // kemudian, dan saat itu berita acara yang gagal disimpan.
+        ->and($perintah)->toContain('pengguna:pangkas-ekspor')
         ->and($perintah)->toContain('session:garbage-collect')
         ->and($perintah)->toContain('queue:prune-failed');
 

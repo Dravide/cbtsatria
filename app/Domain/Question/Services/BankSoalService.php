@@ -62,6 +62,7 @@ class BankSoalService
         private readonly SkemaJenisSoal $skema,
         private readonly PembersihHtml $pembersih,
         private readonly ActivityLogger $logger,
+        private readonly MediaSoal $media,
     ) {}
 
     /**
@@ -109,6 +110,37 @@ class BankSoalService
             ]);
 
             $this->tulisAnak($soal, $jenis, $bersih);
+
+            // Gambar/audio/video yang diunggah SEBELUM soal ini punya id
+            // masih berupa draf (`question_id` NULL). Menautkannya di sini -
+            // di dalam transaksi yang sama - berarti tidak pernah ada soal
+            // tersimpan yang medianya menggantung. Lihat MediaSoal::tautkanDraf.
+            //
+            // Daftar yang ditautkan adalah GABUNGAN media soal dan media opsi:
+            // media opsi juga lahir sebagai draf (`question_id` NULL), dan
+            // tautkanOpsiDraf() di bawah menyaring `question_id = soal ini` -
+            // tanpa menautkan question_id-nya lebih dulu, gambar pilihan
+            // jawaban yang baru diunggah tidak akan pernah ditemukan dan
+            // lenyap diam-diam.
+            $this->media->tautkanDraf(
+                array_merge(
+                    (array) ($data['media_draf'] ?? []),
+                    (array) ($data['media_opsi_draf'] ?? []),
+                ),
+                $schoolId,
+                (int) $soal->id,
+                $penulisId,
+            );
+
+            // Media yang melekat pada PILIHAN JAWABAN ditautkan SESUDAH
+            // tulisAnak(), karena baris opsinya baru ada sekarang - dan hanya
+            // di sini id opsinya bisa ditanyakan. Lihat tautkanOpsiDraf.
+            $this->media->tautkanOpsiDraf(
+                (array) ($data['media_opsi_draf'] ?? []),
+                $schoolId,
+                (int) $soal->id,
+                $penulisId,
+            );
 
             $this->logger->log('Menambah soal', $soal, [
                 'kode' => $soal->code,
@@ -167,9 +199,40 @@ class BankSoalService
                     : null,
             ]);
 
+            // Media pilihan jawaban dilepas SEBELUM tulisAnak() menghapus lalu
+            // menulis ulang opsi: `question_media.option_id` memakai cascade,
+            // sehingga tanpa langkah ini setiap penyuntingan menghapus gambar
+            // pilihan jawabannya. Yang dikembalikan adalah peta
+            // [media_id => option_key], dan ia disambungkan lagi sesudahnya.
+            $petaOpsiLama = $this->media->lepasMediaOpsi((int) $soal->school_id, (int) $soal->id);
+
             $this->tulisAnak($soal, $jenis, $bersih);
 
-            $this->logger->log('Memperbarui soal', $soal, ['kode' => $soal->code]);
+            if ($petaOpsiLama !== []) {
+                $this->media->tautkanUlangMediaOpsi($petaOpsiLama, (int) $soal->school_id, (int) $soal->id);
+            }
+
+            // Daftar yang ditautkan adalah GABUNGAN media soal dan media opsi:
+            // media opsi baru juga masih draf (`question_id` NULL), sedangkan
+            // tautkanOpsiDraf() menyaring `question_id = soal ini`. Menautkan
+            // keduanya lebih dulu memastikan gambar pilihan yang baru diunggah
+            // ditemukan, bukan lenyap diam-diam.
+            $this->media->tautkanDraf(
+                array_merge(
+                    (array) ($data['media_draf'] ?? []),
+                    (array) ($data['media_opsi_draf'] ?? []),
+                ),
+                (int) $soal->school_id,
+                (int) $soal->id,
+                (int) $soal->created_by,
+            );
+
+            $this->media->tautkanOpsiDraf(
+                (array) ($data['media_opsi_draf'] ?? []),
+                (int) $soal->school_id,
+                (int) $soal->id,
+                (int) $soal->created_by,
+            );
 
             return $soal->fresh(['options', 'items', 'rubrik', 'media']);
         });

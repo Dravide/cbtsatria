@@ -3,6 +3,7 @@
 namespace App\Domain\Admin\Http\Controllers;
 
 use App\Domain\Audit\Services\ActivityLogger;
+use App\Domain\Tenancy\Models\PengaturanAi;
 use App\Domain\Tenancy\Models\School;
 use App\Domain\Tenancy\Support\PengaturanBawaan;
 use Illuminate\Http\RedirectResponse;
@@ -45,7 +46,29 @@ class SchoolSettingController
 
         return Inertia::render('Admin/Pengaturan', [
             'pengaturan' => PengaturanBawaan::gabung($sekolah->settings),
+            // Tab AI. Kuncinya TIDAK ikut - hanya penanda bahwa ia ada dan
+            // empat huruf terakhirnya. Yang tidak dikirim tidak bisa bocor
+            // lewat devtools, tangkapan layar, atau sesi yang ditinggal
+            // terbuka.
+            'ai' => $this->konfigurasiAi($sekolah),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function konfigurasiAi(School $sekolah): array
+    {
+        $ai = PengaturanAi::query()->where('school_id', $sekolah->id)->first();
+
+        return [
+            'base_url' => $ai?->base_url ?? '',
+            'model' => $ai?->model ?? '',
+            'aktif' => (bool) ($ai?->aktif ?? false),
+            'batas_token' => (int) ($ai?->batas_token ?: 1500),
+            'ada_kunci' => filled($ai?->api_key_encrypted),
+            'petunjuk_kunci' => $ai?->petunjukKunci(),
+        ];
     }
 
     public function update(Request $request, ActivityLogger $logger): RedirectResponse

@@ -8,7 +8,9 @@ use App\Domain\Question\Enums\JenisSoal;
 use App\Domain\Question\Enums\StatusSoal;
 use App\Domain\Question\Http\Requests\SimpanSoalRequest;
 use App\Domain\Question\Models\Question;
+use App\Domain\Question\Services\AmpuanMapel;
 use App\Domain\Question\Services\BankSoalService;
+use App\Domain\Tenancy\Services\PengaturanAiSekolah;
 use App\Support\TabelQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -131,6 +133,10 @@ class QuestionController
             // Paket tujuan, bila builder dibuka dari laman paket (plate 03:
             // tombol "Simpan & tambah ke paket" hanya muncul di sini).
             'paketTujuan' => $request->integer('paket') ?: null,
+            // Hanya SAKLARNYA. Guru tidak perlu tahu penyedia mana yang
+            // dipakai sekolah, dan base URL maupun nama model yang tidak
+            // dikirim tidak bisa bocor dari devtools.
+            'ai' => $this->aiAktif(),
         ]);
     }
 
@@ -154,6 +160,10 @@ class QuestionController
         // berhak melihatnya, dan yang tidak boleh adalah menyimpannya.
         $bolehUbah = Gate::allows('update', $soal);
 
+        // Media tingkat soal dan media per pilihan dimuat lebih dulu supaya
+        // builder bisa menampilkannya sebagai gambar, bukan nama berkas.
+        $soal->loadMissing(['options.media', 'media']);
+
         return Inertia::render('Guru/BankSoal/Builder', [
             'soal' => [
                 'id' => $soal->id,
@@ -167,10 +177,32 @@ class QuestionController
                 'kunci' => $soal->answer_key_json,
                 'skor' => $soal->scoring_config_json,
                 'pembahasan' => $soal->explanation_json,
+                'media' => $soal->media
+                    ->whereNull('option_id')
+                    ->map(fn ($m) => [
+                        'id' => $m->id,
+                        'tipe' => $m->media_type,
+                        'mime' => $m->mime_type,
+                        'nama' => $m->nama_asli,
+                        'ukuran' => (int) $m->ukuran,
+                        'url' => route('guru.media', $m->id),
+                        'gambar' => $m->berkasGambar(),
+                    ])
+                    ->values()
+                    ->all(),
                 'opsi' => $soal->options->map(fn ($o) => [
                     'option_key' => $o->option_key,
                     'content_json' => $o->content_json,
                     'position' => $o->position,
+                    'media' => $o->media->map(fn ($m) => [
+                        'id' => $m->id,
+                        'tipe' => $m->media_type,
+                        'mime' => $m->mime_type,
+                        'nama' => $m->nama_asli,
+                        'ukuran' => (int) $m->ukuran,
+                        'url' => route('guru.media', $m->id),
+                        'gambar' => $m->berkasGambar(),
+                    ])->all(),
                 ])->all(),
                 'butir' => $soal->items->map(fn ($b) => [
                     'item_key' => $b->item_key,
@@ -192,17 +224,21 @@ class QuestionController
             'mapel' => $this->pilihanMapel($request->user()),
             'jenis' => JenisSoal::untukTab(),
             'paketTujuan' => $request->integer('paket') ?: null,
+            // Hanya SAKLARNYA. Guru tidak perlu tahu penyedia mana yang
+            // dipakai sekolah, dan base URL maupun nama model yang tidak
+            // dikirim tidak bisa bocor dari devtools.
+            'ai' => $this->aiAktif(),
         ]);
     }
 
-    public function store(SimpanSoalRequest $request, BankSoalService $service): RedirectResponse
+    public function store(SimpanSoalRequest $request, BankSoalService $service, AmpuanMapel $ampuan): RedirectResponse
     {
         Gate::authorize('create', Question::class);
 
         $user = $request->user();
         $data = $request->validated();
 
-        $this->pastikanMengampu($user, (int) $data['subject_id']);
+        $ampuan->pastikan($user, (int) $data['subject_id']);
 
         // Kode dibangkitkan service bila Guru tidak menentukannya - dan itu
         // yang paling sering terjadi. Lihat BankSoalService::buat() untuk
@@ -215,11 +251,11 @@ class QuestionController
             ->with('sukses', 'Soal '.$soal->code.' tersimpan ke bank soal.');
     }
 
-    public function update(SimpanSoalRequest $request, Question $soal, BankSoalService $service): RedirectResponse
+    public function update(SimpanSoalRequest $request, Question $soal, BankSoalService $service, AmpuanMapel $ampuan): RedirectResponse
     {
         Gate::authorize('update', $soal);
 
-        $this->pastikanMengampu($request->user(), (int) $request->validated()['subject_id']);
+        $ampuan->pastikan($request->user(), (int) $request->validated()['subject_id']);
 
         $soal = $service->perbarui($soal, $request->validated());
 
@@ -293,26 +329,16 @@ class QuestionController
     }
 
     /**
-     * Menyusun soal hanya untuk mapel yang diampu.
+     * Apakah Generate AI bisa dipakai sekolah ini.
      *
-     * 422, bukan 403: yang salah adalah NILAI yang dikirim, bukan izinnya -
-     * Guru memang boleh menyusun soal, hanya tidak untuk mapel itu. Pesannya
-     * muncul di sebelah field Mata pelajaran.
+     * Dikirim sebagai boolean saja supaya builder tahu apakah tombolnya
+     * dirender. Sekolah yang belum mengatur AI tidak melihat tombol yang
+     * mati - mereka melihat satu kalimat yang menyebut apa yang harus
+     * dilakukan Admin.
      */
-    private function pastikanMengampu($user, int $mapelId): void
+    private function aiAktif(): bool
     {
-        if ($user->role->isAdmin()) {
-            return;
-        }
-
-        $ada = TeachingAssignment::query()
-            ->where('teacher_id', $user->id)
-            ->where('subject_id', $mapelId)
-            ->exists();
-
-        if (! $ada) {
-            abort(422, 'Anda tidak mengampu mata pelajaran tersebut.');
-        }
+        return (bool) app(PengaturanAiSekolah::class)->ambil()?->siap();
     }
 
     /** Cuplikan teks, dibersihkan dari markup. */

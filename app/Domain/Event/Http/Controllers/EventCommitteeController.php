@@ -5,12 +5,15 @@ namespace App\Domain\Event\Http\Controllers;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Event\Models\EventCommitteeMember;
 use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Event\Services\PenerbitKodePengawas;
 use App\Domain\Facility\Models\Room;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,6 +33,14 @@ use Inertia\Response;
  * ruang mana - sehingga Admin harus membuka barisnya satu per satu untuk
  * memastikan penempatan pengawas benar. Pada sekolah dengan 24 ruang dan 31
  * pengawas, itu 31 kali membuka.
+ *
+ * ---------------------------------------------------------------------
+ * Laman ini juga tempat KODE PENGAWAS diterbitkan - sejak 2026-11-07
+ * ---------------------------------------------------------------------
+ * Sebelumnya kode itu terbit di `/admin/ruang/{id}`, satu kode per RUANG,
+ * dan dicetak pada kartu yang sama dengan tautannya di daun pintu - sehingga
+ * memfoto kartu itu sudah cukup untuk masuk. Sekarang kodenya milik ORANG,
+ * dan orangnya ada di tabel laman ini. Lihat `terbitkanKode()`.
  */
 class EventCommitteeController
 {
@@ -57,6 +68,19 @@ class EventCommitteeController
                 'akun' => $p->user?->username,
                 'email' => $p->email,
                 'phone' => $p->phone,
+                // Kode pengawas DITAMPILKAN, bukan disembunyikan. Pemilik
+                // produk mencetaknya menjadi kartu pengawas, jadi ia harus
+                // bisa membaca kodenya kapan saja - bukan sekali saja pada
+                // respons yang menerbitkannya.
+                //
+                // Yang dikirim adalah kodenya (hasil dekripsi cast
+                // `encrypted`), bukan hash: tidak ada hash lagi, karena kode
+                // yang harus bisa dibaca kembali tidak bisa disimpan satu
+                // arah. Lihat `EventCommitteeMember` dan
+                // `PenerbitKodePengawas`.
+                'kode' => $p->code,
+                'punya_kode' => $p->code !== null,
+                'kode_terbit' => $p->code_issued_at?->format('d/m H:i'),
             ])->all(),
 
             // Akun yang bisa ditautkan: Guru dan Pengawas. Menawarkan seluruh
@@ -130,12 +154,248 @@ class EventCommitteeController
 
         $this->simpanRuang($panitia, $data['ruang_id'] ?? []);
 
+        // Kode pengawas diterbitkan sejak orang ini ditambahkan, bukan
+        // menunggu satu klik terpisah. Kartunya bisa langsung dicetak, dan
+        // `terbitkan()` tidak mengganti kode yang sudah ada - jadi aman
+        // dipanggil di jalur mana pun yang menambah pengawas.
+        $penerbit = app(PenerbitKodePengawas::class);
+
+        if ($penerbit->berlakuUntuk($panitia)) {
+            $penerbit->terbitkan($panitia);
+        }
+
         $logger->log('Menambah panitia event', $event, [
             'nama' => $panitia->name,
             'jabatan' => $panitia->position,
         ]);
 
         return back()->with('sukses', "{$panitia->name} ditambahkan sebagai {$panitia->position}.");
+    }
+
+    /**
+     * Tambah panitia secara massal - satu jabatan, satu cakupan, banyak akun.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa massal, dan mengapa BUKAN per-baris
+     * ---------------------------------------------------------------------
+     * Sekolah dengan 31 pengawas harus membuka-tutup satu panel 31 kali, dan
+     * jabatannya sama untuk semuanya. Yang diminta karena itu bukan panel
+     * besar berisi 31 form, melainkan satu kiriman: centang orangnya, pilih
+     * jabatannya sekali. Tiga jabatan berbeda tetap berarti tiga kiriman, dan
+     * itu sepuluh detik - jauh lebih murah daripada 31 penutup panel.
+     *
+     * ---------------------------------------------------------------------
+     * Nama diambil dari AKUNNYA, tidak diketik
+     * ---------------------------------------------------------------------
+     * Formnya tidak punya kolom nama sama sekali. Menyediakannya berarti
+     * membuka celah di mana orang yang sama tercatat dua kali dengan ejaan
+     * berbeda, dan `committee_unik` menolaknya sebagai galat basis data yang
+     * tidak menjelaskan apa pun.
+     *
+     * ---------------------------------------------------------------------
+     * `committee_unik` adalah alasan utama bentuk "dilewati", bukan "gagal"
+     * ---------------------------------------------------------------------
+     * Tabel `event_committee_members` memakai
+     * `unique(['school_id','event_id','name'])`. Menyisipkan Massal tanpa
+     * penyaringan akan meledak menjadi 500 pada dua keadaan yang SANGAT
+     * lazim: orangnya sudah jadi panitia, dan dua akun berbeda memakai nama
+     * yang sama (dua "Ahmad Fauzi" adalah hal biasa di satu sekolah). Karena
+     * itu keduanya dilewati - dan dilaporkan beserta sebabnya, bukan hilang
+     * diam-diam. Bentuk laporannya sama dengan `PengawasService::tugaskanOtomatis()`:
+     * yang berhasil dikerjakan dan yang dilewati, keduanya dalam satu pesan.
+     */
+    public function massal(Request $request, SchoolEvent $event, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('update', $event);
+
+        $data = $request->validate([
+            'user_id' => ['required', 'array', 'min:1'],
+            'user_id.*' => ['integer'],
+            'position' => ['required', Rule::in(self::JABATAN)],
+            'scope' => ['required', 'in:event,ruang'],
+            // Cakupan "ruang" tanpa satu ruang pun ditolak, sama seperti di
+            // `store()`: cakupan yang tidak membatasi apa pun tetapi berlabel
+            // membatasi adalah label yang salah.
+            'ruang_id' => ['nullable', 'array'],
+            'ruang_id.*' => ['integer'],
+        ]);
+
+        if ($data['scope'] === EventCommitteeMember::SCOPE_ROOMS && empty($data['ruang_id'])) {
+            return back()->with('galat', 'Cakupan "ruang tertentu" harus menyebut minimal satu ruang.');
+        }
+
+        // Akun disaring ULANG di server terhadap peran dan keaktifannya.
+        // Prop `akun` yang dikirim ke peramban hanya daftar yang DITAWARKAN;
+        // id apa pun bisa dikirim langsung ke rute ini, termasuk akun nonaktif
+        // atau siswa yang tidak pernah muncul di kotak centang.
+        $akun = User::query()
+            ->whereIn('id', $data['user_id'])
+            ->whereIn('role', [Role::Teacher, Role::Supervisor])
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('id');
+
+        $sudah = $event->committee()->pluck('name')->map(fn ($n) => mb_strtolower($n))->all();
+        $sudahAkun = $event->committee()->whereNotNull('user_id')->pluck('user_id')->all();
+
+        $jumlah = 0;
+        $dilewati = [];
+
+        $penerbit = app(PenerbitKodePengawas::class);
+
+        DB::transaction(function () use ($data, $event, $akun, $sudah, $sudahAkun, $penerbit, &$jumlah, &$dilewati) {
+            $namaDiKiriman = [];
+
+            foreach (array_unique($data['user_id']) as $id) {
+                $orang = $akun->get($id);
+
+                if ($orang === null) {
+                    // Termasuk akun milik sekolah lain: `User` memakai
+                    // SchoolScope, jadi id dari sekolah lain tidak ditemukan
+                    // di sini. Scope tenant tidak menolong untuk kasus ini
+                    // kalau sekolahnya sama, sehingga penyaringannya memang
+                    // harus lewat daftar akun yang sah di atas.
+                    $dilewati[] = "akun #{$id} (bukan Guru/Pengawas aktif)";
+
+                    continue;
+                }
+
+                if (in_array($orang->id, $sudahAkun, true)) {
+                    $dilewati[] = "{$orang->name} (sudah jadi panitia)";
+
+                    continue;
+                }
+
+                $kunci = mb_strtolower($orang->name);
+
+                if (in_array($kunci, $sudah, true) || in_array($kunci, $namaDiKiriman, true)) {
+                    $dilewati[] = "{$orang->name} (nama sudah ada di kepanitiaan)";
+
+                    continue;
+                }
+
+                $namaDiKiriman[] = $kunci;
+
+                $panitia = EventCommitteeMember::create([
+                    'school_id' => $event->school_id,
+                    'event_id' => $event->id,
+                    'user_id' => $orang->id,
+                    'name' => $orang->name,
+                    'position' => $data['position'],
+                    'scope' => $data['scope'],
+                    'status' => 'aktif',
+                ]);
+
+                $this->simpanRuang($panitia, $data['ruang_id'] ?? []);
+
+                // Sama seperti `store()`: kode pengawas terbit sejak orangnya
+                // masuk, supaya kartunya bisa langsung dicetak. Hanya untuk
+                // baris yang memenuhi syarat (jabatan memuat "pengawas" dan
+                // punya akun); jabatan lain tidak pernah butuh kode.
+                if ($penerbit->berlakuUntuk($panitia)) {
+                    $penerbit->terbitkan($panitia);
+                }
+
+                $jumlah++;
+            }
+        });
+
+        // Satu log untuk satu kiriman, dengan jumlahnya. Menulis satu baris per
+        // orang membuat riwayat aktivitas event ini tenggelam oleh 31 baris
+        // yang isinya sama, dan yang dicari saat menelusuri justru "kapan
+        // pengawas ditambahkan", bukan "pengawas ke-17".
+        $logger->log('Menambah panitia event secara massal', $event, [
+            'jabatan' => $data['position'],
+            'cakupan' => $data['scope'],
+            'jumlah' => $jumlah,
+            'dilewati' => count($dilewati),
+        ]);
+
+        if ($jumlah === 0) {
+            return back()->with('galat', 'Tidak ada yang ditambahkan. '.implode('; ', $dilewati));
+        }
+
+        $pesan = "{$jumlah} panitia ditambahkan sebagai {$data['position']}.";
+
+        if ($dilewati !== []) {
+            $pesan .= ' Dilewati: '.implode('; ', $dilewati).'.';
+        }
+
+        return back()->with('sukses', $pesan);
+    }
+
+    /**
+     * Terbitkan ULANG kode pintu ruang untuk satu panitia - wireframe plate 13.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa di sini, bukan di laman ruang seperti dulu
+     * ---------------------------------------------------------------------
+     * Sampai 2026-11-07 kode pengawas terbit di `/admin/ruang/{id}`, satu
+     * kode per RUANG. Akibatnya bukan sekadar salah tempat: kartu yang
+     * ditempel di daun pintu memuat tautan DAN kodenya, sehingga memfotonya
+     * sudah cukup untuk masuk. Kode yang "menentukan orang" justru
+     * menentukan ruang untuk siapa pun yang memegang kertasnya.
+     *
+     * Sekarang kodenya milik ORANG, dan orangnya ada di tabel ini. Kodenya
+     * SELALU terlihat di kolom "Kode pengawas" - karena ia dicetak menjadi
+     * kartu pengawas - sehingga tombol di sini bukan "terbitkan yang
+     * pertama", melainkan "GANTI kode yang sudah ada" (kartunya bocor atau
+     * hilang). Itulah sebabnya ia memanggil `putar()`, bukan `terbitkan()`.
+     *
+     * ---------------------------------------------------------------------
+     * Yang menolak bukan hanya layar
+     * ---------------------------------------------------------------------
+     * Panelnya tidak merender tombol untuk baris yang tidak memenuhi syarat,
+     * tetapi penolakan yang benar ada di sini - id bisa dikirim langsung ke
+     * rutenya. Pesannya menyebut SEBABNYA, karena Admin di depan layar tidak
+     * bisa menyimpulkan sendiri bahwa masalahnya adalah akun yang belum
+     * ditautkan.
+     */
+    public function terbitkanKode(
+        SchoolEvent $event,
+        EventCommitteeMember $panitia,
+        PenerbitKodePengawas $penerbit,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        // Alasan yang sama dengan `update()`: binding implisit mencari di
+        // seluruh sekolah, sehingga panitia milik event LAIN akan lolos dan
+        // menerima kode untuk event yang bukan miliknya.
+        abort_unless($panitia->event_id === $event->id, 404);
+
+        if (! $penerbit->berlakuUntuk($panitia)) {
+            return back()->with('galat', $this->alasanTanpaKode($panitia));
+        }
+
+        $penerbit->putar($panitia);
+
+        $logger->log('Menerbitkan kode pengawas', $event, [
+            'nama' => $panitia->name,
+            'jabatan' => $panitia->position,
+        ]);
+
+        // Kodenya tidak dikirim lewat flash: ia selalu terlihat di tabel,
+        // dan pesan ini hanya perlu memberi tahu bahwa yang LAMA sudah mati -
+        // supaya Admin yang menekan tombolnya karena kartunya bocor tahu
+        // kode barunya ada di kolom itu, bukan bertambah menjadi dua.
+        return back()->with('sukses', "Kode pengawas {$panitia->name} diganti. Kode lama berhenti berlaku.");
+    }
+
+    /**
+     * Mengapa baris ini belum boleh punya kode - dinyatakan sebagai kalimat.
+     */
+    private function alasanTanpaKode(EventCommitteeMember $panitia): string
+    {
+        if ($panitia->user_id === null) {
+            return "{$panitia->name} belum punya akun. Tautkan akun Guru atau Pengawas lebih dulu - tanpa akun, ia tidak bisa ditugaskan ke ruang mana pun, sehingga kodenya tidak akan punya pintu.";
+        }
+
+        if (! str_contains(mb_strtolower($panitia->position), 'pengawas')) {
+            return "{$panitia->name} berjabatan {$panitia->position}, bukan pengawas. Kode pintu ruang hanya untuk pengawas.";
+        }
+
+        return "{$panitia->name} berstatus {$panitia->status}. Aktifkan kembali sebelum menerbitkan kodenya.";
     }
 
     public function update(

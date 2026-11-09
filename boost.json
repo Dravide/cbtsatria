@@ -2,6 +2,7 @@
     "agents": [
         "claude_code"
     ],
+    "guidelines": true,
     "mcp": true,
     "nightwatch": false,
     "sail": false

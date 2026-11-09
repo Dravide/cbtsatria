@@ -17,12 +17,16 @@ import { TabbarPonsel } from '@/Components/ponsel';
  * bisa dijangkau jempol.
  *
  * ---------------------------------------------------------------------
- * Kepala laman SELALU menyebut ruangnya
+ * Kepala laman SELALU menyebut ruangnya - dan, bila diketahui, orangnya
  * ---------------------------------------------------------------------
  * Satu ponsel bisa dipakai dua orang bergantian di dua ruang, dan laman
  * yang tidak menyebut ruangnya membuat orang menandai presensi di ruang
  * yang salah tanpa sadar. Karena itu namanya datang dari prop bersama
  * `pengawasRuang` - bukan dari prop halaman, yang bisa lupa dikirim.
+ *
+ * Sejak 2026-11-07 kode pintu menempel pada ORANG, sehingga nama pengawasnya
+ * diketahui dan ikut disebut. Yang dijaga keduanya adalah hal yang sama:
+ * ponsel yang berpindah tangan tanpa penanda yang berpindah bersamanya.
  *
  * Pengawas berakun tidak punya satu ruang, sehingga prop itu null; baginya
  * kepalanya menyebut nama pengguna, dan ruangnya disebut oleh halaman yang
@@ -76,6 +80,7 @@ export default function KerangkaPonsel({
             event: string | null;
             sekolah: string | null;
             slug: string;
+            pengawas: string | null;
         } | null;
     };
 
@@ -97,7 +102,18 @@ export default function KerangkaPonsel({
                                 )}
                                 <span className="min-w-0 truncate text-[11px] text-ink-3">
                                     {pengawasRuang
-                                        ? [pengawasRuang.ruang_nama, pengawasRuang.sesi]
+                                        ? [
+                                              // Nama pengawas yang membuka pintu ini,
+                                              // sejak 2026-11-07. Chip di sebelah kiri
+                                              // tetap menyebut KODE ruangnya, jadi
+                                              // kepalanya menjawab dua pertanyaan
+                                              // sekaligus: ruang mana, dan siapa.
+                                              pengawasRuang.pengawas
+                                                  ? `Pengawas: ${pengawasRuang.pengawas}`
+                                                  : null,
+                                              pengawasRuang.ruang_nama,
+                                              pengawasRuang.sesi,
+                                          ]
                                               .filter(Boolean)
                                               .join(' · ')
                                         : judul}

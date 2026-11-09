@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Chip, Field, Kotak, Tombol, kelasInput } from '@/Components/ui';
+import { MediaButir, MediaSoal } from '@/Components/MediaSoal';
 
 /**
  * Penyunting teks berformat untuk soal, tanpa pustaka editor.
@@ -18,18 +19,23 @@ import { Chip, Field, Kotak, Tombol, kelasInput } from '@/Components/ui';
  * membeli keamanan; ia membeli toolbar. Toolbar itu yang ditulis di sini.
  *
  * =====================================================================
- * Nilainya TIDAK terkendali (uncontrolled), dan itu keputusan sadar
+ * Nilainya milik PERAMBAN, dan React menulis hanya saat kotaknya TIDAK fokus
  * =====================================================================
  * `contenteditable` yang nilainya diikat ke state React dan ditulis balik
- * setiap ketikan memindahkan kursor ke awal pada setiap huruf. Itu bukan
- * bug yang bisa diperbaiki dengan `useLayoutEffect` - itu pertarungan antara
- * dua pemilik DOM yang sama.
+ * setiap ketikan memindahkan kursor ke awal pada setiap huruf - itu
+ * pertarungan antara dua pemilik DOM yang sama, bukan bug yang bisa
+ * diperbaiki dengan `useLayoutEffect`.
  *
- * Karena itu: DOM di sini dimiliki PERAMBAN. React hanya membaca isinya saat
- * berubah (`onInput`) dan menulis isinya SEKALI saat dipasang. Kuncinya
- * adalah `key` di pemanggilnya: berpindah tab jenis soal memasang ulang
- * komponen ini, sehingga isi yang baru masuk tanpa ada penulisan di tengah
- * ketikan.
+ * Karena itu penulisannya dijaga dua syarat, dan keduanya wajib:
+ *
+ *   1. Kotak ini BUKAN elemen yang sedang difokuskan. Menulis ke dalamnya
+ *      saat Guru mengetik adalah tepat penyebab kursor melompat itu.
+ *   2. Isinya memang berbeda dari `nilai`.
+ *
+ * Syarat pertama menutup ketikan; syarat KEDUA membuka jalan bagi perubahan
+ * dari LUAR - hasil Generate AI, menghapus satu pilihan di atasnya, atau
+ * memuat soal yang sudah ada. Tanpa itu, `contenteditable` yang dipasang
+ * sekali akan terus menampilkan huruf lama setelah datanya diganti.
  *
  * Hasilnya tetap berupa string HTML di state Guru, dan string itulah yang
  * dikirim ke server - lalu dibersihkan PembersihHtml sebelum disimpan.
@@ -41,6 +47,7 @@ export function EditorSoal({
     galat,
     tinggi = 'min-h-32',
     placeholder,
+    ringkas = false,
 }: {
     nilai: string;
     padaUbah: (html: string) => void;
@@ -48,17 +55,31 @@ export function EditorSoal({
     galat?: string;
     tinggi?: string;
     placeholder?: string;
+    /**
+     * Bentuk ringkas untuk dipakai SEBARIS, di dalam baris pilihan jawaban:
+     * toolbar lebih sedikit, tanpa label di atasnya, tanpa bingkai Field, dan
+     * melebar mengisi sisa baris. Tanpa ini, tiap pilihan jawaban membawa
+     * kotak "Teks soal" bertinggi 128px - empat di antaranya menutupi seluruh
+     * layar sebelum Guru sempat menulis pertanyaannya.
+     */
+    ringkas?: boolean;
 }) {
     const ref = useRef<HTMLDivElement>(null);
 
-    // Tulis SEKALI saat dipasang. Tidak ada dependensi `nilai` di sini, dan
-    // itu disengaja - lihat catatan kelas di atas.
+    // Lihat catatan kelas: tulis hanya bila kotaknya tidak sedang difokuskan
+    // dan isinya memang berbeda. Efek ini juga yang mengisi isi saat pertama
+    // dipasang.
     useEffect(() => {
-        if (ref.current && ref.current.innerHTML !== nilai) {
-            ref.current.innerHTML = nilai;
+        const el = ref.current;
+
+        if (el === null || document.activeElement === el) {
+            return;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+
+        if (el.innerHTML !== nilai) {
+            el.innerHTML = nilai;
+        }
+    }, [nilai]);
 
     /** Jalankan perintah format pada seleksi yang sedang aktif. */
     const perintah = (cmd: string, arg?: string) => {
@@ -69,7 +90,7 @@ export function EditorSoal({
         }
     };
 
-    const tombol: { label: string; judul: string; cmd: string; arg?: string }[] = [
+    const semuaTombol: { label: string; judul: string; cmd: string; arg?: string }[] = [
         { label: 'B', judul: 'Tebal', cmd: 'bold' },
         { label: 'I', judul: 'Miring', cmd: 'italic' },
         { label: 'U', judul: 'Garis bawah', cmd: 'underline' },
@@ -82,22 +103,46 @@ export function EditorSoal({
         { label: 'Kanan', judul: 'Rata kanan', cmd: 'justifyRight' },
     ];
 
-    return (
-        <Field label={label} galat={galat}>
-            <div className="overflow-hidden rounded-wf border border-line bg-surface focus-within:border-accent">
-                <div className="flex flex-wrap items-center gap-1 border-b border-line bg-surface-2/60 px-2 py-1.5">
-                    {tombol.map((t) => (
-                        <button
-                            key={t.cmd}
-                            type="button"
-                            title={t.judul}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => perintah(t.cmd)}
-                            className="rounded-wf border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
-                        >
-                            {t.label}
-                        </button>
-                    ))}
+    // Saat ringkas, ratakan hanya yang muat di baris sempit: format huruf,
+    // pangkat/indeks, dan dua daftar. Perataan dan tabel tetap ada di editor
+    // teks soal - pilihan jawaban jarang butuh tabel, dan toolbar penuh di
+    // setiap baris pilihan membuat barisnya setinggi form.
+    const tombol = ringkas
+        ? semuaTombol.filter((t) =>
+              ['bold', 'italic', 'underline', 'superscript', 'subscript', 'insertUnorderedList', 'insertOrderedList'].includes(t.cmd),
+          )
+        : semuaTombol;
+
+    const gayaTombol = ringkas
+        ? 'rounded-wf border border-line bg-surface px-1.5 py-0.5 text-[10px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink'
+        : 'rounded-wf border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink';
+
+    const kotak = (
+        <div
+            className={
+                'overflow-hidden rounded-wf border border-line bg-surface focus-within:border-accent' +
+                (ringkas ? ' min-w-0 flex-1' : '')
+            }
+        >
+            <div
+                className={
+                    'flex flex-wrap items-center gap-1 border-b border-line bg-surface-2/60 ' +
+                    (ringkas ? 'px-1.5 py-1' : 'px-2 py-1.5')
+                }
+            >
+                {tombol.map((t) => (
+                    <button
+                        key={t.cmd}
+                        type="button"
+                        title={t.judul}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => perintah(t.cmd)}
+                        className={gayaTombol}
+                    >
+                        {t.label}
+                    </button>
+                ))}
+                {!ringkas && (
                     <button
                         type="button"
                         title="Sisipkan tabel 3×3"
@@ -110,35 +155,46 @@ export function EditorSoal({
                                     '</tbody></table><p><br></p>',
                             )
                         }
-                        className="rounded-wf border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
+                        className={gayaTombol}
                     >
                         Tabel
                     </button>
-                </div>
-
-                <div
-                    ref={ref}
-                    contentEditable
-                    suppressContentEditableWarning
-                    role="textbox"
-                    aria-multiline="true"
-                    data-placeholder={placeholder ?? ''}
-                    onInput={(e) => padaUbah((e.target as HTMLDivElement).innerHTML)}
-                    onBlur={(e) => padaUbah((e.target as HTMLDivElement).innerHTML)}
-                    className={
-                        'px-3 py-2 text-sm text-ink outline-none ' +
-                        tinggi +
-                        ' [&_table]:my-2 [&_table]:border-collapse [&_td]:border [&_td]:border-line [&_td]:px-2 [&_td]:py-1 [&_ol]:ml-5 [&_ol]:list-decimal [&_ul]:ml-5 [&_ul]:list-disc'
-                    }
-                />
+                )}
             </div>
+
+            <div
+                ref={ref}
+                contentEditable
+                suppressContentEditableWarning
+                role="textbox"
+                aria-multiline="true"
+                data-placeholder={placeholder ?? ''}
+                onInput={(e) => padaUbah((e.target as HTMLDivElement).innerHTML)}
+                onBlur={(e) => padaUbah((e.target as HTMLDivElement).innerHTML)}
+                className={
+                    (ringkas ? 'px-2.5 py-1.5' : 'px-3 py-2') +
+                    ' text-sm text-ink outline-none ' +
+                    tinggi +
+                    ' [&_table]:my-2 [&_table]:border-collapse [&_td]:border [&_td]:border-line [&_td]:px-2 [&_td]:py-1 [&_ol]:ml-5 [&_ol]:list-decimal [&_ul]:ml-5 [&_ul]:list-disc'
+                }
+            />
+        </div>
+    );
+
+    if (ringkas) {
+        return kotak;
+    }
+
+    return (
+        <Field label={label} galat={galat}>
+            {kotak}
         </Field>
     );
 }
 
 /* =================================================================== Opsi */
 
-export type BarisOpsi = { option_key: string; teks: string };
+export type BarisOpsi = { option_key: string; teks: string; media?: MediaButir[] };
 
 const HURUF = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
@@ -158,6 +214,9 @@ export function OpsiBuilder({
     padaKunci,
     tunggal,
     galat,
+    galatOpsi,
+    soalId = null,
+    bolehUbah = true,
 }: {
     opsi: BarisOpsi[];
     kunci: string[];
@@ -166,9 +225,24 @@ export function OpsiBuilder({
     /** Satu benar (pilihan ganda) atau boleh banyak (jawaban ganda). */
     tunggal: boolean;
     galat?: string;
+    /**
+     * Galat validasi untuk SATU pilihan, dipanggil dengan INDEKS baris (bukan
+     * `option_key`) karena server menamai galatnya menurut posisi larik:
+     * `opsi.0.content_json.teks`, `opsi.1.…`. Menampilkannya tepat di bawah
+     * pilihan yang bersangkutan, bukan di satu kotak di atas form: pilihan
+     * jawaban yang kosong adalah penyebab paling sering "Simpan tidak terjadi
+     * apa-apa", dan pesannya harus muncul persis di tempat Guru harus mengetik.
+     */
+    galatOpsi?: (indeks: number) => string | undefined;
+    /** Id soal tersimpan, atau null untuk soal baru (media draf). */
+    soalId?: number | null;
+    bolehUbah?: boolean;
 }) {
     const ubahTeks = (i: number, teks: string) =>
         padaUbah(opsi.map((o, j) => (j === i ? { ...o, teks } : o)));
+
+    const ubahMedia = (i: number, media: MediaButir[]) =>
+        padaUbah(opsi.map((o, j) => (j === i ? { ...o, media } : o)));
 
     const tambah = () =>
         padaUbah([...opsi, { option_key: HURUF[opsi.length] ?? 'z', teks: '' }]);
@@ -203,40 +277,79 @@ export function OpsiBuilder({
         >
             {galat && <p className="mb-2 text-[11px] text-bad">{galat}</p>}
 
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {opsi.map((o, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                        <button
-                            type="button"
-                            onClick={() => tandai(o.option_key)}
-                            title={tunggal ? 'Tandai sebagai jawaban benar' : 'Tandai jawaban benar'}
-                            className={
-                                'mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center border text-[10px] font-medium uppercase ' +
-                                (tunggal ? 'rounded-full' : 'rounded-wf') +
-                                ' ' +
-                                (kunci.includes(o.option_key)
-                                    ? 'border-accent bg-accent text-on-accent'
-                                    : 'border-line bg-surface text-ink-3 hover:border-accent')
-                            }
-                        >
-                            {o.option_key}
-                        </button>
+                    <div key={i} className="space-y-1">
+                        <div className="flex items-start gap-2">
+                            <button
+                                type="button"
+                                onClick={() => tandai(o.option_key)}
+                                title={tunggal ? 'Tandai sebagai jawaban benar' : 'Tandai jawaban benar'}
+                                className={
+                                    'mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center border text-[10px] font-medium uppercase ' +
+                                    (tunggal ? 'rounded-full' : 'rounded-wf') +
+                                    ' ' +
+                                    (kunci.includes(o.option_key)
+                                        ? 'border-accent bg-accent text-on-accent'
+                                        : 'border-line bg-surface text-ink-3 hover:border-accent')
+                                }
+                            >
+                                {o.option_key}
+                            </button>
 
-                        <input
-                            value={o.teks}
-                            onChange={(e) => ubahTeks(i, e.target.value)}
-                            placeholder={`Pilihan ${o.option_key.toUpperCase()}`}
-                            className={kelasInput}
-                        />
+                            {/* Isi pilihan memakai editor berformat yang SAMA
+                                dengan teks soal, bukan `<input>` polos. Alasannya
+                                bukan kemewahan: pilihan jawaban matematika butuh
+                                pangkat (x², H₂O), dan Bahasa Indonesia butuh
+                                miring untuk judul - keduanya mustahil ditulis di
+                                kotak teks satu baris. Bentuk `ringkas` menjaga
+                                barisnya tetap setinggi daftar, bukan setinggi
+                                form. */}
+                            <EditorSoal
+                                ringkas
+                                nilai={o.teks}
+                                padaUbah={(html) => ubahTeks(i, html)}
+                                tinggi="min-h-[2.25rem]"
+                                placeholder={`Pilihan ${o.option_key.toUpperCase()}`}
+                            />
 
-                        <Tombol
-                            nada="bahaya"
-                            onClick={() => buang(i)}
-                            disabled={opsi.length <= 2}
-                            title={opsi.length <= 2 ? 'Soal pilihan butuh sekurang-kurangnya dua pilihan' : 'Buang pilihan ini'}
-                        >
-                            Buang
-                        </Tombol>
+                            <Tombol
+                                nada="bahaya"
+                                onClick={() => buang(i)}
+                                disabled={opsi.length <= 2}
+                                title={opsi.length <= 2 ? 'Soal pilihan butuh sekurang-kurangnya dua pilihan' : 'Buang pilihan ini'}
+                            >
+                                Buang
+                            </Tombol>
+                        </div>
+
+                        {/* Media pilihan jawaban, langsung di bawah PILIHAN INI
+                            sendiri - bukan dikumpulkan di satu blok jauh di bawah
+                            seluruh daftar. Dengan begitu gambar yang menempel
+                            pada pilihan B tampil tepat di bawah teks B, sehingga
+                            Guru tidak pernah ragu gambar itu milik pilihan yang
+                            mana. */}
+                        <div className="flex items-start gap-2 pl-7">
+                            <span className="mt-1 w-4 shrink-0 font-mono text-[10px] text-ink-3 uppercase">
+                                {o.option_key}
+                            </span>
+                            <MediaSoal
+                                ringkas
+                                media={o.media ?? []}
+                                padaUbah={(m) => ubahMedia(i, m)}
+                                soalId={soalId}
+                                optionKey={o.option_key}
+                                bolehUbah={bolehUbah}
+                            />
+                        </div>
+
+                        {/* Galat pilihan ini. Ditaruh paling bawah barisnya,
+                            di bawah kotak teks dan media, supaya kalimatnya
+                            terbaca sebagai milik pilihan A/B/C - bukan milik
+                            pilihan sesudahnya. */}
+                        {galatOpsi?.(i) && (
+                            <p className="pl-7 text-[11px] text-bad">{galatOpsi(i)}</p>
+                        )}
                     </div>
                 ))}
             </div>

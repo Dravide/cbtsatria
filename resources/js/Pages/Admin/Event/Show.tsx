@@ -181,7 +181,7 @@ export default function EventShow({ event, kesiapan, langkah, angka }: Props) {
                     <div className="space-y-4">
                         <div className="rounded-wf border border-line bg-surface">
                             <header className="flex items-center gap-3 border-b border-line px-4 py-2.5">
-                                <h2 className="text-xs font-medium tracking-wide text-ink-2 uppercase">
+                                <h2 className="font-display text-sm font-semibold text-ink">
                                     Kesiapan {kesiapan.siap + kesiapan.menunggu} / {kesiapan.total}
                                 </h2>
                                 <span className="ml-auto flex gap-1.5">
@@ -207,7 +207,7 @@ export default function EventShow({ event, kesiapan, langkah, angka }: Props) {
 
                     <div className="space-y-4">
                         <div className="rounded-wf border border-line bg-surface p-4">
-                            <h2 className="mb-3 text-xs font-medium tracking-wide text-ink-2 uppercase">
+                            <h2 className="mb-3 font-display text-sm font-semibold text-ink">
                                 Identitas
                             </h2>
                             <dl className="space-y-2 text-sm">

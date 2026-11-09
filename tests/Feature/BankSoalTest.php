@@ -251,6 +251,34 @@ it('membersihkan HTML berbahaya sebelum menyimpan', function () {
         ->and($teks)->not->toContain('onclick');
 });
 
+it('menyimpan format teks pilihan jawaban, dan membersihkan HTML berbahayanya', function () {
+    // Pilihan jawaban kini ditulis lewat editor berformat yang sama dengan
+    // teks soal (pangkat untuk x², miring untuk judul, tebal untuk tekanan).
+    // Yang menyimpannya tetap `content_json.teks`, dan pembersihnya tetap
+    // PembersihHtml - jadi bentuk yang diizinkan bertahan, sisanya dibuang.
+    masukBank($this, $this->guruA)->post('/guru/bank-soal', payloadSoal([
+        'subject_id' => $this->mapel->id,
+        'answer_key_json' => ['opsi' => ['a']],
+        'opsi' => [
+            ['option_key' => 'a', 'content_json' => ['teks' => '<b>6</b> dan x<sup>2</sup>'], 'position' => 0],
+            ['option_key' => 'b', 'content_json' => ['teks' => '<img src=x onerror="jahat()">11'], 'position' => 1],
+        ],
+    ]));
+
+    $opsi = Question::tanpaTenant()->firstOrFail()->options->keyBy('option_key');
+
+    expect($opsi['a']->content_json['teks'])
+        ->toContain('<b>6</b>')
+        ->toContain('<sup>2</sup>');
+
+    // Tag di luar daftar putih dibuang, atribut berbahaya hilang, dan sisa
+    // teksnya tetap terbaca - bukan kotak kosong.
+    expect($opsi['b']->content_json['teks'])
+        ->not->toContain('onerror')
+        ->not->toContain('<img')
+        ->toContain('11');
+});
+
 it('menolak soal untuk mapel yang tidak diampu dengan 422', function () {
     // 422, bukan 403: Guru memang boleh menyusun soal - yang salah adalah
     // NILAI mapel yang ia kirim. 403 akan berarti "perannya tidak boleh

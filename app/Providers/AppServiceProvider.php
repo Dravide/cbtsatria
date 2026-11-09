@@ -39,23 +39,26 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Pembatas laju dua kredensial enam angka - PRD §19.2 dan §19.5.
+     * Pembatas laju tiga titik masuk berkredensial - PRD §19.2 dan §19.5.
      *
      * ---------------------------------------------------------------------
      * Mengapa responsnya FLASH, bukan halaman 429
      * ---------------------------------------------------------------------
      * Kode pengawas diketik sambil berdiri di depan pintu kelas dengan 32
-     * siswa menunggu di belakang, dan token ujian diketik di ponsel anak yang
-     * baru saja menekan "Mulai". Halaman "429 Too Many Requests" telanjang
-     * bukan jawaban yang bisa dipakai keduanya: yang pertama tidak tahu
-     * apakah ia salah kartu, dan yang kedua akan menyangka ujiannya rusak.
+     * siswa menunggu di belakang, token ujian diketik di ponsel anak yang
+     * baru saja menekan "Mulai", dan sandi lama diketik ulang oleh siswa yang
+     * sedang mengganti sandinya. Halaman "429 Too Many Requests" telanjang
+     * bukan jawaban yang bisa dipakai ketiganya: yang pertama tidak tahu
+     * apakah ia salah kartu, yang kedua akan menyangka ujiannya rusak, dan
+     * yang ketiga menyangka akunnya rusak karena sandinya benar.
      *
      * Karena itu `->response()` mengembalikan redirect kembali ke laman yang
-     * sama dengan flash `galat` - bentuk pesan yang SUDAH dipakai kedua laman
-     * itu untuk kegagalan kredensial biasa (`PintuRuangController::buka`,
+     * sama dengan flash `galat` - bentuk pesan yang SUDAH dipakai ketiga
+     * laman itu untuk kegagalan kredensial biasa (`PintuRuangController::buka`,
      * `GerbangSiswaController::mulai`). Hasilnya: pengawas yang kehabisan
      * jatah melihat pesan yang bentuknya sama dengan kode yang salah ketik,
-     * dan siswa melihatnya di atas tombol yang sama.
+     * siswa melihatnya di atas tombol yang sama, dan siswa yang mengganti
+     * sandi melihatnya di atas form yang sama.
      *
      * ---------------------------------------------------------------------
      * Alamat tujuannya disebut eksplisit, bukan back()
@@ -63,7 +66,7 @@ class AppServiceProvider extends ServiceProvider
      * `back()` bergantung pada alamat sebelumnya di sesi, yang tidak selalu
      * ada - permintaan pertama dari klien tanpa riwayat navigasi akan
      * mendarat di beranda, dan pengawas yang terkunci di beranda adalah
-     * pengawas yang terkunci di luar pintunya. Kedua rute di bawah punya
+     * pengawas yang terkunci di luar pintunya. Ketiga rute di bawah punya
      * nama, sehingga tujuan redirect-nya pasti.
      */
     private function daftarkanPembatasLaju(): void
@@ -113,6 +116,37 @@ class AppServiceProvider extends ServiceProvider
                 ->response(fn () => redirect()
                     ->route('siswa.gerbang', ['peserta' => $request->route('peserta')])
                     ->with('galat', PembatasLaju::PESAN_GERBANG_IP)),
+        ]);
+
+        // ----------------------------------------------------------------
+        // Generate AI - POST /guru/bank-soal/ai
+        // ----------------------------------------------------------------
+        // Satu limit, per akun. Ia pembatas UANG: setiap permintaan ditagih
+        // ke akun penyedia milik sekolah.
+        //
+        // Jawabannya JSON, bukan redirect. Endpoint ini dipanggil `fetch`
+        // dari modal builder, dan redirect akan diterima sebagai HTML yang
+        // lalu gagal diurai - Guru melihat "kesalahan" tanpa sebab, padahal
+        // yang terjadi hanyalah ia menekan tombol terlalu cepat.
+        RateLimiter::for(PembatasLaju::AI, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::AI_PER_GURU)
+                ->by(PembatasLaju::kunciAi((int) $request->user()?->id))
+                ->response(fn () => response()
+                    ->json(['pesan' => PembatasLaju::PESAN_AI], 429)),
+        ]);
+
+        // ----------------------------------------------------------------
+        // Ganti sandi - PUT /siswa/akun/sandi
+        // ----------------------------------------------------------------
+        // Satu limit, per AKUN, tanpa pasangan per-IP. Pelakunya sudah
+        // tersahihkan, dan justru itu skenarionya: sesi yang dicuri dipakai
+        // mempelajari sandi korban. Lihat `PembatasLaju::SANDI_PER_SISWA`.
+        RateLimiter::for(PembatasLaju::SANDI, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::SANDI_PER_SISWA)
+                ->by(PembatasLaju::kunciSandi((int) $request->user()?->id))
+                ->response(fn () => redirect()
+                    ->route('siswa.akun')
+                    ->with('galat', PembatasLaju::PESAN_SANDI)),
         ]);
     }
 }

@@ -16,7 +16,6 @@ use App\Domain\Event\Services\EventParticipantService;
 use App\Domain\Event\Services\EventReadiness;
 use App\Domain\Event\Services\EventRegistrar;
 use App\Domain\Event\Services\EventStatusService;
-use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Models\ExamToken;
 use App\Domain\Exam\Services\ExamRegistrar;
 use App\Domain\Exam\Services\PenempatanService;
@@ -242,10 +241,13 @@ function lengkapi(SchoolEvent $event): SchoolEvent
             'valid_until' => now()->addHours(2),
         ]);
 
-    // Sesi disimpan sebagai Siap, bukan Draft: draft berarti jendelanya masih
+    // Sesi disiapkan, bukan dibiarkan Draft: draft berarti jendelanya masih
     // boleh diubah, dan event yang menandai dirinya siap dengan sesi yang
-    // masih bisa digeser adalah event yang jadwalnya belum final.
-    $sesi->forceFill(['status' => StatusSesi::Siap])->save();
+    // masih bisa digeser adalah event yang jadwalnya belum final. Lewat
+    // service, bukan `forceFill` - `StatusSesi::Siap` dulu hanya bisa dicapai
+    // dengan menulis kolomnya langsung, dan justru itu yang menyembunyikan
+    // bahwa aplikasinya sendiri tidak punya jalan ke sana.
+    app(SesiService::class)->siapkan($sesi);
 
     // Periode wajib lengkap - butir identitas memeriksanya.
     $event->forceFill([
@@ -315,6 +317,158 @@ it('menolak panitia milik event lain meski sekolahnya sama', function () {
         ->assertNotFound();
 
     expect($panitia->refresh()->name)->toBe('Budi Santoso');
+});
+
+/* --------------------------------------------------- Panitia massal §6.6 */
+
+/**
+ * Akun Guru/Pengawas di sekolah event, dengan nama dan username yang pasti.
+ *
+ * Namanya ditulis eksplisit karena `committee_unik` memakai NAMA sebagai
+ * bagian kuncinya, sementara factory membangkitkan nama dari daftar pendek
+ * yang berulang - dan dua akun bernama sama adalah justru keadaan yang
+ * diperiksa salah satu test di bawah.
+ *
+ * @param  array<int, string>  $nama
+ * @return array<int, User>
+ */
+function akunPanitia(School $sekolah, array $nama, string $peran = 'guru'): array
+{
+    return collect($nama)->map(fn (string $n, int $i) => User::factory()
+        ->{$peran}()
+        ->untukSekolah($sekolah)
+        ->create([
+            'name' => $n,
+            'username' => strtolower(str_replace(' ', '.', $n)).'.'.$i,
+        ]))->all();
+}
+
+it('menambahkan beberapa panitia sekaligus dengan jabatan yang sama', function () {
+    $orang = akunPanitia($this->sekolah, ['Ana Wijaya', 'Beni Saputra', 'Cita Rahayu']);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/massal", [
+            'user_id' => collect($orang)->pluck('id')->all(),
+            'position' => 'pengawas',
+            'scope' => 'event',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $panitia = $this->event->committee()->get();
+
+    expect($panitia)->toHaveCount(3)
+        ->and($panitia->pluck('position')->unique()->all())->toBe(['pengawas'])
+        // Nama diambil dari AKUNNYA, bukan diketik di panel - dan itu yang
+        // membuat panitia massal tidak bisa mencatat orang yang sama dua kali
+        // dengan ejaan berbeda.
+        ->and($panitia->pluck('name')->sort()->values()->all())
+        ->toBe(['Ana Wijaya', 'Beni Saputra', 'Cita Rahayu'])
+        ->and($panitia->whereNull('user_id'))->toBeEmpty();
+});
+
+it('melewati akun yang sudah jadi panitia, dan mengatakannya', function () {
+    [$ana, $beni, $cita] = akunPanitia($this->sekolah, ['Ana Wijaya', 'Beni Saputra', 'Cita Rahayu']);
+
+    EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'user_id' => $ana->id,
+        'name' => $ana->name,
+        'position' => 'pengawas',
+        'scope' => 'event',
+        'status' => 'aktif',
+    ]);
+
+    $respons = $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/massal", [
+            'user_id' => [$ana->id, $beni->id, $cita->id],
+            'position' => 'anggota',
+            'scope' => 'event',
+        ]);
+
+    $respons->assertSessionHasNoErrors();
+
+    expect($this->event->committee()->count())->toBe(3);
+
+    // Yang dilewati DISEBUT, bukan hilang diam-diam. Kiriman yang menambahkan
+    // dua dari tiga orang tanpa penjelasan adalah kiriman yang membuat Admin
+    // menekan tombolnya lagi - dan itu tidak akan mengubah apa pun.
+    expect(session('sukses'))->toContain('2 panitia')
+        ->and(session('sukses'))->toContain('Ana Wijaya')
+        ->and(session('sukses'))->toContain('sudah jadi panitia');
+});
+
+it('melewati nama kembar dalam satu kiriman, bukan gagal 500', function () {
+    // `unique(['school_id','event_id','name'])` ada di tabelnya, dan dua akun
+    // berbeda yang bernama sama adalah hal biasa di satu sekolah. Tanpa
+    // dedup ini, seluruh kiriman meledak menjadi 500 - dan yang tersimpan
+    // nol, padahal tiga puluh orang lain di kiriman yang sama sudah benar.
+    $kembar = akunPanitia($this->sekolah, ['Ahmad Fauzi', 'Ahmad Fauzi']);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/massal", [
+            'user_id' => collect($kembar)->pluck('id')->all(),
+            'position' => 'pengawas',
+            'scope' => 'event',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($this->event->committee()->count())->toBe(1);
+    expect(session('sukses'))->toContain('Ahmad Fauzi');
+});
+
+it('menyaring akun yang bukan Guru atau Pengawas', function () {
+    $guru = akunPanitia($this->sekolah, ['Ana Wijaya']);
+    $siswa = akunPanitia($this->sekolah, ['Siswa Satu'], 'siswa');
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/massal", [
+            'user_id' => [$guru[0]->id, $siswa[0]->id],
+            'position' => 'anggota',
+            'scope' => 'event',
+        ]);
+
+    // Prop `akun` di peramban hanya daftar yang DITAWARKAN; id apa pun bisa
+    // dikirim langsung ke rute ini. Penyaringan ulang di server inilah yang
+    // menutupnya - lebih-lebih karena siswa bisa jadi ketua panitia berarti
+    // seluruh kesiapan event dihitung dari orang yang salah.
+    expect($this->event->committee()->count())->toBe(1)
+        ->and($this->event->committee()->first()->user_id)->toBe($guru[0]->id);
+});
+
+it('menolak cakupan ruang tanpa ruang pada tambah massal', function () {
+    $orang = akunPanitia($this->sekolah, ['Ana Wijaya', 'Beni Saputra']);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/massal", [
+            'user_id' => collect($orang)->pluck('id')->all(),
+            'position' => 'pengawas',
+            'scope' => 'ruang',
+            'ruang_id' => [],
+        ])
+        ->assertSessionHas('galat');
+
+    expect($this->event->committee()->count())->toBe(0);
+});
+
+it('melewati user_id milik sekolah lain', function () {
+    $asing = User::factory()->guru()->untukSekolah($this->lain)->create([
+        'name' => 'Guru Sekolah Lain',
+        'username' => 'guru.lain',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/massal", [
+            'user_id' => [$asing->id],
+            'position' => 'anggota',
+            'scope' => 'event',
+        ])
+        ->assertSessionHas('galat');
+
+    // Scope tenant TIDAK menolong di sini kalau sekolahnya sama, sehingga
+    // penyaringannya memang harus lewat daftar akun yang sah - bukan lewat
+    // asumsi bahwa id yang datang pasti milik sekolah ini.
+    expect($this->event->committee()->count())->toBe(0);
 });
 
 /* -------------------------------------------------------------- Graf status */

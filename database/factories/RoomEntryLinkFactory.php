@@ -24,7 +24,6 @@ class RoomEntryLinkFactory extends Factory
             'room_id' => Room::factory(),
             // Slug unik global - ia muncul di URL publik tanpa kode sekolah.
             'slug' => Str::lower(Str::random(4)).'-'.Str::lower(Str::random(4)),
-            'code_hash' => bcrypt('482916'),
             'expires_at' => now()->addHours(2),
             'revoked_at' => null,
             'use_count' => 0,

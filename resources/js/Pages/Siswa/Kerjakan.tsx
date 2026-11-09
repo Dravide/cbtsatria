@@ -76,7 +76,7 @@ import { Html } from '@/Components/PratinjauButir';
 /** Satu blok `content_json` - bentuknya `{teks: html}`. */
 type Blok = { teks?: string } | null;
 
-type OpsiSnapshot = { kunci: string; teks: Blok };
+type OpsiSnapshot = { kunci: string; teks: Blok; media?: MediaButir[] | null };
 type ButirSnapshot = {
     kunci: string;
     grup?: string | null;
@@ -552,7 +552,7 @@ export default function Kerjakan({ peserta, attempt, butir, progres, simpan_tiap
             tanpaKeluar
             kiri={
                 <span className="truncate text-[12px] text-ink-2">
-                    Soal <b className="text-ink">{aktif?.nomor ?? '—'}</b> dari {butir.length}
+                    Soal <b className="text-ink">{aktif?.nomor ?? '-'}</b> dari {butir.length}
                 </span>
             }
             kanan={<Jam sisa={sisa} panas={sisa <= 300} />}
@@ -799,7 +799,7 @@ function IsiButir({
     return (
         <KotakPonsel solid padat>
             <div className="space-y-2.5">
-                <span className="block text-[10px] tracking-wide text-ink-3 uppercase">
+                <span className="block text-[11px] text-ink-3">
                     {butir.jenis_label} · {butir.bobot} poin
                 </span>
 
@@ -868,7 +868,7 @@ function IsiButir({
                                         kotaknya. */}
                                     <span
                                         className={
-                                            'grid size-4 shrink-0 place-items-center border font-mono text-[8px] uppercase ' +
+                                            'grid size-4 shrink-0 place-items-center border font-mono text-[10px] ' +
                                             (banyak ? 'rounded-wf' : 'rounded-full') +
                                             ' ' +
                                             (on
@@ -880,6 +880,42 @@ function IsiButir({
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <Html nilai={teksDari(o.teks)} />
+                                        {/* Gambar/audio/video yang menempel
+                                            pada pilihan ini tampil DI DALAM
+                                            tombolnya - sehingga gambar
+                                            pilihan B jelas milik B. Ukurannya
+                                            dibatasi supaya tombol tetap bisa
+                                            ditekan di ponsel. */}
+                                        {o.media && o.media.length > 0 && (
+                                            <span className="mt-1 flex flex-wrap gap-1.5">
+                                                {o.media.map((m) => (
+                                                    <span key={m.id} className="block">
+                                                        {m.gambar ? (
+                                                            <img
+                                                                src={m.url}
+                                                                alt={m.nama ?? `Media ${m.id}`}
+                                                                className="max-h-32 max-w-full rounded-wf border border-line"
+                                                            />
+                                                        ) : (
+                                                            /* Bukan tautan: <a>
+                                                                di dalam <button>
+                                                                adalah HTML yang
+                                                                tidak sah, dan
+                                                                klik tautannya
+                                                                tidak boleh ikut
+                                                                memilih pilihan
+                                                                ini. Berkas non-
+                                                                gambar pada opsi
+                                                                jarang; namanya
+                                                                cukup. */
+                                                            <span className="text-[11px] text-ink-3">
+                                                                {m.nama ?? 'Berkas'}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                ))}
+                                            </span>
+                                        )}
                                     </span>
                                 </button>
                             );
@@ -1082,7 +1118,11 @@ function PasanganButir({
                     <span className="min-w-0 flex-1 text-[12.5px]">
                         <Html nilai={teksDari(b.teks)} />
                     </span>
-                    <span className="text-ink-3">—</span>
+                    {/* Garis, bukan tanda pisah: yang memisahkan pernyataan
+                        dari pilihannya adalah ruang, dan tanda pisah di sini
+                        adalah tanda baca yang diketik sebagai kalimat (lantai
+                        19). */}
+                    <span className="h-px w-3 shrink-0 bg-line" aria-hidden="true" />
                     <select
                         value={pasangan[b.kunci] ?? ''}
                         onChange={(e) =>
@@ -1090,7 +1130,12 @@ function PasanganButir({
                         }
                         className="w-[45%] rounded-wf border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none focus:border-accent"
                     >
-                        <option value="">— pilih —</option>
+                        {/* `belum dipilih`, bukan `— pilih —`: yang pertama
+                            sudah dipakai konsol ini untuk nilai kosong
+                            ("belum terdata", "belum ada"), dan yang kedua
+                            menuliskan tanda pisah sebagai tanda baca
+                            kalimat (lantai 19). */}
+                        <option value="">belum dipilih</option>
                         {kanan.map((k) => (
                             <option key={k.kunci} value={k.kunci}>
                                 {teksPolos(teksDari(k.teks)) || k.kunci}

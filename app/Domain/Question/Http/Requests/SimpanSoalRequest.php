@@ -66,7 +66,17 @@ class SimpanSoalRequest extends FormRequest
         $mapelId = $this->input('subject_id', $soal instanceof Question ? $soal->subject_id : null);
 
         return [
-            'subject_id' => ['required', 'integer'],
+            // `exists` + `school_id`, bukan sekadar `integer`. Tanpa itu
+            // `subject_id` yang tidak menunjuk mapel mana pun - dan formulir
+            // memang mengirim 0 saat daftar mapel Guru masih kosong - lolos
+            // validasi lalu ditolak `AmpuanMapel` dengan "Anda tidak mengampu
+            // mata pelajaran tersebut.". Kalimat itu menuduh Guru atas mapel
+            // yang bahkan tidak ada, dan mengirimnya mencari kesalahan di izin
+            // alih-alih di daftar yang kosong.
+            'subject_id' => [
+                'required', 'integer',
+                Rule::exists('subjects', 'id')->where('school_id', $this->user()->school_id),
+            ],
             'code' => [
                 'nullable', 'string', 'max:40',
                 // Kode unik per (sekolah, mapel) - constraint `soal_kode_unik`.
@@ -111,6 +121,16 @@ class SimpanSoalRequest extends FormRequest
             'rubrik.*.description' => ['nullable', 'string', 'max:1000'],
             'rubrik.*.max_score' => ['required', 'numeric', 'gt:0'],
             'rubrik.*.position' => ['nullable', 'integer', 'min:0'],
+
+            // Media DRAF yang diunggah sebelum soal ini punya id - gambar pada
+            // soal dan gambar pada pilihan jawaban. Nilainya daftar ID baris
+            // `question_media`; isinya diperiksa ulang di MediaSoal::tautkanDraf
+            // (milik sekolah ini, diunggah oleh Guru ini, question_id masih
+            // NULL). Di sini hanya bentuknya yang diperiksa.
+            'media_draf' => ['nullable', 'array', 'max:40'],
+            'media_draf.*' => ['integer', 'min:1'],
+            'media_opsi_draf' => ['nullable', 'array', 'max:60'],
+            'media_opsi_draf.*' => ['integer', 'min:1'],
         ];
     }
 
@@ -138,6 +158,7 @@ class SimpanSoalRequest extends FormRequest
     {
         return [
             'question_type' => 'Jenis soal tidak dikenal. Pilih salah satu dari sembilan jenis yang tersedia.',
+            'subject_id.exists' => 'Mata pelajaran itu tidak ada di sekolah ini.',
             'answer_key_json.array' => 'Kunci jawaban harus berupa objek.',
             'prompt_json.teks.required' => 'Teks soal wajib diisi.',
             'prompt_json.teks.max' => 'Teks soal melebihi 20.000 karakter.',

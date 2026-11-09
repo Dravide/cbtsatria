@@ -11,7 +11,8 @@ import {
     RubrikBuilder,
     UrutanBuilder,
 } from '@/Components/BuilderSoal';
-import { Chip, Field, Inbox, Kotak, Tombol, kelasInput } from '@/Components/ui';
+import { Chip, Field, Inbox, Kotak, Modal, Peringatan, Tombol, kelasInput } from '@/Components/ui';
+import { MediaButir, MediaSoal } from '@/Components/MediaSoal';
 
 /**
  * Laman Guru 03 - builder soal. Wireframe-peran.html plate 03.
@@ -61,7 +62,13 @@ type SoalAda = {
     kunci: Record<string, unknown> | null;
     skor: Record<string, unknown> | null;
     pembahasan: Record<string, unknown> | null;
-    opsi: { option_key: string; content_json: { teks?: string }; position: number }[];
+    media?: MediaButir[];
+    opsi: {
+        option_key: string;
+        content_json: { teks?: string };
+        position: number;
+        media?: MediaButir[];
+    }[];
     butir: {
         item_key: string;
         item_group: string | null;
@@ -79,6 +86,43 @@ type Props = {
     mapel: Mapel[];
     jenis: { nilai: string; label: string; pendek: string }[];
     paketTujuan: number | null;
+    // Hanya SAKLARNYA. Base URL dan nama model tidak dikirim ke peramban:
+    // Guru tidak membutuhkannya, dan yang tidak dikirim tidak bisa bocor.
+    ai?: boolean;
+};
+
+/** Jenis yang boleh dihasilkan AI - cermin PenulisSoalAi::JENIS_DIDUKUNG. */
+const JENIS_AI = ['pilihan_ganda', 'benar_salah', 'isian_singkat', 'uraian'];
+
+/**
+ * Ubah `mapelId` (string dari `<select>`) menjadi angka yang aman dikirim.
+ *
+ * Mengapa tidak `Number(mapelId)` saja: `Number('')` adalah **0**, dan 0 lolos
+ * ke server sebagai `subject_id` yang sah menurut tipe. Server lalu menolaknya
+ * di `AmpuanMapel` dengan "Anda tidak mengampu mata pelajaran tersebut." -
+ * kalimat yang menuduh Guru atas mata pelajaran yang bahkan tidak ada, dan
+ * membuatnya mencari kesalahan di izin, bukan di daftar yang kosong.
+ *
+ * Keadaan itu nyata: Guru yang belum ditugaskan ke mapel mana pun membuka
+ * laman ini dengan daftar mapel kosong, sehingga `mapel[0]` tidak ada dan
+ * `mapelId` tetap `''`.
+ */
+const idMapel = (nilai: string): number | null => {
+    const angka = Number.parseInt(nilai, 10);
+
+    return Number.isFinite(angka) && angka > 0 ? angka : null;
+};
+
+/** Bentuk jawaban POST /guru/bank-soal/ai. */
+type HasilAi = {
+    judul: string;
+    jenis: string;
+    pertanyaan: string;
+    pembahasan: string | null;
+    opsi: { kunci: string; teks: string }[];
+    kunci: string[];
+    varian: string[];
+    rubrik: { kriteria: string; keterangan: string; skor_maks: number }[];
 };
 
 /** Ambil teks dari kolom JSON apa pun bentuknya. */
@@ -94,7 +138,7 @@ const BENAR_SALAH: BarisOpsi[] = [
     { option_key: 's', teks: 'Salah' },
 ];
 
-export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTujuan }: Props) {
+export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTujuan, ai }: Props) {
     const baru = soal === null;
     const kunciAwal = (soal?.kunci ?? {}) as Record<string, unknown>;
 
@@ -108,9 +152,19 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
     const [prompt, setPrompt] = useState(teks(soal?.prompt));
     const [pembahasan, setPembahasan] = useState(teks(soal?.pembahasan));
 
+    // Media pada SOAL (gambar/audio/video stimulus) - terpisah dari media
+    // pilihan jawaban yang hidup di dalam tiap `BarisOpsi`. Daftar id-nya
+    // ikut terkirim saat simpan (`media_draf` / `media_opsi_draf`) supaya
+    // media draf tertaut ke soal yang baru dibuat.
+    const [mediaSoal, setMediaSoal] = useState<MediaButir[]>(soal?.media ?? []);
+
     const [opsi, setOpsi] = useState<BarisOpsi[]>(
         soal?.opsi?.length
-            ? soal.opsi.map((o) => ({ option_key: o.option_key, teks: teks(o.content_json) }))
+            ? soal.opsi.map((o) => ({
+                  option_key: o.option_key,
+                  teks: teks(o.content_json),
+                  media: o.media ?? [],
+              }))
             : [
                   { option_key: 'a', teks: '' },
                   { option_key: 'b', teks: '' },
@@ -162,6 +216,146 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
     const [skorParsial, setSkorParsial] = useState(Boolean(skorAwal.skor_parsial));
     const [mekanisme, setMekanisme] = useState(String(skorAwal.mekanisme ?? 'pilihan'));
 
+    // ---------------------------------------------------------- Generate AI
+    //
+    // `dariAi` adalah penanda, bukan hiasan: soal yang dibuat model bahasa
+    // terdengar benar dan kadang salah, dan satu-satunya orang yang bisa
+    // menilainya adalah Guru yang membacanya. Penandanya dibersihkan saat
+    // Guru berpindah jenis dan saat soalnya disimpan.
+    const [dariAi, setDariAi] = useState(false);
+    const [modalAi, setModalAi] = useState(false);
+    const [topikAi, setTopikAi] = useState('');
+    const [jenisAi, setJenisAi] = useState(JENIS_AI.includes(tab) ? tab : 'pilihan_ganda');
+    const [tingkatAi, setTingkatAi] = useState(tingkat);
+    const [menyusunAi, setMenyusunAi] = useState(false);
+    const [galatAi, setGalatAi] = useState<string | null>(null);
+
+    /**
+     * Kirim permintaan Generate ke server, dengan token CSRF dari cookie.
+     *
+     * Polanya sama dengan `Siswa/Kerjakan.tsx`, dan sengaja ditulis ulang di
+     * sini alih-alih diekstrak ke `lib/`: dua pemanggil lama punya bentuk
+     * galat yang berbeda, dan menyatukannya adalah perubahan perilaku pada
+     * laman ujian yang tidak diminta.
+     */
+    const susunDenganAi = async () => {
+        setMenyusunAi(true);
+        setGalatAi(null);
+
+        try {
+            const cocok = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+
+            const tanggapan = await fetch('/guru/bank-soal/ai', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': cocok ? decodeURIComponent(cocok[1]) : '',
+                },
+                body: JSON.stringify({
+                    subject_id: idMapel(mapelId),
+                    jenis: jenisAi,
+                    topik: topikAi,
+                    tingkat: tingkatAi,
+                }),
+            });
+
+            // 419 = sesi CSRF kedaluwarsa, dan itu berarti laman ini sudah
+            // terlalu lama terbuka. Muat ulang memulihkan tokennya; mengulang
+            // kiriman tidak.
+            if (tanggapan.status === 419) {
+                window.location.reload();
+
+                return;
+            }
+
+            const isi = (await tanggapan.json().catch(() => ({}))) as Partial<HasilAi> & {
+                pesan?: string;
+                message?: string;
+                errors?: Record<string, string[]>;
+            };
+
+            if (!tanggapan.ok) {
+                // Galat validasi dari server membawa `errors` per field, dan
+                // galat penyedia membawa `pesan`. Keduanya harus terbaca di
+                // dalam modal - Guru perlu bisa memperbaiki topik atau
+                // melapor ke Admin tanpa kehilangan apa yang sudah ia tulis.
+                const pertama = isi.errors ? Object.values(isi.errors)[0]?.[0] : undefined;
+
+                setGalatAi(
+                    pertama ??
+                        isi.pesan ??
+                        isi.message ??
+                        'Gagal menyusun soal. Coba lagi, atau susun soalnya secara manual.',
+                );
+
+                return;
+            }
+
+            isiDariAi(isi as HasilAi);
+        } catch {
+            setGalatAi(
+                'Tidak bisa menghubungi server. Periksa sambungan internet, lalu coba lagi.',
+            );
+        } finally {
+            setMenyusunAi(false);
+        }
+    };
+
+    /**
+     * Isi form dengan hasil AI - MENGGANTI, bukan menambahkan.
+     *
+     * Yang TIDAK disentuh: `kode` dan `status`. Kode dibangkitkan server bila
+     * kosong, dan status tetap `draft` sampai Guru sendirinya menaikkannya.
+     */
+    const isiDariAi = (hasil: HasilAi) => {
+        setTab(hasil.jenis);
+        setJudul(hasil.judul);
+        setTingkat(tingkatAi);
+        setPrompt(hasil.pertanyaan);
+        setPembahasan(hasil.pembahasan ?? '');
+
+        if (hasil.jenis === 'pilihan_ganda') {
+            setOpsi(hasil.opsi.map((o) => ({ option_key: o.kunci, teks: o.teks })));
+            setKunciOpsi(hasil.kunci);
+        }
+
+        if (hasil.jenis === 'benar_salah') {
+            setOpsi(BENAR_SALAH);
+            setKunciOpsi(hasil.kunci);
+        }
+
+        if (hasil.jenis === 'isian_singkat') {
+            setVarian(hasil.varian.length ? hasil.varian : ['']);
+        }
+
+        if (hasil.jenis === 'uraian') {
+            setRubrik(
+                hasil.rubrik.map((r) => ({
+                    criterion: r.kriteria,
+                    description: r.keterangan,
+                    max_score: String(r.skor_maks),
+                })),
+            );
+        }
+
+        setDariAi(true);
+        setModalAi(false);
+        setTopikAi('');
+    };
+
+    /** Pindah tab membuang penanda AI: bentuk formnya sudah berbeda. */
+    const pindahTab = (nilai: string) => {
+        setTab(nilai);
+        setDariAi(false);
+
+        if (JENIS_AI.includes(nilai)) {
+            setJenisAi(nilai);
+        }
+    };
+
     // ----------------------------------------------------------- Kiriman
     //
     // Tipe payload-nya ditulis lengkap, bukan `Record<string, unknown>`, dan
@@ -171,7 +365,10 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
     // adanya di sini, dan itu justru berguna: seluruh field yang dikirim
     // server terbaca dari satu tempat.
     type Kiriman = {
-        subject_id: string;
+        // `number` saat ada mapel yang dipilih, `''` saat daftarnya kosong.
+        // Bentuk kedua itu disengaja: yang dikirim adalah "belum ada pilihan",
+        // bukan angka 0 yang terlihat seperti id yang sah.
+        subject_id: number | '';
         code: string | null;
         title: string;
         question_type: string;
@@ -210,6 +407,11 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
             max_score: number;
             position: number;
         }[];
+        // Id media yang sudah diunggah di builder (draf bila soal baru).
+        // Server menautkannya ke soal yang baru disimpan; lihat
+        // MediaSoal::tautkanDraf / tautkanOpsiDraf.
+        media_draf: number[];
+        media_opsi_draf: number[];
     };
 
     const form = useForm<Kiriman>({
@@ -226,6 +428,8 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
         opsi: [],
         butir: [],
         rubrik: [],
+        media_draf: [],
+        media_opsi_draf: [],
     });
 
     /** Susun `answer_key_json` menurut jenis yang SEDANG dipilih. */
@@ -262,12 +466,19 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
     };
 
     const kirim = () => {
+        // Penjaga terakhir. Tombolnya sudah mati saat daftar mapel kosong, dan
+        // ini menutup jalan lain ke fungsi yang sama - termasuk `Enter` di
+        // dalam field, yang tetap men-submit formnya.
+        if (idMapel(mapelId) === null) {
+            return;
+        }
+
         const kunci = susunKunci();
         const pakaiOpsi = ['pilihan_ganda', 'jawaban_ganda', 'benar_salah'].includes(tab) ||
             (tab === 'media' && mekanisme === 'pilihan');
 
         form.transform(() => ({
-            subject_id: mapelId,
+            subject_id: idMapel(mapelId) ?? '',
             code: kode || null,
             title: judul,
             question_type: tab,
@@ -301,16 +512,53 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                 max_score: parseFloat(r.max_score) || 1,
                 position: i,
             })),
+            // Id media yang sudah diunggah lewat builder. `media_draf` untuk
+            // media tingkat soal; `media_opsi_draf` untuk media pilihan.
+            // Pada soal BARU keduanya masih draf (question_id NULL) dan
+            // ditautkan server saat simpan. Pada soal yang sudah ada, media
+            // itu sudah bertuan - server hanya menautkan yang masih NULL,
+            // jadi mengirimnya ulang tidak berbahaya.
+            media_draf: mediaSoal.map((m) => m.id),
+            media_opsi_draf: opsi.flatMap((o) => (o.media ?? []).map((m) => m.id)),
         }));
 
+        // Penanda AI dibersihkan SESUDAH simpan berhasil, bukan sebelum:
+        // simpan yang ditolak validasi tetap membawa soal yang belum
+        // ditinjau, dan peringatannya harus bertahan di layar.
+        const sesudah = { onSuccess: () => setDariAi(false) };
+
         if (baru) {
-            form.post('/guru/bank-soal');
+            form.post('/guru/bank-soal', sesudah);
             return;
         }
-        form.put(`/guru/bank-soal/${soal.id}`);
-    };
+        form.put(`/guru/bank-soal/${soal.id}`, sesudah);    };
 
     const galat = (k: string) => (form.errors as Record<string, string>)[k];
+
+    /**
+     * Galat validasi satu pilihan jawaban.
+     *
+     * Server memberi nama galat menurut POSISI larik (`opsi.0.content_json.teks`),
+     * jadi indeks barisnya yang dipakai - bukan `option_key`. Teks pilihan itu
+     * satu-satunya yang bisa kosong pada satu baris (kunci/media tidak wajib),
+     * sehingga satu kunci itulah yang dibaca, dengan cadangan ke galat tingkat
+     * baris untuk bentuk yang lebih jarang.
+     */
+    const galatOpsi = (indeks: number): string | undefined => {
+        const e = form.errors as Record<string, string>;
+        return (
+            e[`opsi.${indeks}.content_json.teks`] ??
+            e[`opsi.${indeks}.content_json`] ??
+            e[`opsi.${indeks}.option_key`]
+        );
+    };
+
+    // Ada galat berarti Inertia TIDAK berpindah laman: ia kembali ke builder
+    // yang sama dengan `form.errors` terisi. Tanpa satu tanda di atas form,
+    // satu-satunya yang berubah hanyalah ketukan balik yang tak terlihat - dan
+    // guru menyimpulkan "Simpan tidak terjadi apa-apa", padahal permintaannya
+    // terkirim, ditolak, dan alasannya memang ada di layar.
+    const adaGalat = Object.keys(form.errors).length > 0;
 
     // ------------------------------------------------------------ Render
     return (
@@ -319,6 +567,13 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
             breadcrumb={`/guru/bank-soal${baru ? ' / baru' : ' / ' + soal.kode}`}
             aksi={
                 <>
+                    {/* Tombol hanya dirender saat AI benar-benar siap. Tombol
+                        mati tanpa penjelasan membuat Guru melapor bahwa
+                        fiturnya rusak - sekolah yang belum mengatur AI
+                        mendapat satu kalimat di atas editor, bukan tombol. */}
+                    {ai && bolehUbah && idMapel(mapelId) !== null && (
+                        <Tombol onClick={() => setModalAi(true)}>Generate AI</Tombol>
+                    )}
                     <Link
                         href="/guru/bank-soal"
                         className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
@@ -328,7 +583,12 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                     <Tombol
                         nada="pri"
                         onClick={kirim}
-                        disabled={form.processing || !bolehUbah}
+                        disabled={form.processing || !bolehUbah || idMapel(mapelId) === null}
+                        title={
+                            idMapel(mapelId) === null
+                                ? 'Belum ada mata pelajaran yang bisa dipilih'
+                                : undefined
+                        }
                     >
                         {baru ? 'Simpan ke bank' : 'Simpan perubahan'}
                     </Tombol>
@@ -336,6 +596,19 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
             }
         >
             <Head title={baru ? 'Soal baru' : `Soal ${soal.kode}`} />
+
+            {/* Simpan yang ditolak validasi TIDAK berpindah laman - Inertia
+                mengembalikan builder yang sama dengan galat per field. Satu
+                kalimat di sini memastikan Guru tahu soalnya BELUM tersimpan,
+                lalu mencari tanda merah di field yang disebut. */}
+            {adaGalat && (
+                <div className="mb-3">
+                    <Peringatan>
+                        Soal belum tersimpan. Periksa isian yang bertanda merah di bawah
+                        &mdash; biasanya ada pilihan jawaban yang masih kosong.
+                    </Peringatan>
+                </div>
+            )}
 
             {/* Soal Guru lain boleh dibuka, tetapi TIDAK boleh disimpan - dan
                 itu dinyatakan di layar, bukan baru ketahuan saat menekan
@@ -357,7 +630,7 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                         key={j.nilai}
                         type="button"
                         disabled={!bolehUbah}
-                        onClick={() => setTab(j.nilai)}
+                        onClick={() => pindahTab(j.nilai)}
                         className={
                             'rounded-wf px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed ' +
                             (tab === j.nilai
@@ -370,6 +643,40 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                 ))}
             </div>
 
+            {/* Guru tanpa satu pun penugasan mengajar. Daftar mapelnya kosong,
+                dan tanpa kalimat ini ia hanya melihat `<select>` hampa lalu
+                menekan Simpan dan menerima penolakan yang tidak bisa
+                ditindaklanjuti dari sisinya - yang harus menugaskannya adalah
+                Admin, di laman Mata pelajaran. */}
+            {bolehUbah && mapel.length === 0 && (
+                <div className="mb-3">
+                    <Inbox>
+                        Anda belum ditugaskan ke mata pelajaran mana pun, jadi soal belum bisa
+                        disimpan. Minta Admin menugaskan Anda di laman{' '}
+                        <b>Mata pelajaran</b>, lalu buka kembali laman ini.
+                    </Inbox>
+                </div>
+            )}
+
+            {bolehUbah && !ai && (
+                <div className="mb-3">
+                    <Inbox>
+                        Generate AI belum diatur Admin. Soal tetap bisa disusun manual seperti
+                        biasa.
+                    </Inbox>
+                </div>
+            )}
+
+            {dariAi && (
+                <div className="mb-3">
+                    <Inbox>
+                        Soal ini dibuat AI dari topik yang Anda tulis. Periksa kebenarannya
+                        sebelum disimpan &mdash; model bahasa bisa menghasilkan jawaban yang
+                        terdengar benar tetapi salah.
+                    </Inbox>
+                </div>
+            )}
+
             <div className="space-y-3">
                 <EditorSoal
                     key={`prompt-${tab}`}
@@ -379,6 +686,22 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                     placeholder="Tulis soal di sini…"
                 />
 
+                {/* Media pada SOAL - stimulus gambar/audio/video yang tampil
+                    di atas pertanyaan. Untuk soal jenis "media", inilah
+                    berkas utamanya. */}
+                <Kotak judul="Gambar / berkas soal">
+                    <p className="mb-2 text-[11px] text-ink-3">
+                        Tampil di atas teks soal untuk semua jenis. Gambar: JPG, PNG, WEBP, GIF
+                        (maks 2&nbsp;MB). Audio sampai 5&nbsp;MB, video sampai 20&nbsp;MB.
+                    </p>
+                    <MediaSoal
+                        media={mediaSoal}
+                        padaUbah={setMediaSoal}
+                        soalId={soal?.id ?? null}
+                        bolehUbah={bolehUbah}
+                    />
+                </Kotak>
+
                 {tab === 'pilihan_ganda' && (
                     <OpsiBuilder
                         opsi={opsi}
@@ -387,6 +710,9 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                         padaKunci={setKunciOpsi}
                         tunggal
                         galat={galat('answer_key_json')}
+                        galatOpsi={galatOpsi}
+                        soalId={soal?.id ?? null}
+                        bolehUbah={bolehUbah}
                     />
                 )}
 
@@ -399,6 +725,9 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                             padaKunci={setKunciOpsi}
                             tunggal={false}
                             galat={galat('answer_key_json')}
+                            galatOpsi={galatOpsi}
+                            soalId={soal?.id ?? null}
+                            bolehUbah={bolehUbah}
                         />
                         <label className="flex items-center gap-2 text-xs text-ink-2">
                             <input
@@ -420,6 +749,9 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                         padaKunci={setKunciOpsi}
                         tunggal
                         galat={galat('answer_key_json')}
+                        galatOpsi={galatOpsi}
+                        soalId={soal?.id ?? null}
+                        bolehUbah={bolehUbah}
                     />
                 )}
 
@@ -583,6 +915,9 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                                 padaKunci={setKunciOpsi}
                                 tunggal
                                 galat={galat('answer_key_json')}
+                                galatOpsi={galatOpsi}
+                                soalId={soal?.id ?? null}
+                                bolehUbah={bolehUbah}
                             />
                         )}
 
@@ -599,8 +934,8 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                         <Inbox>
                             Berkas media (gambar, audio, video) diunggah ke penyimpanan privat
                             sekolah, bukan ditautkan ke layanan luar — sehingga soal tetap utuh
-                            walau tautan luar itu mati. Unggahan berkas dikerjakan pada langkah
-                            berikutnya; soal dapat disimpan lebih dulu tanpa media.
+                            walau tautan luar itu mati. Unggah berkasnya di kotak{' '}
+                            <b>Gambar / berkas soal</b> di atas.
                         </Inbox>
                     </>
                 )}
@@ -654,7 +989,7 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                             />
                         </Field>
 
-                        <Field label="Bobot">
+                        <Field label="Bobot" galat={galat('scoring_config_json.bobot')}>
                             <input
                                 value={bobot}
                                 onChange={(e) => setBobot(e.target.value)}
@@ -708,6 +1043,88 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                     </Inbox>
                 )}
             </div>
+
+            <Modal
+                judul="Generate soal dengan AI"
+                terbuka={modalAi}
+                // Selama menunggu, modal TIDAK bisa ditutup: permintaan sudah
+                // terkirim dan sudah ditagih, jadi menutupnya hanya
+                // menyembunyikan hasil yang tetap dibayar.
+                padaTutup={() => {
+                    if (!menyusunAi) {
+                        setModalAi(false);
+                    }
+                }}
+            >
+                <div className="space-y-3">
+                    <Field label="Jenis soal">
+                        <select
+                            value={jenisAi}
+                            onChange={(e) => setJenisAi(e.target.value)}
+                            disabled={menyusunAi}
+                            className={kelasInput}
+                        >
+                            <option value="pilihan_ganda">Pilihan ganda</option>
+                            <option value="benar_salah">Benar / salah</option>
+                            <option value="isian_singkat">Isian singkat</option>
+                            <option value="uraian">Uraian</option>
+                        </select>
+                    </Field>
+
+                    <Field label="Tingkat">
+                        <select
+                            value={tingkatAi}
+                            onChange={(e) => setTingkatAi(e.target.value)}
+                            disabled={menyusunAi}
+                            className={kelasInput}
+                        >
+                            <option value="mudah">Mudah</option>
+                            <option value="sedang">Sedang</option>
+                            <option value="sulit">Sulit</option>
+                        </select>
+                    </Field>
+
+                    <Field
+                        label="Topik"
+                        petunjuk="Semakin spesifik, semakin baik soalnya."
+                    >
+                        <textarea
+                            value={topikAi}
+                            onChange={(e) => setTopikAi(e.target.value)}
+                            disabled={menyusunAi}
+                            rows={3}
+                            placeholder="mis. Operasi himpunan, irisan dan gabungan, dua himpunan"
+                            className={kelasInput}
+                        />
+                    </Field>
+
+                    {galatAi && <Peringatan>{galatAi}</Peringatan>}
+
+                    {menyusunAi && (
+                        <p className="text-[11px] leading-relaxed text-ink-3">
+                            Menyusun soal&hellip; Biasanya sepuluh sampai tiga puluh detik.
+                        </p>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                        <Tombol
+                            nada="pri"
+                            onClick={susunDenganAi}
+                            disabled={menyusunAi || topikAi.trim().length < 5}
+                        >
+                            {menyusunAi ? 'Menyusun soal...' : 'Buat soal'}
+                        </Tombol>
+                        <Tombol onClick={() => setModalAi(false)} disabled={menyusunAi}>
+                            Batal
+                        </Tombol>
+                    </div>
+
+                    <p className="text-[11px] leading-relaxed text-ink-3">
+                        Hasilnya mengisi form ini &mdash; tidak ada yang tersimpan sampai Anda
+                        menekan Simpan. Setiap permintaan ditagih ke akun penyedia sekolah.
+                    </p>
+                </div>
+            </Modal>
         </GuruLayout>
     );
 }

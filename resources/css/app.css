@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import './tokens.css';
+@import './konsol-siswa.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -46,6 +48,26 @@
     --color-wf-hair: #e6eaf0;
     --color-wf-head: #edf1f7;
 
+    /*
+     * Token konsol siswa yang perlu punya NAMA di sini, bukan hanya nilai.
+     *
+     * Tailwind 4 hanya memancarkan utility dari variabel yang terdaftar di
+     * `@theme` - `bg-plate` tidak ada sebelum barisnya ada di sini, sekalipun
+     * nilainya sudah tertulis di `.konsol-siswa` (tokens.css). Daftar ini
+     * karena itu soal NAMA, bukan soal warna.
+     *
+     * Nilainya sendiri tinggal di tokens.css dan ditimpa di sana; yang di sini
+     * hanya nilai cadangan untuk empat peran lain, yang tidak satu pun
+     * memakainya - dan itu memang keadaan yang aman untuk dinilai: kelas yang
+     * salah pakai di konsol Admin mendapat abu-abu netral, bukan warna konsol
+     * siswa yang menyelinap keluar.
+     */
+    --color-line-2: #565c68;
+    --color-plate: #161b24;
+    --color-plate-ink: #eceff4;
+    --color-plate-ink-2: #b9c0cc;
+    --color-figure: #8a5a06;
+
     /* Huruf */
     --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
     --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -54,6 +76,42 @@
     /* Bentuk */
     --radius-wf: 8px;
     --shadow-wf: 0 1px 2px rgba(16, 22, 32, 0.05), 0 10px 26px -18px rgba(16, 22, 32, 0.35);
+    --shadow-kotak: 0 1px 0 rgba(16, 22, 32, 0.03);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Palet rangka ujian gelap
+|--------------------------------------------------------------------------
+| Nilainya TIDAK berubah satu pun dari yang tertulis di `.rangka-ujian`
+| sebelumnya - yang berubah hanya tempatnya. Sebelumnya sembilan belas warna
+| ditulis mentah di dalam aturan `.rangka-ujian`, dan aturan itu bukan blok
+| token (`:root`), sehingga gate 48 membacanya sebagai sembilan belas literal
+| di luar token: nilai yang tidak bisa dibaca dari blok token, tidak ikut
+| berganti bila paletnya berganti, dan tidak bisa dipakai dua tempat.
+|
+| Sekarang nilainya tinggal di sini dan `.rangka-ujian` hanya memetakannya.
+| Hasil pikselnya identik - dibuktikan .hallmark/before/ sesudah redesign.
+*/
+:root {
+    --gelap-paper: #12161f;
+    --gelap-surface: #1a2029;
+    --gelap-surface-2: #232b36;
+    --gelap-line: #39424f;
+    --gelap-ink: #e2e8f1;
+    --gelap-ink-2: #b3bdcc;
+    --gelap-ink-3: #8b96a6;
+    --gelap-accent: #7aa8f0;
+    --gelap-accent-soft: #1a2740;
+    --gelap-on-accent: #0b0e14;
+    --gelap-ok: #6ecfa0;
+    --gelap-ok-bg: #122c22;
+    --gelap-warn: #e0b062;
+    --gelap-warn-bg: #2e2413;
+    --gelap-bad: #f08b93;
+    --gelap-bad-bg: #331a1d;
+    --gelap-info: #79c0da;
+    --gelap-info-bg: #12252d;
 }
 
 /*
@@ -74,24 +132,24 @@
 | separuh peserta melihat rangka yang berbeda dari separuh lainnya.
 */
 .rangka-ujian {
-    --color-paper: #12161f;
-    --color-surface: #1a2029;
-    --color-surface-2: #232b36;
-    --color-line: #39424f;
-    --color-ink: #e2e8f1;
-    --color-ink-2: #b3bdcc;
-    --color-ink-3: #8b96a6;
-    --color-accent: #7aa8f0;
-    --color-accent-soft: #1a2740;
-    --color-on-accent: #0b0e14;
-    --color-ok: #6ecfa0;
-    --color-ok-bg: #122c22;
-    --color-warn: #e0b062;
-    --color-warn-bg: #2e2413;
-    --color-bad: #f08b93;
-    --color-bad-bg: #331a1d;
-    --color-info: #79c0da;
-    --color-info-bg: #12252d;
+    --color-paper: var(--gelap-paper);
+    --color-surface: var(--gelap-surface);
+    --color-surface-2: var(--gelap-surface-2);
+    --color-line: var(--gelap-line);
+    --color-ink: var(--gelap-ink);
+    --color-ink-2: var(--gelap-ink-2);
+    --color-ink-3: var(--gelap-ink-3);
+    --color-accent: var(--gelap-accent);
+    --color-accent-soft: var(--gelap-accent-soft);
+    --color-on-accent: var(--gelap-on-accent);
+    --color-ok: var(--gelap-ok);
+    --color-ok-bg: var(--gelap-ok-bg);
+    --color-warn: var(--gelap-warn);
+    --color-warn-bg: var(--gelap-warn-bg);
+    --color-bad: var(--gelap-bad);
+    --color-bad-bg: var(--gelap-bad-bg);
+    --color-info: var(--gelap-info);
+    --color-info-bg: var(--gelap-info-bg);
 
     background-color: var(--color-paper);
     color: var(--color-ink);
@@ -103,6 +161,16 @@
         color: var(--color-ink);
         font-family: var(--font-sans);
         -webkit-font-smoothing: antialiased;
+    }
+
+    /*
+     * `clip`, bukan `hidden`: `hidden` membuat `overflow-y` ikut menjadi
+     * `auto`, sehingga setiap elemen yang menyentuh tepi kanan memunculkan
+     * batang gulir kedua di dalam halaman.
+     */
+    html,
+    body {
+        overflow-x: clip;
     }
 
     h1,
@@ -118,5 +186,33 @@
     samp,
     .font-mono {
         font-family: var(--font-mono);
+    }
+
+    /*
+     * Cincin fokus hanya untuk papan ketik, dan muncul SEGERA.
+     *
+     * Tanpa `:focus-visible` bawaan yang jelas, konsol ini hanya bisa dipakai
+     * dengan tetikus - dan admin sekolah memang banyak yang menabulasi
+     * formulir panjang seperti daftar pengguna.
+     */
+    :focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+    /*
+     * Pemakaian normal tidak kehilangan fokus cincin karena transisi: cincin
+     * ini tidak dianimasikan sama sekali.
+     */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+            scroll-behavior: auto !important;
+        }
     }
 }

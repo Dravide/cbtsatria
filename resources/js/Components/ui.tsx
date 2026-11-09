@@ -35,6 +35,11 @@ const NADA: Record<NadaChip, string> = {
 };
 
 export function Chip({ nada = 'mute', children }: { nada?: NadaChip; children: ReactNode }) {
+    // `rounded-wf` dan bukan `rounded-full`: chip ini dipakai empat peran,
+    // termasuk rangka GELAP ujian (Terkunci.tsx) yang tidak boleh berubah
+    // oleh redesign konsol siswa. Yang meluruskan sudutnya di konsol siswa
+    // adalah `.konsol-siswa .rounded-full { border-radius: 0 }` di
+    // konsol-siswa.css, dan aturan itu hanya berlaku di dalam rangka terang.
     return (
         <span
             className={
@@ -118,7 +123,12 @@ export function Tombol({
             disabled={disabled}
             title={title}
             className={
-                'rounded-wf border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed ' +
+                // `active:translate-y-px` - satu-satunya gerak pada tombol,
+                // dan hanya `transform`: menekan tombol harus terasa, tetapi
+                // menggeser tata letak akan menggeser seluruh baris tabel di
+                // sebelahnya.
+                'inline-flex items-center justify-center gap-1.5 rounded-wf border px-3 py-1.5 text-xs font-medium ' +
+                'transition-colors duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:active:translate-y-0 ' +
                 TOMBOL[nada]
             }
         >
@@ -154,7 +164,10 @@ export function Field({
 }
 
 export const kelasInput =
-    'w-full rounded-wf border border-line bg-surface px-2.5 py-1.5 text-sm text-ink outline-none focus:border-accent disabled:bg-surface-2 disabled:text-ink-3';
+    'w-full rounded-wf border border-line bg-surface px-2.5 py-1.5 text-sm text-ink outline-none ' +
+    'transition-colors duration-150 placeholder:text-ink-3/70 ' +
+    'hover:border-ink-3/50 focus:border-accent focus:ring-2 focus:ring-accent/15 ' +
+    'disabled:bg-surface-2 disabled:text-ink-3';
 
 /* ----------------------------------------------------------------- Kotak */
 
@@ -168,12 +181,16 @@ export function Kotak({
     children: ReactNode;
 }) {
     return (
-        <section className="rounded-wf border border-line bg-surface">
+        /* Bayangannya satu token, bukan nilai mentah di dalam kelas: nilai
+           mentah di kelas tidak bisa dibaca dari blok token, tidak ikut
+           berganti bila temanya berganti, dan gate 48 menolaknya. */
+        <section className="rounded-wf border border-line bg-surface shadow-kotak">
             {judul && (
                 <header className="flex items-center gap-3 border-b border-line px-4 py-2.5">
-                    <h2 className="text-xs font-medium tracking-wide text-ink-2 uppercase">
-                        {judul}
-                    </h2>
+                    {/* Judul kotak memakai `font-display`, bukan huruf kecil
+                        berkapit: ia nama bagian, dan bagian-bagian di konsol
+                        ini dibaca dengan cara yang sama seperti judul laman. */}
+                    <h2 className="font-display text-sm font-semibold text-ink">{judul}</h2>
                     {aksi && <div className="ml-auto flex gap-2">{aksi}</div>}
                 </header>
             )}
@@ -213,43 +230,35 @@ export function Peringatan({ children }: { children: ReactNode }) {
 /**
  * Status singkat setelah aksi yang mengubah data - anatomi wireframe butir 7.
  *
- * Ia hilang sendiri setelah beberapa detik, tetapi TIDAK pernah menutup
- * pesan yang membawa kode pengawas: kode itu hanya ada di satu respons, dan
- * menghilangkannya otomatis berarti Admin kehilangan satu-satunya
- * kesempatannya membacanya.
+ * Ia hilang sendiri setelah beberapa detik. Tidak ada lagi pengecualian untuk
+ * kode pengawas: kode itu kini tersimpan terenkripsi dan SELALU tampil di
+ * tabel laman Kepanitiaan, jadi pesan suksesnya boleh memudar seperti pesan
+ * lain tanpa membuat Admin kehilangan kodenya.
  */
 export function UmpanBalik() {
     const { flash } = usePage().props as unknown as {
         flash: {
             sukses?: string;
             galat?: string;
-            kode_pengawas?: string;
-            slug_baru?: string;
         };
     };
 
     const [tampil, setTampil] = useState(true);
     const [tampilGalat, setTampilGalat] = useState(true);
 
-    // Kode pengawas TIDAK dihilangkan otomatis di sini. Laman yang
-    // menerbitkannya menampilkannya sendiri (RuangDetail) karena ia perlu
-    // menjelaskan artinya di tempat itu - dan pesan sukses yang hilang
-    // sendiri sementara kodenya masih dibutuhkan justru berbahaya.
-    const adaKode = Boolean(flash?.kode_pengawas);
-
     useEffect(() => {
         setTampil(true);
-    }, [flash?.sukses, flash?.kode_pengawas]);
+    }, [flash?.sukses]);
 
     useEffect(() => {
-        if (!flash?.sukses || adaKode) {
+        if (!flash?.sukses) {
             return;
         }
 
         const t = setTimeout(() => setTampil(false), 6000);
 
         return () => clearTimeout(t);
-    }, [flash?.sukses, adaKode]);
+    }, [flash?.sukses]);
 
     // Galat TIDAK pernah hilang sendiri.
     //
@@ -298,23 +307,20 @@ export function UmpanBalik() {
 }
 
 /**
- * Kode pengawas, ditampilkan sekali.
+ * Kode pengawas sebagai teks mono yang selalu tampil.
  *
- * Diberi bingkai sendiri dan tidak ikut menghilang, karena ia satu-satunya
- * saat kode itu bisa dibaca. Sesudah respons ini, yang tersisa hanya hash.
+ * Sejak kode itu disimpan terenkripsi dan selalu dikirim sebagai prop, ia
+ * tidak lagi "tampil sekali". Komponen ini hanya alat tampil: enam angka
+ * dalam huruf mono berjarak lebar, supaya mudah dibaca dan disalin ke kartu
+ * pengawas.
+ *
+ * Kodenya milik ORANG, bukan ruang: satu pengawas memakainya di ruang mana
+ * pun yang ditugaskan kepadanya. Yang disimpan di basis data adalah bentuk
+ * terenkripsinya - lihat `EventCommitteeMember`.
  */
-export function KodePengawas({ kode, slug }: { kode: string; slug?: string }) {
+export function KodeTeks({ kode }: { kode: string }) {
     return (
-        <div className="rounded-wf border border-warn/30 bg-warn-bg px-3 py-2.5 text-xs text-warn">
-            <p className="font-medium">Kode pengawas - hanya tampil sekali</p>
-            <p className="mt-1.5 font-mono text-lg tracking-[0.2em] text-ink">{kode}</p>
-            {slug && <p className="mt-1 font-mono text-[11px] opacity-80">/p/{slug}</p>}
-            <p className="mt-1.5 leading-relaxed">
-                Muat ulang halaman ini dan kode itu hilang. Ia tidak disimpan dalam bentuk
-                terbaca di mana pun. Bila hilang, terbitkan ulang &mdash; tautan lama ikut
-                dicabut.
-            </p>
-        </div>
+        <span className="font-mono text-sm tracking-[0.18em] text-ink">{kode}</span>
     );
 }
 
@@ -379,12 +385,19 @@ export function Tabel<T>({
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[36rem] text-sm">
                     <thead>
-                        <tr className="border-b border-line bg-surface-2/60 text-left">
+                        <tr className="border-b border-line bg-surface-2/50 text-left">
                             {kolom.map((k) => (
                                 <th
                                     key={k.judul}
+                                    // Kepala tabel: huruf badan satu tingkat
+                                    // lebih kecil, BUKAN kapital berjarak.
+                                    // Kapital berjarak menaikkan tinggi baris
+                                    // kepala tanpa menambah satu informasi pun,
+                                    // dan pada tabel delapan kolom ia menjadi
+                                    // deret huruf yang lebih lambat dibaca
+                                    // daripada nama kolomnya sendiri.
                                     className={
-                                        'px-3 py-2 text-[11px] font-medium tracking-wide text-ink-2 uppercase ' +
+                                        'px-3 py-2 text-[11px] font-medium text-ink-3 ' +
                                         (k.kelas ?? '')
                                     }
                                 >
@@ -398,7 +411,7 @@ export function Tabel<T>({
                             <tr>
                                 <td
                                     colSpan={kolom.length}
-                                    className="px-3 py-8 text-center text-sm text-ink-3"
+                                    className="px-3 py-10 text-center text-sm text-ink-3"
                                 >
                                     {kosong}
                                 </td>
@@ -408,7 +421,7 @@ export function Tabel<T>({
                         {baris.map((b) => (
                             <tr
                                 key={kunci(b)}
-                                className="border-b border-line/60 last:border-0 hover:bg-surface-2/40"
+                                className="border-b border-line/50 transition-colors duration-100 last:border-0 hover:bg-accent-soft/40"
                             >
                                 {kolom.map((k) => (
                                     <td key={k.judul} className={gayaKolom(k.kelas)}>
@@ -516,18 +529,47 @@ export function Modal({
     padaTutup: () => void;
     children: ReactNode;
 }) {
+    // Escape menutup, dan hanya di sini - bukan di setiap laman yang memakai
+    // Modal. Panel ini menutupi seluruh layar, jadi papan ketik yang tidak
+    // punya jalan keluar selain mencari tombol silang adalah jebakan.
+    //
+    // Pendengarnya di `document`, bukan `onKeyDown` pada pembungkus: fokus
+    // awal ada di `body`, dan peristiwa tombol tidak merambat ke elemen yang
+    // tidak sedang difokuskan.
+    useEffect(() => {
+        if (!terbuka) {
+            return;
+        }
+
+        const dengar = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                padaTutup();
+            }
+        };
+
+        document.addEventListener('keydown', dengar);
+
+        return () => document.removeEventListener('keydown', dengar);
+    }, [terbuka, padaTutup]);
+
     if (!terbuka) {
         return null;
     }
 
     return (
-        <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-ink/30 p-4 sm:p-8">
-            <div className="w-full max-w-lg rounded-wf border border-line bg-surface shadow-wf">
+        <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 backdrop-blur-[2px] sm:p-8">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={judul}
+                className="my-auto w-full max-w-lg rounded-wf border border-line bg-surface shadow-wf"
+            >
                 <header className="flex items-center border-b border-line px-4 py-3">
                     <h2 className="font-display text-sm font-semibold text-ink">{judul}</h2>
                     <button
+                        type="button"
                         onClick={padaTutup}
-                        className="ml-auto text-ink-3 hover:text-ink"
+                        className="ml-auto rounded-wf p-1 text-ink-3 hover:bg-surface-2 hover:text-ink"
                         aria-label="Tutup"
                     >
                         &#10005;

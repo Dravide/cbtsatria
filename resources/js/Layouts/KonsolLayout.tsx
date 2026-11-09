@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ReactNode } from 'react';
+import Ikon, { NamaIkon } from '@/Components/Ikon';
 import { UmpanBalik } from '@/Components/ui';
 
 /**
@@ -46,6 +47,12 @@ export type ItemNav = {
     awalan?: boolean;
     /** Penanda fase untuk item yang belum dibangun. */
     fase?: string;
+    /**
+     * Ikon menu. Opsional supaya berkas ini tidak menuntut setiap pemanggil
+     * ikut berubah sekaligus; item tanpa ikon dirender dengan indentasi yang
+     * sama supaya labelnya tetap lurus satu kolom.
+     */
+    ikon?: NamaIkon;
 };
 
 export type KelompokNav = {
@@ -72,8 +79,10 @@ const NADA_MARKA: Record<'admin' | 'guru', string> = {
 };
 
 const KELAS_ITEM = (menyala: boolean) =>
-    'rounded-wf px-2.5 py-1.5 text-sm whitespace-nowrap md:whitespace-normal ' +
-    (menyala ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:bg-surface-2');
+    'flex items-center gap-2 rounded-wf px-2.5 py-1.5 text-sm whitespace-nowrap md:whitespace-normal ' +
+    (menyala
+        ? 'bg-accent-soft font-medium text-accent'
+        : 'text-ink-2 hover:bg-surface-2 hover:text-ink');
 
 export default function KonsolLayout({
     judul,
@@ -103,9 +112,9 @@ export default function KonsolLayout({
 
     return (
         <div className="flex min-h-screen bg-paper">
-            {/* Rail ikon + label. Di layar sempit ia menyusut jadi bar atas
+            {/* Rails ikon + label. Di layar sempit ia menyusut jadi bar atas
                 mendatar supaya isi laman tetap punya lebar penuh. */}
-            <aside className="flex w-full shrink-0 flex-col border-b border-line bg-surface md:w-60 md:border-r md:border-b-0">
+            <aside className="sticky top-0 flex h-auto w-full shrink-0 flex-col border-b border-line bg-surface md:h-screen md:w-60 md:border-r md:border-b-0">
                 <div className="flex items-center gap-2.5 px-4 py-4">
                     <span
                         className={
@@ -120,14 +129,18 @@ export default function KonsolLayout({
                     </span>
                 </div>
 
-                <nav className="flex flex-row gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:overflow-visible md:pb-0">
+                {/* `overflow-y-auto`: sidebar event Admin punya dua puluh item,
+                    dan di layar 720 tinggi daftar itu lebih panjang daripada
+                    jendelanya. Tanpa gulir di sini, "Sistem" tidak akan
+                    pernah bisa dijangkau. */}
+                <nav className="flex flex-row gap-0.5 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-3">
                     {kelompok.map((k, i) => (
                         <div key={k.judul ?? `kelompok-${i}`} className="contents">
                             {k.judul && (
                                 <p
                                     className={
-                                        'hidden px-2 pb-1.5 text-[11px] font-medium tracking-wide text-ink-3 uppercase md:block ' +
-                                        (i === 0 ? 'pt-1' : 'pt-3')
+                                        'hidden px-2 pb-1 text-[11px] font-medium text-ink-3 md:block ' +
+                                        (i === 0 ? 'pt-1' : 'pt-4')
                                     }
                                 >
                                     {k.judul}
@@ -139,9 +152,9 @@ export default function KonsolLayout({
                                 dirender sama sekali oleh pemanggilnya, bukan
                                 dirender kosong. */}
                             {k.kartuEvent && eventAktif && (
-                                <div className="hidden px-2 pt-3 md:block">
+                                <div className="hidden px-1 pt-2 pb-1 md:block">
                                     <div className="rounded-wf border border-accent/25 bg-accent-soft px-2.5 py-2">
-                                        <p className="text-[10px] font-medium tracking-wide text-accent uppercase">
+                                        <p className="text-[11px] font-medium text-accent">
                                             Event aktif
                                         </p>
                                         <p className="mt-0.5 truncate text-xs font-medium text-ink">
@@ -159,11 +172,16 @@ export default function KonsolLayout({
                                     return (
                                         <span
                                             key={item.label}
-                                            className="flex items-center gap-1.5 rounded-wf px-2.5 py-1.5 text-sm whitespace-nowrap text-ink-3/70 md:whitespace-normal"
+                                            className="flex items-center gap-2 rounded-wf px-2.5 py-1.5 text-sm whitespace-nowrap text-ink-3/70 md:whitespace-normal"
                                             title={`Belum dibangun - ${item.fase}`}
                                         >
+                                            {item.ikon ? (
+                                                <Ikon nama={item.ikon} ukuran={16} className="opacity-60" />
+                                            ) : (
+                                                <span className="w-4 shrink-0" aria-hidden="true" />
+                                            )}
                                             {item.label}
-                                            <span className="font-mono text-[9px] text-ink-3/60">
+                                            <span className="ml-auto font-mono text-[9px] text-ink-3/60">
                                                 {item.fase}
                                             </span>
                                         </span>
@@ -175,7 +193,13 @@ export default function KonsolLayout({
                                         key={item.label}
                                         href={item.href}
                                         className={KELAS_ITEM(menyala(item))}
+                                        aria-current={menyala(item) ? 'page' : undefined}
                                     >
+                                        {item.ikon ? (
+                                            <Ikon nama={item.ikon} ukuran={16} />
+                                        ) : (
+                                            <span className="w-4 shrink-0" aria-hidden="true" />
+                                        )}
                                         {item.label}
                                     </Link>
                                 );
@@ -186,8 +210,11 @@ export default function KonsolLayout({
             </aside>
 
             <div className="flex min-w-0 flex-1 flex-col">
-                {/* Bar atas - anatomi butir 3 dan 4 */}
-                <header className="flex items-center gap-3 border-b border-line bg-surface px-4 py-3">
+                {/* Bar atas - anatomi butir 3 dan 4.
+                    Bening dan menempel: yang bergulir hanya isinya, sehingga
+                    pemilih event dan penanda tahun ajaran tidak pernah hilang
+                    di tengah tabel 50 baris. */}
+                <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-surface/95 px-4 py-2.5 backdrop-blur">
                     <span className="min-w-0 truncate text-xs text-ink-3">
                         {breadcrumb ?? judul}
                     </span>
@@ -205,7 +232,7 @@ export default function KonsolLayout({
                         {bicaraSoalEvent && eventAktif && (
                             <Link
                                 href={`/admin/events/${eventAktif.id}`}
-                                className="hidden max-w-[16rem] items-center gap-1.5 rounded-wf border border-accent/40 bg-accent-soft px-2.5 py-1 text-xs text-accent sm:flex"
+                                className="hidden max-w-[16rem] items-center gap-1.5 rounded-wf border border-accent/40 bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent sm:flex"
                                 title={`Event aktif: ${eventAktif.nama}`}
                             >
                                 <span className="truncate">{eventAktif.nama}</span>
@@ -226,15 +253,16 @@ export default function KonsolLayout({
                             href="/logout"
                             method="post"
                             as="button"
-                            className="rounded-wf px-2.5 py-1 text-xs text-ink-3 hover:text-bad"
+                            className="flex items-center gap-1.5 rounded-wf px-2 py-1 text-xs text-ink-3 hover:bg-surface-2 hover:text-bad"
                         >
-                            Keluar
+                            <Ikon nama="keluar" ukuran={14} />
+                            <span className="hidden sm:inline">Keluar</span>
                         </Link>
                     </div>
                 </header>
 
-                <main className="min-w-0 flex-1 p-4 md:p-6">
-                    <div className="mb-5 flex flex-wrap items-center gap-3">
+                <main className="min-w-0 flex-1 px-4 py-5 md:px-6 md:py-6">
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
                         <h1 className="font-display text-xl font-semibold text-ink">
                             {judul}
                         </h1>

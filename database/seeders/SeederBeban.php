@@ -477,7 +477,14 @@ class SeederBeban extends Seeder
             Session::put(KonteksRuang::KUNCI_SESI, [
                 'exam_session_room_id' => $ruangSesi->id,
                 'room_id' => $ruang->id,
-                'room_entry_link_id' => $tautan['tautan']->id,
+                'room_entry_link_id' => $tautan->id,
+                // Pengawas yang ditugaskan di ruang ini, supaya presensi yang
+                // ditandatangani seeder menyebut ORANGNYA dan bukan
+                // "R-01 (tautan ruang)". Sejak 2026-11-07 identitas itu memang
+                // tersedia lewat kode pengawas; di sini ia dibaca dari
+                // penugasannya, karena seeder tidak mengetik kode apa pun.
+                'school_id' => $tautan->school_id,
+                'pengguna_id' => $ruangSesi->supervisors()->value('supervisor_id'),
                 'sejak' => now()->toIso8601String(),
             ]);
 

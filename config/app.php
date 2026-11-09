@@ -56,16 +56,50 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Application Timezone
+    | Zona waktu aplikasi - SATU untuk seluruh pemasangan
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | Zona ini adalah jam yang dipakai SELURUH penjadwalan ujian: jendela sesi
+    | (`access_opens_at`, `access_closes_at`, `hard_end_at`), validitas token,
+    | tautan pintu ruang, dan `now()` yang membandingkan semuanya.
     |
+    | ---------------------------------------------------------------------
+    | Mengapa satu zona, padahal `schools.timezone` ada
+    | ---------------------------------------------------------------------
+    | Sampai 07 Nov 2026 nilainya `'UTC'` sementara `schools.timezone` berbunyi
+    | `Asia/Jakarta`. Dua konvensi itu hidup berdampingan tanpa satu pun galat -
+    | dan akibatnya terlihat di dua tempat sekaligus pada hari ujian:
+    |
+    |   - Admin mengetik jendela 19:00, tersimpan apa adanya, lalu dibandingkan
+    |     terhadap `now()` UTC (13:19) - sehingga layar siswa berbunyi "Sesi ini
+    |     belum dibuka. Akses mulai pukul 19:00." pada pukul 19:00;
+    |   - `/p/{slug}` memilih ruang-sesi dengan syarat `access_opens_at <= now()`
+    |     yang sama, sehingga pintu ruang berbunyi "Ruang belum ditetapkan"
+    |     untuk ruang yang tautannya sah.
+    |
+    | Karena itu jendela sesi disimpan sebagai JAM DINDING sekolah - apa yang
+    | diketik Admin, itulah yang dibandingkan - dan zona aplikasi disetel ke
+    | zona sekolah lewat `APP_TIMEZONE`. Titik-titik perbandingannya tidak
+    | berubah satu pun.
+    |
+    | ---------------------------------------------------------------------
+    | Batas yang diketahui: sekolah di WITA dan WIT
+    | ---------------------------------------------------------------------
+    | Satu nilai `.env` berlaku untuk seluruh pemasangan, sehingga sekolah
+    | `Asia/Makassar` dan `Asia/Jayapura` - keduanya ditawarkan form Profil
+    | Sekolah dan perintah `sekolah:daftarkan` - akan meleset 1 dan 2 jam.
+    | Itu diterima sadar: hari ini seluruh sekolah pemakai berada di WIB, dan
+    | menyelesaikannya berarti mengonversi setiap jendela sesi ke satu acuan
+    | bersama, bukan mengubah satu nilai `.env`.
+    |
+    | Yang HARUS terjadi lebih dulu bila kelak ada sekolah WITA/WIT: tawaran
+    | zona di kedua tempat di atas dipersempit, atau konversinya dikerjakan.
+    | Membiarkan keduanya apa adanya saat ada sekolah di luar WIB berarti
+    | memilih kegagalan yang tidak berbunyi - ujian yang terbuka satu jam
+    | terlambat, tanpa satu pun galat yang menunjuk ke sini.
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------

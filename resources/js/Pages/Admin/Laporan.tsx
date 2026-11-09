@@ -270,7 +270,7 @@ export default function Laporan({
                                 {kolom.map((k) => (
                                     <th
                                         key={k.kunci}
-                                        className="px-3 py-2 text-[11px] font-medium tracking-wide text-ink-2 uppercase"
+                                        className="px-3 py-2 text-[11px] font-medium text-ink-3"
                                     >
                                         {k.label}
                                     </th>
@@ -324,7 +324,7 @@ export default function Laporan({
             {ekspor.length > 0 && (
                 <section className="mt-3 rounded-wf border border-line bg-surface">
                     <header className="border-b border-line px-4 py-2.5">
-                        <h2 className="text-xs font-medium tracking-wide text-ink-2 uppercase">
+                        <h2 className="font-display text-sm font-semibold text-ink">
                             Ekspor terakhir
                         </h2>
                     </header>

@@ -49,6 +49,12 @@ type Baris = {
     peserta: number;
     status: string;
     status_label: string;
+    /** Nilai mentah `Y-m-d\TH:i` untuk memuat ulang panel "Ubah sesi". */
+    buka_iso: string | null;
+    tutup_iso: string | null;
+    akhir_iso: string | null;
+    /** Id ruang-EVENT yang sedang dipakai sesi ini. */
+    ruang_id: number[];
     bentrok: { jenis: string; pesan: string }[];
 };
 
@@ -57,9 +63,20 @@ type Ujian = {
     kode: string;
     judul: string;
     mapel: string | null;
+    mapel_id: number;
+    jenis: string | null;
     durasi: number;
+    instruksi: string | null;
+    percobaan: number;
+    acak_soal: boolean;
+    acak_opsi: boolean;
+    boleh_kembali: boolean;
+    boleh_terlambat: boolean;
+    /** Kelas sasaran yang sedang berlaku - untuk mencentang ulang panel ubah. */
+    kelas_id: number[];
+    /** Sudah punya paket soal yang dibekukan; mapelnya tidak boleh diganti lagi. */
+    ada_paket: boolean;
     sesi: number;
-    status: string;
 };
 
 type Props = {
@@ -90,6 +107,16 @@ export default function EventJadwal({
     const [panelUjian, setPanelUjian] = useState(false);
     const [panelSesi, setPanelSesi] = useState(false);
     const [pesanUjian, setPesanUjian] = useState<string | null>(null);
+
+    // Ujian yang sedang diubah. Sama polanya dengan `sesiDiubah`: SALINAN
+    // barisnya, bukan idnya, supaya panelnya tetap utuh walau tabelnya dimuat
+    // ulang di belakang.
+    const [ujianDiubah, setUjianDiubah] = useState<Ujian | null>(null);
+
+    // Baris yang sedang diubah. Disimpan sebagai SALINAN baris (bukan id),
+    // karena panel ubah memuat ulang seluruh nilai jendela dan ruang dari
+    // situ - dan salinan itu tetap utuh walau tabel dimuat ulang di belakang.
+    const [sesiDiubah, setSesiDiubah] = useState<Baris | null>(null);
 
     const jalur = `/admin/events/${event.id}`;
 
@@ -176,6 +203,28 @@ export default function EventJadwal({
                 </div>
             )}
 
+            {/* Panel ubah ujian. Satu kotak di ATAS tabel, sama seperti panel
+                tambah dan panel sesi - bukan modal per baris. */}
+            {ujianDiubah && (
+                <div className="mb-4">
+                    <FormUjian
+                        // `key` bukan hiasan: berpindah dari satu ujian ke ujian
+                        // lain tanpa menutup panelnya memakai ULANG state form
+                        // yang sama, sehingga yang tampil adalah nilai ujian
+                        // yang pertama - dan menyimpannya menimpa ujian kedua
+                        // dengan isi ujian pertama.
+                        key={ujianDiubah.id}
+                        jalur={jalur}
+                        ujianAwal={ujianDiubah}
+                        mapel={mapel}
+                        kelas={kelas}
+                        jenis={jenis_ujian}
+                        padaTutup={() => setUjianDiubah(null)}
+                        padaGalat={setPesanUjian}
+                    />
+                </div>
+            )}
+
             {panelSesi && (
                 <div className="mb-4">
                     <FormSesi
@@ -183,6 +232,22 @@ export default function EventJadwal({
                         ujian={ujian}
                         ruang={ruang}
                         padaTutup={() => setPanelSesi(false)}
+                    />
+                </div>
+            )}
+
+            {/* Panel ubah sesi. Satu kotak di ATAS tabel, sama seperti panel
+                tambah - bukan modal per baris: jendela tiga waktu dan daftar
+                ruang butuh lebar, dan kotak di dalam tabel akan terjepit.
+                Galatnya tampil di dalam panel itu sendiri. */}
+            {sesiDiubah && (
+                <div className="mb-4">
+                    <FormSesi
+                        jalur={jalur}
+                        ujian={ujian}
+                        ruang={ruang}
+                        sesiAwal={sesiDiubah}
+                        padaTutup={() => setSesiDiubah(null)}
                     />
                 </div>
             )}
@@ -286,8 +351,8 @@ export default function EventJadwal({
                     },
                     {
                         judul: '',
-                        kelas: 'w-56',
-                        render: (b) => <AksiSesi jalur={jalur} baris={b} />,
+                        kelas: 'w-72',
+                        render: (b) => <AksiSesi jalur={jalur} baris={b} padaUbah={setSesiDiubah} />,
                     },
                 ]}
             />
@@ -357,7 +422,26 @@ export default function EventJadwal({
                                     <span className="font-mono text-xs text-ink-3">
                                         {u.sesi} sesi
                                     </span>
-                                    <Chip nada={nadaStatus(u.status)}>{u.status}</Chip>
+                                    {/* Tidak ada chip status ujian di sini.
+                                        Kolomnya dijatuhkan 2026-11-07: satu
+                                        penulis, nol pembaca logika, sehingga
+                                        chipnya mustahil berbunyi selain
+                                        "draft". Status yang berarti ada di
+                                        tabel sesi di bawah, per sesi. */}
+
+                                    {/* Ujian lahir di laman ini, jadi ia juga
+                                        harus bisa diperbaiki di laman ini.
+                                        Tanpa tombol ini, salah ketik durasi
+                                        hanya bisa ditambal dengan menghapus
+                                        ujiannya - dan menghapusnya berarti
+                                        kehilangan sesinya. */}
+                                    <Tombol
+                                        nada="sek"
+                                        title="Ubah judul, durasi, kelas sasaran, dan perilaku ujian"
+                                        onClick={() => setUjianDiubah(u)}
+                                    >
+                                        Ubah
+                                    </Tombol>
                                 </li>
                             ))}
                         </ul>
@@ -393,6 +477,7 @@ function PemilihEvent({ event }: { event: Props['event'] }) {
 
 function FormUjian({
     jalur,
+    ujianAwal,
     mapel,
     kelas,
     jenis,
@@ -400,43 +485,61 @@ function FormUjian({
     padaGalat,
 }: {
     jalur: string;
+    /**
+     * Ujian yang diubah. Kosong berarti mode TAMBAH - sama polanya dengan
+     * `FormSesi`, dan alasannya sama: form ubah yang terbuka KOSONG pada
+     * ujian yang sudah ada terbaca seperti "ujiannya hilang".
+     */
+    ujianAwal?: Ujian;
     mapel: Props['mapel'];
     kelas: Props['kelas'];
     jenis: string[];
     padaTutup: () => void;
     padaGalat: (pesan: string | null) => void;
 }) {
-    const [isi, setIsi] = useState({
-        subject_id: mapel[0]?.id ?? 0,
-        title: '',
-        exam_type: jenis[0] ?? '',
-        duration_minutes: 60,
-        max_attempts: 1,
-        instructions: '',
-        allow_back_navigation: true,
-        shuffle_questions: false,
-        shuffle_options: false,
-        allow_late_entry: false,
-    });
-    const [pilihKelas, setPilihKelas] = useState<number[]>([]);
+    const mengubah = ujianAwal !== undefined;
+
+    const [isi, setIsi] = useState(() => ({
+        subject_id: ujianAwal?.mapel_id ?? mapel[0]?.id ?? 0,
+        title: ujianAwal?.judul ?? '',
+        // `exam_type` di basis data nullable, dan `jenis[0]` adalah bawaan
+        // untuk ujian BARU. Ujian lama yang tidak punya jenis harus tetap
+        // terbuka tanpa jenis - menebaknya berarti menyimpan nilai yang tidak
+        // pernah diketik Admin.
+        exam_type: mengubah ? (ujianAwal.jenis ?? '') : (jenis[0] ?? ''),
+        duration_minutes: ujianAwal?.durasi ?? 60,
+        max_attempts: ujianAwal?.percobaan ?? 1,
+        instructions: ujianAwal?.instruksi ?? '',
+        allow_back_navigation: ujianAwal?.boleh_kembali ?? true,
+        shuffle_questions: ujianAwal?.acak_soal ?? false,
+        shuffle_options: ujianAwal?.acak_opsi ?? false,
+        allow_late_entry: ujianAwal?.boleh_terlambat ?? false,
+    }));
+
+    const [pilihKelas, setPilihKelas] = useState<number[]>(ujianAwal?.kelas_id ?? []);
 
     const simpan = () => {
         padaGalat(null);
 
-        router.post(
-            `${jalur}/ujian`,
-            { ...isi, class_id: pilihKelas },
-            {
-                preserveScroll: true,
-                onSuccess: () => padaTutup(),
-                onError: (e) => padaGalat(Object.values(e)[0] ?? 'Ujian tidak bisa disimpan.'),
-            },
-        );
+        const opsi = {
+            preserveScroll: true,
+            onSuccess: () => padaTutup(),
+            onError: (e: Record<string, string>) =>
+                padaGalat(Object.values(e)[0] ?? 'Ujian tidak bisa disimpan.'),
+        };
+
+        if (mengubah) {
+            router.put(`${jalur}/ujian/${ujianAwal.id}`, { ...isi, class_id: pilihKelas }, opsi);
+
+            return;
+        }
+
+        router.post(`${jalur}/ujian`, { ...isi, class_id: pilihKelas }, opsi);
     };
 
     if (mapel.length === 0) {
         return (
-            <Kotak judul="Tambah ujian">
+            <Kotak judul={mengubah ? `Ubah ${ujianAwal.kode}` : 'Tambah ujian'}>
                 <Peringatan>
                     Belum ada mata pelajaran yang ditetapkan di event ini. Tetapkan mapelnya di
                     laman <strong>Paket soal</strong> terlebih dahulu.
@@ -447,23 +550,35 @@ function FormUjian({
 
     return (
         <Kotak
-            judul="Tambah ujian"
+            judul={mengubah ? `Ubah ${ujianAwal.kode}` : 'Tambah ujian'}
             aksi={
                 <>
                     <Tombol nada="sek" onClick={padaTutup}>
                         Batal
                     </Tombol>
                     <Tombol nada="pri" onClick={simpan}>
-                        Simpan ujian
+                        {mengubah ? 'Simpan perubahan' : 'Simpan ujian'}
                     </Tombol>
                 </>
             }
         >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <Field label="Mata pelajaran">
+                <Field
+                    label="Mata pelajaran"
+                    petunjuk={
+                        mengubah && ujianAwal.ada_paket
+                            ? 'Soal sudah dibekukan dari mapel ini, jadi mapelnya tidak bisa diganti.'
+                            : undefined
+                    }
+                >
                     <select
                         value={isi.subject_id}
                         onChange={(e) => setIsi({ ...isi, subject_id: Number(e.target.value) })}
+                        // Mapel yang sudah punya paket terkunci: snapshot soalnya
+                        // berasal dari mapel lama, dan ujian berlabel Fisika
+                        // berisi soal Matematika tidak terlihat di layar mana
+                        // pun sampai siswa membuka soal pertama.
+                        disabled={mengubah && ujianAwal.ada_paket}
                         className={kelasInput}
                     >
                         {mapel.map((m) => (
@@ -618,42 +733,75 @@ function FormSesi({
     jalur,
     ujian,
     ruang,
+    sesiAwal,
     padaTutup,
+    padaGalat,
 }: {
     jalur: string;
     ujian: Ujian[];
     ruang: Props['ruang'];
+    /**
+     * Baris yang diubah. Kosong berarti mode TAMBAH. Nilai awalnya dimuat dari
+     * sini supaya panel ubah terbuka dengan jendela dan ruang yang sekarang,
+     * bukan kosong - form kosong pada sesi yang sudah berjalan terbaca seperti
+     * "jadwalnya hilang".
+     */
+    sesiAwal?: Baris;
     padaTutup: () => void;
+    padaGalat?: (pesan: string | null) => void;
 }) {
-    const [ujianId, setUjianId] = useState(ujian[0]?.id ?? 0);
-    const [buka, setBuka] = useState('');
-    const [tutup, setTutup] = useState('');
-    const [akhir, setAkhir] = useState('');
-    const [pilihRuang, setPilihRuang] = useState<number[]>([]);
+    const mengubah = sesiAwal !== undefined;
+
+    const [ujianId, setUjianId] = useState(sesiAwal?.ujian_id ?? ujian[0]?.id ?? 0);
+    const [buka, setBuka] = useState(sesiAwal?.buka_iso ?? '');
+    const [tutup, setTutup] = useState(sesiAwal?.tutup_iso ?? '');
+    const [akhir, setAkhir] = useState(sesiAwal?.akhir_iso ?? '');
+    const [pilihRuang, setPilihRuang] = useState<number[]>(sesiAwal?.ruang_id ?? []);
     const [galat, setGalat] = useState<string | null>(null);
+
+    const umumkanGalat = (pesan: string) => {
+        setGalat(pesan);
+        padaGalat?.(pesan);
+    };
 
     const simpan = () => {
         setGalat(null);
+        padaGalat?.(null);
 
-        router.post(
-            `${jalur}/ujian/${ujianId}/sesi`,
-            {
-                access_opens_at: buka,
-                access_closes_at: tutup,
-                hard_end_at: akhir,
-                event_room_id: pilihRuang,
-            },
-            {
-                preserveScroll: true,
-                onSuccess: () => padaTutup(),
-                onError: (e) => setGalat(Object.values(e)[0] ?? 'Sesi tidak bisa disimpan.'),
-            },
-        );
+        // Hanya tiga waktu dan ruang - sama dengan field di form Tambah sesi.
+        // `duration_minutes` sengaja TIDAK dikirim: `SesiService::perbarui`
+        // memakai `isset()`, sehingga nilai `null` akan DIPERTAHANKAN diam-diam
+        // alih-alih dikosongkan. Mengirim hal yang tidak bisa dikosongkan lewat
+        // form ini hanya menciptakan tombol yang tampak bekerja tetapi tidak.
+        const isi = {
+            access_opens_at: buka,
+            access_closes_at: tutup,
+            hard_end_at: akhir,
+            event_room_id: pilihRuang,
+        };
+
+        const opsi = {
+            preserveScroll: true,
+            onSuccess: () => padaTutup(),
+            onError: (e: Record<string, string>) =>
+                umumkanGalat(Object.values(e)[0] ?? 'Sesi tidak bisa disimpan.'),
+        };
+
+        if (mengubah) {
+            // Hanya jendela & ruang yang diubah lewat sini. Ujian sesi tetap:
+            // memindahkan sesi ke ujian lain adalah membuat sesi baru, bukan
+            // menyunting yang ini, dan `pastikanSesiMilikUjian` menolaknya.
+            router.put(`${jalur}/ujian/${ujianId}/sesi/${sesiAwal.id}`, isi, opsi);
+
+            return;
+        }
+
+        router.post(`${jalur}/ujian/${ujianId}/sesi`, isi, opsi);
     };
 
     return (
         <Kotak
-            judul="Tambah sesi"
+            judul={mengubah ? `Ubah ${sesiAwal.label}` : 'Tambah sesi'}
             aksi={
                 <>
                     <Tombol nada="sek" onClick={padaTutup}>
@@ -664,7 +812,7 @@ function FormSesi({
                         disabled={!buka || !tutup || !akhir}
                         onClick={simpan}
                     >
-                        Simpan sesi
+                        {mengubah ? 'Simpan perubahan' : 'Simpan sesi'}
                     </Tombol>
                 </>
             }
@@ -680,7 +828,13 @@ function FormSesi({
                     <select
                         value={ujianId}
                         onChange={(e) => setUjianId(Number(e.target.value))}
+                        disabled={mengubah}
                         className={kelasInput}
+                        title={
+                            mengubah
+                                ? 'Ujian sesi tidak bisa dipindah; buat sesi baru bila perlu.'
+                                : undefined
+                        }
                     >
                         {ujian.map((u) => (
                             <option key={u.id} value={u.id}>
@@ -759,12 +913,54 @@ function FormSesi({
 
 /* ---------------------------------------------------------------- Aksi baris */
 
-function AksiSesi({ jalur, baris }: { jalur: string; baris: Baris }) {
+function AksiSesi({
+    jalur,
+    baris,
+    padaUbah,
+}: {
+    jalur: string;
+    baris: Baris;
+    padaUbah: (baris: Baris) => void;
+}) {
     const kirim = (aksi: string) =>
         router.post(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/${aksi}`, {}, { preserveScroll: true });
 
+    // Sesi yang sudah Selesai atau Batal bersifat final (StatusSesi): jendela
+    // dan ruangnya tidak bisa diubah lagi, karena peserta mungkin sudah
+    // mengerjakan. Menawarkan "Ubah" yang pasti ditolak lebih buruk daripada
+    // tombol yang mati beserta alasannya.
+    const final = baris.status === 'selesai' || baris.status === 'batal';
+
     return (
         <span className="flex justify-end gap-1.5">
+            <Tombol
+                nada="sek"
+                disabled={final}
+                title={
+                    final
+                        ? 'Sesi yang sudah selesai atau batal tidak bisa diubah lagi.'
+                        : 'Ubah jendela waktu dan ruang sesi'
+                }
+                onClick={() => padaUbah(baris)}
+            >
+                Ubah
+            </Tombol>
+
+            {/* Siapkan HANYA muncul pada sesi Draft, dan itu bukan sekadar
+                penghematan tempat: graf StatusSesi menolak Siap dari status
+                lain, jadi tombol pada sesi Siap/Berjalan/Selesai pasti gagal.
+                Langkah ini wajib - tanpanya "Buka" selalu ditolak dengan
+                "berstatus Draft dan tidak bisa dibuka". */}
+            {baris.status === 'draft' && (
+                <Tombol
+                    nada="sek"
+                    title="Tandai jendela sesi sudah final, supaya sesi bisa dibuka."
+                    onClick={() => kirim('siapkan')}
+                >
+                    Siapkan
+                </Tombol>
+            )}
+
             {baris.status === 'berjalan' ? (
                 <Tombol nada="sek" onClick={() => kirim('tutup')}>
                     Tutup
@@ -772,11 +968,13 @@ function AksiSesi({ jalur, baris }: { jalur: string; baris: Baris }) {
             ) : (
                 <Tombol
                     nada="sek"
-                    disabled={baris.status === 'selesai' || baris.status === 'batal'}
+                    disabled={final || baris.status === 'draft'}
                     title={
                         baris.status === 'selesai'
                             ? 'Sesi ini sudah ditutup.'
-                            : 'Buka sesi supaya siswa bisa masuk.'
+                            : baris.status === 'draft'
+                              ? 'Siapkan dulu sesinya. Graf status menolak Draft langsung ke Berjalan.'
+                              : 'Buka sesi supaya siswa bisa masuk.'
                     }
                     onClick={() => kirim('mulai')}
                 >

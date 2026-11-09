@@ -4,6 +4,7 @@ use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Academic\Models\Semester;
 use App\Domain\Academic\Models\Subject;
+use App\Domain\Academic\Services\PenempatanKelas;
 use App\Domain\Facility\Models\Room;
 use App\Domain\Facility\Models\RoomEntryLink;
 use App\Domain\Identity\Models\StudentProfile;
@@ -574,6 +575,53 @@ it('mengaktifkan kembali baris keanggotaan siswa yang pernah keluar', function (
         ->and($kelas->enrollments()->where('student_id', $siswa->id)->first()->status)->toBe('aktif');
 });
 
+it('membaca kelas siswa pada tahun ajaran berjalan, dan null bila belum punya', function () {
+    $kelas = SchoolClass::factory()->untukTahun($this->tahun)->create(['name' => 'X-1']);
+
+    $siswa = User::factory()->siswa()->untukSekolah($this->sekolah)->create();
+    $tanpaKelas = User::factory()->siswa()->untukSekolah($this->sekolah)->create();
+
+    $kelas->enrollments()->create([
+        'school_id' => $this->sekolah->id,
+        'student_id' => $siswa->id,
+        'academic_year_id' => $this->tahun->id,
+        'status' => 'aktif',
+    ]);
+
+    $penempatan = app(PenempatanKelas::class);
+
+    expect($penempatan->kelasSekarang($siswa->id)?->name)->toBe('X-1')
+        // Bukan galat: siswa yang belum ditempatkan di kelas mana pun adalah
+        // keadaan yang sah, dan laman Akun harus tetap bisa dibuka.
+        ->and($penempatan->kelasSekarang($tanpaKelas->id))->toBeNull();
+});
+
+it('melewati keanggotaan yang sudah pindah saat membaca kelas sekarang', function () {
+    $lama = SchoolClass::factory()->untukTahun($this->tahun)->create(['name' => 'X-1']);
+    $baru = SchoolClass::factory()->untukTahun($this->tahun)->create(['name' => 'X-2']);
+
+    $siswa = User::factory()->siswa()->untukSekolah($this->sekolah)->create();
+
+    // Dua baris untuk satu siswa di satu tahun ajaran - keadaan yang TIDAK
+    // dicegah skema (`class_enrollments` tidak punya unique per siswa+tahun).
+    // Yang menentukan kelasnya adalah `status`, bukan urutan id atau tanggal.
+    $lama->enrollments()->create([
+        'school_id' => $this->sekolah->id,
+        'student_id' => $siswa->id,
+        'academic_year_id' => $this->tahun->id,
+        'status' => 'pindah',
+    ]);
+
+    $baru->enrollments()->create([
+        'school_id' => $this->sekolah->id,
+        'student_id' => $siswa->id,
+        'academic_year_id' => $this->tahun->id,
+        'status' => 'aktif',
+    ]);
+
+    expect(app(PenempatanKelas::class)->kelasSekarang($siswa->id)?->name)->toBe('X-2');
+});
+
 it('membuka mata pelajaran beserta penugasan mengajarnya', function () {
     $mapel = Subject::factory()->untukSekolah($this->sekolah)->create([
         'code' => 'MTK',
@@ -594,11 +642,134 @@ it('membuka mata pelajaran beserta penugasan mengajarnya', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Admin/Mapel')
-            ->where('baris.data.0.kode', 'MTK')
+            // Laman ini TIDAK dipaginasi: barisnya dikelompokkan tingkatnya,
+            // dan kepala kelompok yang berbunyi "12 mapel" di atas tiga baris
+            // adalah angka yang salah. Bentuknya karena itu daftar biasa.
+            ->where('baris.0.kode', 'MTK')
             // Penugasan menempel di baris mapelnya - itulah yang membuat
             // "siapa mengajar MTK di X-1" terjawab dari satu layar.
-            ->where('baris.data.0.penugasan.0.guru', 'Ani Mulyani')
-            ->where('baris.data.0.penugasan.0.kelas', 'X-1')
+            ->where('baris.0.penugasan.0.guru', 'Ani Mulyani')
+            ->where('baris.0.penugasan.0.kelas', 'X-1')
+        );
+});
+
+it('mengelompokkan mata pelajaran per tingkat dengan jumlah yang benar', function () {
+    // Tiga puluh enam mapel yang bertumpuk ke bawah adalah tiga ribu piksel
+    // untuk pekerjaan yang sebenarnya tiga keputusan - dan yang ketiga
+    // biasanya terlewat.
+    foreach (['7' => 2, '8' => 3, '9' => 1] as $tingkat => $jumlah) {
+        for ($i = 1; $i <= $jumlah; $i++) {
+            Subject::factory()->untukSekolah($this->sekolah)->create([
+                'code' => "M{$tingkat}-{$i}",
+                'name' => "Mapel {$tingkat}-{$i}",
+                'grade_level' => $tingkat,
+            ]);
+        }
+    }
+
+    Subject::factory()->untukSekolah($this->sekolah)->create([
+        'code' => 'MXX',
+        'name' => 'Mapel Tanpa Tingkat',
+        'grade_level' => null,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get('/admin/mapel')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Mapel')
+            // Tiga tingkat + "Tanpa tingkat" di paling bawah.
+            ->has('kelompok', 4)
+            ->where('kelompok.0.label', 'Tingkat 7')
+            ->where('kelompok.0.kunci', '7')
+            ->where('kelompok.0.jumlah', 2)
+            ->where('kelompok.1.label', 'Tingkat 8')
+            ->where('kelompok.1.jumlah', 3)
+            ->where('kelompok.2.label', 'Tingkat 9')
+            ->where('kelompok.2.jumlah', 1)
+            // Tidak dilebur ke salah satu tingkat: kelas tanpa tingkat bukan
+            // tingkat yang belum diberi nama, ia data yang belum lengkap - dan
+            // meleburnya menyembunyikan justru hal itu.
+            ->where('kelompok.3.label', 'Tanpa tingkat')
+            ->where('kelompok.3.kunci', 'tanpa')
+            ->where('kelompok.3.tingkat', null)
+            ->where('kelompok.3.jumlah', 1)
+            // Isinya ikut, bukan hanya hitungannya: tanpa barisnya, kepala
+            // kelompok yang bisa dilipat adalah angkanya saja.
+            ->has('kelompok.0.baris', 2)
+            ->where('kelompok.0.baris.0.kode', 'M7-1')
+            ->where('kelompok.3.baris.0.kode', 'MXX')
+        );
+});
+
+it('menghitung penugasan tiap kelompok, bukan mapel yang punya penugasan', function () {
+    // Pertanyaan kepalanya "berapa izin mengajar di tingkat ini". Satu mapel
+    // dengan dua kelas berarti dua izin, dan angka yang berbunyi "1" membuat
+    // Admin mengira satu kelasnya belum tertugaskan.
+    $mapel = Subject::factory()->untukSekolah($this->sekolah)->create([
+        'code' => 'MTK',
+        'grade_level' => '7',
+    ]);
+
+    $guru = User::factory()->guru()->untukSekolah($this->sekolah)->create();
+    $lain = User::factory()->guru()->untukSekolah($this->sekolah)->create();
+
+    foreach ([$guru, $lain] as $i => $g) {
+        $kelas = SchoolClass::factory()->untukTahun($this->tahun)->create(['name' => 'X-'.$i]);
+
+        $mapel->teachingAssignments()->create([
+            'school_id' => $this->sekolah->id,
+            'academic_year_id' => $this->tahun->id,
+            'teacher_id' => $g->id,
+            'class_id' => $kelas->id,
+        ]);
+    }
+
+    $this->actingAs($this->admin)
+        ->get('/admin/mapel')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('kelompok.0.jumlah', 1)
+            ->where('kelompok.0.penugasan', 2)
+            // "Tanpa tingkat" tetap ada meski kosong: menyembunyikannya saat
+            // kosong menghilangkan satu-satunya tempat Admin menyadari bahwa
+            // tidak ada mapel yang bertingkat kosong.
+            ->where('kelompok.1.label', 'Tanpa tingkat')
+            ->where('kelompok.1.jumlah', 0)
+            ->where('kelompok.1.penugasan', 0)
+        );
+});
+
+it('mengelompokkan hasil pencarian, bukan menampilkannya kosong', function () {
+    // Hasil pencarian yang tersembunyi di balik lipatan terbaca sebagai
+    // "tidak ketemu". Yang membedakannya adalah `kelompok`, yang selalu
+    // dikirim lengkap - layar yang memutuskan kelompok mana yang dibuka.
+    Subject::factory()->untukSekolah($this->sekolah)->create([
+        'code' => 'MTK',
+        'name' => 'Matematika',
+        'grade_level' => '7',
+    ]);
+    Subject::factory()->untukSekolah($this->sekolah)->create([
+        'code' => 'BIN',
+        'name' => 'Bahasa Indonesia',
+        'grade_level' => '8',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get('/admin/mapel?cari=MTK')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('jumlah', 1)
+            // Tingkat 7 + "Tanpa tingkat", yang selalu ikut. Yang TIDAK ikut
+            // adalah Tingkat 8: kelompoknya dibangun dari hasil saringannya,
+            // dan kepala kelompok kosong di daftar hasil pencarian terbaca
+            // sebagai tingkat yang kehilangan mapelnya.
+            ->has('kelompok', 2)
+            ->where('kelompok.0.label', 'Tingkat 7')
+            ->where('kelompok.0.jumlah', 1)
+            ->where('kelompok.0.baris.0.kode', 'MTK')
+            ->where('kelompok.1.label', 'Tanpa tingkat')
+            ->where('kelompok.1.jumlah', 0)
         );
 });
 
@@ -647,27 +818,29 @@ it('membuka rincian ruang beserta tautan pintunya', function () {
         );
 });
 
-it('menerbitkan tautan ruang dan mengirim kode pengawas lewat flash', function () {
+it('menerbitkan tautan ruang dan tidak lagi mengirim kredensial apa pun lewat flash', function () {
     $ruang = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-01']);
 
     $this->actingAs($this->admin)
         ->post("/admin/ruang/{$ruang->id}/terbitkan")
         ->assertRedirect()
-        ->assertSessionHas('kode_pengawas')
-        ->assertSessionHas('slug_baru');
+        ->assertSessionHas('sukses')
+        // Kode pengawas TIDAK lagi terbit di sini sejak 2026-11-07: ia
+        // menempel pada ORANG, dan terbit di laman Kepanitiaan. Kalau salah
+        // satu dari dua assertion di bawah ini lolos, berarti laman ruang
+        // diam-diam menerbitkan kredensial lagi - dan kredensial yang bisa
+        // menerbitkan dirinya sendiri dari kartu pintu adalah persis
+        // kebocoran yang perubahan ini tutup.
+        ->assertSessionMissing('kode_pengawas')
+        ->assertSessionMissing('slug_baru');
 
-    $kode = session('kode_pengawas');
-
-    expect($kode)->toMatch('/^\d{6}$/');
-
-    // Yang tersimpan hanyalah hash-nya. Kalau baris ini lolos dengan
-    // membandingkan kode mentah, berarti kredensialnya ada di basis data
-    // dalam bentuk terbaca.
+    // Tautannya sendiri tetap terbit, dan slug-nya bisa dibaca dari rincian
+    // ruangnya - `aktif.url` sudah cukup, sehingga `slug_baru` yang dulu
+    // dikirim lewat flash tidak punya pembaca lagi.
     $tautan = RoomEntryLink::query()->first();
 
-    expect($tautan->code_hash)->not->toBe($kode)
-        ->and(password_verify($kode, $tautan->code_hash))->toBeTrue()
-        ->and($tautan->slug)->toBe(session('slug_baru'));
+    expect($tautan->slug)->not->toBeEmpty()
+        ->and($tautan->berlaku())->toBeTrue();
 });
 
 it('mencabut tautan lama saat menerbitkan yang baru', function () {

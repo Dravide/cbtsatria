@@ -29,7 +29,7 @@ use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Event\Services\EventParticipantService;
 use App\Domain\Event\Services\EventRegistrar;
 use App\Domain\Event\Services\EventStatusService;
-use App\Domain\Exam\Enums\StatusSesi;
+use App\Domain\Event\Services\PenerbitKodePengawas;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamQuestion;
 use App\Domain\Exam\Models\ExamSession;
@@ -40,6 +40,7 @@ use App\Domain\Exam\Services\PengawasService;
 use App\Domain\Exam\Services\SesiService;
 use App\Domain\Exam\Services\TokenSesi;
 use App\Domain\Facility\Models\Room;
+use App\Domain\Facility\Models\RoomEntryLink;
 use App\Domain\Facility\Services\RoomEntryLinkService;
 use App\Domain\Grading\Jobs\BuatEksporLaporan;
 use App\Domain\Grading\Models\ReportExport;
@@ -384,6 +385,12 @@ class DatabaseSeeder extends Seeder
             $ruangnya = Room::whereIn('code', $i === 0 ? ['R-01', 'R-02'] : ['R-04'])->pluck('id');
 
             $panitia->sinkronRuang($ruangnya->all());
+
+            // Kode pengawas terbit sejak orangnya jadi panitia, supaya laman
+            // Kepanitiaan tidak kosong di kolom "Kode pengawas" dan kartunya
+            // bisa langsung dicetak. Kodenya tersimpan terenkripsi dan STABIL
+            // (tidak berganti tiap kali terbitkan dipanggil).
+            app(PenerbitKodePengawas::class)->terbitkan($panitia);
         });
 
         EventCommitteeMember::create([
@@ -635,10 +642,14 @@ class DatabaseSeeder extends Seeder
 
             app(TokenSesi::class)->terbitkan($sesi, $admin->id);
 
-            // Sesi disimpan Siap, bukan Draft: draft berarti jendelanya masih
-            // boleh diubah, dan event yang menandai dirinya siap dengan sesi
-            // yang masih bisa digeser adalah event yang jadwalnya belum final.
-            $sesi->forceFill(['status' => StatusSesi::Siap])->save();
+            // Sesi disiapkan, bukan dibiarkan Draft: draft berarti jendelanya
+            // masih boleh diubah, dan event yang menandai dirinya siap dengan
+            // sesi yang masih bisa digeser adalah event yang jadwalnya belum
+            // final. Dipanggil lewat service, bukan `forceFill`, supaya seeder
+            // menempuh graf yang sama dengan Admin - dulu `forceFill` di sini
+            // menutupi kenyataan bahwa tidak ada kode aplikasi yang bisa
+            // menghasilkan status Siap.
+            app(SesiService::class)->siapkan($sesi);
         }
 
         // Eventnya dipindahkan PERSIS dua langkah sebelum sesi pertama dibuka,
@@ -671,12 +682,15 @@ class DatabaseSeeder extends Seeder
      * Presensi punya pelaku, dan pelakunya tercatat di setiap baris log.
      * Seeder tidak punya pengguna yang sedang masuk, jadi pertanyaannya
      * adalah "atas nama siapa" - dan jawabannya diambil dari bentuk data yang
-     * sudah ada: TAUTAN RUANG, persis seperti pengawas di pintu kelas.
+     * sudah ada: TAUTAN RUANG plus PENGAWAS yang ditugaskan di ruang itu,
+     * persis seperti pengawas di pintu kelas.
      *
-     * Konsekuensinya bukan akal-akalan: label yang tertulis di lognya berbunyi
-     * "R-01 (tautan ruang)", yang memang benar secara harfiah - tidak ada
-     * orang yang menandatanganinya, dan mengarang nama pengawas di situ berarti
-     * log yang berbohong tentang apa yang terjadi.
+     * Sejak 2026-11-07 pemegang tautan memang punya identitas di log, karena
+     * kode pengawas menentukan ORANG. Seeder tidak mengetik kode apa pun, jadi
+     * orangnya dibaca dari penugasannya (`masukLewatTautan()`), dan label yang
+     * tertulis di lognya adalah NAMA pengawas itu - bukan lagi
+     * "R-01 (tautan ruang)". Fallback label ruang tetap ada untuk kasus yang
+     * masih mungkin: ruang yang belum punya pengawas sama sekali.
      *
      * Kunci sesinya ditulis langsung ke Session, bukan lewat request: seeder
      * berjalan di console, dan tidak ada permintaan HTTP yang bisa membawanya.
@@ -710,14 +724,11 @@ class DatabaseSeeder extends Seeder
         // ------------------------------------------------------------------
         // Tautan pintu untuk ruang sesi pertama
         // ------------------------------------------------------------------
-        // Diterbitkan lewat service, dan kodenya dicatat ke konsol: kode
-        // mentahnya hanya ada SEKALI, pada respons yang menerbitkannya. Seeder
-        // adalah penerbitnya, jadi seeder yang harus menyebutkannya - kalau
-        // tidak, kode itu hilang dan pintu ruangnya tidak bisa dibuka siapa
-        // pun tanpa menerbitkan ulang.
+        // Diterbitkan lewat service. Tautan hanya menentukan RUANG - ia tidak
+        // lagi membawa kode apa pun (sejak 2026-11-07 kodenya milik ORANG).
         $tautan = app(RoomEntryLinkService::class)->terbitkan($ruang, berlakuJam: 12);
 
-        $this->masukLewatTautan($ruangSesi, $tautan['tautan']->id, $ruang->id);
+        $this->masukLewatTautan($ruangSesi, $tautan->id, $ruang->id);
 
         $this->verifikasiSebagian($ruangSesi);
 
@@ -730,7 +741,17 @@ class DatabaseSeeder extends Seeder
         // pertanyaan "seperti apa draf yang sah".
         $laporan = app(LaporanSesiService::class)->untuk($ruangSesi);
 
-        $this->command->info('Pengawas: buka '.url('/p/'.$tautan['tautan']->slug).' kode '.$tautan['kode'].' (ruang '.$ruang->code.').');
+        // Kode pengawas ruang ini dibaca dari baris kepanitiaan orang yang
+        // ditugaskan di sini - bukan dari tautannya. Kodenya tersimpan
+        // terenkripsi dan selalu tampil di laman Kepanitiaan; menyebutkannya
+        // di konsol hanya memudahkan uji manual tanpa membuka laman itu.
+        $kodePengawas = $this->kodePengawasRuang($ruangSesi);
+
+        $this->command->info(
+            'Pengawas: buka '.url('/p/'.$tautan->slug)
+            .($kodePengawas === null ? '' : ' kode '.$kodePengawas)
+            .' (ruang '.$ruang->code.').'
+        );
         $this->command->info('Sesi 1 berjalan; berita acara draf '.$ruang->code.' #'.$laporan->id.'; pengerjaan contoh '.count($pengerjaan).' peserta.');
 
         // Fase 8 menyusul sesudah pengerjaannya ada - lihat catatan di
@@ -949,12 +970,47 @@ class DatabaseSeeder extends Seeder
      */
     private function masukLewatTautan(ExamSessionRoom $ruangSesi, int $tautanId, int $roomId): void
     {
+        $tautan = RoomEntryLink::tanpaTenant()->find($tautanId);
+
         Session::put(KonteksRuang::KUNCI_SESI, [
             'exam_session_room_id' => $ruangSesi->id,
             'room_id' => $roomId,
             'room_entry_link_id' => $tautanId,
+            // Sejak 2026-11-07 pemegang tautan punya IDENTITAS: kode pengawas
+            // menentukan orangnya. Seeder tidak mengetik kode apa pun, jadi
+            // orangnya dibaca dari PENUGASANNYA di ruang ini - dan itulah yang
+            // membuat presensi hasil seed menyebut nama pengawas, sama seperti
+            // presensi yang ditandatangani pengawas sungguhan di pintu kelas.
+            'school_id' => $tautan?->school_id,
+            'pengguna_id' => $ruangSesi->supervisors()->value('supervisor_id'),
             'sejak' => now()->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Kode pengawas orang yang ditugaskan di satu ruang-sesi, bila ada.
+     *
+     * Kodenya menempel pada baris KEPANITIAAN orangnya, bukan pada tautan
+     * ruang - jadi dicari lewat penugasan (`supervisor_id`) lalu baris
+     * kepanitiaan pada event yang sama. Hanya untuk keperluan pesan konsol;
+     * laman Kepanitiaan membacanya sendiri.
+     */
+    private function kodePengawasRuang(ExamSessionRoom $ruangSesi): ?string
+    {
+        $pengawasIds = $ruangSesi->supervisors()->pluck('supervisor_id');
+
+        if ($pengawasIds->isEmpty()) {
+            return null;
+        }
+
+        $eventId = $ruangSesi->session?->exam?->event_id;
+
+        return EventCommitteeMember::query()
+            ->where('event_id', $eventId)
+            ->whereIn('user_id', $pengawasIds)
+            ->where('status', 'aktif')
+            ->whereNotNull('code')
+            ->value('code');
     }
 
     /**

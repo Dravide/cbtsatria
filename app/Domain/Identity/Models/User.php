@@ -60,6 +60,17 @@ class User extends Authenticatable
 {
     use BelongsToSchool, HasFactory, Notifiable, SoftDeletes;
 
+    /**
+     * Sandi bawaan akun yang dibuat tanpa sandi.
+     *
+     * Literal ini tinggal di tiga produsen (buat pengguna, reset massal, impor)
+     * dan sekarang juga di satu pembaca (laman Akun siswa, yang memperingatkan
+     * pemiliknya). Ditulis sekali di sini karena pembaca yang menulis ulang
+     * literalnya sendiri akan berbeda diam-diam begitu salah satu produsen
+     * diubah.
+     */
+    public const SANDI_BAWAAN = 'password';
+
     protected function casts(): array
     {
         return [

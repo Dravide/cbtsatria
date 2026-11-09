@@ -47,7 +47,15 @@ type Baris = {
     alasan_tolak: string | null;
 };
 
-export default function RuangTugas({ ruang, pelaku }: { ruang: Baris[]; pelaku: string }) {
+export default function RuangTugas({
+    ruang,
+    pelaku,
+    pengawas,
+}: {
+    ruang: Baris[];
+    pelaku: string;
+    pengawas: string | null;
+}) {
     // Lubang paling mahal di laman ini: ruang yang sesinya sudah berjalan
     // tapi belum punya satu pengawas pun. Ia bukan keadaan yang bisa
     // ditangani pengawas dari laman ini, jadi yang benar adalah
@@ -68,6 +76,18 @@ export default function RuangTugas({ ruang, pelaku }: { ruang: Baris[]; pelaku: 
                 <Inbox>
                     Tidak ada ruang yang ditugaskan kepada Anda hari ini. Penugasan
                     pengawas ditetapkan Admin di laman ruang masing-masing.
+                </Inbox>
+            )}
+
+            {/* Nama pengawas yang membuka pintunya, sejak 2026-11-07 - kodenya
+                menempel pada orang, sehingga "data pengawasnya langsung ada"
+                bukan lagi sesuatu yang harus dikarang dari nama ruang. Di atas
+                daftar, bukan di dalam kartu: yang dijawabnya adalah "siapa saya
+                di sini", dan pertanyaan itu tidak bergantung pada ruang mana
+                yang sedang dilihat. */}
+            {pengawas && (
+                <Inbox>
+                    Anda masuk sebagai <strong>{pengawas}</strong>.
                 </Inbox>
             )}
 

@@ -1,8 +1,7 @@
 import { router, useForm } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
-import { Chip, Field, kelasInput } from '@/Components/ui';
-import { KotakPonsel } from '@/Components/ponsel';
+import { Field, kelasInput } from '@/Components/ui';
 
 /**
  * Gerbang ujian - wireframe-peran.html plate 20 dan 21, `/siswa/ujian/{peserta}/gerbang`.
@@ -122,7 +121,15 @@ export default function Gerbang({ peserta, layak, ber_token, melanjutkan, sisa_d
                 </span>
             }
             kanan={
-                layak.boleh ? <Chip nada="ok">presensi ok</Chip> : <Chip nada="warn">menunggu</Chip>
+                layak.boleh ? (
+                    <span className="border border-line-2 bg-ok-bg px-1.5 py-0.5 text-[11px] font-medium text-ok">
+                        presensi ok
+                    </span>
+                ) : (
+                    <span className="border border-line-2 bg-warn-bg px-1.5 py-0.5 text-[11px] font-medium text-warn">
+                        menunggu
+                    </span>
+                )
             }
         >
             {layak.boleh ? (
@@ -165,7 +172,22 @@ const PESAN_BELUM_DIPRESENSI =
     'Anda belum mendapatkan verifikasi kehadiran dari Pengawas ruang ujian. ' +
     'Silakan menghubungi Pengawas yang bertugas untuk melakukan verifikasi sebelum memulai ujian.';
 
-/** Plate 20 - penolakan. */
+/**
+ * Plate 20 - penolakan.
+ *
+ * =====================================================================
+ * Redesign: kalimatnya sama, nadanya turun satu tingkat
+ * =====================================================================
+ * Sampai redesign ini seluruh kotak ini - kepala, alasan, tombol mati,
+ * petunjuk, dan nama ruang - dicetak dalam warna peringatan, dan alasan
+ * penolakannya bahkan 10px. Anak yang baru pertama kali membuka gerbang
+ * menerima satu kotak yang seluruhnya berbunyi "ada yang salah" tanpa satu
+ * pun bagian yang tenang untuk dibaca.
+ *
+ * Yang berubah hanya nadanya: kepala dan alasannya tetap warna peringatan,
+ * selebihnya memakai tinta biasa pada ukuran badan. Isi kalimatnya tidak
+ * disentuh satu huruf.
+ */
 function BelumBoleh({
     alasan,
     petunjuk,
@@ -178,34 +200,35 @@ function BelumBoleh({
     menungguPresensi: boolean;
 }) {
     return (
-        <div className="grid place-content-center justify-items-center gap-3 py-8 text-center">
-            <KotakPonsel solid padat>
-                <div className="w-[min(88vw,20rem)] space-y-2.5 text-center">
-                    <b className="block font-display text-[13px] text-warn">
-                        Akses Ujian Belum Tersedia
-                    </b>
+        <div className="grid place-content-center justify-items-center gap-3 py-8">
+            <section className="papan w-[min(88vw,20rem)] overflow-hidden">
+                <header className="papan-kepala">
+                    <span className="text-warn">Akses Ujian Belum Tersedia</span>
+                </header>
 
-                    <p className="text-[10px] leading-relaxed text-warn">{alasan}</p>
+                <div className="space-y-2.5 p-3 text-center">
+                    <p className="text-[12px] leading-relaxed text-warn">{alasan}</p>
 
-                    <span className="block cursor-not-allowed rounded-wf border border-line bg-surface-2 px-3 py-2.5 text-sm text-ink-3">
+                    {/* Tombol mati, bukan tombol hilang - plate 20: siswa
+                        harus tahu bahwa yang kurang adalah verifikasi, bukan
+                        haknya untuk ikut ujian. */}
+                    <span className="tombol w-full" aria-disabled="true">
                         Mulai ujian
                     </span>
 
-                    {petunjuk && <p className="text-[11px] text-ink-2">{petunjuk}</p>}
+                    {petunjuk && <p className="text-[12px] leading-relaxed text-ink-2">{petunjuk}</p>}
 
                     {menungguPresensi && (
-                        <p className="text-[11px] text-ink-3">
-                            Halaman ini menyegar sendiri setiap 15 detik
-                        </p>
+                        <p className="catatan">Halaman ini menyegar sendiri setiap 15 detik</p>
                     )}
 
                     {ruang && (
-                        <p className="text-[11px] text-ink-3">
-                            Ruang Anda: <b className="font-mono text-ink-2">{ruang}</b>
+                        <p className="catatan">
+                            Ruang Anda: <b className="angka text-ink">{ruang}</b>
                         </p>
                     )}
                 </div>
-            </KotakPonsel>
+            </section>
         </div>
     );
 }
@@ -229,7 +252,7 @@ function SiapMulai({
     ruang: string | null;
 }) {
     return (
-        <form onSubmit={kirim} className="grid justify-items-center gap-3 py-4 text-center">
+        <form onSubmit={kirim} className="grid justify-items-center gap-3 py-4">
             <p className="max-w-[22rem] text-[12px] leading-relaxed text-ink-2">
                 {berToken ? (
                     <>
@@ -244,12 +267,20 @@ function SiapMulai({
             {berToken && (
                 <div className="w-[9.5rem]">
                     {/* Token dibaca dari papan tulis lalu diketik di ponsel, jadi
-                        ia diminta dalam huruf besar dengan spasi antar huruf dan
-                        keyboard yang tidak mengoreksi ejaan. `autoCorrect`,
-                        `autoCapitalize`, dan `spellCheck` dimatikan karena
-                        koreksi otomatis ponsel mengubah kode acak menjadi kata
-                        yang mirip - dan siswa melihat tokennya "salah" padahal
-                        yang salah adalah ponselnya. */}
+                        ia diminta dalam huruf besar dengan keyboard yang tidak
+                        mengoreksi ejaan. `autoCorrect`, `autoCapitalize`, dan
+                        `spellCheck` dimatikan karena koreksi otomatis ponsel
+                        mengubah kode acak menjadi kata yang mirip - dan siswa
+                        melihat tokennya "salah" padahal yang salah adalah
+                        ponselnya.
+
+                        Huruf besarnya datang dari NILAINYA (`toUpperCase` di
+                        bawah), bukan dari `text-transform` di sini. Dulu kelas
+                        `uppercase` berdiri di baris ini bersama jarak huruf
+                        0,35em, dan keduanya dicatat lantai 67: yang menuliskan
+                        huruf besar dua kali adalah dua tempat yang bisa
+                        berselisih, dan jarak huruf sememat itu tidak menambah
+                        keterbacaan satu huruf pun. */}
                     <Field label="" galat={form.errors.token}>
                         <input
                             value={form.data.token}
@@ -261,20 +292,13 @@ function SiapMulai({
                             inputMode="text"
                             maxLength={12}
                             placeholder="— — — — — —"
-                            className={
-                                kelasInput +
-                                ' text-center font-mono text-base tracking-[0.35em] uppercase'
-                            }
+                            className={kelasInput + ' text-center font-mono text-base'}
                         />
                     </Field>
                 </div>
             )}
 
-            <button
-                type="submit"
-                disabled={form.processing}
-                className="w-full max-w-[20rem] rounded-wf border border-accent bg-accent px-3 py-2.5 text-sm font-medium text-on-accent disabled:opacity-60"
-            >
+            <button type="submit" disabled={form.processing} className="tombol tombol--pri w-full max-w-[20rem]">
                 {form.processing
                     ? 'Menyiapkan…'
                     : melanjutkan
@@ -286,27 +310,35 @@ function SiapMulai({
                 sudah berjalan sejak tadi - kalimat ini yang mencegahnya
                 mengira jam barunya dimulai ulang. */}
             {melanjutkan && sisaDetik !== null && (
-                <p className="text-[11px] font-medium text-warn">
+                <p className="text-[12px] font-medium text-warn">
                     Ujian Anda sedang berjalan. Sisa waktu{' '}
-                    <b className="font-mono">{formatSisa(sisaDetik)}</b>.
+                    <b className="angka">{formatSisa(sisaDetik)}</b>.
                 </p>
             )}
 
             {/* Aturan main ditulis LENGKAP sebelum tombol mulai - plate 21.
                 Isinya dari server, bukan teks tetap di sini: durasi dan
                 kebolehan mundur datang dari ujian yang sesungguhnya. */}
-            <KotakPonsel solid padat>
-                <ul className="w-full space-y-1.5 text-left">
+            <section className="papan overflow-hidden">
+                <header className="papan-kepala">
+                    <span>Aturan ujian</span>
+                </header>
+
+                <ul className="space-y-1.5 p-3 text-left">
                     {aturan.map((a) => (
-                        <li key={a} className="flex gap-2 text-[11px] leading-relaxed text-ink-2">
-                            <span className="mt-px grid size-3.5 shrink-0 place-items-center rounded-full bg-accent text-[8px] text-on-accent">
-                                ✓
+                        <li key={a} className="flex gap-2 text-[12px] leading-relaxed text-ink-2">
+                            {/* Angka urut, bukan tanda centang di dalam
+                                lingkaran: aturan ini BELUM dikerjakan, dan
+                                centang di sebelahnya adalah tanda selesai.
+                                Yang urut juga menjawab "berapa aturannya". */}
+                            <span className="angka w-4 shrink-0 text-ink-3">
+                                {aturan.indexOf(a) + 1}
                             </span>
                             <span>{a}</span>
                         </li>
                     ))}
                 </ul>
-            </KotakPonsel>
+            </section>
         </form>
     );
 }

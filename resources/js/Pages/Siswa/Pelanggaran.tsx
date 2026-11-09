@@ -1,7 +1,6 @@
 import { router } from '@inertiajs/react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
-import { Chip, Inbox } from '@/Components/ui';
-import { KpiPonsel, KotakPonsel } from '@/Components/ponsel';
+import { Inbox } from '@/Components/ui';
 
 /**
  * Riwayat pelanggaran saya - wireframe-peran.html plate 29.
@@ -34,6 +33,19 @@ import { KpiPonsel, KotakPonsel } from '@/Components/ponsel';
  * terjadi pada ujian itu - tetapi ia diberi label tingkatnya sendiri dan
  * tidak menambah hitungan. Menambahkannya berarti menuduh anak atas
  * perbuatan orang dewasa.
+ *
+ * ---------------------------------------------------------------------
+ * Redesign: tiga angka tidak lagi tiga kotak terpisah
+ * ---------------------------------------------------------------------
+ * Sampai redesign ini ketiga angkanya berdiri sebagai tiga kotak bersudut
+ * membulat di ATAS penyaring event, padahal penyaring itu yang menentukan
+ * angka mana yang sedang dibaca. Sekarang angkanya satu papan dengan tiga
+ * sel yang berbagi garis, dan urutannya: saring dulu, angka menyusul.
+ *
+ * "Terberat" dan "Pernah dikunci" juga kehilangan lambangnya. Nilainya
+ * sekarang angka besar dengan satuannya ditulis di bawahnya - dan
+ * "sebelumnya tidak pernah" adalah kalimat yang lebih jujur daripada `0`
+ * telanjang pada label yang tidak menerangkan apa itu nol.
  */
 
 type OpsiEvent = { id: number | null; nama: string | null; jumlah: number };
@@ -59,6 +71,13 @@ type Props = {
     riwayat: Riwayat[];
 };
 
+/** Nada sel angka - dipetakan di satu tempat, sama seperti SelStatus di beranda. */
+const NADA_ANGKA: Record<string, string> = {
+    ok: 'text-ok',
+    warn: 'text-warn',
+    bad: 'text-bad',
+};
+
 export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: Props) {
     const ganti = (id: number | null) => {
         // Penyaringan dikerjakan server, bukan di peramban: daftar
@@ -72,90 +91,182 @@ export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: P
         <KerangkaSiswa
             judul="Riwayat pelanggaran"
             tabbarAktif="pelanggaran"
-            kiri={
-                <span className="truncate text-[12px] text-ink">Riwayat · {nama}</span>
+            kiri={<span className="truncate text-[12px] text-ink">Riwayat · {nama}</span>}
+            kanan={
+                <span className="border border-line-2 px-1.5 py-0.5 text-[11px] text-ink-2">
+                    hanya baca
+                </span>
             }
-            kanan={<Chip nada="mute">hanya baca</Chip>}
         >
+            {/*
+             * Penyaring event sebagai SEL yang berbagi garis - bukan tombol
+             * yang mengambang. Sel yang sedang hidup mengisi tinta, sama
+             * seperti tabbar: itu satu-satunya tanda "sedang dibaca" yang
+             * dipakai konsol ini.
+             */}
             {event.length > 1 && (
-                <div className="flex flex-wrap gap-1.5">
-                    {event.map((e) => (
-                        <button
-                            key={e.id ?? 'tanpa-event'}
-                            type="button"
-                            onClick={() => ganti(e.id)}
-                            className={
-                                'rounded-wf border px-2.5 py-1 text-[11px] ' +
-                                (e.id === terpilih
-                                    ? 'border-accent bg-accent-soft text-accent'
-                                    : 'border-line bg-surface text-ink-2')
-                            }
-                        >
-                            {e.nama ?? 'Tanpa nama'}
-                            {e.jumlah > 0 && (
-                                <span className="ml-1 font-mono text-ink-3">{e.jumlah}</span>
-                            )}
-                        </button>
-                    ))}
-                </div>
+                <nav className="sel overflow-hidden">
+                    {event.map((e) => {
+                        const on = e.id === terpilih;
+
+                        return (
+                            <button
+                                key={e.id ?? 'tanpa-event'}
+                                type="button"
+                                onClick={() => ganti(e.id)}
+                                aria-current={on ? 'true' : undefined}
+                                className={
+                                    'truncate px-2 py-2 text-[11px] ' +
+                                    (on ? 'sel-hidup' : 'text-ink-2')
+                                }
+                            >
+                                {e.nama ?? 'Tanpa nama'}
+                                {e.jumlah > 0 && (
+                                    <span className={'angka ml-1 ' + (on ? '' : 'text-ink-2')}>
+                                        {e.jumlah}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </nav>
             )}
 
-            <div className="grid grid-cols-3 gap-1.5">
-                <KpiPonsel
+            {/*
+             * Tiga angka, satu papan. Angkanya yang besar; labelnya satu
+             * tingkat di bawahnya. "Terberat" bersatuan tingkat, dan itu
+             * ditulis - angka 0 tanpa satuan tidak menerangkan apa pun.
+             */}
+            <section className="papan grid grid-cols-3 overflow-hidden">
+                <SelAngka
                     label="Total kejadian"
-                    nilai={angka.total}
+                    nilaiTeks={String(angka.total)}
+                    satuan=""
                     nada={angka.total > 0 ? 'warn' : 'ok'}
                 />
                 {/* "Terberat" adalah tingkat keberatan satu PERISTIWA (1..5),
                     bukan tingkat eskalasi (0..3). Dua hal berbeda yang pernah
                     tertukar di blueprint - lihat ExamViolation::labelTingkat(). */}
-                <KpiPonsel label="Terberat" nilai={angka.terberat} nada={angka.terberat >= 5 ? 'bad' : undefined} />
-                <KpiPonsel
+                <SelAngka
+                    label="Terberat"
+                    nilaiTeks={angka.terberat > 0 ? String(angka.terberat) : 'tidak ada'}
+                    satuan={angka.terberat > 0 ? 'tingkat' : ''}
+                    nada={angka.terberat >= 5 ? 'bad' : angka.terberat > 0 ? 'warn' : undefined}
+                />
+                <SelAngka
                     label="Pernah dikunci"
-                    nilai={angka.pernah_dikunci}
+                    nilaiTeks={angka.pernah_dikunci > 0 ? String(angka.pernah_dikunci) : 'belum'}
+                    satuan={angka.pernah_dikunci > 0 ? 'kali' : ''}
                     nada={angka.pernah_dikunci > 0 ? 'bad' : undefined}
                 />
-            </div>
+            </section>
 
-            {riwayat.length === 0 ? (
-                <KotakPonsel padat>
-                    <p className="py-6 text-center text-[12px] text-ink-3">
-                        Tidak ada catatan pelanggaran untuk event ini.
-                    </p>
-                </KotakPonsel>
-            ) : (
-                <KotakPonsel padat>
-                    <div className="space-y-0">
-                        {riwayat.map((r) => (
-                            <div
-                                key={r.id}
-                                className="border-b border-line/60 py-2.5 last:border-0"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
-                                        {r.jenis}
-                                    </span>
-                                    <span className="shrink-0 font-mono text-[11px] text-ink-3">
-                                        {r.jam ?? '—'}
-                                    </span>
-                                    <Chip nada={r.nada as never}>{r.tingkat}</Chip>
-                                </div>
-                                <div className="mt-0.5 flex items-center gap-2 text-[10px] text-ink-3">
-                                    <span className="min-w-0 flex-1 truncate">
-                                        {[r.mapel, r.tanggal, r.durasi].filter(Boolean).join(' · ')}
-                                    </span>
-                                    <span className="shrink-0">{r.tindakan}</span>
-                                </div>
-                            </div>
-                        ))}
+            <section className="papan overflow-hidden">
+                <header className="papan-kepala">
+                    <span>Kejadian</span>
+                    {riwayat.length > 0 && (
+                        <span className="angka ml-auto text-ink">{riwayat.length}</span>
+                    )}
+                </header>
+
+                {riwayat.length === 0 ? (
+                    <div className="px-3 py-6">
+                        <p className="text-[12px] leading-relaxed text-ink-2">
+                            Tidak ada catatan pelanggaran untuk event ini.
+                        </p>
                     </div>
-                </KotakPonsel>
-            )}
+                ) : (
+                    riwayat.map((r) => (
+                        <div key={r.id} className="papan-baris px-3 py-2">
+                            <div className="flex items-center gap-2">
+                                <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                                    {r.jenis}
+                                </span>
+                                <span className="angka shrink-0 text-[11px] text-ink-2">
+                                    {r.jam ?? 'tanpa jam'}
+                                </span>
+                                <LencanaTingkat nada={r.nada}>{r.tingkat}</LencanaTingkat>
+                            </div>
+                            {/*
+                             * Mapel, tanggal dan durasi sebagai SEL, bukan
+                             * satu kalimat bertitik pemisah.
+                             *
+                             * Lantai 63 menamai `A · B · C` sebagai tanda baca
+                             * templat: titik tengah yang berdiri di antara
+                             * segala hal tidak menerangkan hubungan apa pun.
+                             * Papan di beranda sudah meninggalkan pola ini.
+                             *
+                             * Nilai yang kosong tetap DILEWATI, seperti pada
+                             * kalimat lama - sel kosong lebih buruk daripada
+                             * kalimat yang kehilangan satu bagiannya.
+                             */}
+                            <div className="mt-0.5 flex items-center gap-2 text-[11px] text-ink-2">
+                                <span className="min-w-0 flex-1 truncate">
+                                    {r.mapel ?? 'Tanpa mapel'}
+                                </span>
+                                {r.tanggal && <span className="angka shrink-0">{r.tanggal}</span>}
+                                {r.durasi && <span className="angka shrink-0">{r.durasi}</span>}
+                                <span className="shrink-0">{r.tindakan}</span>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </section>
 
             <Inbox>
                 Anda dapat mengajukan keberatan atas catatan ini kepada Pengawas ruang atau Admin
                 sekolah. Catatan pelanggaran tidak dapat dihapus.
             </Inbox>
         </KerangkaSiswa>
+    );
+}
+
+/** Satu sel angka. Label di atas, angka besar, satuannya di bawah. */
+function SelAngka({
+    label,
+    nilaiTeks,
+    satuan,
+    nada,
+}: {
+    label: string;
+    nilaiTeks: string;
+    satuan: string;
+    nada?: 'ok' | 'warn' | 'bad';
+}) {
+    return (
+        <div className="min-w-0 border-r border-line px-2 py-2 last:border-r-0">
+            <span className="block truncate text-[11px] text-ink-2">{label}</span>
+            <span
+                className={
+                    'angka mt-0.5 block truncate font-display text-lg leading-none ' +
+                    (nada ? NADA_ANGKA[nada] : 'text-ink')
+                }
+            >
+                {nilaiTeks}
+            </span>
+            {satuan && <span className="mt-0.5 block truncate text-[11px] text-ink-2">{satuan}</span>}
+        </div>
+    );
+}
+
+/** Tingkat keberatan sebagai sel bergaris, bukan lencana bulat. */
+function LencanaTingkat({ nada, children }: { nada: string; children: string }) {
+    const warna: Record<string, string> = {
+        ok: 'bg-ok-bg text-ok',
+        warn: 'bg-warn-bg text-warn',
+        bad: 'bg-bad-bg text-bad',
+        info: 'bg-info-bg text-info',
+        mute: 'bg-surface-2 text-ink-2',
+    };
+
+    return (
+        <span
+            className={
+                'shrink-0 border border-line-2 px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap ' +
+                (warna[nada] ?? warna.mute)
+            }
+        >
+            {children}
+        </span>
     );
 }

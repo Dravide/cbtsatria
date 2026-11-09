@@ -54,7 +54,7 @@ php artisan queue:work                  # worker antrean (ekspor laporan)
 
 **Penjadwal tidak berjalan sendiri.** `ujian:tutup-kedaluwarsa` berjalan tiap menit dan itulah yang menutup ujian siswa yang menutup tabnya. Di mesin dev jalankan `php artisan schedule:work`; di server ada satu baris cron di `docs/PELUNCURAN.md` §8. Tanpa keduanya, ujian menggantung tanpa galat apa pun.
 
-**Ekspor laporan menuntut worker antrean.** Tanpanya, ekspor tetap berstatus `menunggu` selamanya. Jalankan `php artisan queue:work`.
+**Ekspor menuntut worker antrean.** `laporan:pangkas-ekspor` dan ekspor pengguna sama-sama berjalan di antrean. Tanpa `php artisan queue:work`, keduanya berstatus `menunggu` selamanya — dan yang terlihat Admin hanyalah tombol Unduh yang tidak pernah muncul, tanpa satu pun galat.
 
 **`public/hot` menandai dev server Vite — dan paket Inertia membaca penanda itu sebagai "SSR hidup".** Selama berkas itu ada, setiap halaman Inertia menunggu endpoint SSR yang tidak pernah ada: ~1,4 detik per halaman. `.env` memuat `INERTIA_SSR_ENABLED=false` yang menutupnya; jangan dihapus. Di produksi berkas `public/hot` memang tidak boleh ada, dan `docs/PELUNCURAN.md` §10 memeriksanya. Latarnya di `docs/BEBAN.md` §5(f).
 
@@ -75,6 +75,18 @@ docs/                peluncuran, penyediaan sekolah, beban, bukti
 ```
 
 Batas antar modul ditegakkan `tests/Architecture/DomainBoundariesTest.php`. Impor lintas domain di dalam `app/Domain/` akan menggagalkan suite.
+
+## Impor & ekspor pengguna
+
+`/admin/pengguna` punya dua tombol yang menjawab beban yang paling nyata di awal tahun ajaran: 1.284 akun tidak diketik satu per satu.
+
+**Impor** (`/admin/pengguna/impor`) tiga langkah: unggah, pratinjau, lalu Impor. Templatenya diunduh dari laman itu sendiri (`/admin/pengguna/impor/template`) dan memuat tiga baris contoh — satu siswa, satu guru, satu pengawas — supaya kolom mana bermakna bagi peran mana terlihat tanpa halaman penjelasan. Satu berkas untuk tiga peran; perannya ada di kolom pertama tiap baris.
+
+NIS/NIP yang sudah terdaftar akan **diperbarui**, bukan ditolak — nama, email, kelas, dan profilnya. **Username dan sandi tidak pernah diubah**: username tertempel di kartu login siswa, dan menggantinya mengunci setiap siswa yang menghafalnya pada hari ujian. Kolom yang dibiarkan kosong juga tidak mengosongkan data yang sudah ada.
+
+**Ekspor** berjalan di antrean dengan riwayat di bawah tabel. Yang diekspor adalah tab dan penyaring yang sedang aktif, dalam XLSX atau CSV. Kolomnya sama dengan template impor ditambah `username` — sehingga hasil ekspor bisa diperbaiki di Excel lalu **diunggah kembali apa adanya**: barisnya cocok lewat NIS, username dan sandi tak tersentuh.
+
+`pengguna:pangkas-ekspor --hari=30` menghapus berkas ekspor pengguna yang lama; dijadwalkan pukul 03:15 setiap malam.
 
 ## Menambah sekolah
 

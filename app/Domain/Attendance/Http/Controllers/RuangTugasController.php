@@ -95,7 +95,21 @@ class RuangTugasController
             // tautan, jadi hanya ruang ini yang tampil" hanya ditampilkan
             // kepada pemegang tautan, bukan kepada pengawas berakun yang
             // memang punya banyak ruang.
+            //
+            // Ia menjawab "lewat PINTU MANA Anda masuk", bukan "siapa Anda" -
+            // dan sejak kodenya milik orang, pertanyaan kedua punya
+            // jawabannya sendiri di bawah. Keduanya tetap dikirim: pemegang
+            // tautan yang namanya terbaca tetap hanya melihat satu ruang.
             'pelaku' => KonteksRuang::tautanSesi() !== null ? 'tautan' : 'akun',
+
+            // Nama pengawas yang membuka pintu ini, bila masuknya lewat kode
+            // pengawas. Sejak 2026-11-07 nilainya memang ada - kodenya
+            // menempel pada orang, sehingga "data pengawasnya langsung ada"
+            // bukan lagi sesuatu yang harus dikarang dari nama ruang.
+            //
+            // null bagi yang masuk lewat akun, dan bagi pemegang tautan yang
+            // baris kepanitiaannya sudah hilang di tengah sesi.
+            'pengawas' => KonteksRuang::penggunaSesi()?->name,
         ]);
     }
 }

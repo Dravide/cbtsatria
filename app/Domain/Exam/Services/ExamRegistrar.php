@@ -6,6 +6,7 @@ use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\Exam;
+use App\Domain\Exam\Models\ExamSession;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -52,6 +53,17 @@ use Illuminate\Support\Facades\Log;
 class ExamRegistrar
 {
     /**
+     * Ujian lahir tanpa status, dan itu memang bentuknya.
+     *
+     * Sejak Fase 5 kolom `exams.status` diisi `'draft'` di sini dengan alasan
+     * "ujian yang lahir terbit berarti jendela sesinya tidak pernah ditinjau".
+     * Alasan itu tetap benar - tetapi ia menjelaskan mengapa ujian **tidak
+     * punya** tombol terbit, bukan mengapa ia butuh kolomnya sendiri. Yang
+     * ditinjau adalah SESINYA, dan sesi punya status sendiri yang benar-benar
+     * bergerak (`StatusSesi`) dan benar-benar dibaca.
+     *
+     * Kolomnya dijatuhkan 2026-11-07; lihat migrasi 0016_01_01_000030.
+     *
      * @param  array<string, mixed>  $data
      */
     public function buat(SchoolEvent $event, array $data, int $userId): Exam
@@ -62,7 +74,8 @@ class ExamRegistrar
                 'event_id' => $event->id,
                 'event_activity_id' => $data['event_activity_id'] ?? null,
                 'subject_id' => $data['subject_id'],
-                'question_package_id' => $data['question_package_id'] ?? null,
+                'question_package_id' => $data['question_package_id']
+                    ?? $this->paketMapelEvent((int) $event->id, (int) $data['subject_id']),
                 'created_by' => $userId,
                 'code' => $data['code'] ?? $this->kodeBerikutnya($event),
                 'title' => $data['title'],
@@ -81,10 +94,10 @@ class ExamRegistrar
                 // dan kolom per ujian sudah dijatuhkan di Fase 8 - lihat catatan
                 // kepala `Exam` dan migrasi 0008_01_01_000019.
 
-                // Selalu draft. Ujian yang lahir terbit berarti jendela
-                // sesinya tidak pernah ditinjau - dan seluruh pemeriksaan
-                // konflik jadwal menjadi hiasan.
-                'status' => 'draft',
+                // Tidak ada `status` di sini sejak 2026-11-07. Kolomnya
+                // dijatuhkan karena hanya pernah berisi satu nilai dan tidak
+                // dibaca siapa pun; lihat migrasi 0016_01_01_000030 dan
+                // catatan kepala `Exam`.
             ]);
 
             $this->simpanKelas($ujian, $data['class_id'] ?? []);
@@ -171,6 +184,100 @@ class ExamRegistrar
     }
 
     /**
+     * Paket yang sedang terpasang pada mapel event ini, atau null.
+     *
+     * Dipakai `buat()`. Sejak Fase 4 Admin memasang paket di plate 15 lewat
+     * `PemasanganPaket`, dan UNTUK MAPEL YANG SAMA ujiannya lahir di plate 16 -
+     * jadi paket itu memang sudah diketahui pada saat ujiannya dibuat. Yang
+     * membuatnya tidak terbaca sampai 07 Nov 2026 hanyalah kenyataan bahwa
+     * tidak ada satu pun baris yang membacanya: `buat()` menerima
+     * `question_package_id` dari formulir yang tidak pernah mengirimkannya,
+     * sehingga ujian selalu lahir dengan paket null - walau mapelnya sudah
+     * dipasangi satu paket yang berstatus Siap.
+     *
+     * Dua kolom dibaca langsung, dan itu bukan jalan pintas. Modul Exam tidak
+     * boleh menyentuh model modul lain kecuali lewat kontrak atau service -
+     * peta di DomainBoundariesTest menegakkannya - dan yang dibutuhkan di sini
+     * hanyalah satu nilai dari satu baris `event_subjects`.
+     */
+    private function paketMapelEvent(int $eventId, int $subjectId): ?int
+    {
+        $terpasang = DB::table('event_subjects')
+            ->where('event_id', $eventId)
+            ->where('subject_id', $subjectId)
+            ->value('question_package_id');
+
+        return $terpasang === null ? null : (int) $terpasang;
+    }
+
+    /**
+     * Bekukan paket yang TERPASANG di mapel, tiap kali sesinya akan dibuka.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa pembekuan tidak cukup dikerjakan sekali saat ujian lahir
+     * ---------------------------------------------------------------------
+     * `bekukanPaket()` sudah dipanggil `buat()`, dan itu tidak cukup untuk
+     * urutan kerja yang docblock-nya sendiri janjikan: "Admin menyusun jadwal
+     * lebih dulu, dan paketnya dipasang Gurunya belakangan". Ujian yang lahir
+     * sebelum paketnya dipasang tidak pernah dibekukan ulang oleh apa pun -
+     * sehingga snapshotnya tetap kosong, dan kegagalannya baru muncul di
+     * gerbang siswa sebagai "Ujian ini tidak punya butir soal. Hubungi Admin
+     * sebelum memulai." Ujian yang bisa dijadwalkan, ditempati 300 siswa, dan
+     * baru ketahuan kosong saat tokennya dibuka.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa di sini, bukan di tombol "Pasang paket"
+     * ---------------------------------------------------------------------
+     * `PemasanganPaket` hidup di modul Question, dan Question TIDAK boleh
+     * menunjuk Exam - arah itu yang membuat bank soal bisa diuji sendirian.
+     * Memanggil pembekuan dari sana akan menambahkan baris `Question -> Exam`
+     * ke peta modul, dan lingkaran itu tepat yang dijaga
+     * DomainBoundariesTest. Yang diubah adalah tabel Event, dan yang membaca
+     * perubahannya adalah Exam - jadi pembekuannya memang urusan di sisi ini.
+     *
+     * ---------------------------------------------------------------------
+     * Admin yang sudah memasang paket lewat laman Jadwal juga tertolong
+     * ---------------------------------------------------------------------
+     * `ExamRegistrar::perbarui()` sengaja tidak menulis `question_package_id`.
+     * Tanpa method ini, paket yang dipasang SETELAH ujiannya lahir tidak akan
+     * pernah masuk ke ujian mana pun, dan satu-satunya cara memperbaikinya
+     * adalah menghapus ujiannya lalu membuatnya ulang.
+     *
+     * Amannya: `PembekuPaket::bekukan()` menghapus snapshot lama di dalam
+     * transaksi sebelum menulis yang baru, dan method ini hanya menulis bila
+     * paketnya memang berpindah. Sesi yang di-`siapkan()` dua kali, atau yang
+     * kembali ke Draft lalu disiapkan lagi, tidak membekukan ulang apa pun.
+     *
+     * Yang TIDAK dikerjakan di sini, dan tetap tugas `mulai()`: memeriksa ruang
+     * dan pengawas. `siapkan()` menandai jendelanya sudah final; kelayakan
+     * menjalankannya diperiksa di tempat yang memang menjalankannya.
+     */
+    public function bekukanPaketMapel(ExamSession $sesi): void
+    {
+        $ujian = $sesi->exam;
+
+        if ($ujian === null) {
+            return;
+        }
+
+        $terpasang = $this->paketMapelEvent((int) $ujian->event_id, (int) $ujian->subject_id);
+
+        // Mapelnya belum dipasangi paket, atau paketnya sudah yang ini. Yang
+        // kedua adalah keadaan normal - sesi yang disiapkan, dikembalikan ke
+        // Draft, lalu disiapkan lagi - dan membekukan ulang di situ berarti
+        // menulis ulang snapshot yang isinya sama persis.
+        if ($terpasang === null || $terpasang === (int) $ujian->question_package_id) {
+            return;
+        }
+
+        $ujian->forceFill(['question_package_id' => $terpasang])->save();
+
+        // Snapshot lama dibuang oleh PembekuPaket, dan paket kosong ditolak di
+        // sana dengan ValidationException - sebelum sesinya berstatus Siap.
+        $this->bekukanPaket($ujian);
+    }
+
+    /**
      * Membekukan isi paket soal ke dalam ujian - PRD §9.2, blueprint `:312`.
      *
      * ---------------------------------------------------------------------
@@ -193,6 +300,15 @@ class ExamRegistrar
      * Paket yang sudah dipasang tetapi MASIH KOSONG ditolak `PembekuPaket`
      * dengan ValidationException, dan penolakan itu terjadi di dalam transaksi
      * `buat()` - sehingga ujiannya tidak pernah tersimpan.
+     *
+     * ---------------------------------------------------------------------
+     * Jalur SESUDAHNYA, dan mengapa ia harus ada
+     * ---------------------------------------------------------------------
+     * Ujian yang lahir tanpa paket - karena Admin menyusunnya lebih dulu -
+     * datang kembali lewat `bekukanPaketMapel()`, yang dipanggil
+     * `SesiService::siapkan()`. Tanpa jalur itu, janji di atas hanya benar
+     * untuk ujian yang paketnya sudah ada SEBELUM jadwalnya, dan sisanya
+     * berakhir sebagai ujian kosong yang gempanya berbunyi di depan siswa.
      */
     public function bekukanPaket(Exam $ujian): void
     {

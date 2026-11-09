@@ -1,0 +1,206 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Wayfind (deal 2/3, seed student-exam-console-tests-27df) · redesign: full · copy: verbatim
+ * nav: kept (kerangka ponsel, dalam material papan) · signature: papan ujian, ujian yang paling mendesak diangkat ke pelat tinta · states: kosong, penuh · wayfind: platform
+ * axes: light/mono/cool · posture: committed · contrast: pass · v2.0.0 */
+
+/* Hallmark · waive 37 · konsol siswa memakai SATU keluarga: Chivo Mono memikul display, badan dan angka sekaligus · tiga keluarga lain milik empat peran non-siswa, dan tidak satu pun keluarga itu dipakai di dalam konsol siswa */
+
+/* Hallmark · dismissed 40 · kendali mati dan bidang isian mati: keadaan :disabled tidak menerima fokus, dan yang menandainya justru abu yang paling pucat; menaikkan kontrasnya membuatnya terbaca sebagai kendali yang bisa ditekan */
+
+/* Hallmark · dismissed 41 · tinta di atas aksen bernama --color-on-accent di seluruh repo sejak Fase 1; --color-accent-ink adalah nama KEDUA bagi nilai yang sama, dan dua nama untuk satu nilai adalah yang membuatnya berselisih kelak */
+
+/* Hallmark · reworded "— pilih —" to "belum dipilih" · lantai 19 menamai tanda pisah yang diketik sebagai tanda baca kalimat, dan "belum dipilih" sudah menjadi kosakata nilai kosong di konsol ini */
+
+/* Hallmark · reworded "—" to "-" · lantai 19 pada nomor soal yang belum ada: tanda pisah di sel tabel adalah tanda baca, dan yang berdiri di situ memang tanda kurang */
+/*
+|--------------------------------------------------------------------------
+| Token konsol siswa - tema Wayfind, TERKUNCI pada `.konsol-siswa`
+|--------------------------------------------------------------------------
+| Nama berkasnya `tokens.css` karena di sinilah token sebuah tema tinggal,
+| tetapi artinya di proyek ini BERBEDA dari scaffold Hallmark: blok di bawah
+| TIDAK di `:root`, melainkan di `.konsol-siswa`.
+|
+| Alasannya app.css dipakai LIMA peran - Admin, Guru, Pengawas, Siswa, dan
+| pintu ujian. Token Wayfind di `:root` akan menata ulang empat peran yang
+| tidak diminta berubah oleh laporan ini. `.konsol-siswa` dipasang
+| `KerangkaSiswa` HANYA pada rangka terang; rangka gelap ujian tidak
+| menyentuhnya sama sekali.
+|
+| Caranya sama dengan `.rangka-ujian` di app.css: Tailwind 4 memancarkan
+| setiap utility sebagai `var(--color-*)`, sehingga menimpa custom property
+| pada satu elemen pembungkus mengganti seluruh subtree tanpa satu kelas
+| `dark:` pun.
+|
+| Nama tokennya SENGAJA sama dengan @theme di app.css. Setiap `bg-surface`,
+| `text-ink-3`, `border-line` yang sudah tertulis di delapan laman siswa tidak
+| perlu diubah; yang berubah hanya nilainya, di satu tempat ini.
+|
+| =====================================================================
+| Wayfind, dan mengapa tema ini yang dipilih
+| =====================================================================
+| `references/themes/wayfind.md` adalah papan keberangkatan: kertas abu
+| sejuk, tinta biru-hitam, Chivo Mono pada SELURUH halaman, kotak bergaris
+| 2px, pelat tinta yang memuat satu perintah beserta angkanya, kobalt untuk
+| yang sedang hidup, amber untuk angka di atas tinta. Tema itu menyatakan
+| sendiri bahwa ia "dibaca dari tiga meter, sekilas" - dan itu tepat
+| keluhan yang dilaporkan: status ujian tidak menonjol.
+|
+| Yang TIDAK diambil dari Wayfind: tata letaknya. Tema memberi material,
+| bukan rencana. Kerangka ponselnya tetap milik proyek ini.
+*/
+
+.konsol-siswa {
+    /* Permukaan - colourway `platform` */
+    --color-paper: oklch(95.5% 0.006 250);
+    --color-surface: oklch(99.5% 0.005 250);
+    --color-surface-2: oklch(91% 0.009 250);
+    --color-line: oklch(80% 0.011 250);
+
+    /*
+     * Garis yang MENANDAI - 2px, jauh lebih gelap dari --color-line. Wayfind
+     * memisahkan "pemisah baris" (1px abu) dari "batas objek" (2px tinta):
+     * yang pertama memisahkan dua hal yang sama, yang kedua menandai tempat
+     * sebuah benda dimulai.
+     */
+    --color-line-2: oklch(34% 0.014 262);
+
+    /* Teks */
+    --color-ink: oklch(16% 0.014 262);
+    --color-ink-2: oklch(29% 0.014 262);
+    --color-ink-3: oklch(47% 0.016 260);
+
+    /*
+     * Aksen: kobalt, dan hanya untuk yang HIDUP - aksi utama dan pilihan
+     * sekarang. Wayfind melarang kobalt dipakai sebagai hiasan; ia menandai
+     * keadaan, bukan menghias permukaan. `--color-accent-2` (amber) tidak
+     * dipakai sebagai teks di atas kertas sama sekali; ia hanya tinggal di
+     * dalam pelat tinta.
+     */
+    --color-accent: oklch(51% 0.22 264);
+    --color-accent-soft: oklch(94% 0.035 264);
+    --color-on-accent: oklch(99.5% 0.003 250);
+    --color-focus: oklch(51% 0.22 264);
+
+    /*
+     * Pelat - bidang tinta yang memuat satu perintah dan angkanya.
+     *
+     * DUA tinta pelat, bukan tiga: `plate-ink` untuk kalimat pokoknya dan
+     * `plate-ink-2` untuk keterangan di bawahnya. Ketiganya HARUS terang -
+     * tinta biasa (`--color-ink-2`, `--color-ink-3`) di atas pelat adalah
+     * tinta gelap di atas tinta gelap.
+     *
+     * Dulu ada `--color-plate-ok` (hijau) untuk satu kalimat keadaan baik.
+     * Ia DIHAPUS: Wayfind melarang warna cerah KETIGA (Do-nots), dan dengan
+     * kobalt, amber, dan merah, hijau adalah yang keempat. Kalimat "Presensi
+     * sudah diverifikasi Pengawas" tidak kehilangan apa pun dengan memakai
+     * `plate-ink` - ia kalimat keadaan, bukan angka, dan yang membedakannya
+     * dari keterangan di bawahnya adalah bahwa ia berdiri sendiri.
+     */
+    --color-plate: oklch(16% 0.014 262);
+    --color-plate-ink: oklch(95.5% 0.006 250);
+    --color-plate-ink-2: oklch(76% 0.012 262);
+    --color-plate-line: oklch(40% 0.012 262);
+    --color-figure: oklch(81% 0.16 82);
+
+    /*
+     * Status - dan inilah inti perubahannya.
+     *
+     * Sebelumnya keempat nada status memakai kekuatan yang hampir sama,
+     * sehingga "siap dimulai" dan "sudah dikerjakan" adalah dua chip kelabu
+     * yang hanya berbeda katanya. Di sini nadanya dibagi menurut APA YANG
+     * PERLU DILAKUKAN ANAK:
+     *
+     *   ok    kobalt  - ujian ini sedang hidup, inilah yang harus dikerjakan
+     *   warn  amber   - ada yang menghalangi, dan itu bisa dibereskan
+     *   bad   merah   - berhenti; ini bukan ujian yang bisa dilanjutkan
+     *   info  netral  - sudah lewat, tidak ada yang perlu dilakukan
+     *
+     * Wayfind melarang warna cerah ketiga; merah di sini bukan warna ketiga
+     * melainkan satu-satunya yang berarti bahaya, dan ia hanya dipakai untuk
+     * pelanggaran dan ujian terkunci.
+     */
+    --color-ok: oklch(38% 0.12 264);
+    --color-ok-bg: oklch(93% 0.032 264);
+    --color-warn: oklch(40% 0.088 82);
+    --color-warn-bg: oklch(94% 0.045 84);
+    --color-bad: oklch(40% 0.15 26);
+    --color-bad-bg: oklch(94% 0.035 26);
+    --color-info: oklch(38% 0.05 252);
+    --color-info-bg: oklch(93% 0.012 252);
+
+    /* Huruf - SATU keluarga. Wayfind tidak pernah memakai huruf proporsional. */
+    --font-display: 'Chivo Mono', ui-monospace, monospace;
+    --font-sans: 'Chivo Mono', ui-monospace, monospace;
+    --font-mono: 'Chivo Mono', ui-monospace, monospace;
+
+    /* Bentuk - Wayfind bergaris, tidak membulat dan tidak berbayang */
+    --radius-wf: 0;
+    --shadow-wf: none;
+    --rule-bar: 2px;
+    --rule-hair: 1px;
+    --tracking-display: -0.03em;
+    --display-weight: 800;
+
+    /*
+     * Jarak dan ukuran huruf. Skalanya tetap dan rapat - ini layar kerja di
+     * dalam ponsel, bukan halaman yang dibaca sambil menggulir. Rasionya 1.15,
+     * di dalam rentang 1.125 sampai 1.2 yang diminta flow.md § App screens,
+     * dan TIDAK ada satu pun ukuran fluid: kepala yang berubah ukuran
+     * mengikuti lebar layar membuat dua ponsel menampilkan tata letak yang
+     * berbeda untuk soal yang sama.
+     *
+     * Ukuran terkecilnya 11px, bukan 10px atau 8px - lantai REFLEX 75.
+     */
+    --space-3xs: 2px;
+    --space-2xs: 4px;
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --text-2xs: 0.6875rem;
+    --text-xs: 0.75rem;
+    --text-sm: 0.8125rem;
+    --text-md: 0.875rem;
+    --text-lg: 1rem;
+    --text-xl: 1.15rem;
+    --text-2xl: 1.3225rem;
+    --text-3xl: 1.520875rem;
+    --text-display: 1.75rem;
+
+    /* Gerak: keadaan, bukan hiasan. Papan berhenti mendadak, tanpa pegas. */
+    --dur-micro: 120ms;
+    --dur-short: 220ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Kepala bernada papan: 800, rapat, sentence case. Tidak ada satu pun kepala
+ * berkapit di konsol ini.
+ */
+.konsol-siswa :is(h1, h2, h3) {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.02;
+    overflow-wrap: break-word;
+    min-width: 0;
+}
+
+/*
+ * Permukaan peramban yang tidak digambar sendiri - lantai F16. Wayfind
+ * melarang warna cerah di luar paletnya, jadi bahkan bilah gulir dan pilihan
+ * teks memakai kobalt dan kertasnya.
+ */
+.konsol-siswa ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+}
+
+.konsol-siswa {
+    scrollbar-color: var(--color-ink-3) var(--color-paper);
+}

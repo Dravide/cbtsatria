@@ -338,7 +338,7 @@ function PanelPaket({
     return (
         <div className="mt-3 rounded-wf border border-line bg-surface">
             <header className="flex items-center gap-2 border-b border-line px-4 py-2.5">
-                <h2 className="text-xs font-medium tracking-wide text-ink-2 uppercase">
+                <h2 className="font-display text-sm font-semibold text-ink">
                     Paket soal · {baris.nama}
                 </h2>
                 <button

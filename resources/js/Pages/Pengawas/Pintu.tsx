@@ -101,7 +101,7 @@ export default function Pintu({ slug, ruang, berlaku, alasan, sekolah }: Props) 
                                     <form onSubmit={kirim} className="mt-4 space-y-3">
                                         <label className="block text-left">
                                             <span className="mb-1 block text-[11px] text-ink-3">
-                                                Masukkan kode pengawas ruang ini.
+                                                Masukkan kode pengawas Anda.
                                             </span>
                                             {/* Enam kotak terpisah, bukan satu
                                                 input: kode ini dibaca dari
@@ -143,7 +143,8 @@ export default function Pintu({ slug, ruang, berlaku, alasan, sekolah }: Props) 
 
                                 <Inbox>
                                     Tautan hanya menunjuk ruang ini dan tidak membuka apa pun
-                                    sendirian. Kode pengawas yang membuka sesinya.
+                                    sendirian. Kode pengawas Andalah yang membuka sesinya, dan
+                                    hanya bila Anda ditugaskan di ruang ini.
                                 </Inbox>
                             </>
                         )}

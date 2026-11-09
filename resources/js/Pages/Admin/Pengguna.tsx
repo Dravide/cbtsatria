@@ -1,10 +1,12 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { formatUkuran } from '@/Components/angka';
 import AdminLayout from '@/Layouts/AdminLayout';
 import {
     BilahFilter,
     Chip,
     Field,
+    Inbox,
     Modal,
     Paginator,
     Tabel,
@@ -21,15 +23,24 @@ import {
  * baris tabel yang sama.
  *
  * ---------------------------------------------------------------------
- * Username tidak diketik Admin
+ * Username diturunkan dari NIS/NIP, tetapi BISA diganti
  * ---------------------------------------------------------------------
- * Ia diturunkan dari NIS/NIP di server. Alasannya ada di layar login: kalau
- * Admin bisa mengetik username sendiri, ia bisa mengetik yang bertabrakan
- * dengan akun sekolah lain - dan kegagalannya muncul jauh kemudian, di layar
- * login siswa pada hari ujian, sebagai pesan yang tidak menjelaskan apa pun.
+ * Saat akun dibuat, username tidak diketik Admin: ia diturunkan dari NIS/NIP
+ * di server. Alasannya ada di layar login - kalau Admin mengarang username,
+ * ia bisa mengarang yang bertabrakan dengan akun sekolah lain, dan
+ * kegagalannya muncul jauh kemudian di layar login siswa pada hari ujian.
  *
- * Karena itu form ini tidak menawarkan field username, dan bukan karena
- * lupa: satu-satunya tempat bentrokan itu diselesaikan adalah di server.
+ * Tetapi NIS dan NIP memang salah ketik. Karena itu ada tindakan tersendiri
+ * untuk MENGGANTI username akun yang sudah ada - dan bukan kolom di form
+ * Ubah. Perbedaannya bukan tata letak: sebagai kolom di antara nama dan
+ * email, username akan ikut tersimpan setiap kali Admin memperbaiki surel
+ * seseorang, dan satu salah ketik yang tidak disadari mengunci siswa itu
+ * pada hari ujian. Sebagai tindakan tersendiri, ia menuntut niat, dan
+ * layarnya bisa menyebut akibatnya lebih dulu.
+ *
+ * Yang tidak berubah: memperbaiki NIS tidak pernah menurunkan username ulang.
+ * Username tertempel di kartu login, dan mengubahnya diam-diam di belakang
+ * perbaikan NIS berarti mengunci setiap siswa yang sudah menghafalnya.
  */
 type Profil = {
     nis: string | null;
@@ -58,6 +69,32 @@ type Props = {
     baris: Paginator<Baris>;
     filter: { cari: string; status: string };
     jumlah: number;
+    ekspor: Ekspor[];
+    format: string[];
+};
+
+/**
+ * Satu baris riwayat ekspor.
+ *
+ * `status_nada` datang dari server (`UserExport::nadaStatus()`), bukan
+ * dihitung di sini - `nadaStatus()` di `ui.tsx` memetakan kosakata status
+ * event, presensi, dan master data; ia tidak mengenal `menunggu`/`diproses`.
+ * Menghitungnya di model berarti komponen bersama itu tidak perlu disentuh
+ * setiap ada kosakata status baru.
+ */
+type Ekspor = {
+    id: number;
+    format: string;
+    peran: string | null;
+    status: string;
+    status_label: string;
+    status_nada: string;
+    total_baris: number | null;
+    ukuran: number | null;
+    nama_berkas: string | null;
+    pesan_gagal: string | null;
+    peminta: string | null;
+    diminta_pada: string | null;
 };
 
 const LABEL_TAB: Record<string, string> = {
@@ -78,10 +115,12 @@ const FIELD_PERAN: Record<string, { nama: string; label: string; kunci: string }
     admin: [],
 };
 
-export default function Pengguna({ tab, tabnya, baris, filter, jumlah }: Props) {
+export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, format }: Props) {
     const [tambah, setTambah] = useState(false);
     const [pilih, setPilih] = useState<number[]>([]);
     const [ubah, setUbah] = useState<Baris | null>(null);
+    const [gantiUsername, setGantiUsername] = useState<Baris | null>(null);
+    const [eksporTerbuka, setEksporTerbuka] = useState(false);
 
     const f = pakaiFilter('/admin/pengguna', { cari: filter.cari, status: filter.status });
 
@@ -114,12 +153,8 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah }: Props) 
             breadcrumb="/admin/pengguna"
             aksi={
                 <>
-                    <Tombol disabled title="Impor Excel tersedia setelah berkas template selesai">
-                        Impor
-                    </Tombol>
-                    <Tombol disabled title="Ekspor menyusul bersama laporan">
-                        Ekspor
-                    </Tombol>
+                    <Tombol onClick={() => router.visit('/admin/pengguna/impor')}>Impor</Tombol>
+                    <Tombol onClick={() => setEksporTerbuka(true)}>Ekspor</Tombol>
                     <Tombol nada="pri" onClick={() => setTambah(true)}>
                         Tambah
                     </Tombol>
@@ -247,14 +282,23 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah }: Props) 
                     },
                     {
                         judul: '',
-                        kelas: 'w-20 text-right',
+                        kelas: 'w-32 text-right',
                         render: (b) => (
-                            <button
-                                onClick={() => setUbah(b)}
-                                className="text-xs text-accent hover:underline"
-                            >
-                                Ubah
-                            </button>
+                            <span className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setGantiUsername(b)}
+                                    className="text-xs text-accent hover:underline"
+                                    title="Ganti username akun ini"
+                                >
+                                    Username
+                                </button>
+                                <button
+                                    onClick={() => setUbah(b)}
+                                    className="text-xs text-accent hover:underline"
+                                >
+                                    Ubah
+                                </button>
+                            </span>
                         ),
                     },
                 ]}
@@ -265,6 +309,8 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah }: Props) 
                 dihapus, hanya dinonaktifkan &mdash; riwayat ujian dan presensi menunjuk ke
                 sana.
             </p>
+
+            {ekspor.length > 0 && <RiwayatEkspor ekspor={ekspor} />}
 
             <FormPengguna
                 key={tambah ? 'tambah-terbuka' : 'tambah-tutup'}
@@ -288,8 +334,278 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah }: Props) 
                 pengguna={ubah}
                 padaTutup={() => setUbah(null)}
             />
+
+            <FormGantiUsername
+                key={'username-' + (gantiUsername?.id ?? 'kosong')}
+                pengguna={gantiUsername}
+                padaTutup={() => setGantiUsername(null)}
+            />
+
+            <FormEkspor
+                terbuka={eksporTerbuka}
+                tab={tab}
+                filter={filter}
+                format={format}
+                padaTutup={() => setEksporTerbuka(false)}
+            />
         </AdminLayout>
     );
+}
+
+/**
+ * Permintaan ekspor - modal, bukan tiga tombol di header.
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa modal
+ * ---------------------------------------------------------------------
+ * Yang membuat ekspor ini berguna justru hal yang tidak terlihat di tombolnya:
+ * ia mengekspor TAB DAN PENYARING yang sedang aktif. Admin yang menekan
+ * "Ekspor" pada tab Guru sambil mengetik "budi" mengharapkan satu berkas
+ * berisi guru bernama Budi - dan mendapatkannya. Tanpa kalimat yang
+ * menyebutkannya, ia akan mengira dirinya mengekspor seluruh sekolah, dan
+ * satu-satunya cara mengetahui jawabannya adalah membuka berkasnya.
+ *
+ * Header di laman ini sudah memuat Impor dan Tambah; modal ini satu-satunya
+ * tempat yang bisa mengatakan APA yang akan diekspor sebelum menekan tombol.
+ */
+/**
+ * Ganti username - modal tersendiri, bukan kolom di form Ubah.
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa dipisah dari form Ubah
+ * ---------------------------------------------------------------------
+ * Username adalah satu-satunya identitas yang diketik saat login, dan ia
+ * tertempel di kartu siswa. Sebagai satu kolom di antara nama, email, dan
+ * telepon, ia akan ikut tersimpan setiap kali Admin memperbaiki alamat surel
+ * seseorang - dan satu salah ketik yang tidak disadari mengunci siswa itu
+ * pada hari ujian, tanpa galat apa pun di layar Admin.
+ *
+ * Sebagai tindakan tersendiri, ia menuntut niat, dan layarnya bisa menyebut
+ * akibatnya sebelum Admin mengetik: siswa yang menghafal angka lama akan
+ * gagal masuk, dan kartunya perlu dicetak ulang.
+ */
+function FormGantiUsername({
+    pengguna,
+    padaTutup,
+}: {
+    pengguna: Baris | null;
+    padaTutup: () => void;
+}) {
+    const { data, setData, put, processing, errors, reset } = useForm({
+        username: pengguna?.username ?? '',
+    });
+
+    return (
+        <Modal
+            judul={pengguna ? `Ganti username ${pengguna.nama}` : 'Ganti username'}
+            terbuka={pengguna !== null}
+            padaTutup={padaTutup}
+        >
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    put(`/admin/pengguna/${pengguna?.id}/username`, {
+                        onSuccess: () => {
+                            padaTutup();
+                            reset();
+                        },
+                    });
+                }}
+                className="space-y-3"
+            >
+                <Field
+                    label="Username"
+                    galat={errors.username}
+                    petunjuk="Huruf kecil, angka, dan titik. Username dipakai lintas sekolah, jadi nama yang sama dengan akun sekolah lain akan ditolak."
+                >
+                    <input
+                        value={data.username}
+                        onChange={(e) => setData('username', e.target.value)}
+                        className={kelasInput + ' font-mono'}
+                        autoComplete="off"
+                    />
+                </Field>
+
+                <Inbox>
+                    Username adalah satu-satunya yang diketik siswa di layar login, dan
+                    ia tertempel di kartu siswa. Menggantinya berarti siswa yang
+                    menghafal username lama tidak bisa masuk sampai kartunya diperbarui
+                    &mdash; dan ia akan melapor sebagai &ldquo;username atau sandi
+                    salah&rdquo;, yang tidak menjelaskan apa pun kepada pengawas.
+                </Inbox>
+
+                <div className="flex gap-2 pt-1">
+                    <Tombol type="submit" nada="pri" disabled={processing}>
+                        Simpan username
+                    </Tombol>
+                    <Tombol onClick={padaTutup}>Batal</Tombol>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
+function FormEkspor({
+    terbuka,
+    tab,
+    filter,
+    format,
+    padaTutup,
+}: {
+    terbuka: boolean;
+    tab: string;
+    filter: { cari: string; status: string };
+    format: string[];
+    padaTutup: () => void;
+}) {
+    const [proses, setProses] = useState(false);
+
+    const minta = (satuFormat: string) => {
+        setProses(true);
+
+        router.post(
+            '/admin/pengguna/ekspor',
+            // Peran dan penyaringnya dikirim APA ADANYA dari layar. Server
+            // menyimpannya di `parameter_json` lalu memberikannya ke job, dan
+            // itulah satu-satunya jalur yang membuat berkasnya berisi baris
+            // yang Admin lihat - bukan seluruh 1.284 akun.
+            { format: satuFormat, role: tab, cari: filter.cari, status: filter.status },
+            { onFinish: () => setProses(false) },
+        );
+
+        padaTutup();
+    };
+
+    return (
+        <Modal judul="Ekspor daftar pengguna" terbuka={terbuka} padaTutup={padaTutup}>
+            <div className="space-y-3 text-sm">
+                <p className="text-ink-2">
+                    Yang diekspor adalah tab <strong className="text-ink">{LABEL_TAB[tab]}</strong>{' '}
+                    dengan penyaring yang sedang aktif
+                    {filter.cari ? (
+                        <>
+                            {' '}
+                            &mdash; kata kunci <span className="font-mono">{filter.cari}</span>
+                        </>
+                    ) : null}
+                    {filter.status ? (
+                        <>
+                            {' '}
+                            &mdash; status{' '}
+                            <span className="font-mono">
+                                {filter.status === '1' ? 'aktif' : 'nonaktif'}
+                            </span>
+                        </>
+                    ) : null}
+                    .
+                </p>
+
+                <p className="text-[11px] text-ink-3">
+                    Berkasnya disiapkan di latar belakang. Unduh dari daftar Ekspor terakhir
+                    begitu statusnya siap &mdash; berkasnya bisa langsung diunggah kembali
+                    lewat Impor setelah diperbaiki di Excel.
+                </p>
+
+                <div className="flex gap-2 pt-1">
+                    {format.map((satu) => (
+                        <Tombol
+                            key={satu}
+                            nada={satu === 'xlsx' ? 'pri' : undefined}
+                            disabled={proses}
+                            onClick={() => minta(satu)}
+                        >
+                            {satu.toUpperCase()}
+                        </Tombol>
+                    ))}
+                    <Tombol onClick={padaTutup}>Batal</Tombol>
+                </div>
+            </div>
+        </Modal>
+    );
+}
+
+/**
+ * Riwayat ekspor - lima terakhir, di bawah tabel.
+ *
+ * Menyalin blok "Ekspor terakhir" di `Laporan.tsx`, dengan satu aturan yang
+ * sama: tautan unduhnya HANYA muncul saat statusnya `selesai`. Tautan yang
+ * berakhir 404 pada ekspor yang masih menunggu membuat Admin menyimpulkan
+ * berkasnya hilang, padahal ia hanya belum jadi.
+ */
+function RiwayatEkspor({ ekspor }: { ekspor: Ekspor[] }) {
+    return (
+        <section className="mt-4 rounded-wf border border-line bg-surface">
+            <header className="border-b border-line px-4 py-2.5">
+                <h2 className="font-display text-sm font-semibold text-ink">
+                    Ekspor terakhir
+                </h2>
+            </header>
+
+            <div className="divide-y divide-line/60">
+                {ekspor.map((e) => (
+                    <div
+                        key={e.id}
+                        className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-xs"
+                    >
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-ink">
+                                {e.peran ? (LABEL_TAB[e.peran] ?? e.peran) : 'Semua peran'}
+                                <span className="ml-1 font-mono text-[11px] text-ink-3">
+                                    .{e.format.toLowerCase()}
+                                </span>
+                            </p>
+                            <p className="mt-0.5 truncate text-[11px] text-ink-3">
+                                {[
+                                    e.peminta && `oleh ${e.peminta}`,
+                                    e.diminta_pada,
+                                    e.total_baris !== null && `${e.total_baris} baris`,
+                                    e.ukuran !== null && formatUkuran(e.ukuran),
+                                ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                            </p>
+                            {e.pesan_gagal && (
+                                <p className="mt-1 line-clamp-2 text-[11px] text-bad">
+                                    {e.pesan_gagal}
+                                </p>
+                            )}
+                        </div>
+
+                        <Chip nada={nadaChip(e.status_nada)}>{e.status_label}</Chip>
+
+                        {e.status === 'selesai' ? (
+                            <a
+                                href={`/admin/pengguna/ekspor/${e.id}/unduh`}
+                                className="rounded-wf border border-line px-2.5 py-1 text-[11px] font-medium text-accent hover:bg-surface-2"
+                            >
+                                Unduh
+                            </a>
+                        ) : (
+                            // Lebar tetap supaya status dan tautan sejajar di
+                            // seluruh baris: tanpa itu, baris yang belum
+                            // selesai membuat chip-nya bergeser ke kanan, dan
+                            // daftarnya terlihat berantakan justru saat sedang
+                            // ada pekerjaan berjalan.
+                            <span className="w-[3.5rem]" />
+                        )}
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+/** Nada chip dari server, disempitkan ke yang dikenal `Chip`. */
+function nadaChip(nada: string): 'ok' | 'warn' | 'bad' | 'info' | 'mute' {
+    switch (nada) {
+        case 'ok':
+        case 'warn':
+        case 'bad':
+        case 'info':
+            return nada;
+        default:
+            return 'mute';
+    }
 }
 
 /**

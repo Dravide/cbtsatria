@@ -2,8 +2,10 @@
 
 namespace App\Domain\Academic\Services;
 
+use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\ClassEnrollment;
 use App\Domain\Academic\Models\SchoolClass;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -173,9 +175,54 @@ class PenempatanKelas
     }
 
     /**
+     * Kelas siswa pada tahun ajaran berjalan, bila ada.
+     *
+     * =====================================================================
+     * Mengapa lewat service ini, bukan kueri di controller
+     * =====================================================================
+     * Dua alasan, dan keduanya sudah ditulis di docblock kelas ini: skema
+     * TIDAK menjaga "satu keanggotaan aktif per siswa per tahun ajaran"
+     * (`class_enrollments` hanya `unique(school_id, class_id, student_id)`),
+     * jadi kueri ad-hoc adalah tempat kedua yang menebak baris mana yang
+     * "aktif" - dan dua tempat menebak aturan yang sama akan berbeda diam-diam.
+     *
+     * =====================================================================
+     * Pembacaan, bukan penulisan
+     * =====================================================================
+     * Method ini tidak mengubah apa pun. Ia dipakai laman Akun siswa, yang
+     * TIDAK terikat event: rantai yang dipakai `JadwalSiswaController` dan
+     * `NilaiSiswaController` (`pesertaEvent?->kelas`) berbunyi kosong bagi
+     * siswa yang belum ditempatkan di ujian mana pun - keadaan yang sah dan
+     * justru paling sering terjadi.
+     *
+     * "Tahun berjalan" memakai rumus yang sudah ada di repo
+     * (`MasterImportController::tahunDipilih()`): yang aktif, jika tidak yang
+     * `start_date`-nya terbaru. Tanpa fallback itu, sekolah yang lupa
+     * mengaktifkan tahun ajaran baru akan menampilkan kelas tahun lalu.
+     */
+    public function kelasSekarang(int $studentId): ?SchoolClass
+    {
+        $tahun = AcademicYear::query()->where('is_active', true)->first()
+            ?? AcademicYear::query()->orderByDesc('start_date')->first();
+
+        if ($tahun === null) {
+            return null;
+        }
+
+        return ClassEnrollment::query()
+            ->with('kelas')
+            ->where('student_id', $studentId)
+            ->where('academic_year_id', $tahun->id)
+            ->where('status', 'aktif')
+            ->orderByDesc('enrollment_date')
+            ->first()
+            ?->kelas;
+    }
+
+    /**
      * Keanggotaan aktif siswa pada satu tahun ajaran.
      *
-     * @return \Illuminate\Support\Collection<int, ClassEnrollment>
+     * @return Collection<int, ClassEnrollment>
      */
     private function keanggotaanAktif(int $studentId, int $tahunId)
     {

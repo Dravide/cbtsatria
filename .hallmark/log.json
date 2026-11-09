@@ -1,0 +1,33 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "app",
+  "shape": "app screen",
+  "theme": "wayfind",
+  "axes": "light/mono/cool",
+  "signature": "papan ujian, ujian yang paling mendesak diangkat ke pelat tinta",
+  "sections": [
+   "papan",
+   "pelat",
+   "sel",
+   "tombol",
+   "papan-kolom"
+  ],
+  "nav": "kept (kerangka ponsel, dalam material papan)",
+  "waived": [
+   "37"
+  ],
+  "dismissed": [
+   "40",
+   "41"
+  ],
+  "reworded": [
+   "— pilih — → belum dipilih",
+   "— → -"
+  ],
+  "entry": "http://localhost:8781/siswa",
+  "prompt": "the student console of a school computer-based-test app: the exam schedule, the result, the violations and the account",
+  "date": "2026-11-07"
+ }
+]

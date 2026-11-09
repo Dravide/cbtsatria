@@ -1,0 +1,350 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Wayfind (deal 2/3, seed student-exam-console-tests-27df) · redesign: full · copy: verbatim
+ * nav: kept (kerangka ponsel, dalam material papan) · signature: papan ujian, ujian yang paling mendesak diangkat ke pelat tinta · states: kosong, penuh · wayfind: platform
+ * axes: light/mono/cool · posture: committed · contrast: pass · v2.0.0 */
+/*
+|--------------------------------------------------------------------------
+| Objek konsol siswa - papan, pelat, sel, kendali
+|--------------------------------------------------------------------------
+| Berkas ini TIDAK memuat satu pun nilai warna atau nama huruf: semuanya
+| `var(--color-*)` dari tokens.css. Itu bukan kerapian - gate 48 melarang
+| literal di luar blok token, dan lebih penting lagi, satu warna yang
+| tertulis di sini akan lolos dari penggantian tema.
+|
+| Yang tinggal di sini adalah BENTUK material Wayfind:
+|
+|   .papan   kotak bergaris 2px          - satu-satunya kotak di konsol ini
+|   .papan-kepala  kepala papan          - satu baris label, bukan judul
+|   .papan-baris   satu baris papan      - 1px abu, bukan 2px tinta
+|   .papan-kolom   kepala kolom          - huruf badan satu tingkat kecil
+|   .pelat   bidang tinta 2px            - satu perintah dan angkanya
+|   .sel     sel bertumpuk garis         - tabbar dan penyaring
+|   .tombol  kendali 40px                - sasaran ketuk 44px
+|
+| Wayfind berkata "kedalaman adalah garis": tidak ada bayangan, tidak ada
+| sudut membulat, tidak ada kartu di dalam kartu.
+|
+| ---------------------------------------------------------------------
+| Tiga aturan di bawah menegakkan yang tiga itu, dan ketiganya menimpa
+| utility Tailwind yang tertulis di dalam komponen BERSAMA - `Chip`,
+| `Kotak`, `Modal` - yang dipakai empat peran lain.
+| ---------------------------------------------------------------------
+| Menyunting komponennya satu per satu berarti konsol Pengawas dan konsol
+| Admin ikut berubah, dan itu di luar laporan ini. Yang ditimpa di sini
+| hanya berlaku di dalam `.konsol-siswa`, dan karena berkas ini tidak
+| memakai `@layer`, ia menang atas utility Tailwind tanpa perlu `!important`.
+*/
+
+/*
+ * Wayfind melarang sudut membulat, dan `rounded-full` di Tailwind 4 bukan
+ * token - nilainya `calc(infinity * 1px)`, ditulis di dalam utility-nya
+ * sendiri - sehingga `--radius-wf: 0` tidak menyentuhnya. Lencana dan chip
+ * di konsol ini karena itu diluruskan di sini.
+ */
+.konsol-siswa .rounded-full {
+    border-radius: 0;
+}
+
+/* Bayangan kotak juga bukan milik tema ini (Wayfind: kedalaman adalah garis) */
+.konsol-siswa {
+    --shadow-wf: none;
+    --shadow-kotak: none;
+}
+
+/* ---------------------------------------------------------- Objek papan */
+
+.konsol-siswa .papan {
+    border: var(--rule-bar) solid var(--color-line-2);
+    background-color: var(--color-surface);
+}
+
+.konsol-siswa .papan-kepala {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    border-bottom: var(--rule-hair) solid var(--color-line);
+    background-color: var(--color-surface-2);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--color-ink-2);
+}
+
+.konsol-siswa .papan-baris {
+    border-bottom: var(--rule-hair) solid var(--color-line);
+}
+
+.konsol-siswa .papan-baris:last-child {
+    border-bottom: 0;
+}
+
+/*
+ * Kepala kolom papan.
+ *
+ * Wayfind menulisnya "sentence case, untracked" dan gate 67 melarang yang
+ * sebaliknya pada ukuran 15px ke bawah. Kapital berjarak menaikkan tinggi
+ * baris kepala tanpa menambah satu informasi pun.
+ */
+.konsol-siswa .papan-kolom {
+    border-bottom: var(--rule-bar) solid var(--color-line-2);
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    color: var(--color-ink-2);
+}
+
+/*
+ * Pelat - bidang tinta di dalam garis 2px, memuat satu perintah dan angkanya,
+ * seperti papan memuat nomor peron.
+ *
+ * Amber HANYA hidup di sini. Di atas kertas, amber tidak terbaca (Wayfind,
+ * Do-nots), jadi `.angka` di luar pelat memakai tinta.
+ */
+.konsol-siswa .pelat {
+    border: var(--rule-bar) solid var(--color-line-2);
+    background-color: var(--color-plate);
+    color: var(--color-plate-ink);
+}
+
+/*
+ * Di DALAM pelat, garis penanda berarti garis TERANG.
+ *
+ * Lencana status dan garis pemisah di atas tinta memakai `--color-line-2`
+ * yang gelap, dan garis gelap di atas tinta adalah garis yang tidak ada.
+ * Nilainya diganti pada ANAK pelat, bukan pada pelatnya sendiri - garis luar
+ * pelat berdiri di atas kertas dan memang harus tetap gelap.
+ */
+.konsol-siswa .pelat > * {
+    --color-line-2: var(--color-plate-line);
+    --color-line: var(--color-plate-line);
+}
+
+.konsol-siswa .pelat .angka,
+.konsol-siswa .pelat .angka-amber {
+    color: var(--color-figure);
+}
+
+.konsol-siswa .angka {
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+}
+
+/* ------------------------------------------------------------- Kendali */
+
+/*
+ * Kendali 40px dengan sasaran ketuk 44px - rentang aplikasi, bukan rentang
+ * halaman pemasaran (flow.md § App screens).
+ *
+ * Sasaran ketuknya diperluas dengan pseudo-element, bukan dengan menumbuhkan
+ * kotaknya: kotak yang tumbuh 44px akan mendorong papan di sebelahnya turun,
+ * dan papan yang bergeser saat disentuh membuat orang salah tekan.
+ */
+.konsol-siswa .tombol {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    min-height: 2.5rem;
+    border: var(--rule-bar) solid var(--color-line-2);
+    border-radius: 0;
+    background-color: var(--color-surface);
+    padding: 0 var(--space-sm);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-ink);
+    transition:
+        background-color var(--dur-micro) steps(1),
+        color var(--dur-micro) steps(1);
+}
+
+.konsol-siswa .tombol::after {
+    content: '';
+    position: absolute;
+    inset: -2px 0;
+}
+
+.konsol-siswa .tombol:hover {
+    background-color: var(--color-surface-2);
+}
+
+/*
+ * Keadaan ditekan: papan berhenti mendadak, jadi tidak ada pegas dan tidak
+ * ada pergeseran. Warnanya berbalik - itu tanda tekan yang sama yang dipakai
+ * papan sungguhan.
+ */
+.konsol-siswa .tombol:active {
+    background-color: var(--color-ink);
+    color: var(--color-plate-ink);
+}
+
+.konsol-siswa .tombol--pri {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+    font-weight: 800;
+}
+
+.konsol-siswa .tombol--pri:hover {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+}
+
+.konsol-siswa .tombol--pri:active {
+    border-color: var(--color-line-2);
+    background-color: var(--color-ink);
+    color: var(--color-plate-ink);
+}
+
+/*
+ * Tiga saluran mati sekaligus - opasitas, kursor, dan atribut aslinya
+ * (lantai 39a). Satu saluran saja membuat tombol yang mati terlihat bisa
+ * ditekan di perangkat yang tidak menghormati salah satunya.
+ */
+.konsol-siswa .tombol:disabled,
+.konsol-siswa .tombol[aria-disabled='true'] {
+    cursor: not-allowed;
+    border-color: var(--color-line);
+    background-color: var(--color-surface-2);
+    color: var(--color-ink-3);
+}
+
+.konsol-siswa .tombol:disabled::after,
+.konsol-siswa .tombol[aria-disabled='true']::after {
+    content: none;
+}
+
+/* -------------------------------------------------------------- Isian */
+
+/*
+ * Bidang isian bergaris 2px `--color-line-2`, bukan 1px `--color-line`.
+ *
+ * Itu keputusan kontras, bukan selera: garis 1px abu di atas kertas terang
+ * hanya 1,23:1 terhadap sekitarnya (terukur, lantai 40), dan bidang yang
+ * tepinya tidak terlihat adalah bidang yang tidak ditemukan. Wayfind memang
+ * sudah menuntut 2px pada setiap permukaan.
+ */
+.konsol-siswa :is(input, select, textarea) {
+    min-height: 2.5rem;
+    border: var(--rule-bar) solid var(--color-line-2);
+    border-radius: 0;
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+}
+
+.konsol-siswa input::placeholder,
+.konsol-siswa textarea::placeholder {
+    color: var(--color-ink-3);
+}
+
+.konsol-siswa :is(input, select, textarea):disabled {
+    cursor: not-allowed;
+    background-color: var(--color-surface-2);
+    color: var(--color-ink-3);
+}
+
+/* ---------------------------------------------------------------- Sel */
+
+/*
+ * Satu set pilihan sebagai sel yang BERBAGI garis, bukan kotak terpisah yang
+ * mengambang: tabbar, penyaring event, dan deretan tombol dinegosiasi.
+ *
+ * Sel yang sedang hidup mengisi tinta dengan teks kertas - cara papan
+ * menandai peron yang sedang dipakai.
+ */
+.konsol-siswa .sel {
+    display: flex;
+    border: var(--rule-bar) solid var(--color-line-2);
+    background-color: var(--color-surface);
+}
+
+.konsol-siswa .sel > * {
+    flex: 1 1 0;
+    min-width: 0;
+    border-right: var(--rule-hair) solid var(--color-line);
+}
+
+.konsol-siswa .sel > *:last-child {
+    border-right: 0;
+}
+
+.konsol-siswa .sel-hidup {
+    background-color: var(--color-ink);
+    color: var(--color-plate-ink);
+    font-weight: 800;
+}
+
+/* ------------------------------------------------------------- Tabbar */
+
+/*
+ * Tabbar = papan kecil di kaki layar. Empat sel yang BERBAGI garis, dan sel
+ * yang sedang dibuka mengisi tinta.
+ *
+ * Sebelumnya yang menandai tab aktif hanyalah garis bawah 2px berwarna
+ * aksen setinggi 44px - pada ponsel yang dipegang sambil berjalan, satu
+ * garis tipis di tepi bawah adalah tanda yang paling mudah hilang. Di sini
+ * seluruh selnya berbalik warna.
+ *
+ * Tingginya 3rem, dan labelnya 11px - lantai REFLEX 75 untuk teks
+ * fungsional. Mono berukuran lebar, jadi 11px adalah ukuran terbesar yang
+ * masih memuat "Pelanggaran" pada satu baris di dalam 26rem dibagi empat.
+ */
+.konsol-siswa .tabbar {
+    border-top: var(--rule-bar) solid var(--color-line-2);
+    background-color: var(--color-surface);
+}
+
+.konsol-siswa .tabbar > * {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    border-right: var(--rule-hair) solid var(--color-line);
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--color-ink-2);
+    transition:
+        background-color var(--dur-micro) steps(1),
+        color var(--dur-micro) steps(1);
+}
+
+.konsol-siswa .tabbar > *:last-child {
+    border-right: 0;
+}
+
+/*
+ * Sel tabbar yang hidup menang atas warna dasar di atasnya.
+ *
+ * Bukan kerapian: `.tabbar > *` berbobot (0,2,1) sedangkan `.sel-hidup`
+ * berbobot (0,2,0), sehingga `color: --color-ink-2` di blok sebelumnya
+ * MENANG dan sel yang sedang dibuka tergambar sebagai tinta gelap di atas
+ * bidang tinta - terukur 1,37:1, lantai 40 dan 41 sekaligus. Aturan ini
+ * berbobot sama dengan `:not(.sel-hidup):hover` di bawah, jadi urutan
+ * berkaslah yang memutuskan.
+ */
+.konsol-siswa .tabbar > .sel-hidup {
+    background-color: var(--color-ink);
+    color: var(--color-plate-ink);
+    font-weight: 800;
+}
+
+.konsol-siswa .tabbar > *:not(.sel-hidup):hover {
+    background-color: var(--color-surface-2);
+    color: var(--color-ink);
+}
+
+.konsol-siswa .tabbar > *:active {
+    background-color: var(--color-surface-2);
+}
+
+/* --------------------------------------------------------------- Tautan */
+
+/*
+ * Satu ukuran untuk seluruh teks kecil yang berdiri sendiri - tautan kembali,
+ * kalimat bantuan di bawah pelat, catatan kaki papan. 11px adalah lantainya.
+ */
+.konsol-siswa .catatan {
+    font-size: var(--text-2xs);
+    line-height: 1.4;
+    color: var(--color-ink-2);
+}
+
