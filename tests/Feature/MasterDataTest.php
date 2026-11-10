@@ -871,6 +871,101 @@ it('menolak ruang ber-PC yang lebih banyak daripada kapasitasnya', function () {
         ->assertSessionHasErrors('device_count');
 });
 
+it('menyetel kapasitas banyak ruang sekaligus', function () {
+    // Yang dikerjakan Admin saat menyiapkan hari ujian adalah menyeragamkan -
+    // "tahun ini setiap ruang memuat 35 orang". Menyetelnya satu per satu
+    // berarti membuka dua puluh empat panel.
+    $a = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-01', 'capacity' => 32, 'device_count' => 32]);
+    $b = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-02', 'capacity' => 28, 'device_count' => 28]);
+    $c = Room::factory()->untukSekolah($this->sekolah)->byod()->create(['code' => 'R-03', 'capacity' => 20]);
+
+    $this->actingAs($this->admin)
+        ->put('/admin/ruang/kapasitas-massal', ['id' => [$a->id, $b->id, $c->id], 'capacity' => 35])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    expect($a->fresh()->capacity)->toBe(35)
+        ->and($b->fresh()->capacity)->toBe(35)
+        // Ruang BYOD ikut berubah kapasitasnya: ia tetap punya kursi meski
+        // perangkatnya milik siswa.
+        ->and($c->fresh()->capacity)->toBe(35)
+        // Dan BYOD-nya tetap BYOD - angka 0 tidak pernah melebihi kapasitas.
+        ->and($c->fresh()->device_count)->toBe(0);
+});
+
+it('menurunkan jumlah PC yang melebihi kapasitas baru, dan menyebutkannya', function () {
+    // `store()` dan `update()` MENOLAK PC yang melebihi kapasitas. Di sini
+    // penolakan itu tidak bisa dipakai: satu ruang yang bentrok akan
+    // membatalkan seluruh operasi, dan Admin memperbaikinya satu per satu -
+    // persis pekerjaan yang hendak dihilangkan panel ini.
+    //
+    // Karena itu PC-nya ikut turun, TETAPI kodenya disebut dalam pesan. Admin
+    // yang tidak menyangka ada ruang ber-PC 40 harus tahu apa yang berubah,
+    // bukan menemukannya di pemeriksaan kesiapan besok pagi.
+    $a = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-01', 'capacity' => 40, 'device_count' => 40]);
+    $b = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-02', 'capacity' => 40, 'device_count' => 30]);
+
+    $this->actingAs($this->admin)
+        ->put('/admin/ruang/kapasitas-massal', ['id' => [$a->id, $b->id], 'capacity' => 30])
+        ->assertSessionHas('sukses', fn (string $p) => str_contains($p, 'R-01')
+            && str_contains($p, 'PC')
+            && ! str_contains($p, 'R-02'));
+
+    expect($a->fresh()->device_count)->toBe(30)
+        // R-02 sudah muat - PC-nya tidak disentuh, sehingga pesannya tidak
+        // menyebutnya. Pesan yang menyebut seluruh ruang terpilih akan
+        // membuat Admin memeriksa dua puluh ruang yang tidak berubah.
+        ->and($b->fresh()->device_count)->toBe(30)
+        ->and($a->fresh()->capacity)->toBe(30);
+});
+
+it('tidak mengubah ruang yang kapasitasnya sudah sama', function () {
+    // Yang dilaporkan sebagai "tidak berubah" adalah informasi, bukan
+    // kegagalan: Admin yang mengubah dua belas ruang perlu tahu bahwa tiga di
+    // antaranya memang sudah 35 - kalau tidak, ia akan menekan tombolnya lagi
+    // mengira yang pertama tidak jalan.
+    $a = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-01', 'capacity' => 35, 'device_count' => 35]);
+    $b = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-02', 'capacity' => 32, 'device_count' => 32]);
+
+    $this->actingAs($this->admin)
+        ->put('/admin/ruang/kapasitas-massal', ['id' => [$a->id, $b->id], 'capacity' => 35])
+        ->assertSessionHas('sukses', fn (string $p) => str_contains($p, '1 ruang disetel')
+            && str_contains($p, '1 ruang sudah berkapasitas'));
+
+    // R-01 memang tidak disentuh - bukan disetel ke angka yang kebetulan sama.
+    // Bedanya terlihat pada PC-nya: R-01 sudah 35 dan tetap 35, sedangkan
+    // R-02 yang berubah ikut membawa PC-nya apa adanya.
+    expect($a->fresh()->capacity)->toBe(35)
+        ->and($a->fresh()->device_count)->toBe(35)
+        ->and($b->fresh()->capacity)->toBe(35)
+        ->and($b->fresh()->device_count)->toBe(32);
+});
+
+it('menolak menyetel kapasitas ruang sekolah lain', function () {
+    // Id dari sekolah lain tersaring SchoolScope, sehingga yang tersisa
+    // hanyalah "tidak ada ruang yang bisa diubah" - bukan perubahan yang
+    // diam-diam tidak terjadi.
+    $lain = Room::factory()->untukSekolah($this->lain)->create(['code' => 'R-99', 'capacity' => 32]);
+
+    $this->actingAs($this->admin)
+        ->put('/admin/ruang/kapasitas-massal', ['id' => [$lain->id], 'capacity' => 40])
+        ->assertRedirect()
+        ->assertSessionHas('galat');
+
+    expect($lain->fresh()->capacity)->toBe(32);
+});
+
+it('menolak guru menyetel kapasitas massal', function () {
+    $guru = User::factory()->guru()->untukSekolah($this->sekolah)->create();
+    $ruang = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-01', 'capacity' => 32]);
+
+    $this->actingAs($guru)
+        ->put('/admin/ruang/kapasitas-massal', ['id' => [$ruang->id], 'capacity' => 40])
+        ->assertForbidden();
+
+    expect($ruang->fresh()->capacity)->toBe(32);
+});
+
 it('menolak guru menambah master data meski route-nya ada', function () {
     // Route tidak punya middleware peran - Policy yang memutuskan. Guru boleh
     // MELIHAT kelas dan mapel (itulah batas bank soalnya di Fase 4), tetapi

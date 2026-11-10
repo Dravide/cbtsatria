@@ -9,6 +9,7 @@ import {
     EditorSoal,
     OpsiBuilder,
     RubrikBuilder,
+    RumpangBuilder,
     UrutanBuilder,
 } from '@/Components/BuilderSoal';
 import { Chip, Field, Inbox, Kotak, Modal, Peringatan, Tombol, kelasInput } from '@/Components/ui';
@@ -18,19 +19,19 @@ import { MediaButir, MediaSoal } from '@/Components/MediaSoal';
  * Laman Guru 03 - builder soal. Wireframe-peran.html plate 03.
  *
  * =====================================================================
- * Sembilan jenis sebagai TAB, bukan menu turun
+ * Sepuluh jenis sebagai TAB, bukan menu turun
  * =====================================================================
  * Alasan wireframe `:434` dikutip apa adanya karena ia yang menentukan
  * bentuk laman ini: Guru harus melihat seluruh jenis yang tersedia sekaligus,
  * karena pilihan itulah yang menentukan bentuk form di bawahnya. Menu turun
- * menyembunyikan delapan dari sembilan, sehingga Guru yang mencari "soal yang
+ * menyembunyikan sembilan dari sepuluh, sehingga Guru yang mencari "soal yang
  * jawabannya diurutkan" harus membuka menu itu lebih dulu untuk tahu bahwa
  * jenisnya ada.
  *
  * =====================================================================
- * SATU state untuk sembilan bentuk, bukan sembilan form terpisah
+ * SATU state untuk sepuluh bentuk, bukan sepuluh form terpisah
  * =====================================================================
- * Godaannya adalah sembilan komponen form yang masing-masing mengurus
+ * Godaannya adalah sepuluh komponen form yang masing-masing mengurus
  * payloadnya. Yang membuat itu salah: berpindah tab TIDAK boleh menghapus
  * apa yang sudah ditulis. Guru yang menulis teks soal di tab Pilihan ganda,
  * lalu menyadari jawabannya seharusnya diurutkan, harus menemukan teksnya
@@ -179,6 +180,13 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
         ((kunciAwal.teks as string[] | undefined) ?? ['']).length
             ? ((kunciAwal.teks as string[]) ?? [])
             : [''],
+    );
+    // Satu baris = satu lubang, satu baris berisi varian jawaban lubang itu.
+    // Daftar, BUKAN objek berkunci nomor: lihat SkemaJenisSoal::rumpang.
+    const [rumpang, setRumpang] = useState<string[][]>(
+        Array.isArray(kunciAwal.rumpang)
+            ? (kunciAwal.rumpang as string[][]).map((v) => (v.length ? v : ['']))
+            : [['']],
     );
     const [nilai, setNilai] = useState(String(kunciAwal.nilai ?? ''));
     const [toleransi, setToleransi] = useState(String(kunciAwal.toleransi ?? '0'));
@@ -384,6 +392,7 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
         answer_key_json:
             | { opsi: string[] }
             | { teks: string[] }
+            | { rumpang: string[][] }
             | { pasangan: Record<string, string> }
             | { urutan: string[] }
             | { nilai: number | null; toleransi: number; satuan?: string }
@@ -441,6 +450,14 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                 return { opsi: kunciOpsi };
             case 'isian_singkat':
                 return { teks: varian.filter((v) => v.trim() !== '') };
+            case 'isian_rumpang':
+                // Varian kosong dibuang per lubang; lubang yang seluruhnya
+                // kosong tetap dikirim kosong supaya server bisa menyebut
+                // NOMORNYA. Membuangnya di sini akan menggeser penomoran dan
+                // membuat galatnya menunjuk lubang yang salah.
+                return {
+                    rumpang: rumpang.map((v) => v.map((x) => x.trim()).filter((x) => x !== '')),
+                };
             case 'menjodohkan':
                 return { pasangan };
             case 'mengurutkan':
@@ -531,9 +548,33 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
             form.post('/guru/bank-soal', sesudah);
             return;
         }
-        form.put(`/guru/bank-soal/${soal.id}`, sesudah);    };
+        form.put(`/guru/bank-soal/${soal.id}`, sesudah);
+    };
 
     const galat = (k: string) => (form.errors as Record<string, string>)[k];
+
+    /**
+     * Galat pertama yang kuncinya BERAWALAN dengan `awalan`.
+     *
+     * Galat datang dari dua tempat dan tidak selalu menunjuk field teratas -
+     * `prompt_json` dari SkemaJenisSoal untuk soal rumpang, `opsi.0...` untuk
+     * satu baris pilihan - sementara kotak yang menampilkannya cuma satu.
+     * Tanpa pencarian berawalan, Guru melihat "Soal belum tersimpan" di atas
+     * form dan tidak menemukan satu pun tanda merah di mana pun.
+     */
+    const galatAwalan = (...awalan: string[]): string | undefined => {
+        const e = form.errors as Record<string, string>;
+
+        for (const a of awalan) {
+            const kunci = Object.keys(e).find((k) => k === a || k.startsWith(a + '.'));
+
+            if (kunci !== undefined) {
+                return e[kunci];
+            }
+        }
+
+        return undefined;
+    };
 
     /**
      * Galat validasi satu pilihan jawaban.
@@ -793,6 +834,17 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                             ))}
                         </div>
                     </Kotak>
+                )}
+
+                {tab === 'isian_rumpang' && (
+                    <RumpangBuilder
+                        teks={prompt}
+                        rumpang={rumpang}
+                        padaUbah={setRumpang}
+                        padaTeks={setPrompt}
+                        galat={galatAwalan('answer_key_json', 'prompt_json')}
+                        bolehUbah={bolehUbah}
+                    />
                 )}
 
                 {tab === 'menjodohkan' && (

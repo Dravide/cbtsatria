@@ -337,6 +337,13 @@ class KerjakanSiswaController extends SiswaDasar
             'layar_penuh' => ['nullable', 'boolean'],
             'pelindung' => ['nullable', 'boolean'],
             'device_type' => ['nullable', 'string', 'max:32'],
+            // Nomor soal yang sedang dilihat anak - nomor YANG DILIHAT, bukan
+            // `exam_questions.position`. Keduanya berbeda begitu urutan soal
+            // dikocok, dan yang dipakai pengawas di ruang ujian adalah nomor
+            // di layar anak. Batas atasnya ada supaya satu laporan keliru
+            // tidak mengisi kolom monitoring dengan angka yang tak berarti;
+            // jumlah soal satu ujian tidak pernah melewatinya.
+            'nomor' => ['nullable', 'integer', 'min:1', 'max:1000'],
         ]);
 
         // Progres ikut dihitung di sini, bukan dikirim peramban: angka yang

@@ -5,12 +5,18 @@ namespace App\Domain\Event\Http\Controllers;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Event\Models\EventCommitteeMember;
 use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Event\Services\EksporPanitia;
+use App\Domain\Event\Services\KartuPengawas;
 use App\Domain\Event\Services\PenerbitKodePengawas;
 use App\Domain\Facility\Models\Room;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
+use App\Domain\Tenancy\Models\School;
+use App\Support\Cetak\KopSekolah;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -48,11 +54,7 @@ class EventCommitteeController
     {
         Gate::authorize('view', $event);
 
-        $panitia = $event->committee()
-            ->with(['rooms:id,code,name', 'user:id,name,username'])
-            ->orderByRaw("FIELD(position, 'ketua', 'koordinator', 'pengawas', 'anggota')")
-            ->orderBy('name')
-            ->get();
+        $panitia = $this->panitia($event);
 
         return Inertia::render('Admin/Event/Panitia', [
             'event' => $this->ringkas($event),
@@ -108,6 +110,96 @@ class EventCommitteeController
 
             'jabatan' => self::JABATAN,
         ]);
+    }
+
+    /* -------------------------------------------- Ekspor & kartu cetak */
+
+    /**
+     * Unduh daftar panitia sebagai XLSX - PRD §6.6.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa berkasnya dibuat di dalam permintaan, bukan lewat antrean
+     * ---------------------------------------------------------------------
+     * Satu event punya puluhan panitia, bukan ribuan seperti ekspor pengguna
+     * - lihat catatan yang sama di `EksporPanitia`. Seluruh barisnya sudah
+     * dibaca `index()`, jadi berkasnya selesai sebelum jawabannya sempat
+     * disusun; menaruhnya di antrean berarti Admin menunggu worker untuk
+     * pekerjaan yang lebih cepat daripada membuka halaman ini.
+     */
+    public function ekspor(SchoolEvent $event, EksporPanitia $ekspor): HttpResponse
+    {
+        Gate::authorize('view', $event);
+
+        $isi = $ekspor->buat($event, $this->panitia($event));
+
+        // Dikirim sebagai respons langsung, bukan lewat disk privat: berkasnya
+        // kecil, hanya ada selama beberapa milidetik, dan tidak ada gunanya
+        // disimpan. Tautan unduh yang mati karena berkasnya dipangkas adalah
+        // kegagalan yang tidak perlu diciptakan untuk berkas sebesar ini.
+        return response($isi, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'.$ekspor->namaBerkas($event).'"',
+        ]);
+    }
+
+    /**
+     * Cetak kartu panitia dan pengawas sebagai PDF.
+     *
+     * ---------------------------------------------------------------------
+     * Yang keluar dari sini memuat KODE, dan itu disebut di log
+     * ---------------------------------------------------------------------
+     * Kartu ini memuat kode pintu setiap pengawas dalam satu berkas. Berkasnya
+     * memang untuk dicetak dan dibagikan - tetapi "dicetak lalu dibagikan" dan
+     * "diunduh diam-diam" terlihat sama dari sisi basis data, dan hanya yang
+     * pertama yang diinginkan. Karena itu pengunduhannya DICATAT, sama seperti
+     * penerbitan kodenya: pertanyaan "kartu ini dari mana" punya jawaban.
+     */
+    public function kartu(
+        SchoolEvent $event,
+        KartuPengawas $kartu,
+        ActivityLogger $logger,
+    ): HttpResponse {
+        Gate::authorize('view', $event);
+
+        // Dimuat sekali, dipakai dua kali. Memanggil `panitia()` lagi untuk
+        // menghitung barisnya berarti kueri kedua terhadap daftar yang sama -
+        // dan yang dilaporkan ke log bisa berbeda dari yang tercetak bila ada
+        // yang menambah panitia di antara keduanya.
+        $panitia = $this->panitia($event);
+
+        $pdf = $kartu->buat(
+            $event,
+            $panitia,
+            KopSekolah::dari(School::query()->find($event->school_id)),
+        );
+
+        $logger->log('Mencetak kartu panitia', $event, [
+            'jumlah' => $panitia->count(),
+        ]);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$kartu->namaBerkas($event).'"',
+        ]);
+    }
+
+    /**
+     * Panitia satu event, urut seperti tabelnya.
+     *
+     * Dipakai `index()`, `ekspor()`, dan `kartu()` - dan itulah alasannya
+     * berdiri sendiri. Berkas Excel dan kartu cetak yang urutannya berbeda
+     * dari layar membuat Admin membandingkan tiga daftar yang seharusnya
+     * satu.
+     *
+     * @return Collection<int, EventCommitteeMember>
+     */
+    private function panitia(SchoolEvent $event)
+    {
+        return $event->committee()
+            ->with(['rooms:id,code,name', 'user:id,name,username'])
+            ->orderByRaw("FIELD(position, 'ketua', 'koordinator', 'pengawas', 'anggota')")
+            ->orderBy('name')
+            ->get();
     }
 
     public function store(Request $request, SchoolEvent $event, ActivityLogger $logger): RedirectResponse
@@ -383,19 +475,126 @@ class EventCommitteeController
     }
 
     /**
+     * Terbitkan kode untuk SELURUH pengawas event ini yang belum punya.
+     *
+     * ---------------------------------------------------------------------
+     * Memanggil `terbitkan()`, bukan `putar()` - dan itu seluruh desainnya
+     * ---------------------------------------------------------------------
+     * Menerbitkan kode satu per satu untuk 31 pengawas adalah 31 kali membuka
+     * panel dan 31 kali menekan tombol, dan itulah satu-satunya alasan method
+     * ini ada. Yang TIDAK boleh ia lakukan adalah mengganti kode yang sudah
+     * terbit: kartu panitia yang sudah dicetak dan dibagikan akan mati
+     * serentak, dan Admin yang menekan tombol "terbitkan semua" pada pagi
+     * hari ujian justru menghancurkan seluruh kartu yang sudah di tangannya.
+     *
+     * Karena itu kode yang sudah ada DILEWATI, dan hasilnya dilaporkan sebagai
+     * "sudah punya kode" - bukan sebagai kegagalan. Baris yang belum memenuhi
+     * syarat (belum berakun, bukan pengawas, nonaktif) disebut satu per satu
+     * dengan sebabnya, sama seperti tambah massal: yang dilewati diam-diam
+     * akan membuat Admin menekan tombolnya lagi, dan itu tidak mengubah apa
+     * pun.
+     */
+    public function terbitkanKodeMassal(
+        SchoolEvent $event,
+        PenerbitKodePengawas $penerbit,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $jumlah = 0;
+        $sudah = 0;
+        $dilewati = [];
+
+        foreach ($this->panitia($event) as $panitia) {
+            if (! $penerbit->berlakuUntuk($panitia)) {
+                $hambatan = $this->hambatanKode($panitia);
+
+                $dilewati[] = "{$panitia->name} ({$hambatan['sebab']})";
+
+                continue;
+            }
+
+            if ($panitia->code !== null) {
+                $sudah++;
+
+                continue;
+            }
+
+            $penerbit->terbitkan($panitia);
+
+            $jumlah++;
+        }
+
+        $logger->log('Menerbitkan kode pengawas secara massal', $event, [
+            'diterbitkan' => $jumlah,
+            'sudah_punya' => $sudah,
+            'dilewati' => count($dilewati),
+        ]);
+
+        if ($jumlah === 0 && $dilewati === []) {
+            return back()->with('sukses', 'Semua pengawas sudah punya kode. Tidak ada yang diterbitkan.');
+        }
+
+        if ($jumlah === 0) {
+            return back()->with('galat', 'Tidak ada kode yang diterbitkan. '.implode('; ', $dilewati));
+        }
+
+        $pesan = "{$jumlah} kode pengawas diterbitkan.";
+
+        if ($sudah > 0) {
+            $pesan .= " {$sudah} sudah punya kode - tidak diubah, kartunya tetap berlaku.";
+        }
+
+        if ($dilewati !== []) {
+            $pesan .= ' Dilewati: '.implode('; ', $dilewati).'.';
+        }
+
+        return back()->with('sukses', $pesan);
+    }
+
+    /**
+     * Mengapa baris ini belum boleh punya kode - sebab dan saran, terpisah.
+     *
+     * Dipecah menjadi dua bagian karena ada dua pembacanya. Panel satu baris
+     * menyusun satu kalimat penuh dengan saran yang bisa langsung dikerjakan;
+     * pesan massal hanya butuh SEBABNYA, karena 31 baris yang masing-masing
+     * membawa paragraf saran adalah pesan yang tidak terbaca siapa pun.
+     *
+     * Syaratnya sendiri tetap satu tempat: `bolehPunyaKode()` memutuskan, dan
+     * method ini hanya menerangkan keputusan itu - bukan mengulangnya.
+     *
+     * @return array{sebab: string, saran: string}
+     */
+    private function hambatanKode(EventCommitteeMember $panitia): array
+    {
+        if ($panitia->user_id === null) {
+            return [
+                'sebab' => 'belum punya akun',
+                'saran' => 'Tautkan akun Guru atau Pengawas lebih dulu - tanpa akun, ia tidak bisa ditugaskan ke ruang mana pun, sehingga kodenya tidak akan punya pintu.',
+            ];
+        }
+
+        if (! str_contains(mb_strtolower($panitia->position), 'pengawas')) {
+            return [
+                'sebab' => "berjabatan {$panitia->position}, bukan pengawas",
+                'saran' => 'Kode pintu ruang hanya untuk pengawas.',
+            ];
+        }
+
+        return [
+            'sebab' => "berstatus {$panitia->status}",
+            'saran' => 'Aktifkan kembali sebelum menerbitkan kodenya.',
+        ];
+    }
+
+    /**
      * Mengapa baris ini belum boleh punya kode - dinyatakan sebagai kalimat.
      */
     private function alasanTanpaKode(EventCommitteeMember $panitia): string
     {
-        if ($panitia->user_id === null) {
-            return "{$panitia->name} belum punya akun. Tautkan akun Guru atau Pengawas lebih dulu - tanpa akun, ia tidak bisa ditugaskan ke ruang mana pun, sehingga kodenya tidak akan punya pintu.";
-        }
+        $hambatan = $this->hambatanKode($panitia);
 
-        if (! str_contains(mb_strtolower($panitia->position), 'pengawas')) {
-            return "{$panitia->name} berjabatan {$panitia->position}, bukan pengawas. Kode pintu ruang hanya untuk pengawas.";
-        }
-
-        return "{$panitia->name} berstatus {$panitia->status}. Aktifkan kembali sebelum menerbitkan kodenya.";
+        return "{$panitia->name} {$hambatan['sebab']}. {$hambatan['saran']}";
     }
 
     public function update(

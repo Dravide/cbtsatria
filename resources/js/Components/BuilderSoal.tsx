@@ -578,8 +578,237 @@ export function UrutanBuilder({
     );
 }
 
-/* ================================================================ Rubrik */
+/* ============================================================== Rumpang */
 
+/**
+ * Nomor penanda `{{n}}` di dalam teks soal, sesuai urutan kemunculannya.
+ *
+ * Cermin `SkemaJenisSoal::penandaRumpang()`: yang dihitung di layar dan yang
+ * dihitung di server harus sama, karena selisihnya adalah galat yang baru
+ * muncul setelah menekan Simpan. Polanya menerima spasi di dalam kurung
+ * kurawal - guru mengetik `{{ 1 }}` lebih sering daripada yang diduga.
+ */
+function penandaRumpang(html: string): number[] {
+    const hasil: number[] = [];
+    const pola = /\{\{\s*(\d+)\s*\}\}/g;
+    let cocok: RegExpExecArray | null;
+
+    while ((cocok = pola.exec(html)) !== null) {
+        hasil.push(Number.parseInt(cocok[1], 10));
+    }
+
+    return hasil;
+}
+
+/**
+ * Penyunting kunci isian rumpang - satu baris per lubang.
+ *
+ * =====================================================================
+ * Jumlahnya tidak ditambah-tambah sendiri, melainkan MENGIKUTI teks
+ * =====================================================================
+ * Baris kunci disusun dari penanda yang benar-benar ada di teks soal, bukan
+ * dari tombol "tambah lubang". Kalau keduanya bisa bertambah sendiri-sendiri,
+ * keadaan yang paling sering terjadi adalah teks dengan empat penanda dan
+ * kunci berisi dua baris - dan itu ditolak saat simpan, setelah Guru
+ * mengetik seluruh jawabannya.
+ *
+ * Karena itu urutannya: tulis soalnya, sisipkan `{{n}}`, lalu isi kuncinya.
+ * Tombol "Selaraskan" menambah atau membuang baris tanpa menyentuh isi yang
+ * sudah ada, dan itu yang dipakai Guru yang menyunting soalnya belakangan.
+ *
+ * =====================================================================
+ * Penanda disisipkan dari SINI, bukan diketik di dalam editor
+ * =====================================================================
+ * `<input>` di dalam `contenteditable` akan rusak oleh perintah format
+ * toolbar, dan yang lebih buruk: ia bisa terhapus tanpa Guru sadar.
+ * Penyisipan lewat `padaTeks` menambahkan `{{n}}` di AKHIR teks - bentuk
+ * yang bisa disunting dan dipindahkan seperti teks biasa.
+ */
+export function RumpangBuilder({
+    teks,
+    rumpang,
+    padaUbah,
+    padaTeks,
+    galat,
+    bolehUbah = true,
+}: {
+    teks: string;
+    rumpang: string[][];
+    padaUbah: (rumpang: string[][]) => void;
+    padaTeks: (html: string) => void;
+    galat?: string;
+    bolehUbah?: boolean;
+}) {
+    const penanda = penandaRumpang(teks);
+    const jumlah = penanda.length;
+    // Baris yang DITAMPILKAN selalu sebanyak penandanya, atau sebanyak
+    // kuncinya - mana yang lebih banyak. Dengan begitu Guru melihat baris
+    // kosong tambahan (butuh kunci) DAN baris berisi yang tidak terpakai
+    // (kunci berlebih) alih-alih salah satunya hilang diam-diam.
+    const baris = Math.max(jumlah, rumpang.length);
+    const selaras = jumlah > 0 && jumlah === rumpang.length;
+
+    const ubahVarian = (lubang: number, varian: number, nilai: string) => {
+        const salinan = rumpang.map((v) => [...v]);
+
+        while (salinan.length <= lubang) {
+            salinan.push(['']);
+        }
+
+        salinan[lubang][varian] = nilai;
+        padaUbah(salinan);
+    };
+
+    const tambahVarian = (lubang: number) => {
+        const salinan = rumpang.map((v) => [...v]);
+
+        while (salinan.length <= lubang) {
+            salinan.push(['']);
+        }
+
+        salinan[lubang] = [...salinan[lubang], ''];
+        padaUbah(salinan);
+    };
+
+    const buangVarian = (lubang: number, varian: number) => {
+        const salinan = rumpang.map((v) => [...v]);
+
+        salinan[lubang] = salinan[lubang].filter((_, j) => j !== varian);
+        padaUbah(salinan);
+    };
+
+    /** Samakan jumlah baris dengan jumlah penanda, tanpa menyentuh isinya. */
+    const selaraskan = () => {
+        const salinan = rumpang.map((v) => [...v]);
+
+        while (salinan.length < jumlah) {
+            salinan.push(['']);
+        }
+
+        padaUbah(salinan.slice(0, jumlah));
+    };
+
+    /** Sisipkan penanda berikutnya di akhir teks soal. */
+    const sisipkan = () => {
+        const berikut = (jumlah > 0 ? Math.max(...penanda) : 0) + 1;
+        const pemisah = teks.trim() === '' ? '' : ' ';
+
+        padaTeks(`${teks}${pemisah}{{${berikut}}}`);
+    };
+
+    return (
+        <Kotak
+            judul="Kunci isian rumpang"
+            aksi={
+                <>
+                    <Chip nada={selaras ? 'info' : 'warn'}>
+                        {jumlah} rumpang · {rumpang.length} kunci
+                    </Chip>
+                    {bolehUbah && (
+                        <Tombol onClick={sisipkan} title="Sisipkan penanda berikutnya di akhir teks soal">
+                            Sisipkan {`{{${(jumlah > 0 ? Math.max(...penanda) : 0) + 1}}}`}
+                        </Tombol>
+                    )}
+                </>
+            }
+        >
+            <p className="mb-2 text-[11px] text-ink-3">
+                Sisipkan <code className="font-mono">{'{{1}}'}</code>,{' '}
+                <code className="font-mono">{'{{2}}'}</code>, dan seterusnya pada kata yang
+                dikosongkan di teks soal. Tulis setiap ejaan yang harus dianggap benar pada baris
+                lubangnya; pencocokan mengabaikan huruf besar/kecil dan spasi di tepi.
+            </p>
+
+            {galat && <p className="mb-2 text-[11px] text-bad">{galat}</p>}
+
+            {jumlah === 0 && (
+                <div className="mb-2 rounded-wf border border-warn bg-warn-bg px-3 py-2 text-[11px] text-ink">
+                    Teks soal belum punya penanda rumpang, jadi soal ini belum bisa disimpan.
+                    Tekan tombol di kanan atas untuk menyisipkan{' '}
+                    <code className="font-mono">{'{{1}}'}</code>, lalu pindahkan ke kata yang
+                    ingin dikosongkan.
+                </div>
+            )}
+
+            {jumlah > 0 && jumlah !== rumpang.length && bolehUbah && (
+                <div className="mb-2 flex flex-wrap items-center gap-2 rounded-wf border border-warn bg-warn-bg px-3 py-2 text-[11px] text-ink">
+                    <span>
+                        Teks soal memuat {jumlah} rumpang, tetapi kuncinya baru {rumpang.length}.
+                    </span>
+                    <Tombol onClick={selaraskan}>Selaraskan kunci</Tombol>
+                </div>
+            )}
+
+            <div className="space-y-2">
+                {Array.from({ length: baris }).map((_, lubang) => {
+                    const varianLubang = rumpang[lubang] ?? [''];
+                    const kosong = varianLubang.every((v) => v.trim() === '');
+                    const lebih = lubang >= jumlah;
+
+                    return (
+                        <div
+                            key={lubang}
+                            className={
+                                'rounded-wf border p-2 ' +
+                                (lebih || kosong ? 'border-bad bg-bad-bg/40' : 'border-line')
+                            }
+                        >
+                            <div className="mb-1.5 flex items-center gap-2">
+                                <span className="grid size-5 shrink-0 place-items-center rounded-wf border border-accent bg-accent-soft font-mono text-[10px] text-accent">
+                                    {lubang + 1}
+                                </span>
+                                <span className="font-mono text-[11px] text-ink-3">
+                                    {`{{${lubang + 1}}}`}
+                                </span>
+                                {lebih && (
+                                    <span className="text-[11px] text-bad">
+                                        tidak dipakai - teks soal tidak punya penanda ini
+                                    </span>
+                                )}
+                                {bolehUbah && (
+                                    <Tombol
+                                        nada="sek"
+                                        onClick={() => tambahVarian(lubang)}
+                                        title="Tambah ejaan lain yang juga dianggap benar"
+                                    >
+                                        + varian
+                                    </Tombol>
+                                )}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                {varianLubang.map((v, j) => (
+                                    <div key={j} className="flex gap-2">
+                                        <input
+                                            value={v}
+                                            onChange={(e) => ubahVarian(lubang, j, e.target.value)}
+                                            placeholder={
+                                                j === 0
+                                                    ? `Jawaban untuk rumpang ${lubang + 1}`
+                                                    : 'Ejaan lain yang juga benar'
+                                            }
+                                            disabled={!bolehUbah}
+                                            className={kelasInput}
+                                        />
+                                        <Tombol
+                                            nada="bahaya"
+                                            onClick={() => buangVarian(lubang, j)}
+                                            disabled={!bolehUbah || varianLubang.length <= 1}
+                                        >
+                                            Buang
+                                        </Tombol>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </Kotak>
+    );
+}
+
+/* ================================================================ Rubrik */
 export type BarisRubrik = { criterion: string; description: string; max_score: string };
 
 export function RubrikBuilder({

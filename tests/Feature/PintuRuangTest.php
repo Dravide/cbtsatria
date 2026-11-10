@@ -3,7 +3,9 @@
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\Semester;
 use App\Domain\Attendance\Services\KonteksRuang;
+use App\Domain\Facility\Models\Room;
 use App\Domain\Facility\Models\RoomEntryLink;
+use App\Domain\Facility\Services\KartuPintu;
 use App\Domain\Facility\Services\RoomEntryLinkService;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\School;
@@ -291,4 +293,128 @@ it('menolak tautan ruang milik sekolah lain lewat pintu sekolah ini', function (
     $this->get("/p/{$tautanSini->slug}")
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('Pengawas/Pintu'));
+});
+
+/* ------------------------------------------- Kartu pintu cetak (plate 09) */
+
+it('menerbitkan tautan tanpa tanggal berakhir, dan ia hidup sampai dicabut', function () {
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
+
+    $ruang = ruangMaster($data['ruang'][0]);
+    $layanan = app(RoomEntryLinkService::class);
+
+    // Bawaan baru sejak 2026-11-09. Yang diuji BUKAN "kolomnya null" - itu
+    // rincian penyimpanan - melainkan PERILAKU yang membuatnya layak
+    // diputuskan: tautan yang diterbitkan hari ini masih membuka pintunya
+    // jauh setelah dua jam, dan hanya pencabutan Admin yang menghentikannya.
+    $tautan = $layanan->terbitkan($ruang);
+
+    expect($tautan->expires_at)->toBeNull()
+        ->and($tautan->berlaku())->toBeTrue();
+
+    // Tiga hari kemudian - jauh melewati `BERLAKU_JAM` yang lama - ia masih
+    // berlaku. Waktu dimajukan, bukan `expires_at` yang disunting, karena
+    // yang diperiksa adalah perilaku `berlaku()` terhadap waktu yang berjalan.
+    //
+    // Yang TIDAK diuji di sini adalah pembukaan pintunya sesudah waktu
+    // dimajukan: jendela SESI-nya sudah lewat, dan pintu yang menolak karena
+    // sesinya berakhir adalah perilaku lain yang sudah diuji di tempat lain.
+    // Yang perlu dibuktikan di sini hanya satu: tautannya sendiri tidak mati
+    // oleh jam.
+    $this->travel(3)->days();
+
+    expect($tautan->fresh()->berlaku())->toBeTrue();
+
+    // Pencabutan tetap berlaku seketika, dan itu yang menggantikan masa
+    // berlaku sebagai pengaman: tautan yang bocor dimatikan Admin, bukan
+    // menunggu jam.
+    $layanan->cabutSemua($ruang);
+
+    expect($tautan->fresh()->berlaku())->toBeFalse();
+});
+
+it('masih menghormati masa berlaku yang diberikan eksplisit', function () {
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
+
+    // Bawaannya kini tanpa batas, tetapi kemampuan membuat tautan berumur
+    // pendek TIDAK dihapus - dan itu diuji di sini supaya perubahan bawaan
+    // tidak diam-diam mencabut kemampuan itu.
+    $tautan = app(RoomEntryLinkService::class)->terbitkan(ruangMaster($data['ruang'][0]), berlakuJam: 4);
+
+    expect($tautan->expires_at)->not->toBeNull()
+        ->and($tautan->berlaku())->toBeTrue();
+
+    $this->travel(5)->hours();
+
+    expect($tautan->fresh()->berlaku())->toBeFalse();
+});
+
+it('mencetak kartu pintu sebagai PDF, satu halaman per ruang', function () {
+    $satu = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-01']);
+    Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-02']);
+
+    // Satu ruang DITERBITKAN tautannya, supaya cabang QR-nya benar-benar
+    // dirender DomPDF. Data URI pada `img src` adalah satu-satunya bagian
+    // templat itu yang bisa gagal tanpa membuat render PDF-nya ikut gagal -
+    // dan kegagalannya berbentuk kotak kosong di kertas, bukan galat.
+    app(RoomEntryLinkService::class)->terbitkan($satu, berlakuJam: 4);
+
+    $respon = $this->actingAs($this->admin)->get('/admin/ruang/kartu');
+
+    $respon->assertOk();
+
+    expect($respon->headers->get('content-type'))->toContain('application/pdf')
+        ->and(substr($respon->getContent(), 0, 4))->toBe('%PDF');
+});
+
+it('membuat halaman untuk ruang tanpa tautan, bukan melewatinya', function () {
+    $berTautan = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-01']);
+    Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-02']);
+
+    app(RoomEntryLinkService::class)->terbitkan($berTautan, berlakuJam: 4);
+
+    $ruang = Room::query()
+        ->with(['entryLinks' => fn ($q) => $q->whereNull('revoked_at')])
+        ->orderBy('code')
+        ->get();
+
+    $halaman = app(KartuPintu::class)->halaman($ruang);
+
+    // Dua ruang, dua halaman - ruang yang belum punya tautan tetap mendapat
+    // lembar sendiri supaya "pintu tanpa kertas" tidak pernah berarti
+    // "kelupaan cetak".
+    expect($halaman)->toHaveCount(2);
+
+    $perKode = collect($halaman)->keyBy('kode');
+
+    expect($perKode['R-01']['qr'])->toStartWith('data:image/png;base64,')
+        ->and($perKode['R-01']['url'])->toContain('/p/')
+        ->and($perKode['R-02']['qr'])->toBeNull()
+        ->and($perKode['R-02']['url'])->toBeNull();
+});
+
+it('menerbitkan tautan massal hanya untuk ruang yang belum punya', function () {
+    $sudah = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-01']);
+    $belum = Room::factory()->untukSekolah($this->sekolah)->create(['code' => 'R-02']);
+    // Ruang perbaikan sekalipun mendapat tautan: yang menentukan boleh
+    // dipakai atau tidak adalah statusnya saat penempatan, bukan ada
+    // tidaknya kartu pintu - dan kartunya tetap ditempel, karena ruang bisa
+    // diperbaiki kembali sebelum hari ujian.
+    Room::factory()->untukSekolah($this->sekolah)->perbaikan()->create(['code' => 'R-03']);
+
+    $lama = app(RoomEntryLinkService::class)->terbitkan($sudah, berlakuJam: 4);
+
+    $this->actingAs($this->admin)
+        ->post('/admin/ruang/terbitkan-massal')
+        ->assertSessionHasNoErrors();
+
+    // Tautan R-01 TIDAK dicabut. Operasi massal yang mencabut ulang seluruh
+    // kartu yang sudah ditempel adalah kebalikan dari gunanya menyiapkan
+    // hari ujian - dan itulah batas yang diuji di sini.
+    expect($lama->fresh()->revoked_at)->toBeNull()
+        ->and($lama->fresh()->berlaku())->toBeTrue();
+
+    expect($belum->fresh()->tautanAktif())->not->toBeNull()
+        ->and(session('sukses'))->toContain('2 tautan ruang diterbitkan')
+        ->and(session('sukses'))->toContain('1 ruang sudah punya tautan');
 });

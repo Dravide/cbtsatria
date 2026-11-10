@@ -6,18 +6,19 @@ use App\Domain\Question\Enums\JenisSoal;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Bentuk kunci jawaban untuk kesembilan jenis soal, dan satu-satunya tempat
+ * Bentuk kunci jawaban untuk kesepuluh jenis soal, dan satu-satunya tempat
  * yang memutuskan apakah sebuah kunci sah.
  *
  * ---------------------------------------------------------------------
  * Mengapa kunci disimpan sebagai JSON, bukan kolom
  * ---------------------------------------------------------------------
  * PRD §16.5 menetapkan `answer_key_json`. Keputusan itu benar dan alasannya
- * terlihat begitu kesembilan jenisnya didaftar: kunci pilihan ganda adalah
- * satu huruf, kunci isian adalah daftar varian, kunci mengurutkan adalah
- * sebuah permutasi, kunci angka adalah nilai + toleransi + satuan. Kolom
- * bersama untuk kelimanya berarti kolom yang isinya berbeda arti di setiap
- * baris - dan tidak ada satu pun constraint basis data yang bisa menolong.
+ * terlihat begitu kesepuluh jenisnya didaftar: kunci pilihan ganda adalah
+ * satu huruf, kunci isian adalah daftar varian, kunci rumpang adalah DAFTAR
+ * dari daftar varian, kunci mengurutkan adalah sebuah permutasi, kunci angka
+ * adalah nilai + toleransi + satuan. Kolom bersama untuk kelimanya berarti
+ * kolom yang isinya berbeda arti di setiap baris - dan tidak ada satu pun
+ * constraint basis data yang bisa menolong.
  *
  * Yang menyelamatkannya dari menjadi kantong sampah adalah kelas ini: satu
  * tempat yang tahu bentuk yang benar untuk setiap jenis, dipanggil sebelum
@@ -61,6 +62,11 @@ class SkemaJenisSoal
      * @param  array<int, array<string, mixed>>  $opsi  Baris question_options.
      * @param  array<int, array<string, mixed>>  $butir  Baris question_items.
      * @param  array<int, array<string, mixed>>  $rubrik  Baris essay_rubric_criteria.
+     * @param  ?string  $teksSoal  Teks soal telanjang (prompt_json.teks). Hanya
+     *                             jenis IsianRumpang yang memakainya, untuk
+     *                             mencocokkan jumlah penanda `{{n}}` dengan
+     *                             jumlah kunci. Null berarti pemanggil tidak
+     *                             punya teksnya dan pemeriksaan itu dilewati.
      *
      * @throws ValidationException
      */
@@ -72,6 +78,7 @@ class SkemaJenisSoal
         array $butir = [],
         array $rubrik = [],
         array $skor = [],
+        ?string $teksSoal = null,
     ): void {
         // Bobot nol ditolak SEMUA jenis. Soal yang tidak bernilai tidak
         // punya tempat di sebuah ujian: ia bisa ada di paket tanpa
@@ -98,6 +105,9 @@ class SkemaJenisSoal
                 break;
             case JenisSoal::IsianSingkat:
                 $this->isian($kunci);
+                break;
+            case JenisSoal::IsianRumpang:
+                $this->rumpang($kunci, $teksSoal);
                 break;
             case JenisSoal::Menjodohkan:
                 $this->jodohkan($kunci, $butir);
@@ -181,6 +191,88 @@ class SkemaJenisSoal
                 $this->tolak('kunci', 'Setiap varian jawaban isian harus berupa teks yang tidak kosong.');
             }
         }
+    }
+
+    /**
+     * Kunci isian rumpang: SATU daftar varian untuk setiap lubang.
+     *
+     * Bentuknya array-dari-array, bukan objek berkunci nomor:
+     *
+     *     ['rumpang' => [['gravitasi', 'gaya gravitasi'], ['newton', 'N']]]
+     *
+     * dan itu bukan pilihan gaya. JavaScript menuliskan kunci objek sebagai
+     * teks, sehingga `JSON.stringify({'10': .., '2': ..})` menghasilkan
+     * "10" sebelum "2" - soal sepuluh lubang akan tersimpan dengan urutan
+     * kunci yang bergeser, dan yang tertukar bukan dua lubang yang berdekatan
+     * melainkan lubang 2 dengan lubang 10. Daftar tidak punya urutan yang
+     * bisa berubah saat diserialisasi.
+     *
+     * Penanda di teks soal ditulis `{{1}}`, `{{2}}`, ... dan WAJIB berjumlah
+     * sama dengan jumlah kunci. Tanpa pemeriksaan itu, soal dengan empat
+     * penanda dan dua kunci tersimpan rapi, lalu dua lubang di layar siswa
+     * tidak pernah bisa benar - dan nilai yang muncul terlihat seperti
+     * kesalahan siswa.
+     */
+    private function rumpang(?array $kunci, ?string $teksSoal): void
+    {
+        $daftar = $kunci['rumpang'] ?? null;
+
+        if (! is_array($daftar) || $daftar === []) {
+            $this->tolak('kunci', 'Isian rumpang butuh daftar kunci - satu daftar varian untuk setiap lubang.');
+        }
+
+        if (! array_is_list($daftar)) {
+            $this->tolak('kunci', 'Kunci isian rumpang harus berupa daftar berurutan, bukan objek berkunci nomor.');
+        }
+
+        foreach ($daftar as $nomor => $varian) {
+            if (! is_array($varian) || $varian === []) {
+                $this->tolak('kunci', 'Rumpang ke-'.($nomor + 1).' belum punya satu pun varian jawaban yang diterima.');
+            }
+
+            foreach ($varian as $satu) {
+                if (! is_string($satu) || trim($satu) === '') {
+                    $this->tolak('kunci', 'Setiap varian jawaban rumpang harus berupa teks yang tidak kosong.');
+                }
+            }
+        }
+
+        if ($teksSoal === null) {
+            return;
+        }
+
+        $penanda = $this->penandaRumpang($teksSoal);
+
+        if ($penanda === []) {
+            $this->tolak('prompt_json', 'Teks soal belum punya penanda rumpang. Sisipkan {{1}}, {{2}}, dan seterusnya pada kata yang dikosongkan.');
+        }
+
+        if (count($penanda) !== count($daftar)) {
+            $this->tolak('prompt_json', 'Teks soal memuat '.count($penanda).' rumpang, tetapi kuncinya ada '.count($daftar).'. Jumlah keduanya harus sama.');
+        }
+
+        // Nomornya harus tepat 1..N, masing-masing sekali. Penanda `{{3}}`
+        // yang muncul dua kali berarti satu kunci dipakai dua lubang - dan
+        // tidak ada cara menilai dua jawaban berbeda dari satu kunci tanpa
+        // diam-diam mengabaikan salah satunya.
+        $urut = $penanda;
+        sort($urut);
+
+        if ($urut !== range(1, count($daftar))) {
+            $this->tolak('prompt_json', 'Nomor penanda rumpang harus berurutan dari {{1}} sampai {{'.count($daftar).'}}, masing-masing sekali.');
+        }
+    }
+
+    /**
+     * Nomor penanda `{{n}}` di dalam teks soal, sesuai urutan kemunculannya.
+     *
+     * @return array<int, int>
+     */
+    private function penandaRumpang(string $teks): array
+    {
+        preg_match_all('/\{\{\s*(\d+)\s*\}\}/u', $teks, $cocok);
+
+        return array_map('intval', $cocok[1]);
     }
 
     /**

@@ -9,6 +9,7 @@ import {
     Modal,
     Tabel,
     Tombol,
+    TombolTautan,
     kelasInput,
     nadaStatus,
 } from '@/Components/ui';
@@ -91,7 +92,47 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
             judul="Kepanitiaan"
             breadcrumb={`/admin/events · ${event.kode} · Kepanitiaan`}
             aksi={
-                <span className="flex gap-2">
+                <span className="flex flex-wrap gap-2">
+                    {/* Unduhan berdiri lebih dulu, terpisah dari tombol yang
+                        mengubah data: yang datang ke laman ini sesudah
+                        menyusun panitia biasanya ingin MENGAMBIL hasilnya,
+                        bukan menambah baris lagi. */}
+                    <TombolTautan
+                        href={`/admin/events/${event.id}/panitia/ekspor`}
+                        title="Unduh daftar panitia sebagai Excel (.xlsx)"
+                    >
+                        Unduh Excel
+                    </TombolTautan>
+                    <TombolTautan
+                        href={`/admin/events/${event.id}/panitia/kartu`}
+                        title="Cetak kartu pengawas & panitia (PDF)"
+                    >
+                        Cetak kartu
+                    </TombolTautan>
+                    {/* Terbitkan kode massal bersebelahan dengan "Tambahkan
+                        massal": keduanya menjawab keadaan yang sama - puluhan
+                        pengawas yang harus disiapkan sebelum hari ujian.
+                        Tombolnya TIDAK mengganti kode yang sudah ada; itu
+                        dikatakan di konfirmasinya, karena nama "terbitkan
+                        semua" mudah dibaca sebagai "ganti semua". */}
+                    <Tombol
+                        onClick={() => {
+                            if (
+                                confirm(
+                                    'Terbitkan kode untuk semua pengawas yang belum punya? Kode yang sudah ada tidak diubah, sehingga kartu yang sudah dicetak tetap berlaku.',
+                                )
+                            ) {
+                                router.post(
+                                    `/admin/events/${event.id}/panitia/kode-massal`,
+                                    {},
+                                    { preserveScroll: true },
+                                );
+                            }
+                        }}
+                    >
+                        Terbitkan kode massal
+                    </Tombol>
+                    <span className="mx-1 h-6 w-px self-center bg-line" aria-hidden />
                     {/* Massal ada di header, di samping satu-per-satu, supaya
                         panelnya bisa dibuka tanpa lebih dulu menempuh jalur
                         yang justru ingin dihindari. */}

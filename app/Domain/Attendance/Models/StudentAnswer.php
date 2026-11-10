@@ -93,10 +93,27 @@ class StudentAnswer extends Model
             return false;
         }
 
+        return $this->adaIsi($isi);
+    }
+
+    /**
+     * Apakah ada satu nilai yang benar-benar berisi.
+     *
+     * Rekursif sejak isian rumpang ada. Jawabannya berbentuk
+     * `{"rumpang":["gravitasi","",""]}`, dan daftar yang panjangnya tiga
+     * TIDAK berarti anak sudah menjawab - yang menjawab satu lubang dari tiga
+     * sudah, yang tidak mengisi apa pun belum. Tanpa rekursi ini, soal rumpang
+     * yang masih kosong terhitung terjawab pada penghitung "11/40", dan anak
+     * mengumpulkan ujian dengan tiga lubang kosong yang ia kira sudah diisi.
+     *
+     * @param  array<string|int, mixed>  $isi
+     */
+    private function adaIsi(array $isi): bool
+    {
         foreach ($isi as $nilai) {
             if (is_array($nilai)) {
                 // {"pasangan":{}} dan {"urutan":[]} sama-sama kosong.
-                if ($nilai !== []) {
+                if ($this->adaIsi($nilai)) {
                     return true;
                 }
 

@@ -291,7 +291,9 @@ export default function Impor({ riwayat, aktif, tujuan, kolom }: Props) {
                         Urutan kolom bebas — yang dicari adalah <strong>namanya</strong>. Kolom wajib
                         hanya judul, jenis, dan soal. Kunci diisi berbeda per jenis: huruf untuk
                         pilihan ganda, <code>a=Jakarta; b=Bandung</code> untuk menjodohkan,
-                        <code> c, a, b</code> untuk mengurutkan, dan
+                        <code> c, a, b</code> untuk mengurutkan, <code>gravitasi~gaya
+                        gravitasi|newton</code> untuk isian rumpang (pipa antar lubang, tilde
+                        antar varian), dan
                         <code> Kriteria:4 | Kriteria lain:3</code> di kolom rubrik untuk uraian.
                     </p>
                 </details>

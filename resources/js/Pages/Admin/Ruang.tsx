@@ -10,6 +10,7 @@ import {
     Paginator,
     Tabel,
     Tombol,
+    TombolTautan,
     kelasInput,
     nadaStatus,
     pakaiFilter,
@@ -52,8 +53,37 @@ type Props = {
 export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
     const [tambah, setTambah] = useState(false);
     const [ubah, setUbah] = useState<Baris | null>(null);
+    const [pilih, setPilih] = useState<number[]>([]);
+    const [kapasitas, setKapasitas] = useState(false);
 
     const f = pakaiFilter('/admin/ruang', { cari: filter.cari, status: filter.status });
+
+    // Pilihan direset setiap kali isi halaman berganti. Membiarkannya berarti
+    // id dari halaman yang sudah ditinggalkan ikut terkirim - dan operasi
+    // massal yang mengubah ruang yang tidak terlihat di layar adalah operasi
+    // yang tidak bisa diperiksa Admin sebelum ia menekan tombolnya.
+    const halaman = (baris.data ?? []).map((b) => b.id);
+    const semuaTerpilih = halaman.length > 0 && halaman.every((id) => pilih.includes(id));
+
+    const alihkan = (id: number, dicentang: boolean) =>
+        setPilih((p) => (dicentang ? [...p, id] : p.filter((x) => x !== id)));
+
+    const pilihSemua = () =>
+        setPilih((p) => (semuaTerpilih ? p.filter((x) => !halaman.includes(x)) : [...new Set([...p, ...halaman])]));
+
+    // Ruang terpilih yang kapasitasnya akan berubah, dihitung dari data yang
+    // SEDANG tampil. Yang belum terlihat tidak bisa dihitung - dan justru itu
+    // sebabnya angkanya ditampilkan: Admin melihat berapa ruang yang akan
+    // tersentuh sebelum ia menekan Simpan.
+    const terpilih = (baris.data ?? []).filter((b) => pilih.includes(b.id));
+
+    const simpanKapasitas = (nilai: number) => {
+        router.put(
+            '/admin/ruang/kapasitas-massal',
+            { id: pilih, capacity: nilai },
+            { preserveScroll: true, onSuccess: () => setPilih([]) },
+        );
+    };
 
     return (
         <AdminLayout
@@ -61,6 +91,39 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
             breadcrumb="/admin/ruang"
             aksi={
                 <>
+                    {/* Satu berkas, satu lembar per pintu - lihat catatan di
+                        `KartuPintu`. Diletakkan paling kiri karena ia dibuka
+                        saat menyiapkan hari ujian, sebelum ruang baru
+                        ditambahkan. */}
+                    <TombolTautan
+                        href="/admin/ruang/kartu"
+                        title="Cetak kartu pintu (QR + tautan) semua ruang, satu lembar A4 per ruang"
+                    >
+                        Cetak kartu pintu
+                    </TombolTautan>
+                    {/* Massal, bukan per ruang: yang menyiapkan hari ujian
+                        menyalakan seluruh pintu sekaligus. Sama seperti pada
+                        kode pengawas, tombol ini hanya melayani ruang yang
+                        BELUM punya tautan - mencabut ulang dua puluh empat
+                        kartu yang sudah ditempel bukan yang diminta siapa pun
+                        yang menekannya. */}
+                    <Tombol
+                        onClick={() => {
+                            if (
+                                confirm(
+                                    'Terbitkan tautan untuk semua ruang yang belum punya? Tautan yang sudah berlaku tidak dicabut, sehingga kartu pintu yang sudah ditempel tetap bisa dipakai.',
+                                )
+                            ) {
+                                router.post(
+                                    '/admin/ruang/terbitkan-massal',
+                                    {},
+                                    { preserveScroll: true },
+                                );
+                            }
+                        }}
+                    >
+                        Terbitkan tautan massal
+                    </Tombol>
                     <Tombol onClick={() => router.visit('/admin/impor/ruang')}>Impor</Tombol>
                     <Tombol nada="pri" onClick={() => setTambah(true)}>
                         Tambah ruang
@@ -100,14 +163,53 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                         Terapkan
                     </Tombol>
                     <Tombol onClick={f.reset}>Reset</Tombol>
+
+                    {/* Aksi massal hidup di bar seleksi, sama seperti laman
+                        Pengguna - dan itu memang tempatnya: yang menekannya
+                        baru saja mencentang barisnya, dan tombol yang muncul
+                        tepat di sebelah cacahnya menjelaskan sendiri apa yang
+                        akan tersentuh. Jumlahnya disebut di depan tombol,
+                        karena "Ubah kapasitas massal" tanpa angka tidak
+                        memberi tahu apakah yang terpilih dua ruang atau
+                        seluruh sekolah. */}
+                    {pilih.length > 0 ? (
+                        <span className="ml-auto flex items-center gap-2">
+                            <span className="text-xs text-ink-3">
+                                {pilih.length} ruang terpilih
+                            </span>
+                            <Tombol nada="pri" onClick={() => setKapasitas(true)}>
+                                Ubah kapasitas massal
+                            </Tombol>
+                            <Tombol onClick={() => setPilih([])}>Batal pilih</Tombol>
+                        </span>
+                    ) : (
+                        <span className="ml-auto flex items-center gap-2">
+                            <Tombol onClick={pilihSemua} disabled={halaman.length === 0}>
+                                {semuaTerpilih ? 'Batalkan semua' : 'Pilih semua di halaman ini'}
+                            </Tombol>
+                        </span>
+                    )}
                 </BilahFilter>
             </div>
 
             <Tabel<Baris>
                 hal={baris}
-                kunci={(b) => b.kode}
+                kunci={(b) => b.id}
                 kosong="Belum ada ruang."
                 kolom={[
+                    {
+                        judul: '',
+                        kelas: 'w-10',
+                        render: (b) => (
+                            <input
+                                type="checkbox"
+                                checked={pilih.includes(b.id)}
+                                onChange={(e) => alihkan(b.id, e.target.checked)}
+                                className="size-4 accent-accent"
+                                aria-label={`Pilih ${b.kode}`}
+                            />
+                        ),
+                    },
                     {
                         judul: 'Kode',
                         kelas: 'w-24',
@@ -201,6 +303,20 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                 ruang={ubah}
                 padaTutup={() => setUbah(null)}
             />
+            {/* `key` berisi DAFTAR id terpilih, bukan sekadar jumlahnya.
+                Tanpa itu, membatalkan pilihan R-03 lalu mencentang R-07 -
+                jumlahnya tetap satu - akan membuka panel yang masih membawa
+                angka awal dari R-03, dan menyimpannya berarti menyetel
+                kapasitas R-07 ke angka yang dipilih untuk ruang lain. Jebakan
+                yang sama sudah tercatat pada `useForm` + `Modal`. */}
+            <FormKapasitas
+                key={'kapasitas-' + [...pilih].sort((a, b) => a - b).join('-')}
+                terbuka={kapasitas}
+                terpilih={terpilih}
+                jumlah={pilih.length}
+                padaTutup={() => setKapasitas(false)}
+                padaSimpan={simpanKapasitas}
+            />
         </AdminLayout>
     );
 }
@@ -213,6 +329,109 @@ function Ringkasan({ label, nilai }: { label: string; nilai: number }) {
                 {nilai.toLocaleString('id-ID')}
             </p>
         </div>
+    );
+}
+
+function FormKapasitas({
+    terbuka,
+    terpilih,
+    jumlah,
+    padaTutup,
+    padaSimpan,
+}: {
+    terbuka: boolean;
+    terpilih: Baris[];
+    jumlah: number;
+    padaTutup: () => void;
+    padaSimpan: (nilai: number) => void;
+}) {
+    // Nilai awalnya diambil dari ruang terpilih yang PERTAMA, bukan dari
+    // angka tetap. Admin yang mengubah 32 menjadi 36 pada dua belas ruang
+    // hampir selalu memakai angka yang sudah ada sebagai titik tolak, dan
+    // angka 32 yang diketik ulang dari ingatan adalah salah ketik yang
+    // menghasilkan kapasitas 3.
+    const { data, setData, processing, errors } = useForm({
+        capacity: terpilih[0]?.kapasitas ?? 32,
+    });
+
+    const nilai = Number(data.capacity) || 0;
+
+    return (
+        <Modal
+            judul={`Ubah kapasitas ${jumlah} ruang`}
+            terbuka={terbuka}
+            padaTutup={padaTutup}
+        >
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    padaSimpan(nilai);
+                }}
+                className="space-y-3"
+            >
+                <Field label="Kapasitas baru" galat={errors.capacity}>
+                    <input
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={data.capacity}
+                        onChange={(e) => setData('capacity', Number(e.target.value))}
+                        className={kelasInput + ' font-mono max-w-[8rem]'}
+                        autoFocus
+                    />
+                </Field>
+
+                {/* Akibatnya diperlihatkan SEBELUM disimpan, bukan dilaporkan
+                    sesudahnya. Dua akibat yang tidak terlihat dari satu angka:
+                    ruang yang kapasitasnya sudah sama (tidak berubah), dan
+                    ruang yang jumlah PC-nya akan ikut turun. */}
+                <div className="rounded-wf border border-line bg-surface-2/60 px-3 py-2">
+                    <p className="text-[11px] font-medium text-ink-2">
+                        {jumlah} ruang akan disetel ke {nilai}
+                    </p>
+                    {terpilih.length > 0 && (
+                        <ul className="mt-1 space-y-0.5">
+                            {terpilih.map((b) => {
+                                const turunPc = b.pc > nilai && !b.byod;
+
+                                return (
+                                    <li
+                                        key={b.id}
+                                        className="flex items-baseline gap-2 font-mono text-[11px] text-ink-3"
+                                    >
+                                        <span className="text-ink-2">{b.kode}</span>
+                                        <span>
+                                            {b.kapasitas} &rarr; {nilai}
+                                        </span>
+                                        {b.kapasitas === nilai && (
+                                            <span className="text-ink-3">(tetap)</span>
+                                        )}
+                                        {turunPc && (
+                                            <span className="text-warn">
+                                                PC {b.pc} &rarr; {nilai}
+                                            </span>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                    {jumlah > terpilih.length && (
+                        <p className="mt-1 text-[11px] text-ink-3">
+                            {jumlah - terpilih.length} ruang terpilih lainnya tidak tampil di
+                            halaman ini, tetapi ikut diubah.
+                        </p>
+                    )}
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                    <Tombol type="submit" nada="pri" disabled={processing}>
+                        Setel kapasitas
+                    </Tombol>
+                    <Tombol onClick={padaTutup}>Batal</Tombol>
+                </div>
+            </form>
+        </Modal>
     );
 }
 

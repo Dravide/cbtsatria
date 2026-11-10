@@ -51,7 +51,7 @@ class PenulisSoalAi
     /**
      * Jenis yang boleh dihasilkan AI.
      *
-     * Empat, bukan sembilan. Menjodohkan, mengurutkan, dan angka punya kunci
+     * Empat, bukan sepuluh. Menjodohkan, mengurutkan, dan angka punya kunci
      * yang jauh lebih mudah salah dihasilkan - dan kesalahannya baru terlihat
      * saat ujian berjalan, ketika siswa melihat item kanan yang tidak punya
      * pasangan. Jabawan ganda dan media sudah punya bentuk kunci gabungan

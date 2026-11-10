@@ -83,7 +83,7 @@ class ExamQuestionFactory extends Factory
      *
      * Uraian mendapat rubrik, jodohkan mendapat butir, dan kunci tiap jenis
      * mengikuti SkemaJenisSoal. Seeder memakai ini untuk membangun paket
-     * berisi kesembilan jenis tanpa snapshot yang saling bertentangan.
+     * berisi kesepuluh jenis tanpa snapshot yang saling bertentangan.
      */
     public function berjenis(JenisSoal $jenis): static
     {
@@ -108,6 +108,15 @@ class ExamQuestionFactory extends Factory
                 'jenis' => $jenis,
                 'opsi_json' => null,
                 'kunci_json' => ['teks' => ['7', 'tujuh']],
+            ],
+            JenisSoal::IsianRumpang => [
+                'jenis' => $jenis,
+                'opsi_json' => null,
+                // `soal_json` ikut ditimpa: snapshot tanpa penanda tidak bisa
+                // ditampilkan sebagai soal rumpang, dan kuncinya pun tidak
+                // akan sepadan dengan teksnya.
+                'soal_json' => ['teks' => '<p>Gaya tarik bumi disebut {{1}} dan satuannya {{2}}.</p>'],
+                'kunci_json' => ['rumpang' => [['gravitasi', 'gaya gravitasi'], ['newton', 'N']]],
             ],
             JenisSoal::Angka => [
                 'jenis' => $jenis,

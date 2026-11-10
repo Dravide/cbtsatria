@@ -96,6 +96,54 @@ function teksDari(nilai: unknown): string {
     return typeof nilai === 'string' ? nilai : '';
 }
 
+/** Escape teks untuk disisipkan ke dalam HTML yang dirender apa adanya. */
+function amankan(teks: string): string {
+    return teks
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+/**
+ * Teks rumpang dengan jawabannya terisi - bentuk yang dibaca Guru.
+ *
+ * Pratinjau ini justru yang paling berguna untuk jenis isian rumpang: Guru
+ * melihat kalimatnya UTUH dengan jawaban di tempatnya, dan karena itu bisa
+ * menilai sendiri apakah kalimatnya masih masuk akal setelah diisi. Tanpa
+ * ini ia harus membaca `{{1}}` di teks dan mencocokkannya dengan daftar kunci
+ * di bawah - dua tempat yang mudah bergeser satu nomor.
+ *
+ * Varian PERTAMA yang ditampilkan, dan varian lain menyusul dalam tanda
+ * kurung: itulah jawaban yang paling wajar, dan sisanya adalah ejaan lain
+ * yang juga diterima mesin.
+ */
+function teksRumpangTerisi(html: string, kunci: unknown): string {
+    const daftar = Array.isArray(kunci) ? (kunci as unknown[]) : [];
+
+    return html.replace(/\{\{\s*(\d+)\s*\}\}/g, (_, nomor: string) => {
+        const varian = daftar[Number.parseInt(nomor, 10) - 1];
+        const utama = Array.isArray(varian) ? teksDari(varian[0]) : '';
+
+        if (utama.trim() === '') {
+            return '<span style="border-bottom:1px solid currentColor;padding:0 6px">&nbsp;</span>';
+        }
+
+        const lain = Array.isArray(varian) ? varian.slice(1).filter((v) => teksDari(v) !== '') : [];
+
+        return (
+            '<span style="border-bottom:1px solid currentColor;padding:0 4px;font-weight:600">' +
+            amankan(utama) +
+            '</span>' +
+            (lain.length > 0
+                ? ' <span style="opacity:.65">(' +
+                  lain.map((v) => amankan(teksDari(v))).join(', ') +
+                  ')</span>'
+                : '')
+        );
+    });
+}
+
 /* =================================================================== Butir */
 
 export function KartuButir({
@@ -141,7 +189,17 @@ export function KartuButir({
             </header>
 
             <div className="space-y-3 px-4 py-3">
-                <Html nilai={butir.prompt?.teks} kosong="Soal ini belum punya teks." />
+                {butir.jenis === 'isian_rumpang' ? (
+                    <Html
+                        nilai={teksRumpangTerisi(
+                            teksDari(butir.prompt?.teks),
+                            butir.kunci?.rumpang,
+                        )}
+                        kosong="Soal ini belum punya teks."
+                    />
+                ) : (
+                    <Html nilai={butir.prompt?.teks} kosong="Soal ini belum punya teks." />
+                )}
 
                 {/* Media dirender sebagai GAMBAR, bukan sebagai nama berkas.
                     Yaltu seluruh gunanya pratinjau: soal yang gambarnya tidak

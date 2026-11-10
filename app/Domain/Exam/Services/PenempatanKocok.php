@@ -105,7 +105,10 @@ class PenempatanKocok
         $peserta = EventParticipant::query()
             ->where('event_id', $event->id)
             ->where('status', EventParticipant::STATUS_TERDAFTAR)
-            ->with(['kelas:id,name', 'student:id,name,username'])
+            // `studentProfile` ikut dimuat karena NIS dicetak di denah, tablo,
+            // dan daftar presensi Admin. Tanpa baris ini setiap peserta
+            // memicu satu kueri profil sendiri saat namanya digambar.
+            ->with(['kelas:id,name', 'student:id,name,username', 'student.studentProfile:id,user_id,nis'])
             ->orderBy('student_id')
             ->get();
 

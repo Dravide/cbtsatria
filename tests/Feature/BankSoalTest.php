@@ -344,6 +344,42 @@ it('menyimpan soal menjodohkan beserta pasangannya', function () {
     expect($soal->items)->toHaveCount(4);
 });
 
+it('menyimpan soal isian rumpang beserta kuncinya', function () {
+    masukBank($this, $this->guruA)->post('/guru/bank-soal', payloadSoal([
+        'subject_id' => $this->mapel->id,
+        'question_type' => 'isian_rumpang',
+        'prompt_json' => ['teks' => '<p>Gaya tarik bumi disebut {{1}}, satuannya {{2}}.</p>'],
+        'answer_key_json' => ['rumpang' => [['gravitasi', 'gaya gravitasi'], ['newton']]],
+        'opsi' => [],
+    ]))->assertRedirect('/guru/bank-soal');
+
+    $soal = Question::tanpaTenant()->firstOrFail();
+
+    expect($soal->question_type)->toBe(JenisSoal::IsianRumpang)
+        // Bentuknya diperiksa UTUH: array-dari-array, bukan objek berkunci
+        // nomor. Inilah yang membuat lubang 2 tidak tertukar dengan lubang 10
+        // ketika `JSON.stringify` mengurutkan kuncinya sebagai teks.
+        ->and($soal->answer_key_json)->toBe(['rumpang' => [['gravitasi', 'gaya gravitasi'], ['newton']]]);
+
+    // Penanda {{n}} harus SELAMAT melewati pembersih HTML - kalau `{`/`}`
+    // di-escape menjadi entitas, teks soalnya tersimpan tanpa satu pun lubang
+    // dan soal yang sah berubah menjadi kalimat biasa di layar siswa.
+    expect($soal->prompt_json['teks'])->toContain('{{1}}')->toContain('{{2}}');
+});
+
+it('menolak rumpang yang jumlah penandanya tidak sama dengan kuncinya', function () {
+    $respons = masukBank($this, $this->guruA)->post('/guru/bank-soal', payloadSoal([
+        'subject_id' => $this->mapel->id,
+        'question_type' => 'isian_rumpang',
+        'prompt_json' => ['teks' => '<p>Sebutkan {{1}} dan {{2}}.</p>'],
+        'answer_key_json' => ['rumpang' => [['gravitasi']]],
+        'opsi' => [],
+    ]));
+
+    $respons->assertSessionHasErrors('prompt_json');
+    expect(Question::tanpaTenant()->count())->toBe(0);
+});
+
 /* ======================================================== Ubah & hapus */
 
 it('mengubah soal milik sendiri', function () {

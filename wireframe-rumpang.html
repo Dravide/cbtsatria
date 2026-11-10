@@ -1,0 +1,597 @@
+<title>Wireframe Jenis Soal Isian Rumpang</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   Wireframe jenis soal KESEPULUH — isian rumpang (fill in the blank)
+   Token, primitif, dan rangka sama dengan wireframe-peran.html
+   supaya terbaca sebagai satu sistem. Yang baru di sini hanya
+   tiga primitif: .mk (penanda rumpang di dalam teks), .bl (kotak
+   isian siswa), dan .bk (baris kunci per rumpang di builder).
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:70ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+.group{margin-bottom:38px;display:grid;gap:18px}
+.group > header{display:grid;gap:5px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.group > header h2{font-size:1.3rem;display:flex;gap:10px;align-items:baseline}
+.group > header em{font-style:normal;font-family:var(--font-mono);font-size:12px;color:var(--accent)}
+.group > header p{color:var(--ink-2);font-size:13.5px;max-width:72ch}
+
+.shots{display:grid;gap:22px;grid-template-columns:1fr}
+@media (min-width:760px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.shot{display:grid;gap:8px;min-width:0;align-content:start}
+.shot.wide{grid-column:1/-1}
+.shot > .cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.shot .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+.shot h3{font-size:.95rem}
+.shot .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+
+.wf{
+  position:relative;height:216px;overflow:hidden;background:var(--wf-bg);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+  color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr);font-size:10px;line-height:1.35;
+}
+.wf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:18px;background:linear-gradient(transparent,var(--wf-bg));pointer-events:none}
+.wf.lg{height:auto;min-height:400px;font-size:11.5px}
+.wf.lg::after{display:none}
+.wf.dark{
+  --wf-bg:#12161f;--wf-soft:#1a2029;--wf-line:#39424f;--wf-dash:#4a5566;--wf-hair:#262e39;--wf-head:#1a2029;--wf-ink:#e2e8f1;--wf-dim:#8b96a6;
+  --on-accent:#0b0e14;--accent:#7aa8f0;--accent-soft:#1a2740;
+  --ok:#6ecfa0;--warn:#e0b062;--bad:#f08b93;--info:#79c0da;
+  --ok-bg:#122c22;--warn-bg:#2e2413;--bad-bg:#331a1d;--info-bg:#12252d;
+}
+.chrome{display:flex;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:6px;height:6px;border-radius:99px;background:var(--wf-dash)}
+.chrome .url{font-family:var(--font-mono);font-size:9px;color:var(--wf-dim);margin-left:4px}
+.grid2{display:grid;grid-template-columns:46px minmax(0,1fr);min-height:0}
+.wf.lg .grid2{grid-template-columns:132px minmax(0,1fr)}
+
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:8px 6px;display:grid;gap:3px;align-content:start;min-width:0}
+.rail .mark{width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);font:700 9px/16px var(--font-display);text-align:center;margin:0 auto 6px}
+.rail .mark.g{background:var(--ok)}
+.ni{display:flex;gap:6px;align-items:center;padding:4px 5px;border-radius:4px;font-size:9px;color:var(--wf-dim);min-width:0}
+.ni i{width:8px;height:8px;border-radius:2px;background:var(--wf-line);flex:none}
+.ni span{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf.lg .ni{font-size:11px;padding:5px 7px}
+.wf.lg .ni span{display:block}
+.ni.on{background:var(--wf-bg);color:var(--wf-ink);box-shadow:inset 2px 0 0 var(--accent)}
+.ni.on i{background:var(--accent)}
+.rail .sep{height:1px;background:var(--wf-hair);margin:4px 0}
+.rail .glab{display:none;font:500 8.5px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--wf-dim);padding:2px 5px}
+.wf.lg .glab{display:block}
+
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.crumb{font-size:9px;color:var(--wf-dim);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.bd{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph .sp{margin-left:auto}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.lrow{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.lrow:last-child{border-bottom:0}
+.lrow.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.lrow .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.list{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.big{font-size:11px;padding:6px 14px}
+.btn.off{opacity:.5}
+.field{display:grid;gap:3px}
+.field .lb{font-size:9px;color:var(--wf-dim)}
+.input{height:16px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-bg)}
+.input.ta{height:34px}
+.sub{font-size:9px;color:var(--wf-dim)}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--wf-hair);padding-bottom:0;flex-wrap:wrap}
+.tab{font-size:9px;padding:4px 8px;color:var(--wf-dim);border-bottom:2px solid transparent}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* --- primitif baru: isian rumpang --- */
+/* Penanda rumpang DI DALAM teks soal. `{{1}}` saat disunting, kotak
+   bernomor saat dipratinjau. Nomornya yang mengikat teks ke kuncinya. */
+.mk{font-family:var(--font-mono);font-size:.85em;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:3px;padding:0 3px}
+/* Kotak isian siswa: garis bawah bernomor, sama di pratinjau Guru. */
+.bl{display:inline-flex;align-items:baseline;gap:2px;min-width:46px;border-bottom:1.5px solid var(--wf-dash);padding:0 3px;vertical-align:baseline}
+.bl u{text-decoration:none;font-family:var(--font-mono);font-size:8px;color:var(--accent);line-height:1}
+.bl.filled{border-bottom-color:var(--accent);color:var(--wf-ink)}
+.bl.wrong{border-bottom-color:var(--bad);background:var(--bad-bg)}
+.bl.right{border-bottom-color:var(--ok);background:var(--ok-bg)}
+/* Baris kunci per rumpang di builder. */
+.bk{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:6px;align-items:start;border:1px solid var(--wf-hair);border-radius:5px;background:var(--wf-bg);padding:5px 6px;min-width:0}
+.bk .no{font:500 9px/18px var(--font-mono);text-align:center;border:1px solid var(--accent);border-radius:3px;background:var(--accent-soft);color:var(--accent);height:18px}
+.bk .no.dim{border-color:var(--wf-dash);background:var(--wf-soft);color:var(--wf-dim)}
+.bk .no.bad{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.bk .vs{display:grid;gap:3px;min-width:0}
+.bk .vs .v{display:flex;gap:3px;align-items:center;font-size:9px;min-width:0}
+.bk .vs .v .input{flex:1;height:14px;min-width:0}
+.blankline{display:flex;gap:5px;align-items:baseline;flex-wrap:wrap;font-size:11.5px;line-height:2}
+.pairtag{font:500 8px/1 var(--font-mono);color:var(--wf-dim);letter-spacing:.06em;text-transform:uppercase}
+
+/* --- rangka ponsel (sama dengan wireframe-peran.html) --- */
+.wd{position:relative;width:238px;max-width:100%;height:auto;min-height:318px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--wf-bg);box-shadow:var(--shadow);color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;font-size:9.5px;line-height:1.35;min-width:0}
+.wd .notch{position:relative;height:15px;background:var(--wf-head);border-bottom:1px solid var(--wf-hair)}
+.wd .notch::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:4px;width:46px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wd .scr{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
+.wd .hd{display:flex;gap:6px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);min-width:0;flex-wrap:wrap}
+.wd .hd .sp{margin-left:auto}
+.wd .bd{padding:8px;display:grid;gap:7px;align-content:start;overflow:hidden;min-width:0}
+.wd .tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--wf-hair);background:var(--wf-head)}
+.wd .tabbar span{font:500 7.5px/1 var(--font-mono);color:var(--wf-dim);text-align:center;padding:8px 2px 9px;min-width:0;overflow:hidden;white-space:nowrap}
+.wd .tabbar span.on{color:var(--accent);box-shadow:inset 0 2px 0 var(--accent)}
+.wd .home{height:17px;background:var(--wf-head);display:grid;place-items:center}
+.wd .home::after{content:"";width:56px;height:4px;border-radius:99px;background:var(--wf-line)}
+.wd .card2{display:grid;gap:5px;border:1px solid var(--wf-hair);border-radius:8px;background:var(--wf-bg);padding:7px;min-width:0}
+.wd .list{border:1px solid var(--wf-hair);border-radius:8px;overflow:hidden;min-width:0}
+.wd .lrow{display:grid;gap:6px;align-items:center;padding:6px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.wd .lrow:last-child{border-bottom:0}
+.wd .sticky{border-top:1px solid var(--wf-hair);background:var(--wf-head);padding:6px;display:grid;gap:5px}
+.wd .full{flex:1;text-align:center}
+.wd .bar{height:4px;border-radius:99px;background:var(--wf-hair);overflow:hidden}
+.wd .bar i{display:block;height:100%;background:var(--accent)}
+.wd .qstrip{display:flex;gap:3px;overflow:hidden}
+.wd .qstrip b{font:500 8.5px/18px var(--font-mono);text-align:center;border:1px solid var(--wf-dash);border-radius:3px;background:var(--wf-bg);color:var(--wf-dim);flex:0 0 18px}
+.wd .qstrip b.done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.wd .qstrip b.cur{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.wd .blankline{font-size:10px;line-height:2.2;gap:3px}
+.wd .bl{min-width:34px}
+.wd .sel,.wd .btn,.wd .chip{font-size:8px;padding:2px 5px}
+.wd .sub{font-size:8.5px}
+.wd .input{height:14px}
+
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;display:grid;gap:5px;font-size:13.5px;color:var(--ink-2)}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ wireframe jenis soal isian rumpang</span></div>
+    <div class="r">
+      <span>8 plate · satu jenis baru</span><span>sumber: prd.md §6.5</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Jenis kesepuluh</div>
+    <h1>Isian rumpang — satu kalimat, banyak lubang</h1>
+    <p class="lede">Isian singkat menilai SATU jawaban: kunci yang tidak cocok berarti nol. Rumpang menilai SATU kalimat yang di dalamnya ada beberapa lubang, dan tiap lubang dinilai sendiri — anak yang benar tiga dari empat tetap mendapat tiga perempat, bukan nol. Itu bukan kelonggaran, melainkan bentuk soal yang dipakai guru sejak sebelum ada komputer: kalimat rumpang menguji kosakata dan penalaran kontekstual sekaligus, dan menilainya benar-salah utuh membuat satu salah ketik membuang seluruh pekerjaan.</p>
+    <div class="scope">
+      <span class="tag">Builder · /guru/bank-soal/baru</span>
+      <span class="tag">Siswa · /siswa/ujian/{id}/kerjakan</span>
+      <span class="tag">Impor XLSX</span>
+      <span class="tag">Penilaian otomatis</span>
+    </div>
+  </div>
+
+  <section class="group">
+    <header>
+      <h2><em>A</em> Builder Guru</h2>
+      <p>Satu tab baru di deret yang sudah ada, bukan laman baru. Guru harus menemukan jenis ini di tempat yang sama dengan sembilan lainnya — pilihan jenis itulah yang menentukan bentuk form di bawahnya, dan menyembunyikannya di balik menu berarti Guru yang mencari "soal yang ada titik-titiknya" tidak akan tahu jenisnya ada.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot wide" style="margin:0">
+        <div class="cap"><span class="n">01</span><h3>Builder · tab Rumpang aktif</h3><span class="path">/guru/bank-soal/baru</span></div>
+        <div class="wf lg">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/guru/bank-soal/baru</span></div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark g">G</div>
+              <div class="glab">Soal</div>
+              <a class="ni"><i></i><span>Beranda</span></a>
+              <a class="ni on"><i></i><span>Bank soal</span></a>
+              <a class="ni"><i></i><span>Paket soal</span></a>
+              <div class="sep"></div>
+              <div class="glab">Nilai</div>
+              <a class="ni"><i></i><span>Koreksi</span></a>
+              <a class="ni"><i></i><span>Analisis butir</span></a>
+            </div>
+            <div class="main">
+              <div class="tbar"><span class="crumb">Bank soal / Baru</span><span class="sel">Paket: Matematika X</span><span class="sp"></span><span class="btn">Batal</span><span class="btn pri">Simpan ke bank</span></div>
+              <div class="bd">
+
+                <div class="tabs">
+                  <span class="tab">Pilihan ganda</span><span class="tab">Jawaban ganda</span><span class="tab">Benar/salah</span><span class="tab">Isian singkat</span><span class="tab on">Isian rumpang</span><span class="tab">Menjodohkan</span><span class="tab">Mengurutkan</span><span class="tab">Angka</span><span class="tab">Uraian</span><span class="tab">Media</span>
+                </div>
+
+                <div class="box solid">
+                  <div class="ph"><span class="lb">Teks soal · sisipkan rumpang</span><span class="sp"><span class="chip info">4 rumpang</span></span></div>
+                  <div class="input ta" style="height:auto;padding:5px 6px;display:block;font-size:10px;line-height:1.9">
+                    Air mengalir dari tempat yang lebih tinggi ke tempat yang lebih rendah karena pengaruh <span class="mk">{{1}}</span>. Satuan gaya dalam SI adalah <span class="mk">{{2}}</span>, sedangkan alat ukurnya bernama <span class="mk">{{3}}</span>. Gaya yang berlawanan arah dengan gerak benda disebut gaya <span class="mk">{{4}}</span>.
+                  </div>
+                  <div class="ph">
+                    <span class="btn">+ Sisipkan rumpang</span>
+                    <span class="btn">Pratinjau</span>
+                    <span class="sub">Menulis <code>{{n}}</code> langsung di teks juga sah — nomornya yang mengikat rumpang ke kuncinya.</span>
+                  </div>
+                </div>
+
+                <div class="box solid">
+                  <div class="ph"><span class="lb">Kunci per rumpang</span><span class="sp"><span class="chip warn">rumpang 4 belum diisi</span></span></div>
+                  <div class="bk">
+                    <span class="no">1</span>
+                    <div class="vs">
+                      <div class="v"><span class="input"></span><span class="chip mute">gravitasi</span></div>
+                      <div class="v"><span class="input"></span><span class="chip mute">gaya gravitasi</span></div>
+                    </div>
+                    <span class="btn">+ varian</span>
+                  </div>
+                  <div class="bk">
+                    <span class="no">2</span>
+                    <div class="vs">
+                      <div class="v"><span class="input"></span><span class="chip mute">newton</span></div>
+                      <div class="v"><span class="input"></span><span class="chip mute">N</span></div>
+                    </div>
+                    <span class="btn">+ varian</span>
+                  </div>
+                  <div class="bk">
+                    <span class="no">3</span>
+                    <div class="vs">
+                      <div class="v"><span class="input"></span><span class="chip mute">neraca pegas</span></div>
+                      <div class="v"><span class="input"></span><span class="chip mute">dinamometer</span></div>
+                      <div class="v"><span class="input"></span><span class="chip mute">neraca</span></div>
+                    </div>
+                    <span class="btn">+ varian</span>
+                  </div>
+                  <div class="bk">
+                    <span class="no bad">4</span>
+                    <div class="vs">
+                      <div class="v"><span class="input" style="border-color:var(--bad)"></span><span class="chip bad">kosong</span></div>
+                    </div>
+                    <span class="btn">+ varian</span>
+                  </div>
+                </div>
+
+                <div class="cols c2">
+                  <label class="field"><span class="lb">Bobot</span><span class="input" style="height:18px"></span><span class="sub">poin PENUH soal ini; tiap rumpang memikul seperempatnya</span></label>
+                  <label class="field"><span class="lb">Penilaian</span><span class="input" style="height:18px;display:flex;align-items:center;padding:0 5px"><span class="sub" style="color:var(--wf-ink)">Skor sebagian · aktif</span></span></label>
+                </div>
+
+                <div class="inbox">Setiap rumpang bernilai seperjumlah rumpang. Pencocokan mengabaikan huruf besar/kecil, spasi berlebih, dan tanda baca di ujung — sama dengan isian singkat.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Tab baru berdiri paling kanan-setelah-Isian, karena bentuk pengerjaannya paling dekat dengannya. Nomor rumpang di dalam teks (<code>{{1}}</code>) adalah satu-satunya penghubung antara kalimat dan kuncinya — tanpa nomor, dua garis bawah yang tampak sama tidak bisa dipetakan ke dua kunci yang berbeda, dan yang memetakannya harus menebak urutan. Karena itu yang disisipkan tombol adalah penanda bernomor, bukan <code>___</code>.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">02</span><h3>Pratinjau saat guru mengetik</h3><span class="path">/guru/bank-soal/baru</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">Pratinjau</span></div>
+          <div class="bd">
+            <div class="ph"><span class="lb">Tampil di layar siswa</span><span class="sp"><span class="chip info">4 rumpang</span></span></div>
+            <div class="blankline">
+              Air mengalir dari tempat yang lebih tinggi ke tempat yang lebih rendah karena pengaruh <span class="bl"><u>1</u></span>. Satuan gaya dalam SI adalah <span class="bl"><u>2</u></span>, sedangkan alat ukurnya bernama <span class="bl"><u>3</u></span>.
+            </div>
+            <div class="inbox">Pratinjau memakai kotak isian yang sama dengan yang dilihat siswa. Guru yang menulis soal panjang melihat di sini apakah kalimatnya masih terbaca setelah dipecah empat lubang.</div>
+          </div>
+        </div>
+        <p class="note">Pratinjau bukan hiasan: satu kalimat dengan enam rumpang terbaca sebagai teka-teki, bukan sebagai soal, dan itu baru terlihat saat lubangnya benar-benar digambar. Guru memperbaikinya di sini, bukan setelah 300 siswa mengerjakannya.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">03</span><h3>Jumlah rumpang tidak cocok</h3><span class="path">/guru/bank-soal/baru</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">Galat</span></div>
+          <div class="bd">
+            <div class="inbox bad">Teks soal memuat 4 rumpang, tetapi kuncinya baru 2. Rumpang 3 dan 4 belum punya jawaban yang diterima.</div>
+            <div class="box solid" style="border-color:color-mix(in srgb,var(--bad) 45%,transparent)">
+              <span class="lb">Teks soal</span>
+              <div class="blankline" style="font-size:10px">
+                Massa jenis air adalah <span class="bl filled"><u>1</u></span> gram/cm³ dan titik didihnya <span class="bl filled"><u>2</u></span> °C. Keduanya berubah bila <span class="bl wrong"><u>3</u></span> naik dan <span class="bl wrong"><u>4</u></span> turun.
+              </div>
+            </div>
+            <div class="ph"><span class="chip bad">3 · kosong</span><span class="chip bad">4 · kosong</span><span class="sp"><span class="btn pri">Tambahkan otomatis</span></span></div>
+            <div class="inbox warn">Rumpang yang tidak punya kunci tidak dinilai mesin — dan akan terbaca salah oleh seluruh siswa yang menjawabnya benar.</div>
+          </div>
+        </div>
+        <p class="note">Tombol "Tambahkan otomatis" menyelaraskan daftar kunci dengan jumlah penanda di teks: penanda baru mendapat baris kosong, penanda yang dibuang kehilangan barisnya. Tanpa itu, guru yang menghapus satu kalimat harus menghapus baris kuncinya sendiri dengan tangan, dan yang terlupa tersimpan sebagai rumpang yatim — lubang yang tidak ada di kalimat tetapi tetap ikut dihitung penyebut nilai.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">04</span><h3>Garis bawah tanpa nomor</h3><span class="path">/guru/bank-soal/baru</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">Galat</span></div>
+          <div class="bd">
+            <div class="inbox warn">Ada 2 garis bawah <code>___</code> yang tidak bernomor. Garis bawah tanpa nomor tidak bisa dipetakan ke kunci mana pun — ganti dengan tombol <b>Sisipkan rumpang</b>.</div>
+            <div class="box solid">
+              <span class="lb">Teks soal</span>
+              <div class="blankline" style="font-size:10px">
+                Ibu kota Indonesia adalah <span class="bl" style="border-bottom-style:dashed;border-bottom-color:var(--warn)"><u style="visibility:hidden">·</u></span>, dan mata uangnya <span class="bl" style="border-bottom-style:dashed;border-bottom-color:var(--warn)"><u style="visibility:hidden">·</u></span>.
+              </div>
+              <span class="sub">Penanda bernomor di kalimat ini: <span class="chip mute">tidak ada</span></span>
+            </div>
+            <div class="ph"><span class="btn">Ubah garis bawah jadi rumpang</span><span class="sp"><span class="btn pri">Pilih rumpang 1</span></span></div>
+            <div class="inbox">Soal rumpang dinilai otomatis, jadi ia harus punya kunci. Simpan ditolak sampai seluruh penandanya bernomor.</div>
+          </div>
+        </div>
+        <p class="note">Guru menulis <code>___</code> karena itulah cara menulis soal rumpang di kertas. Menolak layar dengan kalimat "format salah" akan membuatnya mencari format yang benar; memperingatkan di tempat yang sama dengan tombol perbaikannya membuat ia menekan satu tombol. Perhatikan bahwa dasbor ini membiarkan teksnya utuh dan hanya menandai bagian yang salah.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <section class="group">
+    <header>
+      <h2><em>B</em> Siswa mengerjakan</h2>
+      <p>Kotak isian tumbuh di dalam kalimatnya, bukan di bawahnya. Kalimat yang terpotong lalu dilanjutkan di daftar jawaban terpisah memaksa anak memegang kalimat di kepalanya sambil mengetik — dan yang diuji jadi ingatan, bukan pemahaman.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">05</span><h3>Mengerjakan rumpang · ponsel</h3><span class="path">/siswa/ujian/{id}/kerjakan</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Soal 12 / 40</span><span class="sp"></span><span class="chip mute">4 rumpang</span></div>
+            <div class="bd">
+              <div class="qstrip"><b>10</b><b>11</b><b class="cur">12</b><b>13</b><b>14</b><b>15</b><b>16</b><b>17</b></div>
+              <div class="card2">
+                <div class="blankline">
+                  Air mengalir karena pengaruh <span class="bl filled"><u>1</u></span>. Satuan gaya dalam SI adalah <span class="bl filled"><u>2</u></span>, alat ukurnya <span class="bl filled"><u>3</u></span>, dan gaya yang melawan gerak disebut gaya <span class="bl"><u>4</u></span>.
+                </div>
+              </div>
+              <div class="sub">3 dari 4 rumpang terisi. Setiap rumpang bernilai 0,25 poin.</div>
+              <div class="bar"><i style="width:75%"></i></div>
+              <div class="inbox">Jawaban yang dikosongkan bernilai nol — tidak mengurangi rumpang lain yang sudah benar.</div>
+            </div>
+          </div>
+          <div class="sticky">
+            <div style="display:flex;gap:5px">
+              <span class="btn full">Kembali</span>
+              <span class="btn pri full">Simpan &amp; lanjut</span>
+            </div>
+          </div>
+          <div class="tabbar"><span class="on">Ujian</span><span>Nilai</span><span>Pelanggaran</span><span>Akun</span></div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Setiap kotak mengingat posisinya sendiri, dan siswa boleh mengisi tidak berurutan. Yang tidak dilakukan di sini: memeriksa jawaban per rumpang saat diketik. Menyatakan "salah" sebelum dikumpulkan membocorkan kunci kepada anak yang mencoba-coba.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">06</span><h3>Papan nomor · rumpang terjawab sebagian</h3><span class="path">/siswa/ujian/{id}/kerjakan</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Daftar soal</span><span class="sp"></span><span class="chip warn">2 belum</span></div>
+            <div class="bd">
+              <div class="blankline" style="font-size:10px">
+                Pelajari <span class="bl filled"><u>1</u></span> lalu kerjakan dengan <span class="bl"><u>2</u></span>.
+              </div>
+              <div class="qstrip"><b class="done">1</b><b class="done">2</b><b class="done">3</b><b class="done">4</b><b class="done">5</b><b class="cur">6</b><b class="done">7</b><b class="done">8</b><b>9</b><b>10</b></div>
+              <div class="inbox warn">Jawaban Anda belum boleh dikumpulkan. Buka rumpang yang masih kosong.</div>
+            </div>
+          </div>
+          <div class="sticky">
+            <div style="display:flex;gap:5px"><span class="btn pri big full">Kumpulkan jawaban</span></div>
+            <div style="display:flex;gap:5px"><span class="btn big full">Kembali mengerjakan</span></div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Papan nomor membedakan "tuntas" (hijau) dari "sebagian" (garis kanan) di dalam kotak nomornya, sehingga anak yang yakin sudah menjawab soal 6 melihat bahwa rumpang 2 belum terisi. Satu rumpang kosong tidak membuat nomor menjadi merah — itu warna untuk soal yang sama sekali belum disentuh.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <section class="group">
+    <header>
+      <h2><em>C</em> Penilaian, pratinjau paket, dan impor</h2>
+      <p>Rumpang dinilai mesin, dan mesinnya sudah ada: pencocokan teks isian singkat. Yang baru hanyalah penyebutnya — satu soal menjadi N jawaban benar yang dinilai terpisah, lalu dijumlahkan ke satu poin soal.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">07</span><h3>Kartu soal di paket &amp; pratinjau</h3><span class="path">/guru/paket/{id}</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">Pratinjau paket</span></div>
+          <div class="bd">
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:22px 1fr 54px 40px"><span>No</span><span>Soal</span><span>Jenis</span><span>Poin</span></div>
+              <div class="lrow" style="grid-template-columns:22px 1fr 54px 40px"><span class="c">1</span><span class="c">Himpunan penyelesaian dari 2x + 5 = 17 …</span><span class="chip mute">PG</span><span class="c">4</span></div>
+              <div class="lrow" style="grid-template-columns:22px 1fr 54px 40px"><span class="c">2</span><span class="c">Air mengalir karena pengaruh ____ …</span><span class="chip info">Rumpang</span><span class="c">4</span></div>
+              <div class="lrow" style="grid-template-columns:22px 1fr 54px 40px"><span class="c">3</span><span class="c">Nilai x yang memenuhi …</span><span class="chip mute">Isian</span><span class="c">2</span></div>
+            </div>
+            <div class="box solid">
+              <span class="lb">Kunci · rumpang</span>
+              <div class="sub">1 → gravitasi · gaya gravitasi &nbsp;|&nbsp; 2 → newton · N &nbsp;|&nbsp; 3 → neraca pegas · dinamometer &nbsp;|&nbsp; 4 → gesek</div>
+            </div>
+            <div class="inbox">Soal rumpang memakai penyebut rumpang, bukan jumlah varian: empat rumpang dengan dua varian masing-masing tetap bernilai empat bagian.</div>
+          </div>
+        </div>
+        <p class="note">Chip di daftar paket memakai label pendek <b>Rumpang</b>, sejajar dengan PG / Isian / Jodoh / Urut. Butir yang dibekukan menyimpan polanya sendiri, jadi soal paket lama tidak berubah ketika guru menyunting kuncinya kelak.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">08</span><h3>Impor XLSX · kolom kunci rumpang</h3><span class="path">/guru/bank-soal/impor</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">Impor</span></div>
+          <div class="bd">
+            <div class="box solid">
+              <span class="lb">Pratinjau · soal_rumpang.xlsx</span>
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:26px 1fr 56px 52px"><span>Baris</span><span>Ringkas isi</span><span>Jenis</span><span>Hasil</span></div>
+                <div class="lrow" style="grid-template-columns:26px 1fr 56px 52px"><span class="c">2</span><span class="c">Air mengalir karena pengaruh {{1}} …</span><span class="c">Rumpang</span><span class="chip ok">ok</span></div>
+                <div class="lrow" style="grid-template-columns:26px 1fr 56px 52px"><span class="c">3</span><span class="c">Massa jenis air {{1}} g/cm³ …</span><span class="c">Rumpang</span><span class="chip bad">kunci 1 dari 3</span></div>
+                <div class="lrow" style="grid-template-columns:26px 1fr 56px 52px"><span class="c">4</span><span class="c">Ibu kota Indonesia adalah ___</span><span class="c">Rumpang</span><span class="chip bad">penanda tak bernomor</span></div>
+              </div>
+            </div>
+            <div class="box">
+              <span class="lb">Kolom yang dibutuhkan</span>
+              <span class="sub">teks_soal · kunci_rumpang · bobot · tingkat</span>
+              <span class="sub"><code>kunci_rumpang</code> memakai pemisah <code>|</code> antar rumpang dan <code>~</code> antar varian: <code>gravitasi~gaya gravitasi|newton~N</code></span>
+            </div>
+            <div class="ph"><span class="chip ok">46 valid</span><span class="chip bad">4 gagal</span><span class="sp"><span class="btn">Unduh template</span></span></div>
+            <div class="inbox warn">Baris yang penandanya tidak cocok dengan jumlah kunci DITOLAK utuh, bukan diimpor sebagian — soal yang setengah berkunci akan tampak selesai padahal separuh rumpangnya tidak pernah bisa dinilai.</div>
+          </div>
+        </div>
+        <p class="note">Pemisahnya dua karakter berbeda, bukan satu: guru menulis varian jawaban di dalam satu sel, dan pemisah yang sama untuk kedua tingkat akan membuat "gaya gravitasi~gaya berat" tidak bisa dibedakan dari dua rumpang. Validasi kolom ini memakai ulang SkemaJenisSoal, sehingga template dan form builder tidak bisa berbeda aturan.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <section class="group">
+    <header>
+      <h2><em>D</em> Bentuk data</h2>
+      <p>Yang berubah di basis data: satu nilai enum, satu bentuk kunci, dan satu cabang penilai. Tidak ada kolom baru, tidak ada tabel baru — dan itu disengaja, karena <code>answer_key_json</code> memang tempat untuk bentuk per jenis.</p>
+    </header>
+
+    <div class="shots">
+      <figure class="shot wide" style="margin:0">
+        <div class="wf lg" style="min-height:0">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">bentuk kunci &amp; jawaban</span></div>
+          <div class="bd" style="gap:10px">
+            <div class="cols c2">
+              <div class="box solid">
+                <span class="lb">answer_key_json</span>
+                <div class="sub" style="font-family:var(--font-mono);font-size:9.5px;line-height:1.7;white-space:pre-wrap">{ "rumpang": [
+    ["gravitasi", "gaya gravitasi"],
+    ["newton", "N"],
+    ["neraca pegas", "dinamometer", "neraca"],
+    ["gesek"]
+  ]
+}</div>
+              </div>
+              <div class="box solid">
+                <span class="lb">answer_json · jawaban siswa</span>
+                <div class="sub" style="font-family:var(--font-mono);font-size:9.5px;line-height:1.7;white-space:pre-wrap">{ "rumpang": [
+    "gravitasi",
+    "Newton",
+    "",
+    "gaya gesek."
+  ]
+}</div>
+              </div>
+            </div>
+            <div class="cols c3">
+              <div class="kpi"><span class="lb">Rumpang</span><b>4</b></div>
+              <div class="kpi"><span class="lb">Terisi benar</span><b>3</b></div>
+              <div class="kpi"><span class="lb">Poin dari bobot 4</span><b>3,00</b></div>
+            </div>
+            <div class="inbox">Yang kosong bernilai nol tanpa mengurangi yang lain. Normalisasi sama dengan isian singkat: huruf kecil, spasi dirapatkan, tanda baca di ujung dibuang — sehingga <b>"Newton"</b> dan <b>"gaya gesek."</b> di atas keduanya cocok.</div>
+            <div class="box">
+              <span class="lb">Yang TIDAK berubah</span>
+              <div class="sub">Tidak ada tabel baru. Tidak ada kolom baru. Rumpang memakai <code>answer_key_json</code> dan <code>questions.prompt_json.teks</code> yang sudah ada, sehingga soal yang dibekukan ke paket ikut beku tanpa penanganan khusus — snapshot menyalin ISI, bukan id.</div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Bentuk <code>{"rumpang": [[...], [...]]}</code> dipilih alih-alih objek bernomor karena urutan larik sudah membawa nomornya: rumpang ke-1 adalah larik ke-1. Objek <code>{"1": [...]}</code> akan membuat JSON dari JavaScript mengurutkan kuncinya sebagai teks, sehingga <code>"10"</code> muncul sebelum <code>"2"</code> — dan soal dengan sepuluh rumpang akan dinilai dengan kunci yang tertukar.</p>
+      </figure>
+    </div>
+  </section>
+
+  <footer>
+    <span>School CBT · wireframe isian rumpang</span>
+    <span>8 plate · jenis kesepuluh</span>
+    <span>sumber: prd.md §6.5 + wireframe-peran.html plate 03</span>
+  </footer>
+
+</div>

@@ -59,18 +59,28 @@ class PresensiController
 
         $records = $this->kehadiran->daftarRuang($ruang);
 
+        // Nomor kursi datang dari service, bukan dari posisi barisnya.
+        //
+        // Sampai 2026-11-09 keduanya sama - `daftarRuang()` berurut abjad
+        // nama dan nomornya `$i + 1` - sehingga "nomor kursi" dan "urutan
+        // daftar" bisa berupa satu angka. Sejak nomornya dihitung atas ruang
+        // EVENT, himpunannya tidak lagi sama dengan daftar satu ruang-sesi:
+        // sesi yang hanya diikuti sebagian kelas memuat kursi 3, 7, 12 - dan
+        // menulis `$i + 1` di situ akan menyebut kursi 1 untuk anak yang
+        // duduk di kursi 3. Denah, tablo, dan papan ini harus menyebut angka
+        // yang sama, dan yang berhak menentukannya adalah `NomorKursi`.
+        $nomor = $this->kehadiran->nomorKursiRuang($ruang);
+
         return Inertia::render('Pengawas/Presensi', [
             ...$this->kepala($ruang, $konteks),
             'rekap' => $this->kehadiran->rekap($ruang),
-            'kursi' => $records->values()->map(fn (AttendanceRecord $r, int $i) => [
+            'kursi' => $records->values()->map(fn (AttendanceRecord $r) => [
                 'record_id' => $r->id,
                 'peserta_id' => $r->exam_participant_id,
-                // Nomor kursi adalah URUTAN dalam daftar ini, bukan kolom
-                // tersendiri di basis data. Menyimpannya sebagai kolom
-                // berarti kolom yang harus disusun ulang setiap kali peserta
-                // ditambahkan, dan nomor kursi yang salah lebih buruk
-                // daripada tidak ada nomor kursi.
-                'kursi' => $i + 1,
+                // Bukan kolom di basis data: nomor kursi DIHITUNG, dan
+                // dihitung satu tempat - lihat catatan panjang di NomorKursi
+                // tentang mengapa menyimpannya justru lebih buruk.
+                'kursi' => $nomor[(int) $r->penempatan?->student_id] ?? null,
                 'nama' => $r->penempatan?->student?->name ?? 'Peserta',
                 // NIS datang dari profil siswa, bukan dari baris peserta
                 // event: yang menyimpannya adalah StudentProfile, dan
@@ -223,6 +233,7 @@ class PresensiController
         $konteks = KonteksRuang::dari($ruang);
 
         $records = $this->kehadiran->daftarRuang($ruang);
+        $nomor = $this->kehadiran->nomorKursiRuang($ruang);
 
         return Inertia::render('Pengawas/Koreksi', [
             ...$this->kepala($ruang, $konteks),
@@ -232,10 +243,14 @@ class PresensiController
             // yang berikutnya adalah koreksi, bukan penandaan.
             'sesi_berakhir' => $this->sesiBerakhir($ruang),
 
-            'kursi' => $records->values()->map(fn (AttendanceRecord $r, int $i) => [
+            'kursi' => $records->values()->map(fn (AttendanceRecord $r) => [
                 'record_id' => $r->id,
                 'peserta_id' => $r->exam_participant_id,
-                'kursi' => $i + 1,
+                // Sumber yang sama dengan laman presensi - keduanya memakai
+                // `KehadiranService::nomorKursiRuang()` - sehingga nomor di
+                // laman koreksi tidak bergeser dari nomor yang dibaca
+                // pengawas di daftar hadir.
+                'kursi' => $nomor[(int) $r->penempatan?->student_id] ?? null,
                 'nama' => $r->penempatan?->student?->name ?? 'Peserta',
                 'nis' => $r->penempatan?->student?->studentProfile?->nis,
                 'status' => $r->attendance_status->value,

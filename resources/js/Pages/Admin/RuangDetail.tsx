@@ -98,8 +98,11 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
 
                                 <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-3">
                                     <span>
-                                        Terbit {tautan[0]?.terbit} &middot; kedaluwarsa{' '}
-                                        {aktif.kedaluwarsa} &middot;
+                                        Terbit {tautan[0]?.terbit} &middot;{' '}
+                                        {aktif.kedaluwarsa
+                                            ? `kedaluwarsa ${aktif.kedaluwarsa}`
+                                            : 'tanpa kedaluwarsa'}{' '}
+                                        &middot;
                                     </span>
                                     <Chip nada={aktif.dipakai > 1 ? 'warn' : 'mute'}>
                                         {aktif.dipakai} pemakaian
@@ -109,6 +112,13 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
                                 <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
                                     Tautan ini tidak membuka apa pun sendirian. Ia hanya
                                     menampilkan satu kolom kode di pintu ruang.
+                                    {!aktif.kedaluwarsa && (
+                                        <>
+                                            {' '}
+                                            Ia berlaku sampai dicabut, sehingga kartu yang
+                                            dicetak hari ini masih bisa dipindai besok.
+                                        </>
+                                    )}
                                 </p>
                             </>
                         ) : (
@@ -179,7 +189,9 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
                                     kelas: 'w-28',
                                     render: (t) => (
                                         <span className="font-mono text-[11px] text-ink-3">
-                                            {t.dicabut ? `dicabut ${t.dicabut}` : (t.kedaluwarsa ?? '-')}
+                                            {t.dicabut
+                                                ? `dicabut ${t.dicabut}`
+                                                : (t.kedaluwarsa ?? 'sampai dicabut')}
                                         </span>
                                     ),
                                 },

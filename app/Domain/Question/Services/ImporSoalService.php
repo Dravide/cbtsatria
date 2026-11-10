@@ -70,13 +70,18 @@ use Illuminate\Validation\ValidationException;
  * Konvensi kolom yang TIDAK ada di template
  * =====================================================================
  * Template impor adalah tabel datar empat belas kolom: kode, judul, jenis,
- * tingkat, bobot, soal, opsi_a..opsi_e, kunci, rubrik, pembahasan. Sembilan
- * jenis soal harus muat ke dalamnya, dan empat di antaranya butuh kesepakatan
+ * tingkat, bobot, soal, opsi_a..opsi_e, kunci, rubrik, pembahasan. Sepuluh
+ * jenis soal harus muat ke dalamnya, dan lima di antaranya butuh kesepakatan
  * yang tidak bisa ditebak dari nama kolomnya:
  *
  *   PILIHAN GANDA / GANDA   `kunci` berisi huruf: "a", atau "a, c".
  *   BENAR/SALAH             `kunci` berisi b/s - "benar"/"salah" diterima.
  *   ISIAN SINGKAT           `kunci` berisi varian, dipisah "|": "7|tujuh".
+ *   ISIAN RUMPANG           `kunci` berisi jawaban setiap lubang, dipisah
+ *                           "|", dan varian dalam satu lubang dipisah "~":
+ *                           "gravitasi~gaya gravitasi|newton~N" = dua lubang.
+ *                           Teks soalnya wajib memuat {{1}}..{{n}} sebanyak
+ *                           lubangnya; yang tidak cocok ditolak.
  *   ANGKA                   `kunci` berisi bilangannya: "3.14".
  *   MENJODOHKAN             `opsi_a..opsi_e` adalah item KIRI, dan `kunci`
  *                           berisi pasangannya: "a=Jakarta; b=Bandung".
@@ -526,6 +531,10 @@ class ImporSoalService
                 $muatan['butir'],
                 $muatan['rubrik'],
                 $muatan['scoring_config_json'],
+                // Penanda rumpang diperiksa juga di jalur impor: baris Excel
+                // dengan empat `{{n}}` tetapi dua kunci harus ditolak di
+                // pratinjau, bukan tersimpan lalu dinilai salah selamanya.
+                $muatan['prompt_json']['teks'] ?? null,
             );
         } catch (ValidationException $e) {
             [$kolom, $pesan] = $this->galatPertama($e);
@@ -627,6 +636,37 @@ class ImporSoalService
                 }
 
                 return array_merge($kosong, ['kunci' => ['teks' => $varian]]);
+
+            case JenisSoal::IsianRumpang:
+                // Dua pemisah, dua tingkat: `|` memisahkan LUBANG, `~`
+                // memisahkan varian di dalam satu lubang.
+                // "gravitasi~gaya gravitasi|newton~N" = dua lubang.
+                $lubang = $this->pisah($kunciMentah, ['|']);
+
+                if ($lubang === []) {
+                    return array_merge($kosong, [
+                        'galat' => 'Kolom kunci kosong. Isi jawaban setiap rumpang dan pisahkan lubangnya dengan "|", misalnya "gravitasi|newton". Varian dalam satu lubang dipisah "~".',
+                        'kolom' => 'kunci',
+                    ]);
+                }
+
+                $daftar = [];
+
+                foreach ($lubang as $nomor => $satu) {
+                    $varian = array_map('trim', explode('~', $satu));
+                    $varian = array_values(array_filter($varian, fn (string $s) => $s !== ''));
+
+                    if ($varian === []) {
+                        return array_merge($kosong, [
+                            'galat' => 'Rumpang ke-'.($nomor + 1).' belum punya jawaban. Setiap lubang wajib punya sekurang-kurangnya satu varian.',
+                            'kolom' => 'kunci',
+                        ]);
+                    }
+
+                    $daftar[] = $varian;
+                }
+
+                return array_merge($kosong, ['kunci' => ['rumpang' => $daftar]]);
 
             case JenisSoal::Angka:
                 $angka = str_replace(',', '.', trim($kunciMentah));
@@ -877,6 +917,11 @@ class ImporSoalService
             'isian' => 'isian_singkat',
             'isian_singkat' => 'isian_singkat',
             'short_answer' => 'isian_singkat',
+            'rumpang' => 'isian_rumpang',
+            'isian_rumpang' => 'isian_rumpang',
+            'fill_in_the_blank' => 'isian_rumpang',
+            'fill_in_blank' => 'isian_rumpang',
+            'cloze' => 'isian_rumpang',
             'jodoh' => 'menjodohkan',
             'jodohkan' => 'menjodohkan',
             'matching' => 'menjodohkan',

@@ -78,12 +78,22 @@ class BankSoalService
 
             $this->skema->validasi(
                 $jenis,
-                $bersih['answer_key_json'],
+                // `?? null`, bukan akses langsung: pemanggil yang tidak
+                // mengirim kunci sama sekali - jenis yang memang tidak punya
+                // kunci, atau payload yang hanya menyimpan draf - tidak boleh
+                // berakhir sebagai "Undefined array key" 500. Skema yang
+                // memutuskan apakah kunci kosong itu sah untuk jenisnya.
+                $bersih['answer_key_json'] ?? null,
                 (float) ($bersih['scoring_config_json']['bobot'] ?? 1),
                 $this->opsiDari($bersih),
                 $this->butirDari($bersih),
                 $this->rubrikDari($bersih),
                 $bersih['scoring_config_json'] ?? [],
+                // Teks soal ikut diperiksa HANYA untuk isian rumpang: jumlah
+                // penanda {{n}} di dalamnya harus sama dengan jumlah kuncinya.
+                // Dikirim dari sini karena skema tidak menyentuh basis data,
+                // dan karena `prompt_json` sudah dibersihkan pada titik ini.
+                $bersih['prompt_json']['teks'] ?? null,
             );
 
             $soal = Question::create([
@@ -102,8 +112,11 @@ class BankSoalService
                 'question_type' => $data['question_type'],
                 'difficulty' => $data['difficulty'] ?? 'sedang',
                 'prompt_json' => $bersih['prompt_json'],
-                'answer_key_json' => $bersih['answer_key_json'],
-                'scoring_config_json' => $bersih['scoring_config_json'],
+                // `?? null` dengan alasan yang sama seperti pada `validasi()`
+                // di atas: `ValidatedInput` hanya memuat kunci yang benar-benar
+                // DIKIRIM, dan kolom JSON kosong adalah nilai yang sah.
+                'answer_key_json' => $bersih['answer_key_json'] ?? null,
+                'scoring_config_json' => $bersih['scoring_config_json'] ?? [],
                 'explanation_json' => $bersih['explanation_json'] ?? null,
                 'status' => $data['status'] ?? StatusSoal::Draft->value,
                 'published_at' => ($data['status'] ?? null) === StatusSoal::Siap->value ? now() : null,
@@ -175,6 +188,11 @@ class BankSoalService
                 $this->butirDari($bersih),
                 $this->rubrikDari($bersih),
                 $skor,
+                // Teksnya bisa datang dari payload (Guru menyunting soalnya)
+                // atau sudah tersimpan (Guru hanya mengubah kuncinya). Kedua
+                // keadaan diperiksa, karena yang menentukan sah tidaknya
+                // kunci rumpang adalah teks yang AKAN tersimpan.
+                $bersih['prompt_json']['teks'] ?? ($soal->prompt_json['teks'] ?? null),
             );
 
             $status = $data['status'] ?? $soal->status;

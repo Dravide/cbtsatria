@@ -16,6 +16,7 @@ use App\Domain\Event\Services\EventParticipantService;
 use App\Domain\Event\Services\EventReadiness;
 use App\Domain\Event\Services\EventRegistrar;
 use App\Domain\Event\Services\EventStatusService;
+use App\Domain\Event\Services\KartuPengawas;
 use App\Domain\Exam\Models\ExamToken;
 use App\Domain\Exam\Services\ExamRegistrar;
 use App\Domain\Exam\Services\PenempatanService;
@@ -799,4 +800,184 @@ it('membuat kode event berurutan, bukan dari jumlah baris', function () {
     // Dari kode TERTINGGI: event yang dihapus menurunkan jumlah baris, dan
     // kode berikutnya akan menabrak kode yang masih dipakai.
     expect($registrar->kodeBerikutnya($this->tahun))->toBe('EV-2026-008');
+});
+
+/* ---------------------------------------- Unduhan kepanitiaan §6.6 */
+
+it('mengunduh daftar panitia sebagai berkas XLSX', function () {
+    $pengawas = User::factory()->pengawas()->untukSekolah($this->sekolah)->create([
+        'name' => 'Ana Wijaya',
+        'username' => 'ana.wijaya',
+    ]);
+
+    EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'user_id' => $pengawas->id,
+        'name' => 'Ana Wijaya',
+        'position' => 'pengawas',
+        'scope' => 'event',
+        'status' => 'aktif',
+        'code' => '482913',
+    ]);
+
+    $respon = $this->actingAs($this->admin)
+        ->get("/admin/events/{$this->event->id}/panitia/ekspor");
+
+    $respon->assertOk();
+
+    expect($respon->headers->get('content-type'))
+        ->toContain('spreadsheetml.sheet')
+        ->and($respon->headers->get('content-disposition'))
+        ->toContain('attachment')
+        ->toContain('.xlsx');
+
+    // Isinya benar-benar berkas XLSX, bukan HTML yang salah label: tanda
+    // tangan ZIP ("PK") di awal berkas cukup untuk membedakannya.
+    expect(substr($respon->getContent(), 0, 2))->toBe('PK');
+});
+
+it('mengunduh kartu panitia sebagai PDF dan mencatatnya di log', function () {
+    EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'name' => 'Budi Santoso',
+        'position' => 'ketua',
+        'scope' => 'event',
+        'status' => 'aktif',
+    ]);
+
+    $respon = $this->actingAs($this->admin)
+        ->get("/admin/events/{$this->event->id}/panitia/kartu");
+
+    $respon->assertOk();
+
+    expect($respon->headers->get('content-type'))->toContain('application/pdf')
+        ->and(substr($respon->getContent(), 0, 4))->toBe('%PDF');
+
+    // Kartu memuat kode, jadi pengunduhannya dicatat - pertanyaan "kartu ini
+    // dari mana" harus punya jawaban.
+    $this->assertDatabaseHas('activity_logs', [
+        'school_id' => $this->sekolah->id,
+        'action' => 'Mencetak kartu panitia',
+    ]);
+});
+
+it('hanya mencetak kode pada kartu bagi yang berhak memegangnya', function () {
+    $pengawas = User::factory()->pengawas()->untukSekolah($this->sekolah)->create(['name' => 'Ana Wijaya']);
+
+    // Pengawas aktif berakun: memegang kode.
+    $berhak = EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'user_id' => $pengawas->id,
+        'name' => 'Ana Wijaya',
+        'position' => 'pengawas',
+        'scope' => 'event',
+        'status' => 'aktif',
+        'code' => '482913',
+    ]);
+
+    // Ketua: mendapat kartu, tetapi kodenya TIDAK boleh tercetak meski
+    // kolomnya kebetulan terisi - kartu ketua yang memuat kode adalah kode
+    // milik orang lain yang ikut beredar.
+    $ketua = EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'name' => 'Budi Santoso',
+        'position' => 'ketua',
+        'scope' => 'event',
+        'status' => 'aktif',
+        'code' => '999999',
+    ]);
+
+    $kartu = app(KartuPengawas::class)
+        ->kartu($this->event->committee()->with('user:id,username')->get());
+
+    $perNama = collect($kartu)->keyBy('nama');
+
+    expect($perNama['Ana Wijaya']['kode'])->toBe('482913')
+        ->and($perNama['Budi Santoso']['kode'])->toBeNull()
+        // Setiap baris tetap mendapat kartu, termasuk yang tanpa kode.
+        ->and($kartu)->toHaveCount(2);
+});
+
+/* --------------------------------------------- Kode massal §6.6 */
+
+it('menerbitkan kode untuk semua pengawas yang belum punya, tanpa menyentuh yang sudah', function () {
+    [$ana, $beni] = akunPanitia($this->sekolah, ['Ana Wijaya', 'Beni Saputra'], 'pengawas');
+
+    $anaPanitia = EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'user_id' => $ana->id,
+        'name' => 'Ana Wijaya',
+        'position' => 'pengawas',
+        'scope' => 'event',
+        'status' => 'aktif',
+        'code' => '111111',
+    ]);
+
+    // Beni belum punya kode; Cita bukan pengawas sehingga tidak pernah
+    // mendapatkannya.
+    EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'user_id' => $beni->id,
+        'name' => 'Beni Saputra',
+        'position' => 'pengawas',
+        'scope' => 'event',
+        'status' => 'aktif',
+    ]);
+
+    EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'name' => 'Cita Rahayu',
+        'position' => 'ketua',
+        'scope' => 'event',
+        'status' => 'aktif',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/kode-massal")
+        ->assertSessionHasNoErrors();
+
+    // Kode Ana TIDAK berubah. Inilah yang menjaga kartu yang sudah tercetak:
+    // "terbitkan semua" yang memutar kode akan mematikan seluruh kartu yang
+    // sudah di tangan pengawas pada pagi hari ujian.
+    expect($anaPanitia->refresh()->code)->toBe('111111');
+
+    $beniPanitia = $this->event->committee()->where('name', 'Beni Saputra')->first();
+
+    expect($beniPanitia->code)->not->toBeNull()
+        ->and(strlen($beniPanitia->code))->toBe(6);
+
+    // Ketua tidak mendapat kode, dan sebabnya disebut - bukan dilewati diam.
+    expect($this->event->committee()->where('name', 'Cita Rahayu')->first()->code)->toBeNull()
+        ->and(session('sukses'))->toContain('1 kode pengawas diterbitkan')
+        ->and(session('sukses'))->toContain('Cita Rahayu');
+});
+
+it('mengatakan tidak ada yang diterbitkan bila semua kode sudah ada', function () {
+    $ana = User::factory()->pengawas()->untukSekolah($this->sekolah)->create(['name' => 'Ana Wijaya']);
+
+    EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'user_id' => $ana->id,
+        'name' => 'Ana Wijaya',
+        'position' => 'pengawas',
+        'scope' => 'event',
+        'status' => 'aktif',
+        'code' => '111111',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/kode-massal");
+
+    // Pesannya "tidak ada", bukan daftar "dilewati" yang panjang: baris yang
+    // sudah punya kode bukan hambatan, dan menyebutnya sebagai hambatan akan
+    // membuat Admin mencari-cari masalah yang tidak ada.
+    expect(session('sukses'))->toContain('Tidak ada yang diterbitkan');
 });

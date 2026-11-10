@@ -167,6 +167,7 @@ code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);bo
 .c4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .c5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .c6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.c7{grid-template-columns:repeat(7,minmax(0,1fr))}
 .box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
 .box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
 .box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
@@ -246,11 +247,11 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
   </div>
 
   <div class="filters" role="group" aria-label="Saring laman menurut kelompok">
-    <button class="fbtn on" data-g="all">Semua <b>27</b></button>
+    <button class="fbtn on" data-g="all">Semua <b>29</b></button>
     <button class="fbtn" data-g="masuk">Masuk <b>2</b></button>
     <button class="fbtn" data-g="rangka">Rangka <b>1</b></button>
     <button class="fbtn" data-g="master">Sekolah &amp; master <b>8</b></button>
-    <button class="fbtn" data-g="event">Event <b>10</b></button>
+    <button class="fbtn" data-g="event">Event <b>12</b></button>
     <button class="fbtn" data-g="ops">Pelaksanaan <b>2</b></button>
     <button class="fbtn" data-g="hasil">Hasil <b>2</b></button>
     <button class="fbtn" data-g="sistem">Sistem <b>2</b></button>
@@ -704,7 +705,7 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
   <section class="group" data-g="event">
     <header>
       <h2><em>E</em> Workspace event</h2>
-      <p>Sepuluh laman di dalam satu event. Ini inti produk: event adalah tempat semua komponen bertemu, dan sidebar-nya berubah begitu sebuah event aktif — dari daftar master data menjadi daftar komponen event yang sedang dikerjakan.</p>
+      <p>Dua belas laman di dalam satu event. Ini inti produk: event adalah tempat semua komponen bertemu, dan sidebar-nya berubah begitu sebuah event aktif — dari daftar master data menjadi daftar komponen event yang sedang dikerjakan.</p>
     </header>
 
     <div class="shots">
@@ -984,6 +985,271 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
         <p class="note">Satu laman untuk satu keputusan: siapa duduk di ruang mana, dan bukti bahwa keputusan itu diacak. Yang menentukan bentuknya dua hal. <b>Kocokan dibekukan</b> &mdash; ruang siswa tidak berubah hanya karena Admin membuka laman ini lagi, karena daftar ruang dicetak dan ditempel di pintu, dan daftar cetak yang tidak lagi cocok dengan layar adalah daftar yang tidak dipercaya siapa pun. <b>Rotasi antar kelas</b> &mdash; peserta diambil bergiliran dari tiap kelas, bukan dikocok rata, karena kocokan rata <i>boleh jadi</i> menumpuk satu kelas di satu ruang, dan itu justru yang ingin dihindari ujian campuran. Kotak <b>Pratinjau kocokan</b> adalah satu-satunya tempat angka "seisi satu kelas" bisa dibuktikan sebelum disebar; sesudah disebar, satu-satunya cara memperbaikinya adalah mengocok ulang &mdash; dan itu membatalkan daftar yang sudah tercetak.</p>
       </figure>
 
+      <figure class="shot lg" style="margin:0">
+        <div class="cap"><span class="n">16c</span><h3>Denah tempat duduk</h3><span class="path">/admin/events/{event}/penempatan &middot; tab "Denah"</span></div>
+        <div class="wf lg">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/penempatan?ruang=R-01&amp;tampilan=denah</span></div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark">E</div>
+              <a class="ni"><i></i><span>Penempatan</span></a>
+              <a class="ni on"><i></i><span>Denah kursi</span></a>
+              <a class="ni"><i></i><span>Pratinjau kocokan</span></a>
+              <a class="ni"><i></i><span>Riwayat sebar</span></a>
+            </div>
+            <div class="main">
+              <div class="tbar">
+                <span class="sel ev">Event: UAS Ganjil</span>
+                <span class="sel">Ruang: R-01</span>
+                <span class="sel">Tampilan: Denah</span>
+                <span class="sp" style="margin-left:auto"></span>
+                <span class="chip ok">terkunci &middot; benih #7K2M</span>
+                <span class="btn">Daftar kursi</span>
+                <span class="btn">Cetak tablo</span>
+                <span class="btn pri">Cetak denah</span>
+              </div>
+              <div class="body">
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Meja</span><b>20</b></div>
+                  <div class="kpi"><span class="lb">Kursi</span><b>40</b></div>
+                  <div class="kpi"><span class="lb">Terisi</span><b>40</b></div>
+                  <div class="kpi"><span class="lb">Kosong</span><b>0</b></div>
+                </div>
+
+                <div class="box solid" style="gap:7px">
+                  <div class="ph">
+                    <span class="lb">R-01 &middot; Lab Komputer 1</span>
+                    <span class="sp">
+                      <span class="chip info">4 kolom &times; 5 baris</span>
+                      <span class="chip mute">pintu di kanan depan</span>
+                      <span class="chip mute">2 kursi per meja</span>
+                    </span>
+                  </div>
+
+                  <div style="border:1px solid var(--wf-line);border-radius:4px;background:var(--wf-soft);text-align:center;font:500 8px/1 var(--font-mono);letter-spacing:.14em;color:var(--wf-dim);padding:6px">PAPAN TULIS</div>
+
+                  <!-- baris meja 1: meja 1-4, kursi 01-08 -->
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">01</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Ani Mulyani</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-1 &middot; 2401</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">02</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Bayu Prasetyo</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-2 &middot; 2587</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">03</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Citra Dewi</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-1 &middot; 2704</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">04</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Dedi Kurnia</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-2 &middot; 2418</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">05</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Eka Putri</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-1 &middot; 2533</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">06</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Fajar Nugroho</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-3 &middot; 2710</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">07</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Gita Ramadhani</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-1 &middot; 2402</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">08</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hendra Gunawan</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-2 &middot; 2588</div></div>
+                    </div>
+                  </div>
+
+                  <!-- baris meja 2: meja 5-8, kursi 09-16 -->
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">09</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Indah Permata</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-1 &middot; 2705</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">10</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Joko Susilo</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-2 &middot; 2419</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">11</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Kiki Amelia</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-1 &middot; 2534</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">12</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Lukman Hakim</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-3 &middot; 2711</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">13</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Maya Sari</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-1 &middot; 2403</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">14</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Nanda Pratama</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-2 &middot; 2589</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">15</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Oki Setiawan</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-1 &middot; 2706</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">16</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Putri Handayani</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-2 &middot; 2420</div></div>
+                    </div>
+                  </div>
+
+                  <!-- baris meja 3: meja 9-12, kursi 17-24 -->
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">17</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Qori Amalia</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-1 &middot; 2535</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">18</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rina Wati</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-3 &middot; 2712</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">19</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Slamet Riyadi</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-1 &middot; 2404</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">20</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Taufik Hidayat</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-2 &middot; 2590</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">21</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Umi Kalsum</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-1 &middot; 2707</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">22</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Vina Oktaviani</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-2 &middot; 2421</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">23</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Wahyu Saputra</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-1 &middot; 2536</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">24</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Yudi Hartono</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-3 &middot; 2713</div></div>
+                    </div>
+                  </div>
+
+                  <!-- baris meja 4: meja 13-16, kursi 25-32 -->
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">25</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Zahra Nabila</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-1 &middot; 2405</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">26</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Agus Salim</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-2 &middot; 2591</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">27</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Cahya Ningrum</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-1 &middot; 2708</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">28</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Dwi Astuti</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-2 &middot; 2422</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">29</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Endang Susanti</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-1 &middot; 2537</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">30</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Fikri Ramadhan</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-3 &middot; 2714</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">31</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Hesti Purwanti</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-1 &middot; 2406</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">32</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Irfan Maulana</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-2 &middot; 2592</div></div>
+                    </div>
+                  </div>
+
+                  <!-- baris meja 5: meja 17-20, kursi 33-40 -->
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">33</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Juli Astuti</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-1 &middot; 2709</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">34</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Kurnia Sari</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-2 &middot; 2423</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">35</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Lestari Ningsih</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-1 &middot; 2538</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">36</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Miftah Farid</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-3 &middot; 2715</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">37</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Novi Andini</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-1 &middot; 2407</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">38</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Yusuf Adi</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XI-2 &middot; 2593</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border:1px solid var(--wf-line);border-radius:5px;padding:3px;background:var(--wf-soft)">
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">39</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Lilis Suryani</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">XII-3 &middot; 2716</div></div>
+                      <div style="border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:3px 4px;display:grid;gap:1px;min-width:0"><div style="font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)">40</div><div style="font-size:8.5px;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rina Marlina</div><div style="font:400 7.5px/1 var(--font-mono);color:var(--wf-dim)">X-2 &middot; 2424</div></div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                    <span class="lb" style="font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)">Keterangan</span>
+                    <span class="chip ok">kursi terisi</span>
+                    <span class="chip mute">kursi kosong</span>
+                    <span class="chip info">4 kolom &middot; 5 baris</span>
+                    <span class="sp" style="margin-left:auto"></span>
+                    <span style="font:500 8px/1 var(--font-mono);color:var(--wf-dim)">PINTU / ARAH MASUK</span>
+                    <span style="width:40px;height:8px;border-radius:3px;background:var(--accent)"></span>
+                  </div>
+                </div>
+
+                <div class="inbox">Nomor kursi di denah ini yang dicetak dan ditempel di tiap meja, dan nomor yang sama yang dibaca pengawas di daftar presensi. Tidak ada nomor kedua: ruang tidak pernah memakai penomoran berbeda antara layar dan kertas.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Denah ini bukan hiasan laman penempatan: ia menggantikan pertanyaan pertama setiap pengawas di depan kelas &mdash; "anak ini duduk di mana?". Nomor kursi sudah ditentukan sejak <b>Sebar peserta</b> dan sudah tercetak di daftar hadir, jadi denah hanya menggambarnya; ia tidak pernah mengocok ulang. <b>Bentuk Z</b> adalah jalur masuknya: empat kolom meja, penomoran menyusur satu baris penuh lalu turun ke baris berikutnya, supaya kursi 1..8 berurutan sepanjang satu jalur dan pengawas yang menyusur dari pintu tidak perlu menyeberang. <b>Jumlah meja dihitung dari kapasitas ruang</b>, bukan dipatok 20: sanggupnya satu ruang ditentukan nilai <i>Kapasitas</i> di laman Ruang, dan ruang 32 kursi memang mendapat 16 meja. Denah 20 meja &times; 2 kursi di atas menggambarkan R-01 yang berkapasitas 40.</p>
+        <p class="note gap">Nama dan NIS ada di dalam kotak karena lembar ini untuk pengawas di dalam ruangan, bukan untuk ditempel di koridor. Denah bernama tidak boleh dipasang di daun pintu bersama kartu QR &mdash; halaman <span style="font-family:var(--font-mono)">/p/{slug}</span> sengaja tidak memuat satu pun nama anak, dan kertas yang memuatnya membatalkan penjagaan itu. Untuk pintu, yang dicetak adalah nomor kursi saja.</p>
+      </figure>
+
+      <figure class="shot lg" style="margin:0">
+        <div class="cap"><span class="n">16d</span><h3>Tablo &mdash; daftar hadir per ruang (PDF)</h3><span class="path">/admin/events/{event}/penempatan/tablo</span></div>
+        <div class="wf lg">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/penempatan/tablo?ruang=R-01</span></div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark">E</div>
+              <a class="ni"><i></i><span>Penempatan</span></a>
+              <a class="ni"><i></i><span>Denah kursi</span></a>
+              <a class="ni on"><i></i><span>Tablo</span></a>
+              <a class="ni"><i></i><span>Pratinjau kocokan</span></a>
+            </div>
+            <div class="main">
+              <div class="tbar">
+                <span class="sel ev">Event: UAS Ganjil</span>
+                <span class="sel">Ruang: R-01</span>
+                <span class="sp" style="margin-left:auto"></span>
+                <span class="btn">Semua ruang</span>
+                <span class="btn">Denah</span>
+                <span class="btn pri">Cetak tablo (PDF)</span>
+              </div>
+              <div class="body">
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Ruang dicetak</span><b>6</b></div>
+                  <div class="kpi"><span class="lb">Kursi</span><b>40</b></div>
+                  <div class="kpi"><span class="lb">Terisi</span><b>40</b></div>
+                  <div class="kpi"><span class="lb">Lembar</span><b>6</b></div>
+                </div>
+
+                <div class="box solid" style="gap:8px">
+                  <div class="ph">
+                    <span class="lb">Pratinjau lembar &mdash; R-01</span>
+                    <span class="sp">
+                      <span class="chip ok">1 lembar A4</span>
+                      <span class="chip mute">A4 potret &middot; 12mm</span>
+                    </span>
+                  </div>
+
+                  <div style="border:1px solid var(--wf-line);border-radius:4px;background:var(--wf-bg);padding:10px;display:grid;gap:8px">
+                    <div style="display:flex;gap:8px;align-items:center;border-bottom:2px solid var(--wf-ink);padding-bottom:5px">
+                      <div style="width:34px;height:34px;border:1px solid var(--wf-dash);border-radius:3px;background:var(--wf-soft);flex:none"></div>
+                      <div style="display:grid;gap:1px;min-width:0">
+                        <div style="font:600 11px/1.2 var(--font-display);color:var(--wf-ink)">SMK NEGERI 1</div>
+                        <div style="font:400 8px/1 var(--font-mono);color:var(--wf-dim)">NPSN 20512345</div>
+                      </div>
+                      <div style="margin-left:auto;text-align:right;display:grid;gap:1px">
+                        <div style="font:500 9px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--wf-dim)">Daftar hadir ujian</div>
+                        <div style="font:400 8px/1 var(--font-mono);color:var(--wf-dim)">UAS Ganjil &middot; 2026/2027</div>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+                      <b style="font-family:var(--font-display);font-size:14px">R-01 &middot; Lab Komputer 1</b>
+                      <span class="sub" style="color:var(--wf-dim)">Matematika &middot; S-01 &middot; 02 Nov 2026, 07:30&ndash;09:30</span>
+                      <span class="sp" style="margin-left:auto"></span>
+                      <span class="chip info">40 kursi</span>
+                      <span class="chip mute">2 kursi per meja</span>
+                    </div>
+
+                    <div class="tbl">
+                      <div class="tr th" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span>Kursi</span><span>Nama peserta</span><span>NIS</span><span>Kelas</span><span>Meja</span><span>Tanda tangan</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">01</span><span class="c">Ani Mulyani</span><span class="c" style="font-family:var(--font-mono)">2401</span><span class="c">X-1</span><span class="c" style="font-family:var(--font-mono)">M-1</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">02</span><span class="c">Bayu Prasetyo</span><span class="c" style="font-family:var(--font-mono)">2587</span><span class="c">XI-2</span><span class="c" style="font-family:var(--font-mono)">M-1</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">03</span><span class="c">Citra Dewi</span><span class="c" style="font-family:var(--font-mono)">2704</span><span class="c">XII-1</span><span class="c" style="font-family:var(--font-mono)">M-2</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">04</span><span class="c">Dedi Kurnia</span><span class="c" style="font-family:var(--font-mono)">2418</span><span class="c">X-2</span><span class="c" style="font-family:var(--font-mono)">M-2</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">05</span><span class="c">Eka Putri</span><span class="c" style="font-family:var(--font-mono)">2533</span><span class="c">XI-1</span><span class="c" style="font-family:var(--font-mono)">M-3</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">06</span><span class="c">Fajar Nugroho</span><span class="c" style="font-family:var(--font-mono)">2710</span><span class="c">XII-3</span><span class="c" style="font-family:var(--font-mono)">M-3</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">07</span><span class="c">Gita Ramadhani</span><span class="c" style="font-family:var(--font-mono)">2402</span><span class="c">X-1</span><span class="c" style="font-family:var(--font-mono)">M-4</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">08</span><span class="c">Hendra Gunawan</span><span class="c" style="font-family:var(--font-mono)">2588</span><span class="c">XI-2</span><span class="c" style="font-family:var(--font-mono)">M-4</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">09</span><span class="c">Indah Permata</span><span class="c" style="font-family:var(--font-mono)">2705</span><span class="c">XII-1</span><span class="c" style="font-family:var(--font-mono)">M-5</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">10</span><span class="c">Joko Susilo</span><span class="c" style="font-family:var(--font-mono)">2419</span><span class="c">X-2</span><span class="c" style="font-family:var(--font-mono)">M-5</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">11</span><span class="c">Kiki Amelia</span><span class="c" style="font-family:var(--font-mono)">2534</span><span class="c">XI-1</span><span class="c" style="font-family:var(--font-mono)">M-6</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono)">12</span><span class="c">Lukman Hakim</span><span class="c" style="font-family:var(--font-mono)">2711</span><span class="c">XII-3</span><span class="c" style="font-family:var(--font-mono)">M-6</span><span class="c" style="border-bottom:1px dotted var(--wf-dash)">&nbsp;</span></div>
+                      <div class="tr" style="grid-template-columns:34px 1fr 62px 40px 44px 74px"><span class="c" style="font-family:var(--font-mono);color:var(--wf-dim)">&hellip;</span><span class="c" style="color:var(--wf-dim)">sampai kursi 40 &mdash; dilanjutkan di lembar yang sama</span><span class="c" style="color:var(--wf-dim)">&hellip;</span><span class="c"></span><span class="c" style="color:var(--wf-dim)">M-20</span><span class="c"></span></div>
+                    </div>
+
+                    <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--wf-hair);padding-top:6px">
+                      <span class="sub" style="color:var(--wf-dim)">Jumlah peserta: 40 &middot; Hadir: ____ &middot; Tidak hadir: ____</span>
+                      <span class="sp" style="margin-left:auto"></span>
+                      <div style="display:grid;gap:14px;text-align:center">
+                        <span class="sub" style="color:var(--wf-dim)">Pengawas ruang</span>
+                        <span style="font:400 9px/1 var(--font-mono);color:var(--wf-dim);border-top:1px dotted var(--wf-dash);padding-top:2px;min-width:110px">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ph">
+                    <span class="lb">Berkas yang diunduh</span>
+                    <span class="sp" style="margin-left:auto"></span>
+                    <span style="font:400 9px/1 var(--font-mono);color:var(--wf-dim)">tablo-EV-2026-001.pdf</span>
+                  </div>
+                </div>
+
+                <div class="inbox">Tablo memuat nama dan NIS, jadi ia tidak diunggah ke mana pun. Berkasnya dibuat di server dan langsung dikirim ke peramban; yang tersimpan di unduhan adalah berkas yang dibuat atas permintaan Admin, bukan tautan yang bisa dibuka orang lain.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note"><b>Tablo</b> adalah kertasnya pengawas: satu lembar A4 per ruang, berisi daftar kursi &mdash; nomor kursi, nama, NIS, kelas, nomor meja, dan kolom tanda tangan. Ia tidak menggantikan denah, ia melengkapinya: denah menjawab "anak ini duduk di mana", tablo menjawab "siapa saja yang seharusnya ada di ruang ini" &mdash; dan kolom tanda tangan itulah yang menjadikannya daftar hadir, bukan sekadar daftar nama. Karena itu urutannya sama dengan denah: nomor kursi menyusur bentuk Z, sehingga pengawas yang menyusur ruang sambil membawa tablo menemui anak-anak dalam urutan yang sama dengan yang ia lihat di meja.</p>
+        <p class="note gap">Isinya <b>tidak boleh</b> menjadi lembar yang ditempel di koridor bersama kartu QR. Halaman <span style="font-family:var(--font-mono)">/p/{slug}</span> sengaja tidak memuat satu pun nama anak; tablo memuat empat puluh. Yang dicetak untuk pintu tetap kartu QR, dan tablo berhenti di meja pengawas.</p>
+      </figure>
+
       <figure class="shot" style="margin:0">
         <div class="cap"><span class="n">17</span><h3>Pengawas &amp; penempatan ruang</h3><span class="path">/admin/events/{event}/pengawas</span></div>
         <div class="wf">
@@ -1091,26 +1357,38 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
             <div class="main">
               <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sel">Sesi: S-01</span><span class="sp" style="margin-left:auto"></span><span class="chip ok">terhubung</span><span class="btn">Segarkan</span></div>
               <div class="body">
-                <div class="cols c5">
+                <div class="cols c7">
+                  <div class="kpi"><span class="lb">Ruang-sesi</span><b>12</b></div>
+                  <div class="kpi"><span class="lb">Peserta</span><b>384</b></div>
                   <div class="kpi"><span class="lb">Mengerjakan</span><b>278</b></div>
                   <div class="kpi"><span class="lb">Selesai</span><b>24</b></div>
                   <div class="kpi"><span class="lb">Terputus</span><b>3</b></div>
-                  <div class="kpi"><span class="lb">Dikunci</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Terkunci</span><b>1</b></div>
                   <div class="kpi"><span class="lb">Pelanggaran</span><b>11</b></div>
                 </div>
-                <div class="tbl">
-                  <div class="tr th" style="grid-template-columns:50px 1fr 58px 54px 52px"><span>Ruang</span><span>Ujian</span><span>Progres</span><span>Terakhir</span><span>Flag</span></div>
-                  <div class="tr" style="grid-template-columns:50px 1fr 58px 54px 52px"><span class="c">R-01</span><span class="c">Matematika · X</span><span class="c">18/32</span><span class="c">2s</span><span class="chip ok">—</span></div>
-                  <div class="tr" style="grid-template-columns:50px 1fr 58px 54px 52px"><span class="c">R-02</span><span class="c">Matematika · X</span><span class="c">21/32</span><span class="c">5s</span><span class="chip warn">2</span></div>
-                  <div class="tr" style="grid-template-columns:50px 1fr 58px 54px 52px"><span class="c">R-03</span><span class="c">Matematika · XI</span><span class="c">30/32</span><span class="c">12s</span><span class="chip bad">1 kunci</span></div>
-                  <div class="tr" style="grid-template-columns:50px 1fr 58px 54px 52px"><span class="c">R-05</span><span class="c">Matematika · XI</span><span class="c">29/32</span><span class="c">1m</span><span class="chip mute">—</span></div>
+                <div class="box">
+                  <div class="ph"><b>R-01 · Ruang A</b><span class="sp"></span><span class="chip info">S-01</span><span class="chip ok">terverifikasi</span><span class="btn">Tutup daftar</span></div>
+                  <div style="font-size:9.5px;color:var(--wf-dim)">Matematika · X &nbsp;·&nbsp; 32 peserta &nbsp;·&nbsp; 30 mengerjakan &nbsp;·&nbsp; 2 terputus &nbsp;·&nbsp; tidak ada insiden terbuka</div>
+                  <div class="tbl" style="margin-top:8px">
+                    <div class="tr th" style="grid-template-columns:1fr 58px 78px 52px 84px 44px 44px"><span>Nama</span><span>NIS</span><span>Sampai nomor</span><span>Progres</span><span>Denyut</span><span>Status</span><span>Flag</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 58px 78px 52px 84px 44px 44px"><span class="c">Ahmad Fauzi</span><span class="c">2024001</span><span class="c">18</span><span class="c">18/32</span><span class="c">07:41:20</span><span class="chip info">mengerjakan</span><span class="chip ok">—</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 58px 78px 52px 84px 44px 44px"><span class="c">Bunga Lestari</span><span class="c">2024002</span><span class="c">27</span><span class="c">30/32</span><span class="c">07:41:05</span><span class="chip info">mengerjakan</span><span class="chip warn">2 keluar tab</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 58px 78px 52px 84px 44px 44px"><span class="c">Citra Dewi</span><span class="c">2024003</span><span class="c">12</span><span class="c">12/32</span><span class="c">07:38:44</span><span class="chip bad">terputus</span><span class="chip bad">terkunci</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 58px 78px 52px 84px 44px 44px"><span class="c">Dimas P.</span><span class="c">2024004</span><span class="c">—</span><span class="c">—</span><span class="c">belum ada</span><span class="chip mute">belum mulai</span><span class="chip mute">—</span></div>
+                    <div class="tr" style="grid-template-columns:1fr 58px 78px 52px 84px 44px 44px"><span class="c">Eka Sari</span><span class="c">2024005</span><span class="c">32</span><span class="c">32/32</span><span class="c">07:40:58</span><span class="chip ok">selesai</span><span class="chip ok">—</span></div>
+                  </div>
                 </div>
-                <div class="inbox">Progres dihitung dari jawaban yang sudah tersimpan di server. Jawaban yang masih mengantre di perangkat siswa belum ikut terhitung.</div>
+                <div class="box" style="margin-top:10px">
+                  <div class="ph"><b>R-02 · Ruang B</b><span class="sp"></span><span class="chip info">S-01</span><span class="chip warn">21 mengerjakan</span><span class="btn">Lihat peserta</span></div>
+                  <div style="font-size:9.5px;color:var(--wf-dim)">Matematika · X &nbsp;·&nbsp; 32 peserta &nbsp;·&nbsp; 2 pelanggaran &nbsp;·&nbsp; tidak ada insiden terbuka.</div>
+                </div>
+                <div class="inbox">Progres dihitung dari jawaban yang sudah tersimpan di server. Jawaban yang masih mengantre di perangkat siswa belum ikut terhitung. Kolom "sampai nomor" berbeda: ia dilaporkan denyut peramban anak tiap 30 detik, sehingga bisa tertinggal sampai setengah menit — jam di sebelahnya menyebut denyut mana yang dibaca.</div>
               </div>
             </div>
           </div>
         </div>
         <p class="note">Pelanggaran dihitung di sini secara terpisah dari nilai, karena itu bukan urusan Guru pengampu soal melainkan urusan pengawas dan panitia. Menggabungkannya ke laman koreksi akan membuat guru ikut membaca catatan perilaku yang bukan wewenangnya.</p>
+        <p class="note">Daftar per peserta dibuka satu ruang pada satu waktu, dan itu disengaja: dua belas ruang yang semuanya terbuka menghasilkan halaman yang tidak lagi bisa dipindai — dan kemampuan memindainya itulah yang membuat papan ini dibuka Admin. &ldquo;Sampai nomor&rdquo; adalah nomor yang dilihat ANAK (bukan posisi soal di bank), ia datang dari denyut peramban dan karenanya isyarat, bukan bukti; jumlah jawaban yang benar-benar tersimpan ada di kolom Progres dan itu dihitung server. Peserta yang belum pernah berdenyut tampil dengan pisah, bukan angka 1 — &ldquo;belum ada kabar&rdquo; dan &ldquo;baru membuka soal pertama&rdquo; adalah dua keadaan berbeda, dan yang pertama itulah yang perlu ditanyakan ke pengawas ruangnya.</p>
       </figure>
 
     </div>

@@ -24,7 +24,10 @@ class RoomEntryLinkFactory extends Factory
             'room_id' => Room::factory(),
             // Slug unik global - ia muncul di URL publik tanpa kode sekolah.
             'slug' => Str::lower(Str::random(4)).'-'.Str::lower(Str::random(4)),
-            'expires_at' => now()->addHours(2),
+            // Tanpa tanggal berakhir - mengikuti bawaan `RoomEntryLinkService`
+            // sejak 2026-11-09. Keadaan berumur pendek dibuat dengan state
+            // `kedaluwarsa()` atau dengan `berlakuJam:` pada service.
+            'expires_at' => null,
             'revoked_at' => null,
             'use_count' => 0,
             'bound_device_fingerprint' => null,

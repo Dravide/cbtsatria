@@ -16,8 +16,18 @@ import { Chip, Inbox, Kotak, Tombol, kelasInput } from '@/Components/ui';
  *   pengawas  "siapa di ruang SAYA yang belum saya tandai"   -> satu ruang
  *   Admin     "ruang mana yang pengawasnya belum selesai"    -> semua ruang
  *
- * Karena itu barisnya adalah RUANG-SESI, dan kolomnya adalah rekap: Admin
- * tidak memanggil nama satu per satu, ia mencari ruangan yang tertinggal.
+ * Karena itu kolom utamanya adalah rekap: Admin tidak memanggil nama satu per
+ * satu, ia mencari ruangan yang tertinggal.
+ *
+ * ---------------------------------------------------------------------
+ * Barisnya RUANG EVENT - dan itu perbaikan 2026-11-10
+ * ---------------------------------------------------------------------
+ * Sebelumnya barisnya RUANG-SESI, dan akibatnya laman ini hanya memuat kelas 7:
+ * setiap kartu dibangun dari ruang-sesinya, sehingga ujian yang belum
+ * dijadwalkan tidak punya kartu sama sekali. Sekarang kartunya per ruang event
+ * (33 kartu), penghuninya dari kocokan benih - sama dengan denah dan tablo.
+ * Server tetap boleh mengirim bentuk lama untuk event yang belum pernah
+ * dikocok, dan `punya_sesi` itulah yang membedakannya di layar.
  *
  * ---------------------------------------------------------------------
  * Admin boleh MENGOREKSI, dan koreksinya menuntut alasan SELALU
@@ -37,8 +47,24 @@ import { Chip, Inbox, Kotak, Tombol, kelasInput } from '@/Components/ui';
  * Setiap koreksi menulis baris `attendance_logs` baru. Karena itu laman ini
  * tidak punya tombol hapus, dan tidak akan punya.
  */
+/**
+ * Satu baris di daftar anak - dan bentuknya berlaku untuk KEDUA jalur server.
+ *
+ * `presensiPerRuangSesi()` tidak mengisi `student_id`, `kursi`, maupun
+ * `kelas`; `presensiPerRuangEvent()` mengisinya. Semuanya opsional di sini
+ * supaya satu komponen bisa membaca dua bentuk yang memang sengaja berbeda -
+ * dan yang menjaganya adalah test kedua jalur, bukan tipe TypeScript.
+ *
+ * `peserta_id` boleh null: siswa yang ujiannya belum ditarik belum punya
+ * baris `exam_participants`, dan karena itu tidak punya penempatan untuk
+ * ditunjuk. `record_id` null berarti belum ada baris presensi - lihat status
+ * labelnya.
+ */
 type Peserta = {
-    peserta_id: number;
+    peserta_id: number | null;
+    student_id?: number;
+    kursi?: number;
+    kelas?: string | null;
     record_id: number | null;
     nama: string;
     nis: string | null;
@@ -58,6 +84,8 @@ type Baris = {
     sesi: string | null;
     ujian: string | null;
     jam: string | null;
+    /** Jalur per-event hanya: apakah ruang ini sudah punya sesi ujian. */
+    punya_sesi?: boolean;
     pengawas: string[];
     rekap: {
         total: number;
@@ -105,7 +133,10 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
             <Head title={`Presensi · ${event.nama}`} />
 
             <div className="mb-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                <KPI label="Ruang-sesi" nilai={angka.ruang} />
+                {/* "Ruang", bukan "Ruang-sesi": jalur per-ruang-event menghitung
+                    ruangan event, dan label yang menyebut sesi akan membuat Admin
+                    mencari kartu yang jumlahnya memang berbeda. */}
+                <KPI label="Ruang" nilai={angka.ruang} />
                 <KPI
                     label="Belum tuntas"
                     nilai={angka.belum_tuntas}
@@ -142,7 +173,7 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
                         aksi={
                             <>
                                 <Chip nada={b.sesi ? 'info' : 'mute'}>
-                                    {b.sesi ?? 'tanpa sesi'}
+                                    {b.sesi ?? 'belum dijadwalkan'}
                                 </Chip>
                                 {b.rekap.pending > 0 ? (
                                     <Chip nada="warn">{b.rekap.pending} belum</Chip>
@@ -157,7 +188,10 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
                     >
                         <div className="grid gap-2 text-xs text-ink-2 sm:grid-cols-2">
                             <p>
-                                {[b.ujian, b.lokasi, b.jam].filter(Boolean).join(' · ')}
+                                {[b.ujian, b.lokasi, b.jam].filter(Boolean).join(' · ') ||
+                                    (b.punya_sesi === false
+                                        ? 'Ujian ruang ini belum punya sesi — jadwalkan di laman Jadwal & sesi.'
+                                        : '—')}
                             </p>
                             <p className="sm:text-right">
                                 Pengawas:{' '}
@@ -238,7 +272,11 @@ function DaftarPeserta({
 
             {peserta.map((p) => (
                 <BarisKoreksi
-                    key={p.peserta_id}
+                    // `student_id` diutamakan: satu siswa bisa punya dua baris
+                    // penempatan (satu per ujian) di ruang yang sama, dan
+                    // `peserta_id` kosong pada siswa yang ujiannya belum
+                    // ditarik. Kuncinya harus unik per ANAK.
+                    key={p.student_id ?? p.peserta_id ?? p.nama}
                     eventId={eventId}
                     peserta={p}
                     opsi={opsi}
@@ -285,17 +323,31 @@ function BarisKoreksi({
     return (
         <div className="rounded-wf border border-line/70 bg-surface px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
+                {typeof peserta.kursi === 'number' && (
+                    <span className="font-mono text-[11px] text-ink-3">
+                        {String(peserta.kursi).padStart(2, '0')}
+                    </span>
+                )}
                 <span className="text-sm text-ink">{peserta.nama}</span>
                 {peserta.nis && (
                     <span className="font-mono text-[11px] text-ink-3">{peserta.nis}</span>
                 )}
+                {peserta.kelas && (
+                    <span className="text-[11px] text-ink-3">{peserta.kelas}</span>
+                )}
 
                 <span className="ml-auto flex items-center gap-2">
-                    <Chip nada={peserta.status_nada as 'mute'}>{peserta.status_label}</Chip>
+                    <Chip nada={peserta.status_nada as 'mute'}>
+                        {peserta.status_label === 'Belum ada sesi'
+                            ? 'belum dijadwalkan'
+                            : peserta.status_label}
+                    </Chip>
 
                     {peserta.record_id === null ? (
                         <span className="text-[11px] text-warn">
-                            Baris presensinya belum ada
+                            {peserta.status_label === 'Belum ada sesi'
+                                ? 'Ujiannya belum dijadwalkan'
+                                : 'Baris presensinya belum ada'}
                         </span>
                     ) : (
                         <Tombol onClick={() => setTerbuka((t) => !t)}>

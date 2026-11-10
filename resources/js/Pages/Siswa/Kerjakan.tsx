@@ -203,6 +203,24 @@ export default function Kerjakan({ peserta, attempt, butir, progres, simpan_tiap
 
     const aktif = butir[indeks];
 
+    // Nomor soal yang SEDANG DILIHAT anak, dan ia dipegang di ref - bukan
+    // dijadikan dependensi efek denyut.
+    //
+    // Dua alasan, dan keduanya sama dengan alasan `jawabanRef` di atas.
+    // Pertama, `indeks` sebagai dependensi akan MEMBANGUN ULANG jam denyutnya
+    // pada setiap perpindahan soal, sehingga denyut justru paling jarang
+    // terkirim dari anak yang paling sering berpindah. Kedua, yang perlu
+    // dikirim bukan nomor saat efeknya dipasang, melainkan nomor saat
+    // denyutnya benar-benar berangkat.
+    //
+    // `aktif.nomor` adalah `attempt_questions.display_order` - nomor YANG
+    // DILIHAT anak, yang berbeda dari `exam_questions.position` begitu urutan
+    // soalnya dikocok. Server tidak bisa menghitungnya sendiri, dan itulah
+    // sebabnya ia ikut menumpang di sini. `indeks + 1` hanya jaring pengaman
+    // untuk butir yang gagal dirender; nilainya selalu datang dari server.
+    const nomorRef = useRef<number>(aktif?.nomor ?? 1);
+    nomorRef.current = aktif?.nomor ?? indeks + 1;
+
     /* ------------------------------------------------------------- Pengirim */
 
     /** Kirim JSON ke endpoint siswa, dengan token CSRF dari cookie. */
@@ -324,6 +342,10 @@ export default function Kerjakan({ peserta, attempt, butir, progres, simpan_tiap
                 perangkat,
                 layar_penuh: document.fullscreenElement !== null,
                 pelindung: true,
+                // Nomor soal yang sedang dibuka. Bacaan dari ref supaya
+                // denyutnya tidak dipasang ulang tiap kali anak berpindah
+                // soal - lihat catatan `nomorRef` di atas.
+                nomor: nomorRef.current,
             })
                 .then((hasil) => {
                     if (!hasil) {
@@ -732,29 +754,112 @@ function adaIsi(isi: Record<string, unknown> | undefined): boolean {
         return false;
     }
 
-    for (const nilai of Object.values(isi)) {
+    const periksa = (nilai: unknown): boolean => {
         if (Array.isArray(nilai)) {
-            if (nilai.length > 0) {
-                return true;
-            }
-
-            continue;
+            // Rekursif sejak isian rumpang ada: `["gravitasi","",""]`
+            // panjangnya tiga tetapi barunya satu jawaban. Cermin
+            // StudentAnswer::terjawab().
+            return nilai.some(periksa);
         }
 
-        if (nilai !== null && nilai !== '') {
-            return true;
-        }
+        return nilai !== null && nilai !== undefined && nilai !== '';
+    };
+
+    return Object.values(isi).some(periksa);
+}
+
+/** Isi lubang rumpang dari jawaban tersimpan, sebagai daftar string. */
+function isiRumpang(jawaban: Record<string, unknown>): string[] {
+    if (!Array.isArray(jawaban.rumpang)) {
+        return [];
     }
 
-    return false;
+    return (jawaban.rumpang as unknown[]).map((v) => (typeof v === 'string' ? v : ''));
+}
+
+/**
+ * Teks soal dengan lubang yang bisa diketik.
+ *
+ * Penandanya `{{n}}` - lihat SkemaJenisSoal::rumpang. Penanda yang muncul di
+ * teks tetapi nomornya di luar jangkauan kunci tetap dirender sebagai lubang:
+ * menyembunyikannya berarti anak tidak bisa menjawabnya sama sekali, dan
+ * halaman ini tidak menerima kunci sehingga tidak bisa memutuskan mana yang
+ * "di luar jangkauan".
+ *
+ * Teksnya dipotong pada penanda, lalu potongan HTML dirender bergantian
+ * dengan `<input>`. `dangerouslySetInnerHTML` dipakai per potongan dan bukan
+ * pada seluruh teks, karena seluruh teks tidak bisa memuat elemen React.
+ */
+function TeksRumpang({
+    teks,
+    isian,
+    padaUbah,
+}: {
+    teks?: string;
+    isian: string[];
+    padaUbah: (nomor: number, nilai: string) => void;
+}) {
+    const html = typeof teks === 'string' ? teks : '';
+
+    if (html.trim() === '') {
+        return <span className="text-ink-3">Soal ini belum punya teks.</span>;
+    }
+
+    const bagian = html.split(/(\{\{\s*\d+\s*\}\})/g);
+
+    return (
+        // Potongan HTML di sini TIDAK seimbang: penanda {{n}} biasanya berada
+        // di tengah satu paragraf, sehingga potongan pertama berupa
+        // "<p>Gaya tarik bumi disebut " tanpa penutup. Peramban menutupnya
+        // sendiri dengan membuat elemen <p>, dan <p> adalah blok - tanpa dua
+        // aturan di bawah, setiap lubang jatuh ke baris baru tersendiri dan
+        // soal rumpang terbaca sebagai daftar, bukan kalimat.
+        <div className="text-sm leading-loose text-ink [&_b]:font-semibold [&_p]:m-0 [&_p]:inline [&_sub]:align-sub [&_sub]:text-[0.75em] [&_sup]:align-super [&_sup]:text-[0.75em]">
+            {bagian.map((potongan, i) => {
+                const cocok = /^\{\{\s*(\d+)\s*\}\}$/.exec(potongan);
+
+                if (cocok === null) {
+                    return (
+                        <span
+                            key={i}
+                            dangerouslySetInnerHTML={{ __html: potongan }}
+                        />
+                    );
+                }
+
+                const nomor = Number.parseInt(cocok[1], 10);
+
+                return (
+                    <input
+                        key={i}
+                        value={isian[nomor - 1] ?? ''}
+                        onChange={(e) => padaUbah(nomor, e.target.value)}
+                        aria-label={`Rumpang ${nomor}`}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        // Ukuran mengikuti isinya, bukan tetap: lubang yang
+                        // selebar 8 karakter memotong jawaban seperti
+                        // "dinamometer". `ch` menjaga lebarnya mengecil lagi
+                        // saat isinya dihapus. `size` sengaja tidak dipakai -
+                        // ia dan `style.width` saling menimpa, dan yang
+                        // terlihat di layar hanya salah satunya.
+                        style={{ width: `${Math.max(8, (isian[nomor - 1] ?? '').length + 2)}ch` }}
+                        className="mx-1 inline-block rounded-wf border border-line bg-surface px-1.5 py-0.5 text-center font-mono text-[13px] text-ink outline-none focus:border-accent"
+                    />
+                );
+            })}
+        </div>
+    );
 }
 
 /**
  * Badan soal, per jenis - plate 23.
  *
- * Sembilan jenis berbagi satu rangka, dan yang berubah hanya bentuk
+ * Sepuluh jenis berbagi satu rangka, dan yang berubah hanya bentuk
  * jawabannya. Plate 23 menulis alasannya: menyeragamkan rangkanya membuat
- * kesembilan jenis terasa sebagai satu ujian, bukan sembilan aplikasi
+ * kesepuluh jenis terasa sebagai satu ujian, bukan sepuluh aplikasi
  * berbeda - dan bagi siswa yang sedang tegang, pengenalan bentuk adalah
  * beban yang tidak perlu.
  */
@@ -803,7 +908,29 @@ function IsiButir({
                     {butir.jenis_label} · {butir.bobot} poin
                 </span>
 
-                <Html nilai={butir.soal?.teks} kosong="Soal ini belum punya teks." />
+                {/* Isian rumpang: teksnya memuat `{{n}}`, dan lubangnya harus
+                    menjadi isian DI TENGAH kalimat - bukan kotak terpisah di
+                    bawahnya. `Html` tidak bisa melakukan itu (ia satu blok
+                    `dangerouslySetInnerHTML`), jadi jenis ini punya
+                    perender sendiri yang memecah teks pada penandanya. */}
+                {butir.jenis === 'isian_rumpang' ? (
+                    <TeksRumpang
+                        teks={butir.soal?.teks}
+                        isian={isiRumpang(jawaban)}
+                        padaUbah={(nomor, nilai) => {
+                            const baru = [...isiRumpang(jawaban)];
+
+                            while (baru.length < nomor) {
+                                baru.push('');
+                            }
+
+                            baru[nomor - 1] = nilai;
+                            set({ rumpang: baru });
+                        }}
+                    />
+                ) : (
+                    <Html nilai={butir.soal?.teks} kosong="Soal ini belum punya teks." />
+                )}
 
                 {butir.media && butir.media.length > 0 && (
                     <div className="flex flex-wrap gap-2">

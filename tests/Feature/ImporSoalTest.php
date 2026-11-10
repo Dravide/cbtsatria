@@ -405,6 +405,52 @@ it('melaporkan item jodoh yang pasangannya kurang tepat barisnya', function () {
         ->and($gagal['pesan'])->toContain('"c"');
 });
 
+it('memahami kolom kunci isian rumpang: pipa antar lubang, tilde antar varian', function () {
+    $berkas = berkasCsv([
+        judulKolom(),
+        ['', 'Bagian teks eksposisi', 'isian_rumpang', 'sedang', '2',
+            'Teks eksposisi dibuka dengan {{1}} dan diakhiri {{2}} ulang.',
+            '', '', '', '', '',
+            'pernyataan umum~pernyataan|penegasan', '', ''],
+    ]);
+
+    masukImpor($this, $this->guru)->post('/guru/bank-soal/impor/unggah', [
+        'berkas' => $berkas,
+        'subject_id' => $this->mapel->id,
+    ])->assertRedirect();
+
+    $pratinjau = QuestionImportBatch::query()->firstOrFail()->pratinjau_json;
+
+    expect($pratinjau['sah'])->toBe(1)
+        ->and($pratinjau['baris'][0]['muatan']['answer_key_json']['rumpang'])->toBe([
+            ['pernyataan umum', 'pernyataan'],
+            ['penegasan'],
+        ]);
+});
+
+it('menolak baris rumpang yang jumlah penandanya tidak sama dengan kuncinya', function () {
+    // Baris seperti ini tersimpan rapi bila tidak diperiksa, lalu dua lubang
+    // di layar siswa tidak pernah bisa benar - dan nilainya terlihat seperti
+    // kesalahan siswa.
+    $berkas = berkasCsv([
+        judulKolom(),
+        ['', 'Bagian teks eksposisi', 'isian_rumpang', 'sedang', '2',
+            'Dibuka dengan {{1}}, diakhiri {{2}} ulang, dan berisi {{3}}.',
+            '', '', '', '', '',
+            'pernyataan umum|penegasan', '', ''],
+    ]);
+
+    masukImpor($this, $this->guru)->post('/guru/bank-soal/impor/unggah', [
+        'berkas' => $berkas,
+        'subject_id' => $this->mapel->id,
+    ])->assertRedirect();
+
+    $gagal = collect(QuestionImportBatch::query()->firstOrFail()->pratinjau_json['baris'])->firstWhere('sah', false);
+
+    expect($gagal['pesan'])->toContain('3')
+        ->and($gagal['pesan'])->toContain('2');
+});
+
 it('menolak baris berjenis media dengan sebab, bukan dengan galat skema', function () {
     // Berkasnya tidak bisa dititipkan ke dalam sel Excel. Guru yang membaca
     // "mekanisme tidak dikenal" akan mengira ia salah menulis jenisnya, dan
@@ -699,12 +745,14 @@ it('mengunduh template CSV dengan nama kolom yang dibaca importer', function () 
     $baris = explode("\n", trim(substr($isi, 3)));
 
     expect($baris[0])->toBe(implode(';', judulKolom()))
-        // Tiga baris contoh, satu untuk setiap jenis yang kesepakatan kolom
-        // `kunci`-nya berbeda: pilihan ganda, isian singkat, dan uraian.
-        ->and($baris)->toHaveCount(4)
+        // Empat baris contoh, satu untuk setiap jenis yang kesepakatan kolom
+        // `kunci`-nya berbeda: pilihan ganda, isian singkat, isian rumpang,
+        // dan uraian.
+        ->and($baris)->toHaveCount(5)
         ->and($baris[1])->toContain('pilihan_ganda')
         ->and($baris[2])->toContain('isian_singkat')
-        ->and($baris[3])->toContain('uraian');
+        ->and($baris[3])->toContain('isian_rumpang')
+        ->and($baris[4])->toContain('uraian');
 });
 
 it('menolak impor bagi Admin karena bank soal bukan pekerjaannya', function () {

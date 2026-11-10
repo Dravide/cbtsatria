@@ -1,28 +1,13 @@
 <?php
 
 use App\Domain\Academic\Models\AcademicYear;
-use App\Domain\Academic\Models\ClassEnrollment;
-use App\Domain\Academic\Models\SchoolClass;
-use App\Domain\Academic\Models\Subject;
-use App\Domain\Event\Models\EventClass;
-use App\Domain\Event\Models\EventRoom;
-use App\Domain\Event\Models\EventSubject;
-use App\Domain\Event\Models\SchoolEvent;
-use App\Domain\Event\Services\EventParticipantService;
-use App\Domain\Event\Services\EventRegistrar;
-use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamEventShuffle;
 use App\Domain\Exam\Models\ExamParticipant;
-use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
-use App\Domain\Exam\Services\ExamRegistrar;
 use App\Domain\Exam\Services\PenempatanKocok;
-use App\Domain\Exam\Services\PenempatanService;
 use App\Domain\Exam\Services\SesiService;
-use App\Domain\Facility\Models\Room;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\School;
-use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia;
 
 /**
@@ -81,283 +66,6 @@ beforeEach(function () {
         'name' => '2026/2027',
     ]);
 });
-
-/**
- * Tarik lima angka dari generator acak global.
- *
- * Dipakai untuk membuktikan generatornya benar-benar dikembalikan sesudah
- * mengocok - lihat test "mengembalikan generator acak".
- *
- * @return array<int, int>
- */
-function tarikanAcak(int $jumlah): array
-{
-    $nilai = [];
-
-    for ($i = 0; $i < $jumlah; $i++) {
-        $nilai[] = mt_rand();
-    }
-
-    return $nilai;
-}
-
-/**
- * Event dua kelas, dua ruang, satu ujian, satu sesi - siap dikocok.
- *
- * Kapasitasnya dipasang di ruang EVENT, bukan di ruang sesi, dan itu disengaja:
- * angka itulah yang membentuk peta event. Kapasitas sesi hanya boleh menimpanya
- * bila sesi itu memang lebih sempit, dan test tersendiri yang menguji keadaan
- * itu.
- *
- * @param  int  $kapasitasPerRuang  Kapasitas tiap ruang event, lewat capacity_override.
- * @param  int  $jumlahRuang  Berapa ruang yang dibuat untuk eventnya.
- * @return array{
- *     event: SchoolEvent,
- *     ujian: Exam,
- *     sesi: ExamSession,
- *     ruang: Collection<int, ExamSessionRoom>,
- *     kelas: array<string, int>
- * }
- */
-function siapkanKocok(
-    User $admin,
-    AcademicYear $tahun,
-    int $ukuranX = 3,
-    int $ukuranXI = 5,
-    int $kapasitasPerRuang = 4,
-    int $jumlahRuang = 2,
-): array {
-    $sekolah = School::find($admin->school_id);
-
-    $event = app(EventRegistrar::class)->buat([
-        'academic_year_id' => $tahun->id,
-        'semester_id' => null,
-        'name' => 'UAS Campuran',
-        'event_type' => 'Ujian akhir semester',
-        'start_at' => '2026-12-01 07:30:00',
-        'end_at' => '2026-12-12 12:00:00',
-    ], $sekolah->id, $admin->id, []);
-
-    $mapel = Subject::factory()->create([
-        'school_id' => $sekolah->id,
-        'code' => 'MPL-'.$event->id,
-        'name' => 'Mapel '.$event->id,
-    ]);
-
-    EventSubject::create([
-        'school_id' => $sekolah->id,
-        'event_id' => $event->id,
-        'subject_id' => $mapel->id,
-    ]);
-
-    $kelas = [];
-
-    foreach (['X-1' => $ukuranX, 'XI-A' => $ukuranXI] as $nama => $jumlah) {
-        $idKelas = SchoolClass::factory()->create([
-            'school_id' => $sekolah->id,
-            'academic_year_id' => $tahun->id,
-            'name' => $nama.'-'.$event->id,
-            'grade_level' => explode('-', $nama)[0],
-        ])->id;
-
-        $kelas[$nama] = $idKelas;
-
-        EventClass::create([
-            'school_id' => $sekolah->id,
-            'event_id' => $event->id,
-            'class_id' => $idKelas,
-        ]);
-
-        foreach (range(1, $jumlah) as $_) {
-            $siswa = User::factory()->siswa()->untukSekolah($sekolah)->create();
-
-            ClassEnrollment::create([
-                'school_id' => $sekolah->id,
-                'class_id' => $idKelas,
-                'student_id' => $siswa->id,
-                'academic_year_id' => $tahun->id,
-                'status' => 'aktif',
-            ]);
-        }
-    }
-
-    // Dihitung dengan `for`, BUKAN `range(1, $jumlahRuang)`: `range(1, 0)`
-    // mengembalikan `[1, 0]`, sehingga "event tanpa ruang" justru mendapat DUA
-    // ruang - dan test yang bermaksud menguji event kosong akan menguji event
-    // yang lengkap.
-    for ($i = 1; $i <= $jumlahRuang; $i++) {
-        $ruang = Room::factory()->create([
-            'school_id' => $sekolah->id,
-            'code' => 'R-'.$event->id.'-'.str_pad((string) $i, 2, '0', STR_PAD_LEFT),
-            'capacity' => 40,
-        ]);
-
-        EventRoom::create([
-            'school_id' => $sekolah->id,
-            'event_id' => $event->id,
-            'room_id' => $ruang->id,
-            // Kapasitas event yang menentukan pembagiannya. Bila hanya
-            // `room.capacity` yang dipakai, dua ruang berkapasitas 40 untuk 8
-            // peserta berarti satu ruang terisi penuh dan satu ruang kosong -
-            // dan pemeriksaan campuran tidak membuktikan apa pun.
-            'capacity_override' => $kapasitasPerRuang,
-            'status' => 'aktif',
-        ]);
-    }
-
-    app(EventParticipantService::class)->tarikDariKelas($event->refresh());
-
-    $ujian = app(ExamRegistrar::class)->buat($event->refresh(), [
-        'subject_id' => $mapel->id,
-        'title' => 'UAS Campuran',
-        'exam_type' => 'Ujian akhir semester',
-        'duration_minutes' => 90,
-        'class_id' => [],
-    ], $admin->id);
-
-    $sesi = app(SesiService::class)->buat($ujian, [
-        'access_opens_at' => '2026-12-01 07:30:00',
-        'access_closes_at' => '2026-12-01 09:00:00',
-        'hard_end_at' => '2026-12-01 09:30:00',
-        'event_room_id' => $event->rooms()->pluck('id')->all(),
-    ]);
-
-    $ruang = $sesi->rooms()->orderBy('id')->get();
-
-    app(PenempatanService::class)->tarikPeserta($ujian);
-
-    return [
-        'event' => $event,
-        'ujian' => $ujian,
-        'sesi' => $sesi,
-        'ruang' => $ruang->map(fn (ExamSessionRoom $r) => $r->refresh())->values(),
-        'kelas' => $kelas,
-    ];
-}
-
-/** URL laman penempatan satu event. */
-function jalurPenempatan(SchoolEvent $event): string
-{
-    return "/admin/events/{$event->id}/penempatan";
-}
-
-/**
- * Ujian KEDUA di event yang sama, beserta sesinya - satu mapel tambahan.
- *
- * Dipakai untuk menguji "satu peta, banyak mapel". Sesi kedua pada ujian yang
- * SAMA bukan bentuk yang bisa disebar (lihat test penolakannya), jadi bentuk
- * yang dipakai untuk menguji dua sesi sekaligus adalah dua mapel.
- *
- * @param  array<int, int>|null  $ruangEvent  null = seluruh ruang event.
- * @return array{0: Exam, 1: ExamSession}
- */
-function ujianTambahan(
-    User $admin,
-    SchoolEvent $event,
-    string $nama,
-    ?array $ruangEvent = null,
-): array {
-    $mapel = Subject::factory()->create([
-        'school_id' => $event->school_id,
-        'code' => 'MPLT-'.$nama.'-'.$event->id,
-        'name' => 'Mapel '.$nama.' '.$event->id,
-    ]);
-
-    // Boleh atau tidaknya mapel ini dipakai ujian dibaca dari daftar mapel
-    // event, bukan dari tabel mapel sekolah.
-    EventSubject::create([
-        'school_id' => $event->school_id,
-        'event_id' => $event->id,
-        'subject_id' => $mapel->id,
-    ]);
-
-    $ujian = app(ExamRegistrar::class)->buat($event->refresh(), [
-        'subject_id' => $mapel->id,
-        'title' => 'UAS '.$nama,
-        'exam_type' => 'Ujian akhir semester',
-        'duration_minutes' => 90,
-        'class_id' => [],
-    ], $admin->id);
-
-    $sesi = app(SesiService::class)->buat($ujian, [
-        'access_opens_at' => '2026-12-02 07:30:00',
-        'access_closes_at' => '2026-12-02 09:00:00',
-        'hard_end_at' => '2026-12-02 09:30:00',
-        'event_room_id' => $ruangEvent ?? $event->rooms()->pluck('id')->all(),
-    ]);
-
-    app(PenempatanService::class)->tarikPeserta($ujian);
-
-    return [$ujian, $sesi];
-}
-
-/**
- * Peta `exam_participant_id => exam_session_room_id` yang TERSIMPAN.
- *
- * Kuncinya diurutkan sebelum dikembalikan, dan itu bukan kerapian. Tanpa
- * pengurutan, perbandingannya ikut menguji URUTAN KUNCI array - dan urutan itu
- * berbeda antara peta yang dibangun ruang-per-ruang (hasil kocokan) dan peta
- * yang dibaca dari basis data (menurut id penempatan). Dua peta yang isinya
- * sama persis akan dilaporkan berbeda, dan yang gagal bukan kodenya melainkan
- * cara test ini membandingkannya.
- *
- * @return array<int, int>
- */
-function petaTersimpan(Exam $ujian): array
-{
-    $peta = ExamParticipant::query()
-        ->where('exam_id', $ujian->id)
-        ->pluck('exam_session_room_id', 'id')
-        ->all();
-
-    ksort($peta);
-
-    return $peta;
-}
-
-/**
- * Peta `exam_participant_id => event_room_id` dari hasil kocokan.
- *
- * Yang dibandingkan di sini adalah peta EVENT, sebab itulah yang dihitung
- * `PenempatanKocok`. Penerjemahannya ke ruang SESI diuji terpisah, supaya
- * kegagalan pada salah satunya tidak tersembunyi di balik yang lain.
- *
- * @param  array<int, array<int, ExamParticipant>>  $perRuang
- * @return array<int, int>
- */
-function petaKocokanEvent(array $perRuang): array
-{
-    $peta = [];
-
-    foreach ($perRuang as $idRuang => $anggota) {
-        foreach ($anggota as $p) {
-            $peta[$p->id] = $idRuang;
-        }
-    }
-
-    ksort($peta);
-
-    return $peta;
-}
-
-/**
- * Peta yang SEHARUSNYA tersimpan pada satu sesi.
- *
- * @param  array<int, array<int, ExamParticipant>>  $perRuang
- * @return array<int, int>
- */
-function petaKocokanSesi(
-    PenempatanKocok $kocok,
-    SchoolEvent $event,
-    ExamSession $sesi,
-    array $perRuang,
-): array {
-    $peta = $kocok->petaSesi($event, $sesi, $perRuang)['peta'];
-
-    ksort($peta);
-
-    return $peta;
-}
 
 /* ---------------------------------------------------------- Kocok berbenih */
 
@@ -687,6 +395,73 @@ it('mengganti benih saat dikocok ulang, dan tetap satu baris per event', functio
 
 /* ------------------------------------------------------------------- Layar */
 
+it('menghitung terisi dari peta EVENT, bukan dari peta sesi', function () {
+    // Dibaca terbalik dari versi sebelumnya, dan itu keputusan 09 Nov 2026.
+    //
+    // Versi 09 Nov pagi menghitung `terisi` dari peta SESI supaya angkanya
+    // cocok dengan laman denah waktu itu. Denahnya sendiri kemudian dibetulkan:
+    // yang digambarnya adalah kursi yang tidak berpindah antar sesi, sehingga
+    // "penghuni di sesi ini" bukan angka yang berlaku sepanjang ujian - pada
+    // ujian yang diikuti sebagian kelas, ruang berkapasitas 35 terbaca
+    // sebelas, lalu berganti lagi saat mapel berikutnya dibuka.
+    //
+    // Fixture-nya sengaja begini: ujiannya hanya untuk SATU kelas dari dua,
+    // sehingga selisih antara "peserta ujian ini" (3) dan "penghuni ruang"
+    // (8) benar-benar ada. Tanpa selisih itu, test ini lulus walau `terisi`
+    // dihitung dari peta mana pun.
+    $d = siapkanKocok($this->admin, $this->tahun);
+
+    ujianSatuKelas($this->admin, $d['event'], $d['kelas']['X-1'], 'Sempit');
+
+    masukSebagai($this, $this->admin)
+        ->get(jalurPenempatan($d['event']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('pratinjau.ruang', 2)
+            ->where('pratinjau.ruang', fn ($ruang) => collect($ruang)->sum('terisi') === 8
+                && collect($ruang)->sum('terisi_event') === 8
+                && collect($ruang)->sum(fn (array $r) => count($r['peserta'])) === 8
+            )
+        );
+});
+
+it('menyebut angka ruang yang sama dengan laman denah', function () {
+    // Inti laporan 09 Nov 2026: dua laman, satu ruang, dua angka. Yang
+    // mengikat adalah peta EVENT - kursi anak tidak berpindah antar sesi -
+    // jadi denah dan pratinjau harus membaca himpunan yang sama. Ujian yang
+    // hanya diikuti satu kelas dipakai justru karena di situlah keduanya dulu
+    // bercerai: peta sesi menyebut 3, peta event menyebut 8.
+    $d = siapkanKocok($this->admin, $this->tahun);
+
+    $sesiSempit = ujianSatuKelas($this->admin, $d['event'], $d['kelas']['X-1'], 'Sempit');
+
+    masukSebagai($this, $this->admin)
+        ->post(jalurPenempatan($d['event']), ['benih' => 'SEMPIT'])
+        ->assertRedirect();
+
+    $props = masukSebagai($this, $this->admin)
+        ->get(jalurPenempatan($d['event']))
+        ->viewData('page')['props'];
+
+    $propsDenah = masukSebagai($this, $this->admin)
+        ->get(jalurPenempatan($d['event']).'/denah')
+        ->viewData('page')['props'];
+
+    $dariDenah = collect($propsDenah['daftar_ruang'])->keyBy('id');
+
+    foreach ($props['pratinjau']['ruang'] as $r) {
+        expect($r['terisi'])->toBe($dariDenah[$r['id']]['terisi']);
+    }
+
+    // Dan yang tersimpan untuk ujian sempit itu memang tiga orang - bukan
+    // delapan. Keduanya benar sekaligus: `exam_session_room_id` menunjuk tiga
+    // peserta ujian itu, sementara ruangnya dihuni delapan orang event.
+    expect(ExamParticipant::query()
+        ->where('exam_id', $sesiSempit->exam_id)
+        ->whereNotNull('exam_session_room_id')
+        ->count())->toBe(3);
+});
+
 it('mengirim pratinjau berisi nama dan kelas setiap peserta', function () {
     // Pratinjau yang hanya berisi "4/4" tidak membuktikan apa pun tentang
     // campurannya - dan campuran itulah yang diminta. Karena itu namanya
@@ -722,27 +497,48 @@ it('mengirim pratinjau berisi nama dan kelas setiap peserta', function () {
         );
 });
 
-it('memilih sesi yang diminta lewat query', function () {
-    // Pilihannya lewat query, bukan state di peramban, karena isinya dihitung
-    // server: pilihan yang hidup di dua tempat adalah pilihan yang bisa
-    // menampilkan sesi A dengan isi sesi B. `?sesi=` juga membuat pratinjau
-    // satu sesi bisa dikirim ke orang lain sebagai tautan - dan itulah yang
-    // diminta pengawas ketika ia melaporkan ruang yang salah isi.
+it('mengirim satu peta ruang yang sama, sesi mana pun yang diminta', function () {
+    // Sampai 2026-11-09 laman ini punya pemilih sesi: `?sesi=` memilih sesi
+    // yang pratinjaunya ditampilkan. Pilihan itu dibuang bersama bentuknya,
+    // karena yang ditanyakan Admin adalah "anak saya di ruang berapa" - dan
+    // jawabannya satu untuk seluruh ujian.
+    //
+    // Test ini menjaga supaya `?sesi=` tidak diam-diam kembali berpengaruh:
+    // dua permintaan dengan sesi berbeda harus menghasilkan peta yang SAMA
+    // PERSIS. Yang tetap per sesi adalah KELAYAKAN di tabel bawah - dan itu
+    // memang pertanyaan yang berbeda.
     $d = siapkanKocok($this->admin, $this->tahun);
 
     [$ujianKedua, $sesiKedua] = ujianTambahan($this->admin, $d['event'], 'Kedua');
 
+    // Disebar dulu dengan benih tetap. Tanpa itu setiap muat membuat benih
+    // BARU - dan dua permintaan yang berbeda benihnya memang menghasilkan dua
+    // peta yang berbeda, sehingga yang diuji jadi kebetulan generatornya,
+    // bukan pengaruh `?sesi=`.
     masukSebagai($this, $this->admin)
-        ->get(jalurPenempatan($d['event'])."?sesi={$sesiKedua->id}")
+        ->post(jalurPenempatan($d['event']), ['benih' => 'PETA11'])
+        ->assertRedirect();
+
+    $tanpaSesi = masukSebagai($this, $this->admin)
+        ->get(jalurPenempatan($d['event']))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Admin/Event/Penempatan')
             ->has('baris', 2)
-            ->where('pratinjau.sesi_id', $sesiKedua->id)
-            ->where('pratinjau.ujian', fn ($u) => is_string($u) && str_contains($u, 'Kedua'))
-            ->where('pratinjau.benih', fn ($b) => is_string($b) && strlen($b) === 6)
+            ->where('pratinjau.sesi_id', null)
+            ->where('pratinjau.label', 'seluruh event')
+            ->where('pratinjau.benih', 'PETA11')
             ->has('pratinjau.ruang', 2)
-        );
+        )
+        ->viewData('page')['props'];
+
+    $denganSesi = masukSebagai($this, $this->admin)
+        ->get(jalurPenempatan($d['event'])."?sesi={$sesiKedua->id}")
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($denganSesi['pratinjau']['ruang'])->toBe($tanpaSesi['pratinjau']['ruang'])
+        ->and($denganSesi['pratinjau']['sesi_id'])->toBeNull();
 
     expect($ujianKedua->id)->not->toBe($d['ujian']->id);
 });

@@ -22,12 +22,12 @@ use Tests\TestCase;
 uses(TestCase::class);
 
 /**
- * Bentuk kunci kesembilan jenis soal.
+ * Bentuk kunci kesepuluh jenis soal.
  *
  * =====================================================================
  * Mengapa berkas ini ada, dan mengapa ia tidak menyentuh basis data
  * =====================================================================
- * Kesembilan bentuk kunci di SkemaJenisSoal adalah tempat kesalahan paling
+ * Kesepuluh bentuk kunci di SkemaJenisSoal adalah tempat kesalahan paling
  * MAHAL di seluruh Fase 4, dan sekaligus yang paling MURAH diuji.
  *
  * Mahal, karena kunci yang salah bentuk tidak menimbulkan galat apa pun: ia
@@ -71,9 +71,10 @@ function galatKunci(
     array $butir = [],
     array $rubrik = [],
     array $skor = [],
+    ?string $teksSoal = null,
 ): ?array {
     try {
-        (new SkemaJenisSoal)->validasi($jenis, $kunci, $bobot, $opsi, $butir, $rubrik, $skor);
+        (new SkemaJenisSoal)->validasi($jenis, $kunci, $bobot, $opsi, $butir, $rubrik, $skor, $teksSoal);
 
         return null;
     } catch (ValidationException $e) {
@@ -87,11 +88,11 @@ it('memberi setiap jenis soal label Indonesia yang unik', function () {
     $label = array_map(fn (JenisSoal $j) => $j->label(), JenisSoal::cases());
     $pendek = array_map(fn (JenisSoal $j) => $j->pendek(), JenisSoal::cases());
 
-    expect(JenisSoal::cases())->toHaveCount(9)
-        ->and(array_unique($label))->toHaveCount(9)
+    expect(JenisSoal::cases())->toHaveCount(10)
+        ->and(array_unique($label))->toHaveCount(10)
         // Label pendek dipakai sebagai chip di tabel; dua jenis dengan chip
         // yang sama membuat daftar bank soal tidak bisa dibaca sekilas.
-        ->and(array_unique($pendek))->toHaveCount(9)
+        ->and(array_unique($pendek))->toHaveCount(10)
         ->and($label)->not->toContain('', null);
 });
 
@@ -214,6 +215,84 @@ it('menolak isian singkat tanpa varian, dan varian yang kosong', function () {
     expect(galatKunci(JenisSoal::IsianSingkat, ['teks' => []]))->toHaveKey('kunci')
         ->and(galatKunci(JenisSoal::IsianSingkat, []))->toHaveKey('kunci')
         ->and(galatKunci(JenisSoal::IsianSingkat, ['teks' => ['7', '  ']]))->toHaveKey('kunci');
+});
+
+/* ----------------------------------------------------- Isian rumpang */
+
+it('menerima isian rumpang yang jumlah penandanya sama dengan jumlah kunci', function () {
+    $galat = galatKunci(
+        JenisSoal::IsianRumpang,
+        ['rumpang' => [['gravitasi', 'gaya gravitasi'], ['newton', 'N']]],
+        teksSoal: '<p>Gaya tarik bumi disebut {{1}} dan satuannya {{2}}.</p>',
+    );
+
+    expect($galat)->toBeNull();
+});
+
+it('menerima isian rumpang tanpa teks soal - pemanggil yang tidak punya teksnya', function () {
+    // Penanda hanya bisa diperiksa bila teksnya ada. Null berarti "tidak
+    // diketahui", bukan "kosong": menolaknya akan membuat factory dan
+    // seeder yang menyusun kunci lebih dulu gagal tanpa alasan yang benar.
+    $galat = galatKunci(
+        JenisSoal::IsianRumpang,
+        ['rumpang' => [['gravitasi'], ['newton']]],
+    );
+
+    expect($galat)->toBeNull();
+});
+
+it('menolak isian rumpang yang lubangnya kosong atau berkunci kosong', function () {
+    expect(galatKunci(JenisSoal::IsianRumpang, ['rumpang' => []]))->toHaveKey('kunci')
+        ->and(galatKunci(JenisSoal::IsianRumpang, []))->toHaveKey('kunci')
+        ->and(galatKunci(JenisSoal::IsianRumpang, ['rumpang' => [[]]]))->toHaveKey('kunci')
+        ->and(galatKunci(JenisSoal::IsianRumpang, ['rumpang' => [['gravitasi', '  ']]]))->toHaveKey('kunci');
+});
+
+it('menolak kunci rumpang berbentuk objek, dan menyebut mengapa', function () {
+    // JavaScript menuliskan kunci objek sebagai teks, sehingga "10" mendahului
+    // "2" - soal sepuluh lubang akan tersimpan dengan kunci yang bergeser.
+    // Bentuk objek karena itu bukan pilihan gaya, melainkan kegagalan senyap.
+    $galat = galatKunci(JenisSoal::IsianRumpang, ['rumpang' => ['1' => ['gravitasi'], '2' => ['newton']]]);
+
+    expect($galat)->toHaveKey('kunci')
+        ->and($galat['kunci'][0])->toContain('daftar');
+});
+
+it('menolak rumpang yang jumlah penandanya tidak sama dengan jumlah kunci', function () {
+    // Inilah kegagalan yang paling mahal di jenis ini: soal dengan empat
+    // penanda dan dua kunci tersimpan rapi, lalu dua lubang di layar siswa
+    // tidak pernah bisa benar - dan nilai yang muncul terlihat seperti
+    // kesalahan siswa.
+    $galat = galatKunci(
+        JenisSoal::IsianRumpang,
+        ['rumpang' => [['gravitasi'], ['newton']]],
+        teksSoal: '<p>{{1}} {{2}} {{3}} {{4}}</p>',
+    );
+
+    expect($galat)->toHaveKey('prompt_json')
+        ->and($galat['prompt_json'][0])->toContain('4')
+        ->and($galat['prompt_json'][0])->toContain('2');
+});
+
+it('menolak rumpang tanpa penanda di teks soalnya', function () {
+    $galat = galatKunci(
+        JenisSoal::IsianRumpang,
+        ['rumpang' => [['gravitasi']]],
+        teksSoal: '<p>Tidak ada lubang di sini.</p>',
+    );
+
+    expect($galat)->toHaveKey('prompt_json');
+});
+
+it('menolak nomor penanda yang berulang atau tidak berurutan', function () {
+    // `{{3}}` dua kali berarti satu kunci dipakai dua lubang, dan tidak ada
+    // cara menilai dua jawaban berbeda dari satu kunci tanpa diam-diam
+    // mengabaikan salah satunya.
+    $kunci = ['rumpang' => [['a'], ['b']]];
+
+    expect(galatKunci(JenisSoal::IsianRumpang, $kunci, teksSoal: '<p>{{1}} {{1}}</p>'))->toHaveKey('prompt_json')
+        ->and(galatKunci(JenisSoal::IsianRumpang, $kunci, teksSoal: '<p>{{2}} {{3}}</p>'))->toHaveKey('prompt_json')
+        ->and(galatKunci(JenisSoal::IsianRumpang, $kunci, teksSoal: '<p>{{ 1 }} {{ 2 }}</p>'))->toBeNull();
 });
 
 /* ----------------------------------------------------- Menjodohkan */
@@ -407,7 +486,7 @@ it('menolak bobot nol atau negatif untuk semua jenis', function () {
         $galat = galatKunci($jenis, ['teks' => ['x']], bobot: 0);
 
         // Pesannya memuat nama jenis: satu kegagalan di sini harus langsung
-        // menunjuk jenis yang mana, karena yang diperiksa sembilan sekaligus.
+        // menunjuk jenis yang mana, karena yang diperiksa kesepuluh sekaligus.
         expect($galat)
             ->toHaveKey('bobot')
             ->and(

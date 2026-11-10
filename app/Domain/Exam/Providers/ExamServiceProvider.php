@@ -16,8 +16,12 @@ use App\Domain\Exam\Policies\ExamPolicy;
 use App\Domain\Exam\Services\ExamRegistrar;
 use App\Domain\Exam\Services\KesiapanUjian;
 use App\Domain\Exam\Services\KonflikJadwal;
+use App\Domain\Exam\Services\NomorKursi;
+use App\Domain\Exam\Services\PapanKursi;
+use App\Domain\Exam\Services\PenempatanKocok;
 use App\Domain\Exam\Services\PenempatanService;
 use App\Domain\Exam\Services\PengawasService;
+use App\Domain\Exam\Services\PetaKursiEvent;
 use App\Domain\Exam\Services\SesiService;
 use App\Domain\Exam\Services\TokenSesi;
 use Illuminate\Support\Facades\Gate;
@@ -58,6 +62,19 @@ class ExamServiceProvider extends ServiceProvider
         $this->app->singleton(PenempatanService::class);
         $this->app->singleton(PengawasService::class);
         $this->app->singleton(TokenSesi::class);
+
+        // `scoped`, BUKAN singleton: kelas ini menyimpan hasil kocokan benih
+        // di memori supaya satu laman tidak menghitung ulang peta event yang
+        // sama tiga kali - dan simpanan itu harus mati di akhir permintaan.
+        // Singleton akan menyajikannya ke permintaan BERIKUTNYA, sehingga
+        // laman bisa menggambar kocokan lama sesudah Admin menekan Kocok
+        // ulang. `NomorKursi` dan `PapanKursi` menyelesaikannya lewat
+        // `app()` di dalam method; mengikatnya di sini membuat seluruh laman
+        // yang memakainya berbagi satu simpanan.
+        $this->app->scoped(PetaKursiEvent::class);
+        $this->app->scoped(PenempatanKocok::class);
+        $this->app->scoped(NomorKursi::class);
+        $this->app->scoped(PapanKursi::class);
 
         // Kontrak Event diikat ke implementasi Exam. Satu arah - lihat
         // catatan kelas ini.

@@ -384,10 +384,10 @@ class QuestionImportController
     /**
      * Contoh baris di template unduhan.
      *
-     * Tiga baris, dan ketiganya jenis yang berbeda - karena kolom `kunci`
+     * Empat baris, dan keempatnya jenis yang berbeda - karena kolom `kunci`
      * berarti sesuatu yang berbeda di setiap jenis, dan satu contoh pilihan
      * ganda tidak menjelaskan bagaimana menuliskan pasangan jodoh atau
-     * urutan. Tiga baris ini menjelaskan lebih banyak daripada satu halaman
+     * urutan. Empat baris ini menjelaskan lebih banyak daripada satu halaman
      * penjelasan, dan ia ada di tempat Guru mencarinya.
      *
      * @return array<int, array<int, string>>
@@ -408,6 +408,15 @@ class QuestionImportController
                 'Berapa hasil dari 2 + 2?',
                 '', '', '', '', '',
                 '4|empat', '', '',
+            ],
+            // Isian rumpang - teks soalnya memuat {{1}}, {{2}}; kuncinya
+            // dipisah pipa per lubang, dan varian dalam satu lubang
+            // dipisah tanda tilde.
+            [
+                '', 'Bagian teks eksposisi', 'isian_rumpang', 'sedang', '2',
+                'Teks eksposisi dibuka dengan {{1}} dan diakhiri {{2}} ulang.',
+                '', '', '', '', '',
+                'pernyataan umum~pernyataan|penegasan', '', '',
             ],
             // Uraian - kriterianya di kolom rubrik, dipisah tanda pipa.
             [

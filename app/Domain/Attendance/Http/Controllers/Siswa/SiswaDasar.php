@@ -4,6 +4,7 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Exam\Models\ExamParticipant;
+use App\Domain\Exam\Services\NomorKursi;
 use Illuminate\Http\Request;
 
 /**
@@ -65,26 +66,21 @@ abstract class SiswaDasar
      * Nomor kursi siswa di ruangnya.
      *
      * Dihitung dari urutan penempatan di ruang itu, dan BUKAN dari kolom -
-     * tabelnya memang tidak punya kolom kursi. Urutan yang sama dipakai
-     * daftar hadir pengawas (MonitoringController mengurutkan dengan cara
-     * yang sama), sehingga nomor yang disebut pengawas di ruang ujian adalah
-     * nomor yang dibaca anak di ponselnya.
+     * tabelnya memang tidak punya kolom kursi. Aturan urutannya ada di
+     * `NomorKursi`, dan itu SATU aturan yang sama dengan yang dipakai daftar
+     * hadir pengawas, denah, dan tablo.
+     *
+     * Sebelum 2026-11-09 method ini mengurutkan sendiri dengan `orderBy('id')`
+     * sambil menyatakan di docblock-nya bahwa urutannya sama dengan papan
+     * pengawas. Itu tidak benar - papan pengawas mengurutkan dengan abjad
+     * nama - sehingga nomor di ponsel anak bisa berbeda dari nomor yang
+     * dibacakan pengawas di ruang yang sama.
      *
      * @return int|null Null bila siswa ini belum ditempatkan di ruang mana pun.
      */
     protected function nomorKursi(ExamParticipant $peserta): ?int
     {
-        if ($peserta->exam_session_room_id === null) {
-            return null;
-        }
-
-        $urutan = ExamParticipant::query()
-            ->where('exam_session_room_id', $peserta->exam_session_room_id)
-            ->orderBy('id')
-            ->pluck('id')
-            ->search($peserta->id);
-
-        return $urutan === false ? null : $urutan + 1;
+        return app(NomorKursi::class)->satu($peserta);
     }
 
     /** @return array<string, mixed> */

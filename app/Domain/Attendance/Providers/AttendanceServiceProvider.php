@@ -2,6 +2,7 @@
 
 namespace App\Domain\Attendance\Providers;
 
+use App\Domain\Attendance\Contracts\PembersihRuangSesi;
 use App\Domain\Attendance\Contracts\PencatatKehadiran;
 use App\Domain\Attendance\Models\AttendanceLog;
 use App\Domain\Attendance\Models\AttendanceRecord;
@@ -19,6 +20,7 @@ use App\Domain\Attendance\Services\KehadiranService;
 use App\Domain\Attendance\Services\KelayakanUjian;
 use App\Domain\Attendance\Services\LaporanSesiService;
 use App\Domain\Attendance\Services\MesinUjian;
+use App\Domain\Attendance\Services\PembersihRuangSesiService;
 use App\Domain\Attendance\Services\PencatatKehadiranService;
 use App\Domain\Attendance\Services\PencatatPelanggaran;
 use Illuminate\Support\Facades\Gate;
@@ -86,6 +88,11 @@ class AttendanceServiceProvider extends ServiceProvider
 
         // Kontrak Exam dijawab Attendance. Satu arah - lihat catatan kelas ini.
         $this->app->singleton(PencatatKehadiran::class, PencatatKehadiranService::class);
+
+        // Arah sebaliknya, untuk satu panggilan: Exam menghapus sesi, dan
+        // hanya Attendance yang tahu baris mana yang menahannya. Alasan
+        // kontraknya ada di `PembersihRuangSesi`.
+        $this->app->singleton(PembersihRuangSesi::class, PembersihRuangSesiService::class);
     }
 
     public function boot(): void

@@ -153,6 +153,16 @@ function jawabanBenar(ExamQuestion $soal): ?array
 
         JenisSoal::IsianSingkat => ['teks' => ($kunci['teks'] ?? [])[0] ?? ''],
 
+        // Setiap lubang dijawab dengan varian pertamanya: itu satu-satunya
+        // bentuk yang pasti bernilai penuh, dan test ini menguji mesin
+        // penilaian - bukan ketahanan pencocokan teks.
+        JenisSoal::IsianRumpang => [
+            'rumpang' => array_map(
+                fn ($varian) => is_array($varian) ? (string) ($varian[0] ?? '') : '',
+                (array) ($kunci['rumpang'] ?? []),
+            ),
+        ],
+
         JenisSoal::Angka => ['nilai' => $kunci['nilai'] ?? 0],
 
         JenisSoal::Menjodohkan => ['pasangan' => $kunci['pasangan'] ?? []],
@@ -171,6 +181,11 @@ function jawabanSalah(ExamQuestion $soal): ?array
     return match ($soal->jenis) {
         JenisSoal::PilihanGanda, JenisSoal::BenarSalah, JenisSoal::Media => ['opsi' => ['b']],
         JenisSoal::IsianSingkat => ['teks' => 'delapan'],
+        // Satu lubang dibiarkan BENAR dan sisanya salah, supaya bila jenis
+        // ini muncul di paket contoh ujiannya tetap menerima skor sebagian
+        // yang bukan nol - dan bila mesinnya mengabaikan lubang kosong,
+        // test-nya menangkap itu sebagai nilai penuh yang tidak semestinya.
+        JenisSoal::IsianRumpang => ['rumpang' => ['bukan-jawaban', '']],
         default => null,
     };
 }

@@ -102,6 +102,14 @@ class QuestionFactory extends Factory
                 'question_type' => $jenis,
                 'answer_key_json' => ['teks' => ['7', 'tujuh']],
             ],
+            // Dua lubang, dan teksnya MEMUAT kedua penandanya: kunci rumpang
+            // yang jumlahnya tidak sama dengan penanda ditolak SkemaJenisSoal,
+            // dan soal contoh yang tidak bisa disimpan bukan soal contoh.
+            JenisSoal::IsianRumpang => [
+                'question_type' => $jenis,
+                'prompt_json' => ['teks' => '<p>Gaya tarik bumi disebut {{1}} dan satuannya {{2}}.</p>'],
+                'answer_key_json' => ['rumpang' => [['gravitasi', 'gaya gravitasi'], ['newton', 'N']]],
+            ],
             JenisSoal::Angka => [
                 'question_type' => $jenis,
                 'answer_key_json' => ['nilai' => 42, 'toleransi' => 0.01],

@@ -69,6 +69,7 @@ type MenuEvent = {
     segmen?: string;
     href?: string;
     fase?: string;
+    awalan?: boolean;
     ikon?: ItemNav['ikon'];
 };
 
@@ -83,7 +84,13 @@ const EVENT: MenuEvent[] = [
     // harus terisi lebih dulu sebelum ada yang bisa ditugaskan menjaganya.
     // Menaruhnya sesudah berarti sidebar menyuruh Admin menugaskan pengawas
     // untuk ruang yang belum tentu dipakai sesi mana pun.
-    { label: 'Penempatan', segmen: 'penempatan', ikon: 'peserta' },
+    //
+    // `awalan: true` - satu-satunya item event yang memakainya, dan alasannya
+    // sama dengan Ruang: denah kursi beralamat /penempatan/denah, dan Admin
+    // yang membuka denah sedang mengerjakan penempatan. Tanpa awalan ini,
+    // tidak ada satu pun menu yang menyala di laman itu dan ia merasa
+    // tersesat di konsolnya sendiri.
+    { label: 'Penempatan', segmen: 'penempatan', awalan: true, ikon: 'peserta' },
     { label: 'Pengawas', segmen: 'pengawas', ikon: 'perisai' },
     { label: 'Token', segmen: 'token', ikon: 'kunci' },
     { label: 'Presensi', segmen: 'presensi', ikon: 'presensi' },
@@ -139,7 +146,7 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
                 // sendiri di luar /admin/events/{id}, karena laporannya
                 // mengikuti event AKTIF, bukan event di URL.
                 href: item.href ?? (item.segmen ? `${dasarEvent}/${item.segmen}` : dasarEvent),
-                awalan: false,
+                awalan: item.awalan ?? false,
                 fase: item.fase,
                 ikon: item.ikon,
             })),

@@ -263,7 +263,7 @@ class DatabaseSeeder extends Seeder
         // gagal di tengah - dan kegagalan itu justru benar.
         //
         // Yang dibangun di sini: enam paket (satu per mapel), masing-masing
-        // berisi kesembilan jenis soal, ditulis lewat service yang sama dengan
+        // berisi kesepuluh jenis soal, ditulis lewat service yang sama dengan
         // yang dipakai Guru. Menulis barisnya langsung akan melewati
         // SkemaJenisSoal - dan seluruh gunanya data contoh ini adalah
         // membuktikan bahwa bentuk yang sah memang bisa disimpan.
@@ -725,8 +725,9 @@ class DatabaseSeeder extends Seeder
         // Tautan pintu untuk ruang sesi pertama
         // ------------------------------------------------------------------
         // Diterbitkan lewat service. Tautan hanya menentukan RUANG - ia tidak
-        // lagi membawa kode apa pun (sejak 2026-11-07 kodenya milik ORANG).
-        $tautan = app(RoomEntryLinkService::class)->terbitkan($ruang, berlakuJam: 12);
+        // lagi membawa kode apa pun (sejak 2026-11-07 kodenya milik ORANG),
+        // dan sejak 2026-11-09 ia juga tidak lagi berumur pendek.
+        $tautan = app(RoomEntryLinkService::class)->terbitkan($ruang);
 
         $this->masukLewatTautan($ruangSesi, $tautan->id, $ruang->id);
 
@@ -1230,16 +1231,39 @@ class DatabaseSeeder extends Seeder
             ])->save();
         }
 
-        // Progres ditulis ke `guard_flags_json`, meniru `DenyutService` -
-        // dan itu satu-satunya tempat papan monitoring membacanya (plate 15,
-        // kolom "Progres"). Menghitungnya di controller papan berarti
-        // agregasi per peserta di setiap penyegaran, tepat saat basis data
-        // paling sibuk; lihat catatan `ExamAttempt`.
+        // Progres dan NOMOR ditulis ke `guard_flags_json`, meniru
+        // `DenyutService` - dan itu satu-satunya tempat papan monitoring
+        // membacanya (plate 15, kolom "Progres"; papan Admin, kolom "Sampai
+        // nomor"). Menghitungnya di controller papan berarti agregasi per
+        // peserta di setiap penyegaran, tepat saat basis data paling sibuk;
+        // lihat catatan `ExamAttempt`.
+        //
+        // Nomornya bukan progres. `progres()` menjawab berapa BANYAK yang
+        // sudah dijawab, dan di sini keempat attempt menjawab dari butir
+        // PERTAMA berturut-turut - sehingga nomor yang masuk akal bagi
+        // mereka adalah nomor butir TERAKHIR yang terjawab, bukan
+        // `terjawab + 1` (anak yang menjawab 1, 2, 3 sedang membuka nomor 4,
+        // bukan nomor 4 sudah dijawab). Tanpa baris ini kolom "Sampai nomor"
+        // berisi tanda pisah di seluruh data contoh, dan laman yang justru
+        // dibuka untuk melihatnya tampak belum jadi.
         foreach ($attempt as $a) {
+            // Butir terjawab yang paling jauh, disaring dengan `terjawab()`
+            // dan BUKAN dengan `answer_json` yang tidak null: bentuk
+            // `{"opsi":[]}` tersimpan sebagai baris yang ada isinya tetapi
+            // berarti "belum dijawab", dan menghitungnya akan menaruh nomor
+            // yang lebih jauh daripada yang benar-benar dilihat anak.
+            $terjauh = AttemptQuestion::query()
+                ->where('exam_attempt_id', $a->id)
+                ->with('jawaban')
+                ->orderByDesc('display_order')
+                ->get()
+                ->first(fn (AttemptQuestion $b) => $b->jawaban?->terjawab() ?? false);
+
             $a->forceFill([
                 'guard_flags_json' => [
                     ...($a->guard_flags_json ?? []),
                     'progres' => $jawaban->progres($a)['ringkas'],
+                    'nomor' => $terjauh?->display_order,
                 ],
             ])->save();
         }
@@ -1382,6 +1406,13 @@ class DatabaseSeeder extends Seeder
                 : ['opsi' => [$kunci->first()]],
 
             JenisSoal::IsianSingkat => ['teks' => 'Jawaban contoh siswa.'],
+
+            // Isi lubang pertamanya benar dan lubang kedua sengaja salah:
+            // jawaban contoh yang seluruhnya benar tidak pernah membuktikan
+            // bahwa penilaian per lubang bekerja, dan itu satu-satunya hal
+            // yang membedakan jenis ini dari isian singkat.
+            JenisSoal::IsianRumpang => $this->rumpangContoh($soal),
+
             JenisSoal::Angka => ['nilai' => '12'],
 
             // Uraian diisi, dan `is_correct`-nya dibiarkan null: null berarti
@@ -1396,6 +1427,36 @@ class DatabaseSeeder extends Seeder
 
             default => null,
         };
+    }
+
+    /**
+     * Jawaban rumpang contoh: lubang 1 benar, lubang 2 dibiarkan kosong.
+     *
+     * `kunci_json` pada snapshot TIDAK selalu ada - snapshot yang lahir dari
+     * paket memuatnya, dan yang dibuat langsung tanpa paket tidak. Karena itu
+     * jawabannya disusun dari BENTUK kunci, bukan dari isinya: yang dibutuhkan
+     * hanya berapa lubang yang harus diisi.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function rumpangContoh(ExamQuestion $soal): ?array
+    {
+        $kunci = $soal->kunci_json['rumpang'] ?? null;
+
+        if (! is_array($kunci) || $kunci === []) {
+            return null;
+        }
+
+        $isi = [];
+
+        foreach (array_values($kunci) as $nomor => $varian) {
+            // Lubang kedua sengaja kosong. Jawaban contoh yang seluruhnya
+            // benar membuat nilai 100 terlihat wajar, dan kesalahan
+            // pembagian per lubang tidak pernah muncul di data contoh.
+            $isi[] = $nomor === 0 && is_array($varian) ? (string) ($varian[0] ?? '') : '';
+        }
+
+        return ['rumpang' => $isi];
     }
 
     /** @return array<string, mixed>|null */
@@ -1444,7 +1505,7 @@ class DatabaseSeeder extends Seeder
      |================================================================= */
 
     /**
-     * Enam paket - satu per mapel - masing-masing berisi kesembilan jenis.
+     * Enam paket - satu per mapel - masing-masing berisi kesepuluh jenis.
      *
      * ---------------------------------------------------------------------
      * Mengapa ENAM paket, sementara rencana menyebut tiga
@@ -1517,7 +1578,7 @@ class DatabaseSeeder extends Seeder
             }
 
             // Satu paket per mapel, dan butirnya SELURUH soal yang baru saja
-            // dibuat - sehingga "berisi kesembilan jenis" bukan janji di
+            // dibuat - sehingga "berisi kesepuluh jenis" bukan janji di
             // komentar melainkan akibat dari cara paketnya diisi.
             $paketnya = $paketSoal->buat([
                 'subject_id' => $m->id,
@@ -1541,7 +1602,7 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Bobot kesembilan soal, berjumlah 100.
+     * Bobot kesepuluh soal, berjumlah 100.
      *
      * Angka bulat seratus dipilih karena itulah yang dikejar Guru di plate 05
      * ("total bobot 100"), dan paket contoh yang totalnya 108 akan membuat
@@ -1549,10 +1610,10 @@ class DatabaseSeeder extends Seeder
      *
      * @var array<int, float>
      */
-    private const BOBOT_CONTOH = [14, 12, 12, 10, 12, 10, 10, 10, 10];
+    private const BOBOT_CONTOH = [12, 10, 10, 9, 10, 10, 9, 10, 10, 10];
 
     /**
-     * Sembilan payload soal - satu untuk setiap jenis, dalam urutan enum.
+     * Sepuluh payload soal - satu untuk setiap jenis, dalam urutan enum.
      *
      * ---------------------------------------------------------------------
      * Mengapa dibangkitkan dari satu tema, bukan ditulis satu per satu
@@ -1634,7 +1695,26 @@ class DatabaseSeeder extends Seeder
                 'opsi' => [],
             ],
 
-            // 5 ------------------------------------------------ Menjodohkan
+            // 5 --------------------------------------------- Isian rumpang
+            [
+                'code' => null,
+                'title' => 'Isian rumpang - '.$t['pokok'],
+                'question_type' => JenisSoal::IsianRumpang->value,
+                'difficulty' => 'sedang',
+                // Teksnya WAJIB memuat {{1}}..{{n}} sebanyak lubangnya -
+                // SkemaJenisSoal menolak yang tidak cocok, dan soal contoh
+                // yang tidak bisa disimpan bukan soal contoh.
+                'prompt_json' => ['teks' => $t['rumpang']],
+                // Dua lubang, salah satunya bervarian dua: varian adalah
+                // alasan kuncinya daftar, dan lubang bervarian tunggal tidak
+                // pernah membuktikan bahwa daftarnya dibaca.
+                'answer_key_json' => ['rumpang' => $t['rumpang_kunci']],
+                'scoring_config_json' => ['bobot' => $bobot[4]],
+                'explanation_json' => ['teks' => $t['rumpang_pembahasan']],
+                'opsi' => [],
+            ],
+
+            // 6 ------------------------------------------------ Menjodohkan
             [
                 'code' => null,
                 'title' => 'Menjodohkan - '.$t['pokok'],
@@ -1642,7 +1722,7 @@ class DatabaseSeeder extends Seeder
                 'difficulty' => 'sedang',
                 'prompt_json' => ['teks' => $t['jodoh']],
                 'answer_key_json' => ['pasangan' => ['k1' => 'a', 'k2' => 'b', 'k3' => 'c']],
-                'scoring_config_json' => ['bobot' => $bobot[4]],
+                'scoring_config_json' => ['bobot' => $bobot[5]],
                 'butir' => [
                     ['item_key' => 'k1', 'item_group' => 'kiri', 'content_json' => ['teks' => $kiri[0]], 'position' => 0],
                     ['item_key' => 'k2', 'item_group' => 'kiri', 'content_json' => ['teks' => $kiri[1]], 'position' => 1],
@@ -1653,7 +1733,7 @@ class DatabaseSeeder extends Seeder
                 ],
             ],
 
-            // 6 ------------------------------------------------ Mengurutkan
+            // 7 ------------------------------------------------ Mengurutkan
             [
                 'code' => null,
                 'title' => 'Mengurutkan - '.$t['pokok'],
@@ -1665,7 +1745,7 @@ class DatabaseSeeder extends Seeder
                 // benar mengurutkan dari soal yang menyimpan urutannya apa
                 // adanya.
                 'answer_key_json' => ['urutan' => ['k3', 'k1', 'k2']],
-                'scoring_config_json' => ['bobot' => $bobot[5]],
+                'scoring_config_json' => ['bobot' => $bobot[6]],
                 'butir' => [
                     ['item_key' => 'k1', 'item_group' => 'kiri', 'content_json' => ['teks' => $t['langkah'][0]], 'position' => 0],
                     ['item_key' => 'k2', 'item_group' => 'kiri', 'content_json' => ['teks' => $t['langkah'][1]], 'position' => 1],
@@ -1673,7 +1753,7 @@ class DatabaseSeeder extends Seeder
                 ],
             ],
 
-            // 7 ---------------------------------------------------- Angka
+            // 8 ---------------------------------------------------- Angka
             [
                 'code' => null,
                 'title' => 'Angka - '.$t['pokok'],
@@ -1685,11 +1765,11 @@ class DatabaseSeeder extends Seeder
                     'toleransi' => $t['toleransi'],
                     'satuan' => $t['satuan'],
                 ],
-                'scoring_config_json' => ['bobot' => $bobot[6]],
+                'scoring_config_json' => ['bobot' => $bobot[7]],
                 'opsi' => [],
             ],
 
-            // 8 --------------------------------------------------- Uraian
+            // 9 --------------------------------------------------- Uraian
             [
                 'code' => null,
                 'title' => 'Uraian - '.$t['pokok'],
@@ -1700,7 +1780,7 @@ class DatabaseSeeder extends Seeder
                 // berisi untuk jenis ini, dan penolakan itu yang mencegah soal
                 // yang terlihat bisa dinilai mesin padahal tidak.
                 'answer_key_json' => null,
-                'scoring_config_json' => ['bobot' => $bobot[7]],
+                'scoring_config_json' => ['bobot' => $bobot[8]],
                 'rubrik' => [
                     ['criterion' => 'Ketepatan konsep', 'description' => 'Memakai konsep yang sesuai dengan pertanyaan.', 'max_score' => 5, 'position' => 0],
                     ['criterion' => 'Kelengkapan langkah', 'description' => 'Menuliskan langkah pengerjaan, bukan hanya hasilnya.', 'max_score' => 3, 'position' => 1],
@@ -1708,7 +1788,7 @@ class DatabaseSeeder extends Seeder
                 ],
             ],
 
-            // 9 ---------------------------------------------------- Media
+            // 10 --------------------------------------------------- Media
             [
                 'code' => null,
                 'title' => 'Media - '.$t['pokok'],
@@ -1718,7 +1798,7 @@ class DatabaseSeeder extends Seeder
                 'answer_key_json' => ['opsi' => [$t['media_kunci']]],
                 // `mekanisme` yang menentukan cara menilai soal media, bukan
                 // jenisnya - lihat catatan JenisSoal dan SkemaJenisSoal::media().
-                'scoring_config_json' => ['bobot' => $bobot[8], 'mekanisme' => 'pilihan'],
+                'scoring_config_json' => ['bobot' => $bobot[9], 'mekanisme' => 'pilihan'],
                 'opsi' => $this->opsiAbjad($t['media_opsi']),
                 'media' => $t['media'],
             ],
@@ -1857,8 +1937,8 @@ class DatabaseSeeder extends Seeder
                 ),
             ),
             // `false` = ke bank soal saja. Paket contoh sudah berisi tepat
-            // sembilan jenis, dan menambahinya dengan hasil impor akan membuat
-            // "berisi kesembilan jenis" berhenti menjadi pernyataan yang bisa
+            // sepuluh jenis, dan menambahinya dengan hasil impor akan membuat
+            // "berisi kesepuluh jenis" berhenti menjadi pernyataan yang bisa
             // diperiksa.
             false,
         );
@@ -2007,6 +2087,9 @@ class DatabaseSeeder extends Seeder
                 'bs' => 'b',
                 'isian' => '<p>Suku ke-5 dari barisan 4, 7, 10, ... adalah ...</p>',
                 'jawaban' => ['16', 'enam belas'],
+                'rumpang' => '<p>Pada barisan 4, 7, 10, ... suku pertamanya adalah {{1}} dan bedanya {{2}}.</p>',
+                'rumpang_kunci' => [['4', 'empat'], ['3', 'tiga']],
+                'rumpang_pembahasan' => '<p>Suku pertama a = 4, dan beda b = 7 − 4 = 3.</p>',
                 'jodoh' => '<p>Jodohkan istilah pada barisan aritmetika dengan lambangnya.</p>',
                 'istilah' => ['Suku pertama', 'Beda', 'Suku ke-n'],
                 'arti' => ['a', 'b', 'U<sub>n</sub>'],
@@ -2045,6 +2128,9 @@ class DatabaseSeeder extends Seeder
                 'bs' => 's',
                 'isian' => '<p>Bagian akhir teks eksposisi yang memuat penegasan ulang disebut ...</p>',
                 'jawaban' => ['penegasan ulang', 'kesimpulan'],
+                'rumpang' => '<p>Teks eksposisi dibuka dengan {{1}} tentang topik, lalu diakhiri dengan {{2}} ulang.</p>',
+                'rumpang_kunci' => [['pernyataan umum', 'pernyataan'], ['penegasan']],
+                'rumpang_pembahasan' => '<p>Struktur teks eksposisi: pernyataan umum, argumen, lalu penegasan ulang.</p>',
                 'jodoh' => '<p>Jodohkan bagian teks eksposisi dengan isinya.</p>',
                 'istilah' => ['Paragraf pembuka', 'Paragraf isi', 'Paragraf penutup'],
                 'arti' => ['Pernyataan umum', 'Argumen pendukung', 'Penegasan ulang'],
@@ -2077,6 +2163,9 @@ class DatabaseSeeder extends Seeder
                 'bs' => 'b',
                 'isian' => '<p>Complete: "They ___ football every Sunday." (play)</p>',
                 'jawaban' => ['play'],
+                'rumpang' => '<p>Complete: "She {{1}} to school every day, and they {{2}} football every Sunday."</p>',
+                'rumpang_kunci' => [['goes'], ['play']],
+                'rumpang_pembahasan' => '<p>"She" memakai bentuk "goes"; "they" memakai bentuk dasar "play".</p>',
                 'jodoh' => '<p>Match each subject with its correct verb form.</p>',
                 'istilah' => ['I', 'She', 'They'],
                 'arti' => ['write', 'writes', 'write'],
@@ -2112,6 +2201,9 @@ class DatabaseSeeder extends Seeder
                 'bs' => 'b',
                 'isian' => '<p>Satuan percepatan dalam SI adalah ...</p>',
                 'jawaban' => ['m/s2', 'meter per sekon kuadrat'],
+                'rumpang' => '<p>Kecepatan bersatuan {{1}}, sedangkan percepatan bersatuan {{2}}.</p>',
+                'rumpang_kunci' => [['m/s', 'meter per sekon'], ['m/s2', 'meter per sekon kuadrat']],
+                'rumpang_pembahasan' => '<p>Percepatan adalah perubahan kecepatan per satuan waktu, sehingga satuannya m/s dibagi sekon.</p>',
                 'jodoh' => '<p>Jodohkan besaran dengan satuannya.</p>',
                 'istilah' => ['Kecepatan', 'Percepatan', 'Perpindahan'],
                 'arti' => ['m/s', 'm/s<sup>2</sup>', 'm'],
@@ -2148,6 +2240,9 @@ class DatabaseSeeder extends Seeder
                 'bs' => 'b',
                 'isian' => '<p>Partikel atom yang bermuatan negatif disebut ...</p>',
                 'jawaban' => ['elektron'],
+                'rumpang' => '<p>Atom tersusun dari {{1}} yang bermuatan positif dan {{2}} yang bermuatan negatif.</p>',
+                'rumpang_kunci' => [['proton'], ['elektron']],
+                'rumpang_pembahasan' => '<p>Proton bermuatan positif, elektron bermuatan negatif, neutron netral.</p>',
                 'jodoh' => '<p>Jodohkan partikel atom dengan muatannya.</p>',
                 'istilah' => ['Proton', 'Elektron', 'Neutron'],
                 'arti' => ['Positif', 'Negatif', 'Netral'],
@@ -2182,6 +2277,9 @@ class DatabaseSeeder extends Seeder
                 'bs' => 's',
                 'isian' => '<p>Alamat yang dipakai untuk mengirim data ke seluruh perangkat dalam jaringan disebut alamat ...</p>',
                 'jawaban' => ['broadcast'],
+                'rumpang' => '<p>Pada jaringan /24, alamat {{1}} dipakai untuk broadcast, dan jumlah host yang bisa dipakai adalah {{2}}.</p>',
+                'rumpang_kunci' => [['192.168.1.255', '255'], ['254']],
+                'rumpang_pembahasan' => '<p>Dari 256 alamat, satu dipakai jaringan dan satu untuk broadcast, sehingga tersisa 254 host.</p>',
                 'jodoh' => '<p>Jodohkan istilah jaringan dengan pengertiannya.</p>',
                 'istilah' => ['Gateway', 'Subnet mask', 'DNS'],
                 'arti' => ['Pintu keluar jaringan', 'Penentu batas jaringan', 'Penerjemah nama domain'],

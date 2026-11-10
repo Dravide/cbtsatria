@@ -56,10 +56,39 @@ class DenyutService
     /**
      * Catat satu denyut, dan kembalikan apa yang berubah.
      *
+     * ---------------------------------------------------------------------
+     * `nomor` ikut dicatat, dan ia satu-satunya alasan Admin bisa bertanya
+     * "sampai nomor berapa"
+     * ---------------------------------------------------------------------
+     * `progres` menjawab BERAPA BANYAK yang sudah dijawab; ia tidak
+     * menjawab SOAL MANA yang sedang dilihat anak. Dua pertanyaan itu
+     * berbeda dan jawabannya sering berbeda jauh: anak yang melompat ke
+     * nomor 40 lalu kembali ke nomor 3 punya progres "1 / 40" pada dua
+     * keadaan yang sama sekali berlainan.
+     *
+     * Yang tahu nomor itu adalah peramban - dan hanya peramban. Nomor yang
+     * dilihat siswa adalah `attempt_questions.display_order`, yang TIDAK
+     * selalu sama dengan `exam_questions.position`; server tidak bisa
+     * menghitungnya tanpa membaca ulang seluruh butir attempt itu, dan
+     * melakukannya untuk setiap peserta di setiap laman monitoring berarti
+     * kueri yang tumbuh linier terhadap jumlah anak.
+     *
+     * Karena itu nomornya menumpang pada denyut yang toh sudah berjalan tiap
+     * tiga puluh detik: satu angka, tanpa kueri tambahan, dan yang perlu
+     * diketahui pembacanya adalah bahwa ia setua denyutnya - lihat
+     * `denyut_pada`.
+     *
+     * Nilainya DIPERCAYA SEBAGAI ISYARAT, tidak sebagai kebenaran: ia
+     * dilaporkan peramban siswa. Yang dijaga di sini hanyalah bentuknya
+     * (bilangan positif) supaya satu laporan rusak tidak menjadikan kolomnya
+     * tidak terbaca. `progres` pun demikian - dan di sana justru server yang
+     * menghitungnya supaya angka yang dibaca pengawas berasal dari jawaban
+     * yang benar-benar tersimpan. Untuk nomor, pilihan itu tidak ada.
+     *
      * @param  array<string, mixed>  $flags  Yang dilaporkan peramban:
      *                                       `perangkat`, `layar_penuh`,
      *                                       `pelindung` (penjaga masih
-     *                                       hidup), dan `progres`.
+     *                                       hidup), `progres`, dan `nomor`.
      * @return array<string, mixed>
      */
     public function catat(ExamAttempt $attempt, Request $request, array $flags = []): array
@@ -69,6 +98,13 @@ class DenyutService
 
         $perangkat = $this->sidikPerangkat($request, $flags);
         $perangkatLama = $lama['perangkat'] ?? null;
+
+        // Nomor soal yang sedang dilihat anak, atau null bila peramban tidak
+        // melaporkannya. Disaring di sini, bukan di pemanggilnya, karena
+        // kolomnya dibaca sebagai bilangan oleh papan monitoring - dan satu
+        // string yang lolos akan menjadi "NaN" di layar, bukan galat.
+        $nomor = $flags['nomor'] ?? null;
+        $nomor = is_numeric($nomor) && (int) $nomor > 0 ? (int) $nomor : null;
 
         $catatan = [];
 
@@ -100,6 +136,7 @@ class DenyutService
                 'layar_penuh' => (bool) ($flags['layar_penuh'] ?? false),
                 'pelindung' => (bool) ($flags['pelindung'] ?? true),
                 'progres' => $flags['progres'] ?? ($lama['progres'] ?? null),
+                'nomor' => $nomor,
                 'denyut_pada' => $sekarang->toIso8601String(),
             ],
         ])->save();

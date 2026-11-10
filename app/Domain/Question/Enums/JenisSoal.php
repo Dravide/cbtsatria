@@ -3,7 +3,12 @@
 namespace App\Domain\Question\Enums;
 
 /**
- * Sembilan jenis soal - PRD §6.5, blueprint `:1223`.
+ * Sepuluh jenis soal - PRD §6.5, blueprint `:1223`.
+ *
+ * Jenis kesepuluh, `IsianRumpang` (fill in the blank), ditambahkan
+ * 2026-11-10; sembilan sisanya berasal dari blueprint. Ia sengaja diletakkan
+ * tepat sesudah `IsianSingkat` karena keduanya berbagi satu gagasan - jawaban
+ * berupa teks pendek - dan berbeda hanya pada JUMLAH lubangnya.
  *
  * ---------------------------------------------------------------------
  * Mengapa enum, bukan string bebas
@@ -24,7 +29,7 @@ namespace App\Domain\Question\Enums;
  * Keduanya dipakai untuk MENGUNCI aturan, bukan untuk menampilkan label:
  * soal yang `otomatis()` WAJIB punya kunci, dan soal yang `perluRubrik()`
  * WAJIB punya rubrik. Yang menegakkannya adalah SkemaJenisSoal, dan yang
- * menguji setiap jenisnya adalah satu test per jenis - karena kesembilan
+ * menguji setiap jenisnya adalah satu test per jenis - karena kesepuluh
  * bentuk kunci ini adalah tempat kesalahan paling mahal di seluruh Fase 4:
  * kunci yang salah bentuk tersimpan rapi, ujian berjalan lancar, dan 300
  * siswa dinilai dengan kunci yang tidak pernah cocok.
@@ -46,6 +51,7 @@ enum JenisSoal: string
     case JawabanGanda = 'jawaban_ganda';
     case BenarSalah = 'benar_salah';
     case IsianSingkat = 'isian_singkat';
+    case IsianRumpang = 'isian_rumpang';
     case Menjodohkan = 'menjodohkan';
     case Mengurutkan = 'mengurutkan';
     case Angka = 'angka';
@@ -59,6 +65,7 @@ enum JenisSoal: string
             self::JawabanGanda => 'Jawaban ganda',
             self::BenarSalah => 'Benar/salah',
             self::IsianSingkat => 'Isian singkat',
+            self::IsianRumpang => 'Isian rumpang',
             self::Menjodohkan => 'Menjodohkan',
             self::Mengurutkan => 'Mengurutkan',
             self::Angka => 'Angka',
@@ -78,6 +85,7 @@ enum JenisSoal: string
             self::JawabanGanda => 'Ganda',
             self::BenarSalah => 'B/S',
             self::IsianSingkat => 'Isian',
+            self::IsianRumpang => 'Rumpang',
             self::Menjodohkan => 'Jodoh',
             self::Mengurutkan => 'Urut',
             self::Angka => 'Angka',

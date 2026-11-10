@@ -7,12 +7,18 @@ use App\Domain\Event\Models\EventParticipant;
 use App\Domain\Event\Models\EventRoom;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\ExamSession;
-use App\Domain\Exam\Models\ExamSessionRoom;
+use App\Domain\Exam\Services\DenahRuang;
+use App\Domain\Exam\Services\PapanKursi;
 use App\Domain\Exam\Services\PenempatanKocok;
 use App\Domain\Exam\Services\PenempatanService;
+use App\Domain\Exam\Services\PetaKursiEvent;
+use App\Domain\Exam\Services\TabloRuang;
+use App\Domain\Tenancy\Models\School;
+use App\Support\Cetak\KopSekolah;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -83,16 +89,19 @@ class ExamPenempatanController
         $susunan = $this->cobaSusun($kocok, $event, $benih);
         $perRuang = $susunan['per_ruang'] ?? [];
 
-        // Sesi yang diminta lewat `?sesi=`. Pilihannya lewat query, bukan state
-        // di peramban, karena isinya dihitung server - dan pilihan yang hidup di
-        // dua tempat (React memilih, server menghitung) adalah pilihan yang bisa
-        // menampilkan sesi A dengan isi sesi B. `?sesi=` juga membuat pratinjau
-        // satu sesi bisa dikirim ke orang lain sebagai tautan, dan itu yang
-        // diminta pengawas ketika ia melaporkan ruang yang salah isi.
-        $diminta = (int) $request->query('sesi', 0);
+        // Tidak ada `?sesi=` di laman ini, dan itu yang berubah 2026-11-09.
+        //
+        // Sampai 2026-11-09 pratinjaunya adalah peta SATU sesi, sehingga Admin
+        // harus memilih sesi lebih dulu untuk melihat ruangnya - padahal yang
+        // ditanyakannya adalah "anak saya di ruang berapa", dan jawabannya satu
+        // untuk seluruh ujian. Angka yang berubah tiap sesi juga bukan angka
+        // yang bisa ditempel di pintu.
+        //
+        // Yang tetap per sesi adalah KELAYAKAN di tabel bawah: satu peta event
+        // hanya bisa dipakai sesi yang memuat seluruh ruang event. Itu memang
+        // pertanyaan yang berbeda dari "siapa duduk di mana", dan karena itu
+        // tetap dijawabkan per sesi.
         $sesi = $kocok->sesiEvent($event);
-
-        $pilih = $sesi->firstWhere('id', $diminta) ?? $sesi->first();
 
         $baris = $this->daftarSesi($kocok, $event, $sesi, $perRuang, $susunan['pesan'] ?? null);
 
@@ -118,7 +127,13 @@ class ExamPenempatanController
                 'bisa_sebar' => $this->bisaSebar($susunan, $baris),
             ],
             'baris' => $baris,
-            'pratinjau' => $this->pratinjau($kocok, $event, $pilih, $perRuang, $benih),
+            // Alamat kedua laman turunan, DIKIRIM server dan tidak disusun
+            // peramban. Ketiganya memuat `event->id`, dan menyusunnya di dua
+            // tempat berarti dua alamat yang bisa berbeda bila bentuk
+            // rutenya berubah - lihat catatan yang sama di RoomController.
+            'denah_url' => "/admin/events/{$event->id}/penempatan/denah",
+            'tablo_url' => "/admin/events/{$event->id}/penempatan/tablo",
+            'pratinjau' => $this->pratinjau($kocok, $event, $perRuang, $benih),
             'angka' => [
                 'peserta_event' => $event->participants()
                     ->where('status', EventParticipant::STATUS_TERDAFTAR)->count(),
@@ -217,7 +232,248 @@ class ExamPenempatanController
         );
     }
 
+    /* -------------------------------------------------- 16c - Denah kursi */
+
+    /**
+     * Denah tempat duduk satu RUANG, untuk SELURUH event - plate 16c.
+     *
+     * ---------------------------------------------------------------------
+     * Yang digambar adalah peta BENIH, sama dengan pratinjau penempatan
+     * ---------------------------------------------------------------------
+     * Sampai 2026-11-10 laman ini menggambar
+     * `exam_participants.exam_session_room_id` apa adanya. Bentuk itu salah
+     * pada event yang hanya SEBAGIAN ujiannya punya sesi: penyebaran tidak
+     * pernah menulis kursi untuk ujian yang belum dijadwalkan, sehingga ruang
+     * berkapasitas 39 terbaca "terisi 17" dan denahnya hanya memuat satu
+     * tingkatan. Laman Penempatan, yang menghitung ulang dari benih, menyebut
+     * angka yang berbeda di sebelahnya.
+     *
+     * Sekarang keduanya membaca peta yang sama: benih di `exam_event_shuffles`
+     * diterjemahkan `PetaKursiEvent` menjadi penghuni tiap ruang event. Denah
+     * karena itu selalu sama dengan pratinjau, dan tidak menunggu penyebaran
+     * untuk ujian yang belum punya sesi.
+     *
+     * Konsekuensinya dinyatakan di laman: selama penyebaran belum selesai,
+     * kursi di denah bisa berbeda dari baris yang tersimpan. Yang digambar
+     * adalah susunan yang AKAN berlaku - dan itulah yang ditempel di meja.
+     *
+     * ---------------------------------------------------------------------
+     * Tidak ada pemilih sesi, dan itu yang berubah 2026-11-09
+     * ---------------------------------------------------------------------
+     * Sampai 2026-11-09 laman ini adalah laman SESI: pemilih sesi di bar
+     * atas, daftar ruang dari satu sesi, dan cacah terisinya dihitung dari
+     * peserta ujian itu. Bentuk itu menomori kursi per mapel - dan yang
+     * dilaporkan Admin adalah keadaannya sendiri: ruang yang sama terbaca
+     * "terisi 11" di sini sementara peta event menyebutnya penuh.
+     *
+     * Meja di ruang tidak disusun ulang antar sesi, jadi yang digambar di
+     * sini adalah ruang EVENT beserta seluruh penghuninya. Karena itu bar
+     * atasnya kini hanya pemilih RUANG: sesi yang bisa dipilih hanyalah
+     * pilihan atas nama ujian, dan nama ujian tidak mengubah satu pun kotak
+     * di gambar ini.
+     */
+    public function denah(
+        Request $request,
+        SchoolEvent $event,
+        PapanKursi $papan,
+        PenempatanKocok $kocok,
+        PetaKursiEvent $peta,
+    ): Response {
+        Gate::authorize('view', $event);
+
+        $ruang = $kocok->ruanganEvent($event);
+        $pilih = $this->ruangEventDiminta($request, $ruang);
+
+        // Satu kueri untuk pengisian SELURUH ruang, bukan satu per ruang.
+        // Baris atas pemilih ruang menampilkan "38/40" untuk setiap ruang, dan
+        // menghitungnya satu per satu membuat laman ini tumbuh linier terhadap
+        // jumlah ruang - persis N+1 yang dijaga `PemantauanQueryTest` di papan
+        // sebelah, dan tidak ada alasan laman ini berbeda.
+        $terisi = $peta->terisiPerRuang($event);
+
+        return Inertia::render('Admin/Event/Denah', [
+            'event' => $this->kepalaEvent($event),
+            'tablo_url' => "/admin/events/{$event->id}/penempatan/tablo",
+            'denah_url' => "/admin/events/{$event->id}/penempatan/denah",
+            // Tautan cetak selalu ada, termasuk saat belum ada ruang yang
+            // dipilih: `?ruang=` dirapatkan ke PDF yang sama, sehingga bar
+            // atas tidak perlu dua tombol untuk dua keadaan.
+            'pdf_url' => "/admin/events/{$event->id}/penempatan/denah/pdf",
+            // Daftar ruangnya dikirim walau ruangnya sudah dipilih: pemilih
+            // ruang di bar atas harus bisa menampilkan SELURUH ruang event,
+            // dan ruang yang tidak dipilih tetap perlu terbaca namanya.
+            'daftar_ruang' => $ruang->map(fn (EventRoom $r) => [
+                'id' => (int) $r->id,
+                'kode' => $r->room?->code ?? "R-{$r->id}",
+                'nama' => $r->room?->name,
+                'terisi' => (int) ($terisi[$r->id] ?? 0),
+                'kapasitas' => $r->kapasitasEfektif(),
+            ])->values()->all(),
+            'ruang' => $pilih === null ? null : $papan->susunEvent($pilih),
+        ]);
+    }
+
+    /* --------------------------------------- 16c-kertas - Denah (PDF) */
+
+    /**
+     * Denah tempat duduk sebagai PDF - lembar yang ditempel di meja.
+     *
+     * Sumber datanya SAMA dengan `denah()`: `PapanKursi::susunEvent()`, yang
+     * menyusun penghuni ruang dari benih tersimpan lewat `PetaKursiEvent`.
+     * Karena itu nomor kursi di kertas ini mustahil berbeda dari yang di
+     * layar - dan lembar yang menyusun ulang mejanya sendiri adalah lembar
+     * yang menaruh anak di kursi orang lain.
+     *
+     * `?ruang=` memilih satu ruang; tanpa itu seluruh ruang event dicetak,
+     * pola yang sama dengan tablo. Satu rute untuk keduanya karena yang
+     * membedakan hanya berapa lembar yang keluar dari printer.
+     */
+    public function denahPdf(
+        Request $request,
+        SchoolEvent $event,
+        PapanKursi $papan,
+        DenahRuang $denah,
+        PenempatanKocok $kocok,
+        ActivityLogger $logger,
+    ): HttpResponse {
+        Gate::authorize('view', $event);
+
+        $ruang = $kocok->ruanganEvent($event);
+        $pilih = $this->ruangEventDiminta($request, $ruang);
+
+        $dicetak = $pilih === null ? $ruang : $ruang->where('id', $pilih->id)->values();
+
+        $sekolah = School::query()->find($event->school_id);
+
+        $pdf = $denah->buat(
+            $dicetak->map(fn (EventRoom $r) => $denah->halaman($papan->susunEvent($r))),
+            KopSekolah::dari($sekolah),
+        );
+
+        $logger->log('Mencetak denah tempat duduk', $event, [
+            'ruang' => $dicetak->map(fn (EventRoom $r) => $r->room?->code)->values()->all(),
+        ]);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$denah->namaBerkas().'"',
+        ]);
+    }
+
+    /* ------------------------------------------------- 16d - Tablo (PDF) */
+    /**
+     * Tablo - daftar hadir per ruang, dicetak sebagai PDF.
+     *
+     * ---------------------------------------------------------------------
+     * Satu ruang lewat `?ruang=`, seluruh ruang tanpa itu
+     * ---------------------------------------------------------------------
+     * Yang membedakan keduanya hanya berapa lembar yang keluar dari printer:
+     * pengawas ruang R-01 mencetak satu, panitia yang menyiapkan hari ujian
+     * mencetak enam. Karena itu keduanya satu rute - dua rute akan berarti
+     * dua tempat yang harus diperbaiki bila bentuk tabelnya berubah.
+     *
+     * ---------------------------------------------------------------------
+     * Ruangnya ruang EVENT; `?sesi=` hanya memasok judul kepala lembar
+     * ---------------------------------------------------------------------
+     * Kursinya tidak berpindah antar sesi, jadi penghuni tiap lembar adalah
+     * penghuni ruang eventnya - sama dengan denah dan papan pengawas. Yang
+     * ditanyakan sesi adalah nama ujian dan jamnya, dan itu memang harus ada
+     * di lembar yang ditandatangani: berita acara tanpa menyebut ujian mana
+     * tidak bisa dipertanggungjawabkan.
+     *
+     * Konsekuensinya harus dibaca pencetaknya: pada event yang satu ujiannya
+     * hanya diikuti sebagian kelas, lembar ini memuat nama anak yang tidak
+     * ikut ujian itu. Kursinya benar; kehadirannya tidak dicentang, dan
+     * kolom Tanda tangan memang dikosongkan untuk itu.
+     */
+    public function tablo(
+        Request $request,
+        SchoolEvent $event,
+        PapanKursi $papan,
+        TabloRuang $tablo,
+        PenempatanKocok $kocok,
+        ActivityLogger $logger,
+    ): HttpResponse {
+        Gate::authorize('view', $event);
+
+        $sesi = $this->sesiDiminta($request, $event, $kocok);
+        $ruang = $kocok->ruanganEvent($event);
+        $pilih = $this->ruangEventDiminta($request, $ruang);
+
+        $dicetak = $pilih === null ? $ruang : $ruang->where('id', $pilih->id)->values();
+
+        $sekolah = School::query()->find($event->school_id);
+
+        $pdf = $tablo->buat(
+            $dicetak->map(fn (EventRoom $r) => $tablo->halaman($papan->susunEvent($r, $sesi))),
+            KopSekolah::dari($sekolah),
+        );
+
+        $logger->log('Mencetak tablo daftar hadir', $event, [
+            'ruang' => $dicetak->map(fn (EventRoom $r) => $r->room?->code)->values()->all(),
+        ]);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$tablo->namaBerkas().'"',
+        ]);
+    }
+
     /* ------------------------------------------------------------ Pembantu */
+
+    /** @return array<string, mixed> */
+    private function kepalaEvent(SchoolEvent $event): array
+    {
+        return [
+            'id' => $event->id,
+            'kode' => $event->code,
+            'nama' => $event->name,
+            'status' => $event->status->value,
+            'status_label' => $event->status->label(),
+        ];
+    }
+
+    /**
+     * Sesi yang sedang dilihat, dari `?sesi=` atau yang pertama.
+     *
+     * Pilihannya lewat query, bukan state di peramban - alasan yang sama
+     * dengan laman penempatan: isinya dihitung server, dan pilihan yang hidup
+     * di dua tempat adalah pilihan yang bisa menampilkan sesi A dengan isi
+     * sesi B. `?sesi=` juga membuat satu ruang bisa dikirim ke orang lain
+     * sebagai tautan.
+     *
+     * @param  Collection<int, ExamSession>  $sesi
+     */
+    private function sesiDipilih(Request $request, Collection $sesi): ?ExamSession
+    {
+        return $sesi->firstWhere('id', (int) $request->query('sesi', 0)) ?? $sesi->first();
+    }
+
+    /** Sesi yang sedang dilihat oleh tablo - bentuk yang sama, satu panggilan. */
+    private function sesiDiminta(Request $request, SchoolEvent $event, PenempatanKocok $kocok): ?ExamSession
+    {
+        return $this->sesiDipilih($request, $kocok->sesiEvent($event));
+    }
+
+    /**
+     * Ruang event yang diminta lewat `?ruang=`, atau null bila tidak ada.
+     */
+    private function ruangEventDiminta(Request $request, Collection $ruang): ?EventRoom
+    {
+        $diminta = (int) $request->query('ruang', 0);
+
+        if ($diminta <= 0) {
+            return null;
+        }
+
+        // Ruang yang diminta dan tidak ada di event ini menghasilkan null,
+        // bukan 404: pemanggilnya memperlakukan null sebagai "semuanya", dan
+        // itu jawaban yang benar untuk tautan lama yang ruangnya sudah
+        // dihapus - jauh lebih berguna daripada halaman galat.
+        return $ruang->firstWhere('id', $diminta);
+    }
+
+    /* --------------------------------------- Pembantu khusus pemanggil kocok */
 
     /**
      * Susun kocokan, dan ubah kegagalannya menjadi pesan - bukan 500.
@@ -330,14 +586,27 @@ class ExamPenempatanController
     }
 
     /**
-     * Pratinjau peta ruang event, ditandai dengan nama ruang SESI yang dipilih.
+     * Pratinjau peta ruang EVENT - satu peta, berlaku sepanjang ujian.
      *
-     * Yang ditampilkan adalah peta EVENT - satu daftar, karena itulah yang
-     * berlaku sepanjang ujian. Sesi yang dipilih hanya mengubah dua hal: kode
-     * ruangnya (id ruang sesi bisa berbeda dari id ruang event) dan kapasitas
-     * efektifnya, karena sesi boleh menimpanya. Menampilkan peta event dengan
-     * kapasitas sesi adalah satu-satunya bentuk yang tidak berbohong tentang
-     * keduanya sekaligus.
+     * =====================================================================
+     * Angka `terisi` adalah penghuni RUANG EVENT - dibalik 2026-11-09
+     * =====================================================================
+     * Versi sebelumnya menghitung `terisi` dari peta SATU sesi, dengan alasan
+     * bahwa angka itu yang cocok dengan laman denah. Alasannya masuk akal dan
+     * laman ini tetap salah: yang digambar denah adalah kursi yang tidak
+     * berpindah antar sesi, sehingga "penghuni di sesi ini" bukan angka yang
+     * berlaku sepanjang ujian. Pada ujian yang diikuti sebagian kelas, ruang
+     * berkapasitas 35 terbaca sebelas - dan sebelas orang itu dinomori 1..11
+     * di layar ini, lalu berganti nomor lagi saat mapel berikutnya dibuka.
+     *
+     * Sejak 2026-11-09 ada SATU aturan nomor kursi untuk seluruh permukaan -
+     * lihat `PetaKursiEvent`. Karena itu pratinjau ini tidak lagi memilih
+     * sesi: yang ditampilkan adalah peta yang akan ditulis Sebar, dan peta
+     * itu sama untuk setiap sesi.
+     *
+     * `terisi` dan `terisi_event` kini SELALU sama, dan keduanya tetap dikirim
+     * supaya bentuk propnya tidak berubah diam-diam. Yang berbeda per sesi
+     * adalah KELAYAKAN, dan itu dijawab tabel sesi - bukan di sini.
      *
      * @param  array<int, array<int, EventParticipant>>  $perRuang
      * @return array<string, mixed>|null
@@ -345,28 +614,20 @@ class ExamPenempatanController
     private function pratinjau(
         PenempatanKocok $kocok,
         SchoolEvent $event,
-        ?ExamSession $sesi,
         array $perRuang,
         string $benih,
     ): ?array {
-        if ($sesi === null || $perRuang === []) {
+        if ($perRuang === []) {
             return null;
         }
 
         $ruangEvent = $kocok->ruanganEvent($event)->keyBy('id');
-
-        $ruangSesi = ExamSessionRoom::query()
-            ->where('exam_session_id', $sesi->id)
-            ->with('eventRoom.room:id,code')
-            ->get()
-            ->keyBy('event_room_id');
 
         $ruang = [];
 
         foreach ($perRuang as $idRuang => $anggota) {
             /** @var EventRoom|null $model */
             $model = $ruangEvent->get($idRuang);
-            $sesiRoom = $ruangSesi->get($idRuang);
 
             $ruang[] = [
                 'id' => $idRuang,
@@ -374,12 +635,13 @@ class ExamPenempatanController
                 'nama' => $model?->room?->name,
                 // Kapasitas ruang EVENT - angka yang menentukan peta ini.
                 'kapasitas' => $model?->kapasitasEfektif() ?? 0,
-                // Kapasitas yang berlaku di sesi ini. Berbeda dari angka di
-                // atas berarti sesi ini menimpa kapasitasnya, dan Admin perlu
-                // melihat kedua angkanya untuk tahu mana yang mengikat.
-                'kapasitas_sesi' => $sesiRoom?->kapasitasEfektif(),
-                'dipakai_sesi' => $sesiRoom !== null,
+                // Tidak ada sesi di sini, jadi tidak ada kapasitas sesi yang
+                // bisa berbeda - kedua kunci tetap dikirim sebagai null/false
+                // supaya bentuk propnya sama dan layarnya tidak perlu bercabang.
+                'kapasitas_sesi' => null,
+                'dipakai_sesi' => true,
                 'terisi' => count($anggota),
+                'terisi_event' => count($anggota),
                 // Daftar namanya dikirim UTUH, bukan hanya cacahnya. Pratinjau
                 // yang hanya menampilkan "40/40" tidak membuktikan apa pun
                 // tentang campurannya - dan campuran itulah yang diminta.
@@ -388,14 +650,16 @@ class ExamPenempatanController
                     'nis' => $p->student?->username,
                     'nama' => $p->student?->name,
                     'kelas' => $p->kelas?->name ?? '—',
-                ])->values()->all(),
+                ])->all(),
             ];
         }
 
         return [
-            'sesi_id' => $sesi->id,
-            'label' => $sesi->label(),
-            'ujian' => $sesi->exam?->subject?->name ?? $sesi->exam?->title,
+            // Tidak ada sesi yang dipilih, jadi tidak ada id sesi yang bisa
+            // dikirim. Labelnya menyebut eventnya, karena itulah cakupan
+            // peta ini.
+            'sesi_id' => null,
+            'label' => 'seluruh event',
             'benih' => $benih,
             'ruang' => $ruang,
         ];

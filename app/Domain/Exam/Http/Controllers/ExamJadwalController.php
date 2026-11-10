@@ -537,82 +537,20 @@ class ExamJadwalController
 
         $label = $sesi->label();
 
-        $service->hapus($sesi);
+        try {
+            $service->hapus($sesi);
+        } catch (DomainException $e) {
+            // Penghapusan bisa DITOLAK, dan penolakannya berkalimat: berita
+            // acara yang sudah dikirim atau insiden yang tercatat di ruang
+            // sesinya tidak boleh hilang bersama jadwalnya. Tanpa tangkapan
+            // ini, yang sampai ke Admin adalah galat integritas 1451 dengan
+            // nama constraint - lihat catatan `SesiService::hapus()`.
+            return back()->with('galat', $e->getMessage());
+        }
 
         $logger->log('Menghapus sesi ujian', $event, ['sesi' => $label]);
 
         return back()->with('sukses', "Sesi {$label} dihapus.");
-    }
-
-    /* -------------------------------------------------- Penempatan (§9.5) */
-
-    /**
-     * Sebarkan peserta ke ruang setiap sesi.
-     *
-     * Hasilnya dilaporkan per sesi, dan sesi yang kapasitasnya kurang DILEWATI
-     * - bukan menghentikan seluruhnya. Satu sesi yang kursinya kurang adalah
-     * keadaan yang perlu diperbaiki, bukan alasan dua sesi lain tetap kosong.
-     */
-    public function sebar(
-        SchoolEvent $event,
-        PenempatanService $penempatan,
-        ActivityLogger $logger,
-    ): RedirectResponse {
-        Gate::authorize('update', $event);
-
-        $ujian = $event->exams()->orderBy('code')->get();
-
-        if ($ujian->isEmpty()) {
-            return back()->with('galat', 'Belum ada ujian yang bisa ditempati peserta.');
-        }
-
-        $hasil = [];
-        $dilewati = [];
-
-        foreach ($ujian as $u) {
-            // Peserta ditarik lebih dulu untuk ujian ini: kelas sasaran bisa
-            // berubah sejak penarikan terakhir, dan menyebar peserta yang
-            // daftarnya basi berarti menempatkan orang yang sudah dikecualikan.
-            $baru = $penempatan->tarikPeserta($u);
-
-            if ($baru > 0) {
-                $hasil[] = "{$u->code} +{$baru} peserta baru";
-            }
-
-            foreach ($u->sessions()->orderBy('session_number')->get() as $sesi) {
-                try {
-                    $bagian = $penempatan->sebar($u, $sesi);
-                    $hasil[] = "{$sesi->label()} ".array_sum($bagian).' peserta';
-                } catch (DomainException $e) {
-                    $dilewati[] = "{$sesi->label()}: {$e->getMessage()}";
-                }
-            }
-        }
-
-        $logger->log('Menyebar peserta ke ruang', $event, [
-            'berhasil' => count($hasil),
-            'dilewati' => count($dilewati),
-        ]);
-
-        if ($hasil === [] && $dilewati === []) {
-            return back()->with('galat', 'Belum ada sesi yang bisa ditempati.');
-        }
-
-        if ($dilewati !== []) {
-            // Peringatan, bukan sukses: yang berhasil tetap disebutkan, dan
-            // yang gagal disebutkan dengan alasan masing-masing. Pesan yang
-            // hanya berbunyi "berhasil" akan membuat Admin mengira seluruh
-            // peserta sudah punya ruang.
-            $pesan = 'Dilewati - '.implode(' ', $dilewati);
-
-            if ($hasil !== []) {
-                $pesan = implode(', ', $hasil).'. '.$pesan;
-            }
-
-            return back()->with('galat', $pesan);
-        }
-
-        return back()->with('sukses', 'Penempatan selesai: '.implode(', ', $hasil).'.');
     }
 
     /**

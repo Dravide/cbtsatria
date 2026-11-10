@@ -38,16 +38,49 @@ use Illuminate\Support\Str;
  * penting setelah kodenya pindah: pada kartu yang tidak lagi memuat kode,
  * "tautan ini dipakai lima kali" adalah satu-satunya tanda kebocoran yang
  * masih bisa dibaca Admin dari kartunya.
+ *
+ * ---------------------------------------------------------------------
+ * Tautan tidak lagi kedaluwarsa sendiri - diputuskan 2026-11-09
+ * ---------------------------------------------------------------------
+ * Sampai 2026-11-09 tautan lahir dengan masa berlaku 2 jam (`BERLAKU_JAM`).
+ * Angka itu masuk akal selama tautan dianggap kredensial, tetapi sejak kode
+ * pengawas pindah ke ORANG (2026-11-07) ia bukan kredensial lagi: tautan
+ * sendirian tidak membuka apa pun, ia hanya menunjuk ruang mana yang dibuka.
+ *
+ * Yang terjadi di lapangan dengan masa berlaku 2 jam bukan keamanan
+ * melainkan pemborosan: Admin mencetak dua puluh empat kartu pintu sehari
+ * sebelum ujian, dan pada pukul 07:30 seluruh QR di daun pintu sudah mati.
+ * Kartu yang ditempel adalah kertas; ia tidak ikut diperbarui saat Admin
+ * menekan "terbitkan" di mejanya.
+ *
+ * Karena itu `expires_at` kini NULL dan tautan hidup sampai Admin
+ * MENCABUTNYA - dan pencabutan itu tetap berlaku seketika, karena
+ * `KonteksRuang` membacanya ulang di setiap permintaan. Yang tersisa sebagai
+ * penanda kebocoran tetap `use_count`.
+ *
+ * Parameter `$berlakuJam` TIDAK dihapus meski kini jarang dipakai: ia yang
+ * membuat tautan berumur pendek masih bisa dibuat bila suatu saat diperlukan,
+ * dan ia yang diuji `PintuRuangTest` untuk membuktikan tautan mati benar
+ * ditolak. Yang berubah hanya bawaannya.
  */
 class RoomEntryLinkService
 {
-    /** Berapa lama tautan berlaku bila Admin tidak menentukan. */
-    public const BERLAKU_JAM = 2;
+    /**
+     * Berapa lama tautan berlaku bila Admin tidak menentukan.
+     *
+     * NULL sejak 2026-11-09: tautan tidak lagi kedaluwarsa sendiri. Ia hidup
+     * sampai Admin mencabutnya - lihat catatan di kepala kelas ini tentang
+     * mengapa masa berlaku 2 jam justru merusak hari ujian.
+     */
+    public const ?int BERLAKU_JAM = null;
 
     public function __construct(private readonly SchoolResolver $resolver) {}
 
     /**
      * Terbitkan tautan baru untuk satu ruang.
+     *
+     * `$berlakuJam` yang diberikan membuat tautan berumur pendek; yang tidak
+     * diberikan menghasilkan tautan tanpa tanggal berakhir.
      */
     public function terbitkan(Room $ruang, ?int $berlakuJam = null): RoomEntryLink
     {
@@ -60,7 +93,7 @@ class RoomEntryLinkService
                 'school_id' => $ruang->school_id,
                 'room_id' => $ruang->id,
                 'slug' => $this->slugUnik($ruang),
-                'expires_at' => now()->addHours($berlakuJam),
+                'expires_at' => $berlakuJam === null ? null : now()->addHours($berlakuJam),
                 'use_count' => 0,
             ]);
         });

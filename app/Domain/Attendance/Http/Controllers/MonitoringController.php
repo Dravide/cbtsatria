@@ -9,6 +9,7 @@ use App\Domain\Attendance\Services\InsidenService;
 use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
+use App\Domain\Exam\Services\NomorKursi;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,7 +43,10 @@ use Inertia\Response;
  */
 class MonitoringController
 {
-    public function __construct(private readonly InsidenService $insiden) {}
+    public function __construct(
+        private readonly InsidenService $insiden,
+        private readonly NomorKursi $kursi,
+    ) {}
 
     public function index(ExamSessionRoom $ruang): Response
     {
@@ -55,9 +59,21 @@ class MonitoringController
                 'student.studentProfile:id,user_id,nis',
                 'pesertaEvent.kelas:id,name',
             ])
-            ->get()
-            ->sortBy(fn (ExamParticipant $p) => $p->student?->name)
-            ->values();
+            ->get();
+
+        // Urutannya dari `NomorKursi`, BUKAN disusun ulang di sini: nomor
+        // kursi di papan ini harus sama dengan nomor yang dibaca anak di
+        // ponselnya dan nomor yang tercetak di tablo. Aturan urutannya satu
+        // tempat - lihat catatan panjang di `NomorKursi`.
+        //
+        // Nomornya dihitung atas RUANG EVENT, karena kursi anak tidak
+        // berpindah antar sesi. Kuncinya `student_id`, bukan id penempatan:
+        // satu siswa punya satu baris penempatan per ujian, dan menomori
+        // barisnya akan menaruh siswa yang sama di dua kursi. Karena itu
+        // `peta()` - yang berkunci id penempatan - tidak dipakai di sini.
+        $nomor = $this->kursi->petaRuangEvent((int) $ruang->eventRoom?->id);
+
+        $penempatan = $this->kursi->urutkan($penempatan);
 
         // Satu query untuk seluruh attempt, bukan satu per peserta: papan
         // ini di segarkan terus selama ujian berjalan, justru saat basis
@@ -101,13 +117,13 @@ class MonitoringController
                 'insiden' => $this->insiden->jumlahTerbuka($ruang),
             ],
 
-            'kursi' => $penempatan->values()->map(function (ExamParticipant $p, int $i) use ($attempt, $pelanggaran) {
+            'kursi' => $penempatan->map(function (ExamParticipant $p) use ($attempt, $pelanggaran, $nomor) {
                 $a = $attempt->get($p->id);
                 $jenis = $pelanggaran->get($p->id, collect());
 
                 return [
                     'peserta_id' => $p->id,
-                    'kursi' => $i + 1,
+                    'kursi' => $nomor[(int) $p->student_id] ?? null,
                     'nama' => $p->student?->name ?? 'Peserta',
                     'nis' => $p->student?->studentProfile?->nis,
                     'kelas' => $p->pesertaEvent?->kelas?->name,

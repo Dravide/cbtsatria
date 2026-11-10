@@ -683,6 +683,60 @@ it('menulis denyut, termasuk progres yang dihitung server', function () {
         ->and($attempt->guard_flags_json['progres'])->toBe('0 / 4 terjawab');
 });
 
+it('mencatat nomor soal yang sedang dilihat anak, dan TIDAK mengarangnya', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    // Nomor ini datang dari peramban, dan server TIDAK bisa menghitungnya
+    // sendiri: nomor yang dilihat anak adalah
+    // `attempt_questions.display_order`, yang berbeda dari
+    // `exam_questions.position` begitu urutan soalnya dikocok. Karena itu
+    // yang diuji di sini adalah bahwa nilai yang DIKIRIM benar-benar
+    // tersimpan - bukan bahwa server menebaknya dengan benar.
+    masukUji($this, $data['siswa'][0])
+        ->postJson("/siswa/ujian/{$peserta->id}/denyut", [
+            'perangkat' => 'id-peramban-1',
+            'nomor' => 3,
+        ])
+        ->assertOk();
+
+    expect(attemptBerjalan($peserta)->guard_flags_json['nomor'])->toBe(3);
+
+    // Denyut berikutnya memindahkan nomornya - dan yang tersisa hanyalah
+    // yang terakhir, karena yang ditanyakan Admin selalu "SEKARANG di
+    // nomor berapa", bukan riwayat perpindahannya.
+    masukUji($this, $data['siswa'][0])
+        ->postJson("/siswa/ujian/{$peserta->id}/denyut", [
+            'perangkat' => 'id-peramban-1',
+            'nomor' => 7,
+        ])
+        ->assertOk();
+
+    expect(attemptBerjalan($peserta)->guard_flags_json['nomor'])->toBe(7);
+
+    // ------------------------------------------------------------------
+    // Yang TIDAK dikarang, dan itu yang dijaga di sini
+    // ------------------------------------------------------------------
+    // Denyut tanpa nomor - peramban versi lama, atau laman yang dibuka
+    // sebelum kolomnya ada - menghasilkan null, BUKAN angka tadi. Nomor
+    // yang dipertahankan dari denyut sebelumnya akan menampilkan anak di
+    // soal yang mungkin sudah ia tinggalkan berjam-jam lalu, dan papan yang
+    // menampilkan angka basi sebagai angka baru lebih buruk daripada papan
+    // yang mengaku tidak tahu.
+    //
+    // `null` juga bukan `1`: "belum ada kabar" dan "baru membuka soal
+    // pertama" adalah dua keadaan yang berbeda, dan yang pertama adalah
+    // yang perlu ditanyakan ke pengawas ruangnya.
+    masukUji($this, $data['siswa'][0])
+        ->postJson("/siswa/ujian/{$peserta->id}/denyut", ['perangkat' => 'id-peramban-1'])
+        ->assertOk();
+
+    expect(attemptBerjalan($peserta)->guard_flags_json['nomor'])->toBeNull();
+});
+
 /* =====================================================================
  | Muat ulang TIDAK boleh mengunci - dan ini regresi, bukan kehati-hatian
  |===================================================================== */

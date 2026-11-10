@@ -2,6 +2,7 @@
 
 namespace App\Domain\Exam\Services;
 
+use App\Domain\Attendance\Contracts\PembersihRuangSesi;
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventRoom;
 use App\Domain\Event\Services\EventStatusService;
@@ -235,10 +236,34 @@ class SesiService
      * memakai RESTRICT, sehingga menghapus sesi yang masih punya peserta gagal
      * dengan galat integritas. Pesertanya tetap ada - yang hilang hanya
      * ruangnya, dan itu memang artinya membubarkan sesi.
+     *
+     * ---------------------------------------------------------------------
+     * Bukti di ruang-sesinya diperiksa Attendance, dan ia bisa MENOLAK
+     * ---------------------------------------------------------------------
+     * Sampai 2026-11-10 method ini hanya mengosongkan penempatan, lalu
+     * menghapus sesinya. Yang menghadangnya adalah `session_reports`: FK-nya
+     * RESTRICT, dan satu draf berita acara - yang lahir SENDIRI setiap kali
+     * pengawas membuka lamanya - sudah cukup untuk menggagalkan seluruh
+     * penghapusan dengan galat 1451 mentah di laman jadwal. Admin tidak
+     * membaca apa pun kecuali nama constraint.
+     *
+     * Yang menyelesaikannya adalah kontrak `PembersihRuangSesi`: Attendance
+     * yang tahu baris mana yang menahan, dan ia juga yang memutuskan apa
+     * yang boleh hilang (draf) dan apa yang tidak (berita acara final,
+     * insiden). Penolakannya berupa `DomainException` berkalimat, yang
+     * ditangkap `hapusSesi()` dan diteruskan sebagai pesan galat.
+     *
+     * Urutannya penting: pemeriksaan berjalan SEBELUM satu baris pun
+     * diubah, sehingga penolakan tidak meninggalkan sesi setengah
+     * dibongkar.
      */
     public function hapus(ExamSession $sesi): void
     {
-        DB::transaction(function () use ($sesi) {
+        $idRuang = $sesi->rooms()->pluck('id')->all();
+
+        DB::transaction(function () use ($sesi, $idRuang) {
+            app(PembersihRuangSesi::class)->siapkanHapus($idRuang);
+
             ExamParticipant::query()
                 ->where('exam_session_id', $sesi->id)
                 ->update([

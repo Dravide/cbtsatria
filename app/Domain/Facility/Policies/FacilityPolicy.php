@@ -50,6 +50,24 @@ class FacilityPolicy
         return $user->role->isAdmin();
     }
 
+    /**
+     * Menyetel kapasitas banyak ruang sekaligus.
+     *
+     * Ability tersendiri, bukan `update`, karena `update` menuntut satu model
+     * sebagai argumen - sedangkan operasi ini tidak memegang satu ruang pun
+     * saat haknya diperiksa. Memanggil `update` dengan nama kelas akan gagal
+     * dengan "too few arguments", bukan dengan "tidak berhak", dan galat yang
+     * menyesatkan itu lebih buruk daripada satu baris tambahan di sini.
+     *
+     * Kapasitas menentukan berapa peserta yang boleh ditempatkan di sebuah
+     * ruang, sehingga ia menyentuh perencanaan hari ujian - dan itu urusan
+     * Admin, bukan pengawas yang hanya memakai tautannya.
+     */
+    public function kapasitasMassal(User $user): bool
+    {
+        return $user->role->isAdmin();
+    }
+
     public function cabutTautan(User $user, RoomEntryLink $link): bool
     {
         return $user->role->isAdmin();

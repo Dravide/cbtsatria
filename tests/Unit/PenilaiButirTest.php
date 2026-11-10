@@ -13,8 +13,8 @@ use Tests\TestCase;
  *
  * RefreshDatabase SENGAJA tidak dipakai: `PenilaiButir` tidak menyentuh basis
  * data sama sekali. Ia menerima snapshot dan jawaban, dan mengembalikan
- * benar/salah beserta poin. Itu yang membuat sembilan jenis soal bisa diuji
- * dalam milidetik - dan sembilan jenis itu memang harus diuji, karena kunci
+ * benar/salah beserta poin. Itu yang membuat kesepuluh jenis soal bisa diuji
+ * dalam milidetik - dan kesepuluh jenis itu memang harus diuji, karena kunci
  * yang salah bentuk adalah kesalahan paling mahal di seluruh sistem: ia
  * tersimpan rapi, ujian berjalan lancar, dan baru ketahuan ketika 300 siswa
  * dinilai dengan kunci yang tidak pernah cocok.
@@ -168,6 +168,72 @@ it('menolak isian yang kuncinya bukan daftar varian', function () {
     // mencegahnya tersimpan; di sini yang dibuktikan adalah penilaiannya
     // tidak menebak ketika bentuknya salah.
     expect(nilaiButir($soal, ['teks' => 'tujuh']))->toBe(['benar' => false, 'skor' => 0.0]);
+});
+
+/* =====================================================================
+ | Isian rumpang - dinilai PER LUBANG, tidak pernah nol karena sebagian
+ |===================================================================== */
+
+it('menilai isian rumpang per lubang, dengan skor sebanding', function () {
+    $soal = butirNilai(
+        JenisSoal::IsianRumpang,
+        ['rumpang' => [['gravitasi', 'gaya gravitasi'], ['newton', 'N'], ['neraca pegas'], ['gesek']]],
+        4,
+    );
+
+    // Empat lubang benar: penuh. "gaya gravitasi" diterima sebagai varian.
+    expect(nilaiButir($soal, ['rumpang' => ['gravitasi', 'newton', 'neraca pegas', 'gesek']]))
+        ->toBe(['benar' => true, 'skor' => 4.0])
+        ->and(nilaiButir($soal, ['rumpang' => ['gaya gravitasi', 'N', 'neraca pegas', 'gesek']]))
+        ->toBe(['benar' => true, 'skor' => 4.0]);
+
+    // Tiga dari empat: 3 poin, dan `benar` tetap false - nilai penuh hanya
+    // bila SELURUH lubang tepat.
+    expect(nilaiButir($soal, ['rumpang' => ['gravitasi', 'newton', 'neraca pegas', 'dorong']]))
+        ->toBe(['benar' => false, 'skor' => 3.0]);
+});
+
+it('menghitung lubang kosong sebagai salah, bukan melewatinya', function () {
+    // Kalau lubang kosong dilewati, menjawab satu dari empat dengan benar
+    // bernilai 1.0 skala penuh - persis kesalahan yang membuat nilai rumpang
+    // tidak bisa dipercaya.
+    $soal = butirNilai(
+        JenisSoal::IsianRumpang,
+        ['rumpang' => [['gravitasi'], ['newton'], ['neraca'], ['gesek']]],
+        4,
+    );
+
+    expect(nilaiButir($soal, ['rumpang' => ['gravitasi', '', '', '']]))
+        ->toBe(['benar' => false, 'skor' => 1.0])
+        ->and(nilaiButir($soal, ['rumpang' => ['', '', '', '']]))
+        ->toBe(['benar' => false, 'skor' => 0.0]);
+});
+
+it('menormalkan ejaan tiap lubang dengan aturan yang sama seperti isian singkat', function () {
+    $soal = butirNilai(
+        JenisSoal::IsianRumpang,
+        ['rumpang' => [['Newton'], ['Gravitasi']]],
+        2,
+    );
+
+    foreach ([
+        ['newton', 'gravitasi'],
+        [' NEWTON ', 'GRAVITASI.'],
+        ['Newton,', 'Gravitasi'],
+    ] as $diterima) {
+        expect(nilaiButir($soal, ['rumpang' => $diterima]))->toBe(['benar' => true, 'skor' => 2.0]);
+    }
+
+    // Isinya tetap tidak dilonggarkan.
+    expect(nilaiButir($soal, ['rumpang' => ['newtn', 'gravitas']]))
+        ->toBe(['benar' => false, 'skor' => 0.0]);
+});
+
+it('menilai rumpang yang kuncinya bukan daftar sebagai nol, tanpa menebak', function () {
+    $soal = butirNilai(JenisSoal::IsianRumpang, ['rumpang' => 'gravitasi'], 2);
+
+    expect(nilaiButir($soal, ['rumpang' => ['gravitasi']]))->toBe(['benar' => false, 'skor' => 0.0])
+        ->and(nilaiButir($soal, ['teks' => 'gravitasi']))->toBe(['benar' => false, 'skor' => 0.0]);
 });
 
 /* =====================================================================

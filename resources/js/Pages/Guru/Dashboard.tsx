@@ -92,7 +92,7 @@ export default function Dashboard({ ringkasan }: Props) {
                             <Link href="/guru/bank-soal/baru" className="text-accent hover:underline">
                                 Tulis satu soal baru
                             </Link>{' '}
-                            &mdash; sembilan jenis, satu tab per jenis.
+                            &mdash; sepuluh jenis, satu tab per jenis.
                         </li>
                         <li>
                             <Link href="/guru/bank-soal/impor" className="text-accent hover:underline">

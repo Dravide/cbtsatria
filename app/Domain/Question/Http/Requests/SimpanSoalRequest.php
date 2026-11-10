@@ -15,7 +15,7 @@ use Illuminate\Validation\Rule;
  * =====================================================================
  * Berkas ini memeriksa yang bisa dijawab TANPA TAHU ARTINYA:
  *
- *   - `question_type` adalah salah satu dari sembilan nilai enum;
+ *   - `question_type` adalah salah satu dari sepuluh nilai enum;
  *   - `prompt_json` adalah array;
  *   - `opsi` adalah array berisi objek dengan `option_key` dan `content_json`;
  *   - `bobot` adalah bilangan lebih dari nol.
@@ -23,7 +23,7 @@ use Illuminate\Validation\Rule;
  * SkemaJenisSoal memeriksa ISI, dan isinya berbeda per jenis: kunci pilihan
  * ganda harus satu huruf, kunci mengurutkan harus permutasi lengkap, kunci
  * menjodohkan tidak boleh punya pasangan menggantung. Aturan itu tidak bisa
- * ditulis di sini tanpa sembilan cabang `required_if` yang hanya dipakai satu
+ * ditulis di sini tanpa sepuluh cabang `required_if` yang hanya dipakai satu
  * tempat.
  *
  * Pemisahannya bukan kerapian: bentuk luar bisa divalidasi sebelum controller
@@ -96,6 +96,15 @@ class SimpanSoalRequest extends FormRequest
             'prompt_json' => ['required', 'array'],
             'prompt_json.teks' => ['required', 'string', 'max:20000'],
             'answer_key_json' => ['nullable', 'array'],
+            // Isian rumpang TIDAK diberi aturan bersarang di sini, dan itu
+            // bukan kelalaian. `Validator::validated()` membuang seluruh kunci
+            // INDUK yang punya aturan bersarang di bawahnya
+            // (`excludeUnvalidatedArrayKeys`). Menulis
+            // `answer_key_json.rumpang...` berarti `answer_key_json` lenyap
+            // dari payload yang diterima service - untuk SEMUA jenis soal,
+            // bukan hanya rumpang - dan pilihan ganda yang sah berubah menjadi
+            // "kunci kosong". Bentuk dalam kunci tetap diperiksa, hanya di
+            // satu tempat: SkemaJenisSoal::rumpang().
             'scoring_config_json' => ['nullable', 'array'],
             'scoring_config_json.bobot' => ['nullable', 'numeric', 'gt:0'],
             'scoring_config_json.mekanisme' => ['nullable', Rule::in(['pilihan', 'isian', 'urut'])],
@@ -157,7 +166,7 @@ class SimpanSoalRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'question_type' => 'Jenis soal tidak dikenal. Pilih salah satu dari sembilan jenis yang tersedia.',
+            'question_type' => 'Jenis soal tidak dikenal. Pilih salah satu dari sepuluh jenis yang tersedia.',
             'subject_id.exists' => 'Mata pelajaran itu tidak ada di sekolah ini.',
             'answer_key_json.array' => 'Kunci jawaban harus berupa objek.',
             'prompt_json.teks.required' => 'Teks soal wajib diisi.',

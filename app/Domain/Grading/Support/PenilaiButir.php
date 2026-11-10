@@ -13,8 +13,8 @@ use App\Domain\Question\Enums\JenisSoal;
  * =====================================================================
  * Masukannya snapshot soal dan isi jawaban; keluarannya benar/salah dan
  * poin. Tidak ada kueri, tidak ada `now()`, tidak ada `auth()`. Itu yang
- * membuatnya bisa diuji dengan sembilan kasus dalam milidetik - dan
- * sembilan kasus itu memang harus diuji, karena kesembilan bentuk kunci ini
+ * membuatnya bisa diuji dengan sepuluh kasus dalam milidetik - dan
+ * sepuluh kasus itu memang harus diuji, karena kesepuluh bentuk kunci ini
  * adalah tempat kesalahan paling mahal di seluruh sistem: kunci yang salah
  * bentuk tersimpan rapi, ujian berjalan lancar, dan 300 siswa dinilai dengan
  * kunci yang tidak pernah cocok.
@@ -85,6 +85,7 @@ class PenilaiButir
             JenisSoal::PilihanGanda, JenisSoal::BenarSalah => $this->pilihanTunggal($jawaban, $kunci),
             JenisSoal::JawabanGanda => $this->jawabanGanda($jawaban, $kunci, $konfigurasi),
             JenisSoal::IsianSingkat => $this->isian($jawaban, $kunci),
+            JenisSoal::IsianRumpang => $this->rumpang($jawaban, $kunci),
             JenisSoal::Menjodohkan => $this->jodohkan($jawaban, $kunci, $konfigurasi),
             JenisSoal::Mengurutkan => $this->mengurutkan($jawaban, $kunci, $konfigurasi),
             JenisSoal::Angka => $this->angka($jawaban, $kunci),
@@ -199,6 +200,63 @@ class PenilaiButir
         }
 
         return 0.0;
+    }
+
+    /**
+     * Isian rumpang - satu lubang, satu kunci, dinilai per lubang.
+     *
+     * Skornya PECAHAN lubang yang benar dikali bobot, dan itu memang
+     * disengaja: soal dengan empat lubang yang tiga benar tidak boleh bernilai
+     * nol, karena mesin tidak sedang menilai satu jawaban melainkan empat.
+     * Karena itu `parsial()` tidak dibaca di sini - ia tidak punya arti pada
+     * jenis ini, dan Guru yang mengosongkannya tidak boleh mendapat nilai nol
+     * untuk tiga jawaban yang tepat.
+     *
+     * Lubang yang dikosongkan dihitung salah, bukan dilewati. Kalau ia
+     * dilewati, menjawab satu dari sepuluh lubang dengan benar bernilai 1.0 -
+     * persis kesalahan yang membuat nilai rumpang tidak bisa dipercaya.
+     *
+     * Perbandingan tiap lubang memakai `normalkanTeks()` yang sama dengan
+     * isian singkat: satu jenis soal tidak boleh punya dua aturan pencocokan.
+     *
+     * @param  array<string, mixed>  $jawaban
+     * @param  array<string, mixed>  $kunci
+     */
+    private function rumpang(array $jawaban, array $kunci): float
+    {
+        $diketik = $jawaban['rumpang'] ?? null;
+        $benar = $kunci['rumpang'] ?? null;
+
+        if (! is_array($diketik) || ! is_array($benar) || $benar === []) {
+            return 0.0;
+        }
+
+        $diketik = array_values($diketik);
+        $benar = array_values($benar);
+
+        $tepat = 0;
+
+        foreach ($benar as $nomor => $varian) {
+            if (! is_array($varian)) {
+                continue;
+            }
+
+            $isi = $this->normalkanTeks($this->teks($diketik[$nomor] ?? null));
+
+            if ($isi === '') {
+                continue;
+            }
+
+            foreach ($varian as $satu) {
+                if ($this->normalkanTeks((string) $satu) === $isi) {
+                    $tepat++;
+
+                    break;
+                }
+            }
+        }
+
+        return $tepat / count($benar);
     }
 
     /**

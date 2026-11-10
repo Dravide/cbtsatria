@@ -7,6 +7,7 @@ use App\Domain\Attendance\Models\AttendanceLog;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
+use App\Domain\Exam\Services\NomorKursi;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,8 @@ use Illuminate\Support\Facades\DB;
  */
 class KehadiranService
 {
+    public function __construct(private readonly NomorKursi $kursi) {}
+
     /**
      * Catat satu perubahan status presensi.
      *
@@ -135,16 +138,64 @@ class KehadiranService
     }
 
     /**
+     * Nomor kursi setiap siswa satu ruang-sesi, menurut RUANG EVENT-nya.
+     *
+     * =====================================================================
+     * Sejak 2026-11-09 nomornya berlaku sepanjang event
+     * =====================================================================
+     * Ruang siswa tidak berganti tiap mapel, jadi nomor kursinya tidak ikut
+     * berganti. Yang menentukan nomor adalah penghuni RUANG EVENT - seluruh
+     * penempatan yang menunjuk `event_room_id` yang sama, lintas ujian -
+     * bukan penghuni ruang-sesi ini saja. Aturannya satu, di `PetaKursiEvent`;
+     * method ini hanya menanyakan ruang event mana yang dimaksud.
+     *
+     * Konsekuensi yang harus dibaca pemanggilnya: nomornya TIDAK berurutan
+     * 1..N di dalam ruang-sesi ini. Sesi yang diikuti sebagian kelas hanya
+     * memuat sebagian kursi, dan nomor yang melompat itu memang yang benar -
+     * kursi 7 tetap kursi 7 meski hanya sepuluh orang yang ikut ujian ini.
+     * Karena itu pemanggil TIDAK BOLEH menomori ulang dengan `$i + 1`:
+     * barisnya bisa berurut, tetapi nomor yang tertulis harus datang dari
+     * sini. Itulah kesalahan yang membuat kolom Kursi berbeda dari denah.
+     *
+     * @return array<int, int> student_id => kursi (mulai 1)
+     */
+    public function nomorKursiRuang(ExamSessionRoom $ruang): array
+    {
+        return $this->kursi->petaRuangEvent((int) $ruang->eventRoom?->id);
+    }
+
+    /**
      * Seluruh presensi satu ruang-sesi, beserta penempatan dan siswanya.
      *
      * Urutannya abjad nama siswa, bukan urutan id: pengawas memanggil nama
      * dengan mata, dan daftar yang urutannya berubah-ubah setiap kali laman
      * disegarkan membuatnya kehilangan tempat.
      *
+     * =====================================================================
+     * Barisnya berurut nomor kursi, karena nomornya kini milik ruang EVENT
+     * =====================================================================
+     * Sampai 2026-11-09 urutan daftar ini SEKALIGUS nomor kursinya: barisnya
+     * diurutkan abjad nama lalu dinomori `$i + 1` oleh pemanggilnya. Dua hal
+     * itu hanya bisa disatukan selama nomornya dihitung atas himpunan yang
+     * sama dengan daftarnya.
+     *
+     * Sejak nomornya dihitung atas ruang EVENT, keduanya tidak lagi sama
+     * himpunan: daftar ini memuat satu ruang-SESI, sedangkan nomornya datang
+     * dari seluruh penghuni ruang event. Pada sesi yang tidak diikuti semua
+     * kelas, urutan abjad akan menaruh anak berabjad awal di baris pertama
+     * meski kursinya nomor 23 - dan pengawas yang membaca "baris 1 = kursi 1"
+     * memanggil anak yang salah.
+     *
+     * Karena itu urutannya sekarang nomor kursi, lalu abjad nama sebagai
+     * pemutus seri. Daftarnya tetap tidak berubah-ubah antar muat, dan baris
+     * yang sama menempati urutan yang sama dengan denah serta tablo.
+     *
      * @return Collection<int, AttendanceRecord>
      */
     public function daftarRuang(ExamSessionRoom $ruang): Collection
     {
+        $nomor = $this->nomorKursiRuang($ruang);
+
         return $this->milikRuang($ruang)
             ->with([
                 'penempatan.student:id,name',
@@ -154,8 +205,33 @@ class KehadiranService
                 'log' => fn ($q) => $q->orderByDesc('id'),
             ])
             ->get()
-            ->sortBy(fn (AttendanceRecord $r) => $r->penempatan?->student?->name)
+            ->sortBy(fn (AttendanceRecord $r) => $this->kunciBaris($r, $nomor))
             ->values();
+    }
+
+    /**
+     * Kunci urut satu baris presensi: nomor kursinya, lalu abjad namanya.
+     *
+     * Peserta yang belum punya kursi - belum ditempatkan - diletakkan di
+     * BELAKANG daftar, bukan di depan: yang belum punya ruang bukan urusan
+     * pengawas yang sedang menyusur kursi dari pintu.
+     *
+     * @param  array<int, int>  $nomor  student_id => kursi
+     */
+    private function kunciBaris(AttendanceRecord $r, array $nomor): string
+    {
+        $kursi = $this->kursiDari($r, $nomor);
+
+        return str_pad((string) ($kursi ?? PHP_INT_MAX), 12, '0', STR_PAD_LEFT)
+            .NomorKursi::kunci($r->penempatan?->student?->name, (int) $r->exam_participant_id);
+    }
+
+    /** Nomor kursi satu baris presensi, atau null bila ia belum ditempatkan. */
+    private function kursiDari(AttendanceRecord $r, array $nomor): ?int
+    {
+        $idSiswa = (int) $r->penempatan?->student_id;
+
+        return $idSiswa <= 0 ? null : ($nomor[$idSiswa] ?? null);
     }
 
     /**

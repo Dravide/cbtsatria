@@ -137,6 +137,49 @@ export function Tombol({
     );
 }
 
+/**
+ * Tautan yang tampak seperti tombol - untuk unduhan (Excel, PDF).
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa `<a>`, bukan `onClick` yang memindahkan `window.location`
+ * ---------------------------------------------------------------------
+ * Unduhan adalah navigasi, dan `<a href>` memberi peramban tiga hal yang
+ * tombol tidak bisa: ia bisa dibuka di tab baru, diklik-kanan lalu "Simpan
+ * sebagai", dan alamatnya bisa disalin untuk dipakai lagi besok tanpa
+ * membuka laman ini. `target="_blank"` dipakai supaya PDF yang dirender
+ * inline tidak menggantikan laman yang sedang dibaca Admin.
+ *
+ * Gayanya sengaja meminjam `TOMBOL`, supaya unduhan dan tombol aksi di
+ * sebelahnya tidak tampak berasal dari dua sistem desain.
+ */
+export function TombolTautan({
+    children,
+    href,
+    nada = 'sek',
+    title,
+}: {
+    children: ReactNode;
+    href: string;
+    nada?: 'pri' | 'sek' | 'bahaya';
+    title?: string;
+}) {
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener"
+            title={title}
+            className={
+                'inline-flex items-center justify-center gap-1.5 rounded-wf border px-3 py-1.5 text-xs font-medium ' +
+                'transition-colors duration-150 active:translate-y-px ' +
+                TOMBOL[nada]
+            }
+        >
+            {children}
+        </a>
+    );
+}
+
 /* --------------------------------------------------------------- Field */
 
 export function Field({

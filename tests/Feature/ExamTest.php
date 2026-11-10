@@ -5,6 +5,8 @@ use App\Domain\Academic\Models\ClassEnrollment;
 use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Academic\Models\Semester;
 use App\Domain\Academic\Models\Subject;
+use App\Domain\Attendance\Models\ExamIncident;
+use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventClass;
 use App\Domain\Event\Models\EventCommitteeMember;
@@ -37,6 +39,7 @@ use App\Domain\Question\Models\QuestionPackage;
 use App\Domain\Question\Models\QuestionPackageItem;
 use App\Domain\Question\Services\PemasanganPaket;
 use App\Domain\Tenancy\Models\School;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia;
 
@@ -1353,6 +1356,103 @@ it('menolak sesi milik ujian lain saat diubah', function () {
             'hard_end_at' => '2026-12-02 09:30',
         ],
     )->assertNotFound();
+});
+
+/* ---------------------------------------- Menghapus sesi §9.6 */
+
+/**
+ * Berita acara DRAF di satu ruang-sesi sesi itu.
+ *
+ * Draf lahir sendiri begitu pengawas membuka lamannya - lihat
+ * `LaporanSesiService::untuk()` - sehingga keadaan ini bukan karangan test
+ * melainkan keadaan yang terjadi pada event mana pun yang pengawasnya pernah
+ * membuka berita acara sekali saja.
+ */
+function drafLaporan(ExamSessionRoom $ruang): SessionReport
+{
+    return SessionReport::query()->create([
+        'school_id' => $ruang->school_id,
+        'exam_session_room_id' => $ruang->id,
+        'status' => SessionReport::STATUS_DRAFT,
+    ]);
+}
+
+it('menghapus sesi walau ruangnya sudah punya draf berita acara', function () {
+    // 2026-11-10: Admin menekan hapus sesi, dan yang sampai ke layar adalah
+    // galat integritas mentah -
+    //
+    //   SQLSTATE[23000]: ... CONFLICT 1451 ... delete from `exam_sessions`
+    //   where `id` = 2
+    //
+    // - karena `session_reports.exam_session_room_id` RESTRICT. RESTRICT-nya
+    // benar dan tidak diubah: berita acara final adalah bukti. Yang tidak ada
+    // saat itu adalah PIHAK YANG MEMILIH - dan untuk draf kosong pilihannya
+    // jelas: dibuang. Ia bukan bukti apa pun, dan tidak ada satu orang pun
+    // yang pernah mengisinya.
+    Storage::fake('local');
+
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $draf = drafLaporan($data['ruang'][0]);
+
+    masukSebagai($this, $this->admin)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}")
+        ->assertRedirect()
+        ->assertSessionHas('sukses')
+        ->assertSessionMissing('galat');
+
+    expect(ExamSession::query()->whereKey($data['sesi']->id)->exists())->toBeFalse()
+        ->and(SessionReport::query()->whereKey($draf->id)->exists())->toBeFalse()
+        // Pesertanya dilepas, bukan ikut terhapus: penempatannya milik
+        // ujiannya, dan ujiannya masih ada.
+        ->and(ExamParticipant::query()->where('exam_id', $data['ujian']->id)->whereNotNull('exam_session_room_id')->count())->toBe(0);
+});
+
+it('menolak menghapus sesi yang berita acaranya sudah dikirim', function () {
+    // Kebalikannya, dan inilah yang membuat RESTRICT-nya tidak dicabut:
+    // berita acara final sudah ditandatangani pengawas dan dikirim, jadi ia
+    // tidak boleh hilang bersama jadwalnya. Yang boleh menghilang hanyalah
+    // sesinya - dan itu tugas "Batalkan", bukan "Hapus".
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $final = drafLaporan($data['ruang'][0]);
+    $final->forceFill(['status' => SessionReport::STATUS_FINAL, 'submitted_at' => now()])->save();
+
+    masukSebagai($this, $this->admin)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}")
+        // Bukan halaman galat, dan bukan galat integritas: pesannya berkalimat
+        // supaya Admin tahu harus berbuat apa.
+        ->assertRedirect()
+        ->assertSessionHas('galat', fn ($pesan) => is_string($pesan)
+            && str_contains($pesan, 'berita acara')
+            && str_contains($pesan, 'Batalkan'));
+
+    expect(ExamSession::query()->whereKey($data['sesi']->id)->exists())->toBeTrue()
+        ->and(SessionReport::query()->whereKey($final->id)->exists())->toBeTrue();
+});
+
+it('menolak menghapus sesi yang ruangnya mencatat insiden', function () {
+    // Insiden adalah kejadian yang DILAPORKAN ORANG, bukan baris yang lahir
+    // sendiri. Sesi yang dibatalkan tidak berarti ruangannya tidak pernah
+    // kejadian apa-apa, jadi catatannya tetap tinggal - dan penghapusan
+    // ditolak sebelum satu baris pun berubah.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    ExamIncident::query()->create([
+        'school_id' => $data['ruang'][0]->school_id,
+        'exam_session_room_id' => $data['ruang'][0]->id,
+        'pelaku_label' => 'R-01 (tautan ruang)',
+        'incident_type' => 'listrik',
+        'description' => 'Listrik gedung A padam sepuluh menit.',
+        'occurred_at' => now(),
+    ]);
+
+    masukSebagai($this, $this->admin)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}")
+        ->assertRedirect()
+        ->assertSessionHas('galat', fn ($pesan) => is_string($pesan) && str_contains($pesan, 'insiden'));
+
+    expect(ExamSession::query()->whereKey($data['sesi']->id)->exists())->toBeTrue()
+        ->and(ExamIncident::query()->count())->toBe(1);
 });
 
 it('menolak Guru mengubah sesi', function () {

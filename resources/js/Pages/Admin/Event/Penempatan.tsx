@@ -1,7 +1,7 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Chip, Inbox, Kotak, Modal, Peringatan, Tabel, Tombol } from '@/Components/ui';
+import { Chip, Inbox, Kotak, Modal, Peringatan, Tabel, Tombol, TombolTautan } from '@/Components/ui';
 
 /**
  * Laman 16b - Penempatan peserta ke ruang. Wireframe plate 16b, PRD §9.5.
@@ -56,10 +56,13 @@ type RuangPratinjau = {
     kode: string;
     nama: string | null;
     kapasitas: number;
-    /** Kapasitas yang berlaku di sesi yang sedang dilihat; null bila sesi itu tidak memakainya. */
+    /** Tidak ada lagi: kursi tidak berbeda antar sesi. Selalu null. */
     kapasitas_sesi: number | null;
     dipakai_sesi: boolean;
+    /** Penghuni ruang ini di peta event - angka yang sama dengan denah dan tablo. */
     terisi: number;
+    /** Sama dengan `terisi`. Dipertahankan supaya bentuk propnya tidak berubah. */
+    terisi_event: number;
     peserta: PesertaPratinjau[];
 };
 
@@ -77,9 +80,9 @@ type Baris = {
 };
 
 type Pratinjau = {
-    sesi_id: number;
+    /** Null: peta ini berlaku untuk seluruh event, bukan satu sesi. */
+    sesi_id: number | null;
     label: string;
-    ujian: string | null;
     benih: string;
     ruang: RuangPratinjau[];
 };
@@ -102,6 +105,8 @@ type Props = {
     };
     baris: Baris[];
     pratinjau: Pratinjau | null;
+    denah_url: string;
+    tablo_url: string;
     angka: {
         peserta_event: number;
         belum_ditempatkan: number;
@@ -110,7 +115,7 @@ type Props = {
     };
 };
 
-export default function EventPenempatan({ event, laman, baris, pratinjau, angka }: Props) {
+export default function EventPenempatan({ event, laman, baris, pratinjau, denah_url, tablo_url, angka }: Props) {
     const jalur = `/admin/events/${event.id}`;
 
     // Konfirmasi, bukan aksi langsung: kocok ulang membatalkan daftar ruang
@@ -125,10 +130,38 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, angka 
             judul="Penempatan peserta ke ruang"
             breadcrumb={`/admin/events · ${event.kode} · Penempatan`}
             aksi={
-                <span className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-2">
-                    <span className="text-ink-3">Event:</span>
-                    <span className="font-medium text-ink">{event.nama}</span>
-                </span>
+                <>
+                    {/* Dua laman turunan, dan keduanya membaca kursi yang
+                        SUDAH berlaku - bukan kocokan yang dihitung ulang di
+                        sini. Karena itu keduanya hanya berguna sesudah
+                        disebar; sebelum itu denahnya kosong dan tablonya
+                        mencetak lembar tanpa satu pun nama. */}
+                    <TombolTautan
+                        href={denah_url}
+                        title={
+                            laman.terkunci
+                                ? 'Denah tempat duduk seluruh ruang event'
+                                : 'Kursinya belum disebar - denahnya masih kosong'
+                        }
+                    >
+                        Denah kursi
+                    </TombolTautan>
+                    <TombolTautan
+                        href={tablo_url}
+                        title={
+                            laman.terkunci
+                                ? 'Daftar hadir per ruang, sebagai PDF'
+                                : 'Kursinya belum disebar - tablonya masih kosong'
+                        }
+                    >
+                        Cetak tablo
+                    </TombolTautan>
+
+                    <span className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-2">
+                        <span className="text-ink-3">Event:</span>
+                        <span className="font-medium text-ink">{event.nama}</span>
+                    </span>
+                </>
             }
         >
             <Head title={`Penempatan · ${event.nama}`} />
@@ -157,12 +190,29 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, angka 
             {laman.pesan ? (
                 <div className="mb-3">
                     <Peringatan>{laman.pesan}</Peringatan>
+                    {/* Ruang yang dipakai sepanjang event dialokasikan di laman
+                        Kelas & peserta, bukan di sini. Pesan di atas berbunyi
+                        "belum punya ruang" tanpa mengatakan di mana ruangnya
+                        diatur - dan laman ini tidak punya satu pun kendali untuk
+                        memperbaikinya. Tautannya ditaruh di sebelah pesannya,
+                        bukan di menu, supaya yang membacanya tidak perlu tahu
+                        lebih dulu bahwa ruang itu urusan laman lain. */}
+                    <p className="mt-2 text-xs text-ink-2">
+                        Alokasikan ruang event di laman{' '}
+                        <Link
+                            href={`/admin/events/${event.id}/peserta`}
+                            className="font-medium text-ink underline underline-offset-2"
+                        >
+                            Kelas &amp; peserta
+                        </Link>
+                        , lalu sebar ulang di sini.
+                    </p>
                 </div>
             ) : (
                 pratinjau && (
                     <div className="mb-3">
                         <Kotak
-                            judul={`Pratinjau peta ruang event · dilihat dari ${pratinjau.label}`}
+                            judul="Pratinjau peta ruang · berlaku sepanjang event"
                             aksi={
                                 <>
                                     <Chip nada={laman.terkunci ? 'ok' : 'mute'}>
@@ -200,22 +250,10 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, angka 
                                 {pratinjau.ruang.map((r) => (
                                     <span
                                         key={r.id}
-                                        className={
-                                            'rounded-wf border px-2 py-1 font-mono text-[11px] ' +
-                                            (r.dipakai_sesi
-                                                ? 'border-line bg-surface text-ink-2'
-                                                : 'border-bad/40 bg-bad-bg text-bad')
-                                        }
-                                        title={
-                                            r.dipakai_sesi
-                                                ? `${r.nama ?? ''} · ${r.terisi} dari ${r.kapasitas} kursi`
-                                                : `${r.nama ?? ''} · sesi ${pratinjau.label} tidak memakai ruang ini`
-                                        }
+                                        className="rounded-wf border border-line bg-surface px-2 py-1 font-mono text-[11px] text-ink-2"
+                                        title={`${r.nama ?? ''} · ${r.terisi} dari ${r.kapasitas} kursi, berlaku untuk semua sesi`}
                                     >
                                         {r.kode} {r.terisi}/{r.kapasitas}
-                                        {r.kapasitas_sesi !== null && r.kapasitas_sesi !== r.kapasitas && (
-                                            <span className="ml-1 text-warn">→{r.kapasitas_sesi}</span>
-                                        )}
                                     </span>
                                 ))}
                             </div>
@@ -223,10 +261,13 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, angka 
                             <RincianRuang ruang={pratinjau.ruang} />
 
                             <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
-                                Peta ini berlaku untuk <strong className="text-ink-2">seluruh event</strong>:
-                                seorang siswa memegang satu ruang yang sama sepanjang ujian. Benih yang sama
-                                selalu menghasilkan susunan yang sama, sehingga siswa tidak berpindah ruang
-                                hanya karena halaman ini dibuka lagi.{' '}
+                                Angka tiap ruang di atas adalah penghuninya &mdash; jumlah yang sama
+                                dengan yang digambar laman denah dan dicetak tablo. Peta ini berlaku
+                                untuk <strong className="text-ink-2">seluruh event</strong>: seorang
+                                siswa memegang satu ruang yang sama sepanjang ujian, bukan satu ruang
+                                per mapel. Benih yang sama selalu menghasilkan susunan yang sama,
+                                sehingga siswa tidak berpindah ruang hanya karena halaman ini dibuka
+                                lagi.{' '}
                                 <strong className="text-ink-2">Kocok ulang</strong> membuat benih baru &mdash;
                                 daftar ruang yang sudah dicetak tidak berlaku lagi.
                                 {laman.terkunci && (
@@ -279,21 +320,6 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, angka 
                                 ) : (
                                     <span className="text-xs text-bad">{b.sebab}</span>
                                 ),
-                        },
-                        {
-                            judul: '',
-                            kelas: 'w-28',
-                            render: (b) => (
-                                <span className="flex justify-end">
-                                    <Tombol
-                                        nada="sek"
-                                        title="Tampilkan peta ruang dari sudut sesi ini"
-                                        onClick={() => bukaPratinjau(jalur, b.sesi_id)}
-                                    >
-                                        Lihat
-                                    </Tombol>
-                                </span>
-                            ),
                         },
                     ]}
                 />
@@ -398,10 +424,6 @@ function RincianRuang({ ruang }: { ruang: RuangPratinjau[] }) {
                         <span className="ml-auto font-mono text-[11px] text-ink-3">
                             {r.terisi}/{r.kapasitas}
                         </span>
-                        {!r.dipakai_sesi && <Chip nada="bad">tidak dipakai sesi</Chip>}
-                        {r.kapasitas_sesi !== null && r.kapasitas_sesi !== r.kapasitas && (
-                            <Chip nada="warn">{r.kapasitas_sesi} kursi di sesi ini</Chip>
-                        )}
                         <span className="text-ink-3">{buka === r.id ? '▾' : '▸'}</span>
                     </button>
                     {buka === r.id && (
@@ -468,10 +490,6 @@ function KPI({
 }
 
 /* --------------------------------------------------------------- Aksi */
-
-function bukaPratinjau(jalur: string, sesiId: number) {
-    router.get(`${jalur}/penempatan`, { sesi: sesiId }, { preserveScroll: true, preserveState: true });
-}
 
 function sebar(jalur: string, benih: string) {
     router.post(`${jalur}/penempatan`, { benih }, { preserveScroll: true });
