@@ -164,6 +164,65 @@ it('membuat paket baru dan mengarahkan ke laman detailnya', function () {
     $respons->assertRedirect('/guru/paket/'.$paket->id);
 });
 
+it('memberi kode paket berurutan per mapel, dan menampilkannya di daftar', function () {
+    // Kode ini yang disebut orang saat merujuk paket di ruang guru, jadi ia
+    // harus (1) dibangkitkan tanpa diminta, (2) berurutan per mapel, dan
+    // (3) sampai ke layar. Yang ketiga yang paling mudah hilang: kode yang
+    // benar di basis data tetapi tidak dikirim controller tidak menolong
+    // siapa pun.
+    masukPaket($this, $this->guruA)->post('/guru/paket', [
+        'subject_id' => $this->mapel->id,
+        'name' => 'Paket Pertama',
+    ]);
+
+    masukPaket($this, $this->guruA)->post('/guru/paket', [
+        'subject_id' => $this->mapel->id,
+        'name' => 'Paket Kedua',
+    ]);
+
+    $pertama = QuestionPackage::query()->where('name', 'Paket Pertama')->firstOrFail();
+    $kedua = QuestionPackage::query()->where('name', 'Paket Kedua')->firstOrFail();
+
+    expect($pertama->code)->toBe('P-'.$this->mapel->id.'-1')
+        ->and($kedua->code)->toBe('P-'.$this->mapel->id.'-2');
+
+    masukPaket($this, $this->guruA)->get('/guru/paket')
+        ->assertInertia(fn (AssertableInertia $halaman) => $halaman
+            ->where('baris.data.0.kode', $kedua->code)
+            ->where('baris.data.1.kode', $pertama->code)
+        );
+
+    masukPaket($this, $this->guruA)->get('/guru/paket/'.$pertama->id)
+        ->assertInertia(fn (AssertableInertia $halaman) => $halaman
+            ->where('paket.kode', $pertama->code)
+        );
+});
+
+it('menomori kode paket per mapel, bukan lintas mapel', function () {
+    // Dua mapel berbeda sama-sama mulai dari 1. Kalau penomoran dipakai
+    // bersama, paket kedua mapel mendapat `P-7-2` - dan nomor mapelnya
+    // berhenti menerangkan apa pun.
+    masukPaket($this, $this->guruA)->post('/guru/paket', [
+        'subject_id' => $this->mapel->id,
+        'name' => 'Matematika Satu',
+    ]);
+
+    // Fisika diampu Guru B, bukan Guru A - lihat `beforeEach`. Memakai Guru A
+    // di sini akan menolak permintaannya karena alasan yang sama sekali lain
+    // (mapel tidak diampu), dan test ini akan lulus tanpa pernah menguji
+    // penomoran.
+    masukPaket($this, $this->guruB)->post('/guru/paket', [
+        'subject_id' => $this->mapelLain->id,
+        'name' => 'Fisika Satu',
+    ]);
+
+    $mtk = QuestionPackage::query()->where('name', 'Matematika Satu')->firstOrFail();
+    $fis = QuestionPackage::query()->where('name', 'Fisika Satu')->firstOrFail();
+
+    expect($mtk->code)->toBe('P-'.$this->mapel->id.'-1')
+        ->and($fis->code)->toBe('P-'.$this->mapelLain->id.'-1');
+});
+
 it('menolak Guru membuat paket untuk mapel yang tidak diampu', function () {
     $respons = masukPaket($this, $this->guruA)->post('/guru/paket', [
         'subject_id' => $this->mapelLain->id,

@@ -1,6 +1,5 @@
 import { Link } from '@inertiajs/react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
-import { Inbox } from '@/Components/ui';
 import { formatPoin } from '@/Components/angka';
 
 /**
@@ -18,7 +17,7 @@ import { formatPoin } from '@/Components/angka';
  * =====================================================================
  * Redesign: satu papan, dan angka yang bisa dibandingkan ke bawah
  * =====================================================================
- * Laman ini memakai material yang sama dengan beranda - papan bergaris 2px -
+ * Laman ini memakai material yang sama dengan beranda - lembar putih bergaris -
  * karena keduanya menjawab pertanyaan yang sama tentang daftar ujian yang
  * sama; yang berbeda hanya kolom terakhirnya. Sebelumnya nilai tinggal di
  * kotak membulat dengan bayangan, dan anak yang berpindah dari beranda ke
@@ -104,11 +103,11 @@ export default function Nilai({
             }
         >
             {!ada_nilai && (
-                <Inbox>
+                <p className="keterangan">
                     {menunggu_terbit
                         ? 'Nilai belum tersedia. Hasil ujian baru dipublikasikan setelah seluruh uraian selesai dikoreksi Guru.'
                         : 'Belum ada nilai. Hasil ujian muncul di halaman ini setelah Admin mempublikasikannya untuk seluruh angkatan.'}
-                </Inbox>
+                </p>
             )}
 
             {/*
@@ -116,22 +115,19 @@ export default function Nilai({
              * itulah yang membedakan "nilainya belum keluar" dari "lamannya
              * kosong".
              */}
-            <section className="papan overflow-hidden">
-                <header className="papan-kepala">
-                    <span>Ujian yang sudah dikerjakan</span>
+            <section className="daftar overflow-hidden">
+                <header className="daftar-kepala">
+                    <h2>Ujian yang sudah dikerjakan</h2>
                     {daftar.length > 0 && (
-                        <span className="angka ml-auto text-ink">{daftar.length}</span>
+                        <span className="angka ml-auto text-[12px] text-ink-2">
+                            {daftar.length}
+                        </span>
                     )}
                 </header>
 
-                <div className="papan-kolom flex items-center gap-2 px-3">
-                    <span className="min-w-0 flex-1">Mata pelajaran dan rincian</span>
-                    <span className="w-[64px] shrink-0 text-right">Nilai</span>
-                </div>
-
                 {daftar.length === 0 ? (
                     <div className="px-3 py-6">
-                        <p className="text-[12px] leading-relaxed text-ink-2">
+                        <p className="text-[13px] leading-relaxed text-ink-2">
                             Belum ada ujian yang Anda kerjakan.
                         </p>
                     </div>
@@ -145,21 +141,21 @@ export default function Nilai({
                 menyatakan seorang anak remedial berdasarkan angka yang masih
                 berubah. */}
             {ada_nilai && (
-                <Inbox>
+                <p className="keterangan">
                     Nilai di bawah KKM <b>{kkm}</b> dinyatakan remedial, dan jadwalnya
                     ditetapkan Guru mata pelajaran.
-                </Inbox>
+                </p>
             )}
 
             {remedial.length > 0 && (
-                <section className="papan overflow-hidden">
-                    <header className="papan-kepala">
-                        <span>Perlu remedial</span>
+                <section className="daftar overflow-hidden">
+                    <header className="daftar-kepala">
+                        <h2>Perlu remedial</h2>
                     </header>
 
                     {remedial.map((r, i) => (
-                        <div key={i} className="papan-baris flex items-center gap-2 px-3 py-2">
-                            <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                        <div key={i} className="daftar-baris flex items-center gap-2 px-3 py-2">
+                            <span className="min-w-0 flex-1 truncate text-[13px] text-ink">
                                 {r.mapel ?? 'Tanpa mapel'}
                             </span>
                             <span className="angka shrink-0 text-[12px] text-warn">
@@ -170,7 +166,15 @@ export default function Nilai({
                 </section>
             )}
 
-            <Link href="/siswa" className="catatan underline">
+            {/*
+             * Tautan kembali sebagai TOMBOL, bukan huruf kecil bergaris.
+             *
+             * Sebelumnya ia 12px `ink-2` bergaris bawah, dan di laman yang
+             * isinya bisa kosong ia menjadi satu-satunya jalan pulang yang
+             * terlihat seperti keterangan kaki halaman. Sasaran ketuknya
+             * sekarang 40px dengan bidang 44px, sama seperti tombol lain.
+             */}
+            <Link href="/siswa" className="tombol w-full">
                 Kembali ke jadwal ujian
             </Link>
         </KerangkaSiswa>
@@ -186,14 +190,14 @@ export default function Nilai({
  */
 function BarisNilai({ baris }: { baris: Baris }) {
     return (
-        <div className="papan-baris px-3 py-2">
+        <div className="daftar-baris px-3 py-2.5">
             <div className="flex items-baseline gap-2">
-                <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
                     {baris.mapel ?? 'Tanpa mapel'}
                 </span>
 
                 {baris.nilai !== null ? (
-                    <b className="angka shrink-0 text-base leading-none text-ink">
+                    <b className="angka-besar shrink-0 text-[17px] leading-none text-ink">
                         {formatPoin(baris.nilai)}
                     </b>
                 ) : (
@@ -204,7 +208,7 @@ function BarisNilai({ baris }: { baris: Baris }) {
             </div>
 
             {/* SATU titik, dan itu memang yang diizinkan lantai 63 - "one dot
-                in a byline". Papan di beranda memakai kolom karena ia empat
+                in a byline". Pita di beranda memakai kolom karena ia empat
                 hal yang dibandingkan sekilas; baris ini dua keterangan satu
                 ujian, dan memisahkannya jadi sel tidak menambah apa pun. */}
             <p className="catatan mt-0.5 truncate">
@@ -215,15 +219,17 @@ function BarisNilai({ baris }: { baris: Baris }) {
                 ada - rincian tanpa angka akhir adalah potongan nilai yang
                 membingungkan. */}
             {baris.nilai !== null && (
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-2">
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-2">
                     {baris.objektif !== null && (
                         <span>
-                            objektif <span className="angka text-ink">{formatPoin(baris.objektif)}</span>
+                            objektif{' '}
+                            <span className="angka text-ink">{formatPoin(baris.objektif)}</span>
                         </span>
                     )}
                     {baris.uraian !== null && (
                         <span>
-                            uraian <span className="angka text-ink">{formatPoin(baris.uraian)}</span>
+                            uraian{' '}
+                            <span className="angka text-ink">{formatPoin(baris.uraian)}</span>
                         </span>
                     )}
                     {!baris.final && <span className="text-warn">sementara</span>}
@@ -247,6 +253,23 @@ function BarisNilai({ baris }: { baris: Baris }) {
                     {baris.sisa_uraian} jawaban uraian masih dikoreksi Guru. Angka di atas
                     bisa berubah.
                 </p>
+            )}
+
+            {/*
+             * Jalan ke riwayat jawaban, dan HANYA bila hasilnya sudah dibuka.
+             *
+             * Laman riwayat sendiri menjawab 404 sebelum publikasi - tautan ini
+             * tidak "menjaganya", ia hanya tidak menawarkan pintu yang pasti
+             * tertutup. Tanpa tautan ini, `show_explanations` dan
+             * `show_objectives` tidak punya satu pun pembaca di peramban.
+             */}
+            {baris.dipublikasikan && (
+                <Link
+                    href={`/siswa/ujian/${baris.peserta_id}/riwayat`}
+                    className="mt-1.5 inline-block text-[12px] font-medium text-accent"
+                >
+                    Lihat jawaban saya
+                </Link>
             )}
         </div>
     );

@@ -4,6 +4,31 @@
   "depth": "full",
   "scope": "app",
   "shape": "app screen",
+  "theme": "terrazzo",
+  "axes": "light/terrazzo/warm",
+  "signature": "the exam you have to sit now, raised onto the ink band",
+  "sections": [
+   "pita",
+   "daftar",
+   "sel",
+   "tombol",
+   "bilah-judul"
+  ],
+  "nav": "kept (kerangka ponsel)",
+  "waived": [],
+  "dismissed": [
+   "41",
+   "29"
+  ],
+  "entry": "http://127.0.0.1:8781/siswa",
+  "prompt": "redesign the student console of a school computer-based-test app - schedule, result, violations, account - simple",
+  "date": "2026-11-11"
+ },
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "app",
+  "shape": "app screen",
   "theme": "wayfind",
   "axes": "light/mono/cool",
   "signature": "papan ujian, ujian yang paling mendesak diangkat ke pelat tinta",

@@ -3,9 +3,12 @@
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\Semester;
 use App\Domain\Attendance\Models\AttemptQuestion;
+use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\ExamIncident;
+use App\Domain\Attendance\Models\ExamViolation;
 use App\Domain\Attendance\Services\InsidenService;
 use App\Domain\Attendance\Services\KonteksRuang;
+use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\School;
@@ -503,4 +506,147 @@ it('menolak ruang yang bukan milik event ini, meski sekolahnya sama', function (
     masukUji($this, $this->admin)
         ->get("/admin/events/{$a['event']->id}/monitoring/ruang/{$b['ruang'][0]->id}")
         ->assertNotFound();
+});
+
+/* =====================================================================
+ | Buka kunci dari papan monitoring Admin - ditambahkan 2026-11-11
+ |===================================================================== */
+
+/**
+ * Satu peserta yang attemptnya benar-benar terkunci.
+ *
+ * Dikunci lewat jalur yang SUNGGUH mengunci - laporan `sesi_ganda` dari
+ * peramban siswa - bukan dengan `forceFill(['status' => 'dikunci'])`. Test
+ * yang memalsukan kolomnya akan membuktikan tombolnya bisa memanggil
+ * endpoint, bukan bahwa keadaan yang dibacanya adalah keadaan yang nyata.
+ *
+ * @return array{data: array<string, mixed>, peserta: ExamParticipant}
+ */
+function pesertaTerkunci(TestCase $test, School $sekolah, AcademicYear $tahun, Semester $semester, User $admin): array
+{
+    $data = siapkanUjianSiswa($sekolah, $tahun, $semester, $admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($test, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($test, $data['siswa'][0], $peserta, $data['token']);
+
+    masukUji($test, $data['siswa'][0])
+        ->postJson("/siswa/ujian/{$peserta->id}/lapor", ['jenis' => 'sesi_ganda'])
+        ->assertJsonPath('dikunci', true);
+
+    return ['data' => $data, 'peserta' => $peserta];
+}
+
+it('membuka kunci peserta dari papan monitoring Admin', function () {
+    ['data' => $data, 'peserta' => $peserta] = pesertaTerkunci(
+        $this, $this->sekolah, $this->tahun, $this->semester, $this->admin,
+    );
+
+    expect(attemptBerjalan($peserta)->dikunci())->toBeTrue();
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/buka", [
+            'alasan' => 'Sesi ganda ternyata iPad yang dipakai bergantian.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    $attempt = attemptBerjalan($peserta);
+
+    expect($attempt->dikunci())->toBeFalse()
+        ->and($attempt->status)->toBe(ExamAttempt::STATUS_BERJALAN)
+        ->and($attempt->locked_at)->toBeNull()
+        // Penghitungnya TIDAK direset. Membuka kunci sekali yang menghapus
+        // seluruh riwayat berarti ambang yang sama harus dilampaui dari nol
+        // lagi - yaitu pembukaan kunci yang menghapus penguncian itu sendiri.
+        ->and($attempt->violation_count)->toBeGreaterThan(0);
+
+    $baris = ExamViolation::query()
+        ->where('exam_attempt_id', $attempt->id)
+        ->where('violation_type', 'kunci_dibuka')
+        ->sole();
+
+    // Pelakunya disebut Admin, bukan pengawas ruang: siswa membaca baris ini
+    // di `/siswa/pelanggaran`, dan pengawas yang tidak pernah menyentuhnya
+    // adalah nama yang salah di sana.
+    expect($baris->severity)->toBe(0)
+        ->and($baris->metadata_json['oleh'])->toContain('Admin')
+        ->and($baris->metadata_json['alasan'])->toBe('Sesi ganda ternyata iPad yang dipakai bergantian.')
+        ->and($baris->resolved_by)->toBe($this->admin->id)
+        ->and($baris->reported_by_client)->toBeFalse();
+
+    // Dan siswa benar-benar bisa melanjutkan: lamannya tidak lagi mengalihkan
+    // ke laman terkunci.
+    masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/kerjakan")
+        ->assertOk();
+});
+
+it('mencatat alasan bawaan bila Admin membuka kunci tanpa menuliskannya', function () {
+    ['data' => $data, 'peserta' => $peserta] = pesertaTerkunci(
+        $this, $this->sekolah, $this->tahun, $this->semester, $this->admin,
+    );
+
+    // Tanpa `alasan` sama sekali - bukan string kosong. Keduanya harus
+    // mendarat di kalimat yang sama, dan kalimat itu menyebut dari mana
+    // pembukaannya datang.
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/buka")
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    $baris = ExamViolation::query()
+        ->where('exam_attempt_id', attemptBerjalan($peserta)->id)
+        ->where('violation_type', 'kunci_dibuka')
+        ->sole();
+
+    expect($baris->metadata_json['alasan'])->toBe('Dibuka dari papan monitoring Admin.');
+});
+
+it('menolak membuka kunci peserta yang bukan milik event ini', function () {
+    // Nomor peserta berurutan, sehingga satu angka di URL cukup untuk
+    // menyentuh anak di event yang tidak sedang dipantau. 404, bukan 403:
+    // yang 403 membuktikan barisnya ada.
+    ['data' => $a, 'peserta' => $pesertaA] = pesertaTerkunci(
+        $this, $this->sekolah, $this->tahun, $this->semester, $this->admin,
+    );
+
+    $b = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$b['event']->id}/monitoring/peserta/{$pesertaA->id}/buka")
+        ->assertNotFound();
+
+    // Dan kuncinya tetap terpasang: penolakan yang tetap membuka kunci
+    // adalah penolakan yang tidak menolak apa pun.
+    expect(attemptBerjalan($pesertaA)->dikunci())->toBeTrue()
+        ->and(ExamViolation::query()->where('violation_type', 'kunci_dibuka')->count())->toBe(0);
+});
+
+it('menolak membuka kunci peserta yang tidak sedang terkunci', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/buka")
+        ->assertRedirect()
+        ->assertSessionHas('galat');
+
+    // Tidak ada baris riwayat yang ditulis untuk pembukaan yang tidak
+    // terjadi - baris itu yang dibaca siswa, dan ia harus tetap berarti
+    // "kunci ini pernah dibuka".
+    expect(ExamViolation::query()->where('violation_type', 'kunci_dibuka')->count())->toBe(0);
+
+    // Peserta yang belum pernah membuka gerbang pun ditolak dengan alasan
+    // yang berbeda, bukan dengan galat server: tidak ada attempt, jadi tidak
+    // ada yang bisa dibuka.
+    $belum = $data['peserta'][1];
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$belum->id}/buka")
+        ->assertRedirect()
+        ->assertSessionHas('galat');
 });

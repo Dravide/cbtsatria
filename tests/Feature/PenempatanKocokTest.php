@@ -620,6 +620,69 @@ it('menolak menyebar bila satu sesi tidak memakai seluruh ruang event', function
         ->and(ExamEventShuffle::query()->where('event_id', $d['event']->id)->count())->toBe(0);
 });
 
+/* -------------------------------------- Pakai penempatan untuk SATU sesi */
+
+it('menerapkan peta event ke satu sesi, persis seperti pratinjau', function () {
+    // Tombol "Pakai penempatan" di tabel kelayakan adalah jalan keluar untuk
+    // sesi yang belum bisa disebar bersama seluruh event: peta event yang sama,
+    // dipakai ke satu sesi itu saja. Janjinya sama dengan penyebaran penuh -
+    // kursi yang tersimpan harus sama persis dengan yang ditampilkan layar.
+    $d = siapkanKocok($this->admin, $this->tahun);
+    $kocok = app(PenempatanKocok::class);
+
+    masukSebagai($this, $this->admin)
+        ->post(jalurPenempatan($d['event']).'/sesi/'.$d['sesi']->id, ['benih' => 'PAKAI1'])
+        ->assertRedirect();
+
+    $susunan = $kocok->susun($d['event'], 'PAKAI1');
+
+    expect(petaTersimpan($d['ujian']))
+        ->toBe(petaKocokanSesi($kocok, $d['event'], $d['sesi'], $susunan['per_ruang']));
+
+    // Penerapan per sesi TIDAK menulis baris kocokan event. Baris itu bukan
+    // bukti penyebaran - "sudah disebar" dibaca dari kursi yang tersimpan -
+    // dan menulisnya di sini berarti mengunci peta ruang yang belum tentu
+    // selesai berubah.
+    expect(ExamEventShuffle::query()->where('event_id', $d['event']->id)->count())->toBe(0);
+});
+
+it('menolak menerapkan peta ke sesi yang belum memakai seluruh ruang event', function () {
+    // Sesi yang ruangnya kurang tidak boleh memakai peta event. Petanya adalah
+    // pemetaan ruang EVENT, dan sesi yang tidak memakai seluruhnya akan
+    // membuat sebagian peserta tersimpan "sudah ditempatkan" tanpa pernah
+    // muncul di ruang mana pun - pasangan dari aturan yang menjaga penyebaran
+    // seluruh event, dan dilanggar dengan galat yang sama.
+    $d = siapkanKocok($this->admin, $this->tahun);
+    $ruangEvent = $d['event']->rooms()->orderBy('id')->pluck('id')->all();
+
+    [$ujianKedua, $sesiKedua] = ujianTambahan($this->admin, $d['event'], 'Kedua', [$ruangEvent[0]]);
+
+    masukSebagai($this, $this->admin)
+        ->post(jalurPenempatan($d['event']).'/sesi/'.$sesiKedua->id, ['benih' => 'PAKAI2'])
+        ->assertSessionHas('galat');
+
+    expect(ExamParticipant::query()->where('exam_id', $ujianKedua->id)
+        ->whereNull('exam_session_room_id')->count())->toBe(8)
+        ->and(ExamEventShuffle::query()->where('event_id', $d['event']->id)->count())->toBe(0);
+});
+
+it('membalas 404 untuk sesi milik event sekolah lain', function () {
+    // Binding `{sesi}` ditemukan di seluruh sekolah, dan scope tenant tidak
+    // menutupnya karena sekolahnya sama. Tanpa pemeriksaan `pastikanSesiMilikEvent`,
+    // peta event A bisa diterapkan ke sesi milik event B - 404, bukan 403:
+    // bagi event ini sesi itu tidak ada.
+    $d = siapkanKocok($this->admin, $this->tahun);
+
+    $sekolahLain = School::factory()->create();
+    $adminLain = User::factory()->admin()->untukSekolah($sekolahLain)->create();
+    $tahunLain = AcademicYear::factory()->untukSekolah($sekolahLain)->aktif()->create();
+    $lain = siapkanKocok($adminLain, $tahunLain);
+
+    masukSebagai($this, $this->admin)
+        ->post(jalurPenempatan($d['event']).'/sesi/'.$lain['sesi']->id, ['benih' => 'SALAH3'])
+        ->assertNotFound();
+});
+
 it('menolak sesi yang kapasitasnya lebih sempit daripada ruang eventnya', function () {
     // Sesi boleh menimpa kapasitas ruangnya. Bila penimpaan itu membuat
     // petanya tidak muat, sesi itulah yang bermasalah - bukan petanya, dan

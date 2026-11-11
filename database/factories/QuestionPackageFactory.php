@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Domain\Academic\Models\Subject;
 use App\Domain\Identity\Models\User;
 use App\Domain\Question\Models\QuestionPackage;
+use App\Domain\Question\Services\PaketSoalService;
 use App\Domain\Tenancy\Models\School;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -28,6 +29,13 @@ class QuestionPackageFactory extends Factory
             'created_by' => fn (array $a) => User::factory()->guru()
                 ->untukSekolah(School::find($a['school_id']))->create()->id,
             'name' => 'Paket '.Str::upper(Str::random(4)),
+            // Kode dibangkitkan lewat `PaketSoalService::kodeBaru()` juga,
+            // bukan dihitung di sini: pabrik yang punya penomoran sendiri
+            // akan menghasilkan `P-6-1` yang bertabrakan dengan paket
+            // sungguhan di sekolah yang sama, dan tabrakannya baru terlihat
+            // saat test membuat paket kedua.
+            'code' => fn (array $a) => app(PaketSoalService::class)
+                ->kodeBaru((int) $a['school_id'], (int) $a['subject_id']),
             'grade_level' => 'X',
             'description' => null,
             'status' => 'draft',

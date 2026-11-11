@@ -1,141 +1,190 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: Wayfind (deal 2/3, seed student-exam-console-tests-27df) · redesign: full · copy: verbatim
- * nav: kept (kerangka ponsel, dalam material papan) · signature: papan ujian, ujian yang paling mendesak diangkat ke pelat tinta · states: kosong, penuh · wayfind: platform
- * axes: light/mono/cool · posture: committed · contrast: pass · v2.0.0 */
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Terrazzo (deal 3/3, seed student-quiet-exam-console-22a3·082792ec) · redesign: full · copy: verbatim
+ * screen: the urgent exam as an ink band, the schedule as ruled rows · states: empty, populated
+ * nav: kept (kerangka ponsel) · signature: the exam you have to sit now, raised onto the ink band · terrazzo: off-white · v2.0.0 */
 /*
 |--------------------------------------------------------------------------
-| Objek konsol siswa - papan, pelat, sel, kendali
+| Objek konsol siswa - pita, daftar, kendali
 |--------------------------------------------------------------------------
 | Berkas ini TIDAK memuat satu pun nilai warna atau nama huruf: semuanya
-| `var(--color-*)` dari tokens.css. Itu bukan kerapian - gate 48 melarang
-| literal di luar blok token, dan lebih penting lagi, satu warna yang
-| tertulis di sini akan lolos dari penggantian tema.
+| `var(--color-*)` dari tokens.css. Gate 48 melarang literal di luar blok
+| token, dan yang lebih penting: satu warna yang tertulis di sini akan lolos
+| dari penggantian tema.
 |
-| Yang tinggal di sini adalah BENTUK material Wayfind:
+| Yang tinggal di sini adalah BENTUK material Terrazzo, dan sengaja HANYA
+| empat benda:
 |
-|   .papan   kotak bergaris 2px          - satu-satunya kotak di konsol ini
-|   .papan-kepala  kepala papan          - satu baris label, bukan judul
-|   .papan-baris   satu baris papan      - 1px abu, bukan 2px tinta
-|   .papan-kolom   kepala kolom          - huruf badan satu tingkat kecil
-|   .pelat   bidang tinta 2px            - satu perintah dan angkanya
-|   .sel     sel bertumpuk garis         - tabbar dan penyaring
-|   .tombol  kendali 40px                - sasaran ketuk 44px
+|   .pita    bidang tinta               - satu perintah dan angkanya
+|   .daftar  lembar putih               - satu aturan 2px di atas, garis 1px di antara baris
+|   .sel     pilihan yang berbagi garis - penyaring, tabbar
+|   .tombol  kendali 40px              - sasaran ketuk 44px
 |
-| Wayfind berkata "kedalaman adalah garis": tidak ada bayangan, tidak ada
-| sudut membulat, tidak ada kartu di dalam kartu.
+| =====================================================================
+| Yang DIHAPUS dari tema sebelumnya, dan alasannya
+| =====================================================================
+| Wayfind menuntut kotak bergaris 2px pada SETIAP sisi setiap benda. Di dalam
+| ponsel 26rem, satu layar memuat empat kotak bergaris 2px, dan mata anak
+| membaca empat bingkai sebelum satu isi. Terrazzo hanya memakai garis 2px
+| pada sisi yang MEMULAI sebuah benda - atas tabel, tepi atas kartu - dan
+| membiarkan tiga sisi lainnya terbuka pada kertas yang sama. Itu satu
+| keputusan, dan seluruh kesederhanaan halaman ini berasal darinya.
 |
-| ---------------------------------------------------------------------
-| Tiga aturan di bawah menegakkan yang tiga itu, dan ketiganya menimpa
-| utility Tailwind yang tertulis di dalam komponen BERSAMA - `Chip`,
-| `Kotak`, `Modal` - yang dipakai empat peran lain.
-| ---------------------------------------------------------------------
-| Menyunting komponennya satu per satu berarti konsol Pengawas dan konsol
-| Admin ikut berubah, dan itu di luar laporan ini. Yang ditimpa di sini
-| hanya berlaku di dalam `.konsol-siswa`, dan karena berkas ini tidak
-| memakai `@layer`, ia menang atas utility Tailwind tanpa perlu `!important`.
+| Yang dipertahankan dari Wayfind: kedalaman adalah GARIS, bukan bayangan.
+| Satu-satunya bayangan di konsol ini adalah offset keras 4px di bawah pita
+| ujian - bukan glow, bukan blur - dan ia dipakai tepat sekali karena pita
+| itu memang satu-satunya benda yang diangkat dari halaman.
 */
 
-/*
- * Wayfind melarang sudut membulat, dan `rounded-full` di Tailwind 4 bukan
- * token - nilainya `calc(infinity * 1px)`, ditulis di dalam utility-nya
- * sendiri - sehingga `--radius-wf: 0` tidak menyentuhnya. Lencana dan chip
- * di konsol ini karena itu diluruskan di sini.
- */
+/* Lencana dan chip di konsol ini tidak membulat (Terrazzo: radius 0). */
 .konsol-siswa .rounded-full {
     border-radius: 0;
 }
 
-/* Bayangan kotak juga bukan milik tema ini (Wayfind: kedalaman adalah garis) */
-.konsol-siswa {
-    --shadow-wf: none;
-    --shadow-kotak: none;
+/* --------------------------------------------------------------- Daftar */
+
+/*
+ * Judul laman di bilah atas.
+ *
+ * `h1` demi garis besar dokumen, tetapi hurufnya huruf BADAN dan ukurannya
+ * 12px: bilah ini setinggi 36px di atas ponsel 26rem, dan judul seukuran
+ * kepala akan mendorong satu-satunya ujian yang penting ke bawah lipatan
+ * pada layar 844px. Yang dibutuhkan pembaca layar adalah elemennya; yang
+ * dibutuhkan mata adalah bilah yang tetap tipis.
+ *
+ * `nowrap` + ellipsis, bukan `balance`: isinya satu kalimat pendek yang
+ * sudah dipotong pemanggilnya sendiri ("Akun · Abizar Krisandi"), dan judul
+ * yang membungkus dua baris memindahkan seluruh laman turun 18px.
+ */
+.konsol-siswa .bilah-judul {
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: normal;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-ink);
 }
 
-/* ---------------------------------------------------------- Objek papan */
+/* Kepala daftar juga `h2` - lihat catatan di KerangkaSiswa dan pemanggilnya. */
+.konsol-siswa .daftar-kepala > :is(h2, h3) {
+    font-family: var(--font-sans);
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: normal;
+    line-height: inherit;
+    color: inherit;
+    min-width: 0;
+}
 
-.konsol-siswa .papan {
-    border: var(--rule-bar) solid var(--color-line-2);
+/*
+ * Lembar putih dengan satuan aturan 2px di atasnya, dan garis 1px di antara
+ * baris. Tidak ada bingkai di kiri, kanan, atau bawah: isinya memanjang
+ * sampai tepi ponsel, dan pinggir layar sudah menjadi tepinya.
+ */
+.konsol-siswa .daftar {
+    border-top: var(--rule-bar) solid var(--color-line-2);
     background-color: var(--color-surface);
 }
 
-.konsol-siswa .papan-kepala {
+.konsol-siswa .daftar-kepala {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: var(--space-xs);
     border-bottom: var(--rule-hair) solid var(--color-line);
-    background-color: var(--color-surface-2);
     padding: var(--space-xs) var(--space-sm);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--color-ink-2);
+    color: var(--color-ink);
 }
 
-.konsol-siswa .papan-baris {
+/*
+ * Kepala kolom daftar. Huruf badan satu tingkat di bawah barisnya, sentence
+ * case, tanpa jarak huruf - gate 67 melarang kebalikannya di bawah 15px.
+ */
+.konsol-siswa .daftar-kolom {
+    border-bottom: var(--rule-hair) solid var(--color-line);
+    padding: var(--space-2xs) var(--space-sm);
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    color: var(--color-ink-3);
+}
+
+.konsol-siswa .daftar-baris {
     border-bottom: var(--rule-hair) solid var(--color-line);
 }
 
-.konsol-siswa .papan-baris:last-child {
+.konsol-siswa .daftar-baris:last-child {
     border-bottom: 0;
 }
 
 /*
- * Kepala kolom papan.
- *
- * Wayfind menulisnya "sentence case, untracked" dan gate 67 melarang yang
- * sebaliknya pada ukuran 15px ke bawah. Kapital berjarak menaikkan tinggi
- * baris kepala tanpa menambah satu informasi pun.
+ * Satu baris yang bisa ditekan - seluruh barisnya, bukan satu tautan kecil di
+ * ujungnya. Di ponsel, sasaran ketuk selebar baris adalah bedanya antara
+ * "bisa dipakai sambil berjalan" dan "harus berhenti dan membidik".
  */
-.konsol-siswa .papan-kolom {
-    border-bottom: var(--rule-bar) solid var(--color-line-2);
-    font-size: var(--text-2xs);
-    font-weight: 500;
-    color: var(--color-ink-2);
+.konsol-siswa a.daftar-baris {
+    transition: background-color var(--dur-micro) steps(1);
 }
 
+.konsol-siswa a.daftar-baris:hover {
+    background-color: var(--color-surface-2);
+}
+
+/* ---------------------------------------------------------------- Pita */
+
 /*
- * Pelat - bidang tinta di dalam garis 2px, memuat satu perintah dan angkanya,
- * seperti papan memuat nomor peron.
+ * Pita - bidang tinta dengan offset keras ke kanan bawah. Satu-satunya benda
+ * yang DIANGKAT dari halaman, dan hanya karena ia menjawab satu-satunya
+ * pertanyaan yang dibawa anak ke beranda: apa yang harus saya kerjakan
+ * sekarang.
  *
- * Amber HANYA hidup di sini. Di atas kertas, amber tidak terbaca (Wayfind,
- * Do-nots), jadi `.angka` di luar pelat memakai tinta.
+ * Amber dan hijau DIHAPUS dari pita. Wayfind memakai dua warna cerah di atas
+ * tinta; Terrazzo hanya punya satu sinyal, dan angka di atas tinta adalah
+ * kertas, bukan warna - angkanya sudah menjadi yang terbesar di halaman.
  */
-.konsol-siswa .pelat {
-    border: var(--rule-bar) solid var(--color-line-2);
+.konsol-siswa .pita {
     background-color: var(--color-plate);
     color: var(--color-plate-ink);
+    box-shadow: var(--shadow-kartu);
 }
 
 /*
- * Di DALAM pelat, garis penanda berarti garis TERANG.
- *
- * Lencana status dan garis pemisah di atas tinta memakai `--color-line-2`
- * yang gelap, dan garis gelap di atas tinta adalah garis yang tidak ada.
- * Nilainya diganti pada ANAK pelat, bukan pada pelatnya sendiri - garis luar
- * pelat berdiri di atas kertas dan memang harus tetap gelap.
+ * Di DALAM pita, garis pemisah berarti garis yang lebih terang dari bidangnya.
+ * Garis 1px `--color-line` yang gelap di atas tinta adalah garis yang tidak
+ * ada. Nilainya diganti pada ANAK pita, bukan pada pitanya sendiri.
  */
-.konsol-siswa .pelat > * {
-    --color-line-2: var(--color-plate-line);
+.konsol-siswa .pita > * {
     --color-line: var(--color-plate-line);
+    --color-line-2: var(--color-plate-line);
 }
 
-.konsol-siswa .pelat .angka,
-.konsol-siswa .pelat .angka-amber {
-    color: var(--color-figure);
+.konsol-siswa .pita-baris {
+    border-bottom: var(--rule-hair) solid var(--color-plate-line);
 }
 
-.konsol-siswa .angka {
+/*
+ * Angka besar di dalam pita - satu perintah, satu angka. Mono, karena ia
+ * waktu: `07:30` sejajar ke bawah dengan `13:00` hanya bila digitnya
+ * selebar sama, dan itulah satu-satunya alasan mono dipakai di konsol ini.
+ */
+.konsol-siswa .pita-angka {
+    font-family: var(--font-mono);
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
-    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
 }
 
-/* ------------------------------------------------------------- Kendali */
+/* -------------------------------------------------------------- Kendali */
 
 /*
  * Kendali 40px dengan sasaran ketuk 44px - rentang aplikasi, bukan rentang
  * halaman pemasaran (flow.md § App screens).
  *
  * Sasaran ketuknya diperluas dengan pseudo-element, bukan dengan menumbuhkan
- * kotaknya: kotak yang tumbuh 44px akan mendorong papan di sebelahnya turun,
- * dan papan yang bergeser saat disentuh membuat orang salah tekan.
+ * kotaknya: kotak yang tumbuh 44px akan mendorong isi di sebelahnya turun,
+ * dan halaman yang bergeser saat disentuh membuat orang salah tekan.
  */
 .konsol-siswa .tombol {
     position: relative;
@@ -144,11 +193,11 @@
     justify-content: center;
     gap: var(--space-xs);
     min-height: 2.5rem;
-    border: var(--rule-bar) solid var(--color-line-2);
+    border: var(--rule-hair) solid var(--color-line-2);
     border-radius: 0;
     background-color: var(--color-surface);
     padding: 0 var(--space-sm);
-    font-size: var(--text-sm);
+    font-size: var(--text-md);
     font-weight: 500;
     color: var(--color-ink);
     transition:
@@ -166,21 +215,20 @@
     background-color: var(--color-surface-2);
 }
 
-/*
- * Keadaan ditekan: papan berhenti mendadak, jadi tidak ada pegas dan tidak
- * ada pergeseran. Warnanya berbalik - itu tanda tekan yang sama yang dipakai
- * papan sungguhan.
- */
 .konsol-siswa .tombol:active {
     background-color: var(--color-ink);
     color: var(--color-plate-ink);
 }
 
+/*
+ * Satu tombol terisi per halaman (F4). Di konsol ini ia selalu berarti
+ * "kerjakan sekarang", dan rust adalah sinyalnya.
+ */
 .konsol-siswa .tombol--pri {
     border-color: var(--color-accent);
     background-color: var(--color-accent);
     color: var(--color-on-accent);
-    font-weight: 800;
+    font-weight: 500;
 }
 
 .konsol-siswa .tombol--pri:hover {
@@ -195,9 +243,46 @@
 }
 
 /*
+ * Pita memakai tombol kertas: tombol rust di atas bidang tinta menghasilkan
+ * dua bidang gelap yang menempel dan tidak terbaca sebagai tombol (41).
+ */
+.konsol-siswa .pita .tombol--pri {
+    border-color: var(--color-plate-ink);
+    background-color: var(--color-plate-ink);
+    color: var(--color-ink);
+}
+
+.konsol-siswa .pita .tombol--pri:active {
+    background-color: var(--color-plate-ink-2);
+    color: var(--color-ink);
+}
+
+/*
+ * Tombol bahaya - satu-satunya tindakan yang menghapus keadaan.
+ *
+ * Ia ditulis DI SINI, bukan di kelas Tailwind pemanggilnya, karena `.tombol`
+ * di berkas ini tidak berada di layer mana pun sementara utility Tailwind
+ * berada di layer `utilities`. Yang tanpa layer selalu menang, berapa pun
+ * kekhususan kelasnya - jadi `border-0 text-bad` yang dipasang di sebelah
+ * `tombol` tidak pernah sampai ke tombolnya, dan tombol keluar akun
+ * menggambar dirinya sebagai tombol biasa berwarna tinta.
+ *
+ * Warnanya tetap garis dan teks, bukan bidang: keluar dari akun tidak boleh
+ * terlihat seperti tindakan utama halaman.
+ */
+.konsol-siswa .tombol--bahaya {
+    border-color: var(--color-line-2);
+    color: var(--color-bad);
+}
+
+.konsol-siswa .tombol--bahaya:hover {
+    background-color: var(--color-bad-bg);
+    color: var(--color-bad);
+}
+
+/*
  * Tiga saluran mati sekaligus - opasitas, kursor, dan atribut aslinya
- * (lantai 39a). Satu saluran saja membuat tombol yang mati terlihat bisa
- * ditekan di perangkat yang tidak menghormati salah satunya.
+ * (lantai 39a). Satu saluran saja membuat tombol mati terlihat bisa ditekan.
  */
 .konsol-siswa .tombol:disabled,
 .konsol-siswa .tombol[aria-disabled='true'] {
@@ -205,6 +290,7 @@
     border-color: var(--color-line);
     background-color: var(--color-surface-2);
     color: var(--color-ink-3);
+    opacity: 0.55;
 }
 
 .konsol-siswa .tombol:disabled::after,
@@ -212,19 +298,22 @@
     content: none;
 }
 
-/* -------------------------------------------------------------- Isian */
+.konsol-siswa .pita .tombol[aria-disabled='true'] {
+    border-color: var(--color-plate-line);
+    background-color: transparent;
+    color: var(--color-plate-ink-2);
+}
+
+/* --------------------------------------------------------------- Isian */
 
 /*
- * Bidang isian bergaris 2px `--color-line-2`, bukan 1px `--color-line`.
- *
- * Itu keputusan kontras, bukan selera: garis 1px abu di atas kertas terang
- * hanya 1,23:1 terhadap sekitarnya (terukur, lantai 40), dan bidang yang
- * tepinya tidak terlihat adalah bidang yang tidak ditemukan. Wayfind memang
- * sudah menuntut 2px pada setiap permukaan.
+ * Bidang isian bergaris 1px tinta - bukan 1px abu. Garis 1px abu di atas
+ * kertas terang terukur 1,23:1 terhadap sekitarnya (lantai 40), dan bidang
+ * yang tepinya tidak terlihat adalah bidang yang tidak ditemukan.
  */
 .konsol-siswa :is(input, select, textarea) {
     min-height: 2.5rem;
-    border: var(--rule-bar) solid var(--color-line-2);
+    border: var(--rule-hair) solid var(--color-ink-2);
     border-radius: 0;
     background-color: var(--color-surface);
     color: var(--color-ink);
@@ -244,51 +333,64 @@
 /* ---------------------------------------------------------------- Sel */
 
 /*
- * Satu set pilihan sebagai sel yang BERBAGI garis, bukan kotak terpisah yang
- * mengambang: tabbar, penyaring event, dan deretan tombol dinegosiasi.
+ * Satu set pilihan sebagai sel yang BERBAGI garis: penyaring event, deretan
+ * tombol yang dinegosiasi.
  *
- * Sel yang sedang hidup mengisi tinta dengan teks kertas - cara papan
- * menandai peron yang sedang dipakai.
+ * Sel yang sedang hidup diberi garis bawah rust 2px, bukan diisi tinta. Di
+ * tema sebelumnya setiap sel hidup menjadi bidang gelap, dan dua dari empat
+ * tabbar selalu terlihat seperti tombol yang ditekan. Rust di sini menandai
+ * "sedang dibaca" dengan satu garis, dan sisanya tetap kertas.
  */
 .konsol-siswa .sel {
     display: flex;
-    border: var(--rule-bar) solid var(--color-line-2);
+    border-bottom: var(--rule-hair) solid var(--color-line);
     background-color: var(--color-surface);
 }
 
 .konsol-siswa .sel > * {
     flex: 1 1 0;
     min-width: 0;
-    border-right: var(--rule-hair) solid var(--color-line);
+    border-bottom: var(--rule-bar) solid transparent;
+    padding: var(--space-xs) var(--space-2xs);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
 }
 
-.konsol-siswa .sel > *:last-child {
-    border-right: 0;
+/*
+ * Sasaran ketuk sel diperluas dengan pseudo-element, sama seperti `.tombol` -
+ * tanpa itu sel penyaring event tinggal 34px tingginya, di bawah rentang
+ * aplikasi 39b, dan ia satu-satunya kendali di konsol ini yang tidak
+ * melebar sendiri. Latar sel tidak ikut tumbuh: yang diperluas hanya
+ * bidangnya yang bisa ditekan.
+ */
+.konsol-siswa .sel > * {
+    position: relative;
 }
 
-.konsol-siswa .sel-hidup {
-    background-color: var(--color-ink);
-    color: var(--color-plate-ink);
-    font-weight: 800;
+.konsol-siswa .sel > *::after {
+    content: '';
+    position: absolute;
+    inset: -3px 0;
+}
+
+.konsol-siswa .sel > .sel-hidup {
+    border-bottom-color: var(--color-accent);
+    color: var(--color-ink);
+    font-weight: 500;
 }
 
 /* ------------------------------------------------------------- Tabbar */
 
 /*
- * Tabbar = papan kecil di kaki layar. Empat sel yang BERBAGI garis, dan sel
- * yang sedang dibuka mengisi tinta.
+ * Tabbar empat sel di kaki layar. Tingginya 3rem; labelnya 12px, lantai
+ * REFLEX 75 untuk teks fungsional.
  *
- * Sebelumnya yang menandai tab aktif hanyalah garis bawah 2px berwarna
- * aksen setinggi 44px - pada ponsel yang dipegang sambil berjalan, satu
- * garis tipis di tepi bawah adalah tanda yang paling mudah hilang. Di sini
- * seluruh selnya berbalik warna.
- *
- * Tingginya 3rem, dan labelnya 11px - lantai REFLEX 75 untuk teks
- * fungsional. Mono berukuran lebar, jadi 11px adalah ukuran terbesar yang
- * masih memuat "Pelanggaran" pada satu baris di dalam 26rem dibagi empat.
+ * Tab hidup ditandai dua hal sekaligus - garis atas rust DAN tinta penuh -
+ * karena pada ponsel yang dipegang sambil berjalan satu garis tipis di tepi
+ * layar adalah tanda yang paling mudah hilang.
  */
 .konsol-siswa .tabbar {
-    border-top: var(--rule-bar) solid var(--color-line-2);
+    border-top: var(--rule-hair) solid var(--color-line-2);
     background-color: var(--color-surface);
 }
 
@@ -297,54 +399,191 @@
     align-items: center;
     justify-content: center;
     min-height: 3rem;
-    border-right: var(--rule-hair) solid var(--color-line);
-    font-size: var(--text-2xs);
+    border-top: var(--rule-bar) solid transparent;
+    font-size: var(--text-xs);
     font-weight: 500;
     white-space: nowrap;
-    color: var(--color-ink-2);
+    color: var(--color-ink-3);
     transition:
         background-color var(--dur-micro) steps(1),
         color var(--dur-micro) steps(1);
 }
 
-.konsol-siswa .tabbar > *:last-child {
-    border-right: 0;
-}
-
-/*
- * Sel tabbar yang hidup menang atas warna dasar di atasnya.
- *
- * Bukan kerapian: `.tabbar > *` berbobot (0,2,1) sedangkan `.sel-hidup`
- * berbobot (0,2,0), sehingga `color: --color-ink-2` di blok sebelumnya
- * MENANG dan sel yang sedang dibuka tergambar sebagai tinta gelap di atas
- * bidang tinta - terukur 1,37:1, lantai 40 dan 41 sekaligus. Aturan ini
- * berbobot sama dengan `:not(.sel-hidup):hover` di bawah, jadi urutan
- * berkaslah yang memutuskan.
- */
-.konsol-siswa .tabbar > .sel-hidup {
-    background-color: var(--color-ink);
-    color: var(--color-plate-ink);
-    font-weight: 800;
-}
-
-.konsol-siswa .tabbar > *:not(.sel-hidup):hover {
+.konsol-siswa .tabbar > *:hover {
     background-color: var(--color-surface-2);
     color: var(--color-ink);
 }
 
-.konsol-siswa .tabbar > *:active {
-    background-color: var(--color-surface-2);
+/*
+ * Bobot selektor: `.tabbar > *` berbobot (0,2,0) dan `:hover` di atasnya
+ * juga, jadi tab hidup ditulis (0,2,1) agar warna tinta tidak dikalahkan
+ * oleh warna dasar tab yang tidak aktif.
+ */
+.konsol-siswa .tabbar > .sel-hidup {
+    border-top-color: var(--color-accent);
+    color: var(--color-ink);
+}
+
+.konsol-siswa .tabbar > .sel-hidup:hover {
+    background-color: transparent;
 }
 
 /* --------------------------------------------------------------- Tautan */
 
 /*
- * Satu ukuran untuk seluruh teks kecil yang berdiri sendiri - tautan kembali,
- * kalimat bantuan di bawah pelat, catatan kaki papan. 11px adalah lantainya.
+ * Teks kecil yang berdiri sendiri - kalimat bantuan, catatan kaki, tautan
+ * kembali. 12px adalah lantainya (REFLEX 75: teks yang mengalir beberapa
+ * baris), dan warnanya `ink-2`, bukan `ink-3`.
  */
 .konsol-siswa .catatan {
-    font-size: var(--text-2xs);
-    line-height: 1.4;
+    font-size: var(--text-xs);
+    line-height: 1.45;
     color: var(--color-ink-2);
 }
 
+/* Angka: monopolasi hanya untuk waktu dan kode, sejajar ke bawah. */
+.konsol-siswa .angka {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Angka besar: kepala geometris. Hanya untuk NILAI yang memang angka. */
+.konsol-siswa .angka-besar {
+    font-family: var(--font-display);
+    font-weight: var(--display-weight);
+    letter-spacing: var(--tracking-display);
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Angka hitung - jumlah kejadian, jumlah ujian, sisa waktu.
+ *
+ * Mono, bukan kepala geometris: nol di Syne adalah bulatan selebar huruf O,
+ * dan pada angka yang dibaca sebagai "berapa banyak" satu nol yang terbaca
+ * sebagai huruf adalah satu kekeliruan. Mono punya nol bergaris dan lebar
+ * digit yang sama, jadi 0 dan 8 tidak pernah tertukar.
+ */
+.konsol-siswa .angka-hitung {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+/* --------------------------------------------------------------- Kotak */
+
+/*
+ * Kotak keterangan - satu kalimat yang menjelaskan keadaan halaman.
+ *
+ * Ia TIDAK berbingkai dan TIDAK berwarna: satu-satunya tanda bahwa kalimat
+ * ini keterangan, bukan isi, adalah latar satu langkah di atas kertasnya.
+ * Versi sebelumnya memberi kotak ini bingkai dan latar nada info, dan hasilnya
+ * terbaca sebagai kendali yang sedang mati.
+ */
+.konsol-siswa .keterangan {
+    background-color: var(--color-surface-2);
+    padding: var(--space-sm);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--color-ink-2);
+}
+
+/* --------------------------------------------------- Tanda air & cetak */
+
+/*
+ * Tanda air ujian - nama, nomor induk, ruang, kursi, nomor soal.
+ *
+ * =====================================================================
+ * Cakupannya `.rangka-ujian`, BUKAN `.konsol-siswa`
+ * =====================================================================
+ * Halaman pengerjaan memasang `gelap`, dan `KerangkaSiswa` memilih
+ * `rangka-ujian` untuk itu - `.konsol-siswa` sengaja tidak dipakai di rangka
+ * gelap (lihat catatan berkas kerangkanya). Aturan yang hanya menyebut
+ * `.konsol-siswa` karena itu TIDAK PERNAH berlaku di satu-satunya laman yang
+ * memakai tanda air, dan kegagalannya senyap: tidak ada galat, tidak ada
+ * kelas yang tidak dikenal, hanya lapisan yang tidak muncul.
+ *
+ * Keduanya disebut supaya aturan ini tetap benar bila rangka ujian kelak
+ * memakai material Terrazzo.
+ *
+ * =====================================================================
+ * Mengapa `position: fixed` dan bukan lapisan di dalam alur
+ * =====================================================================
+ * `fixed` menempel ke VIEWPORT, sehingga tanda air tetap di tempatnya saat
+ * anak menggulir soal panjang - dan tangkapan layar biasanya diambil dari
+ * bagian soal yang sedang dibaca, bukan dari atas halaman.
+ *
+ * =====================================================================
+ * `z-index` 30, dan ia HARUS di bawah bilah judul dan bilah bawah
+ * =====================================================================
+ * Keduanya `z-20` (`KerangkaSiswa`), dan tombol di bilah bawah harus tetap
+ * bisa ditekan. `pointer-events: none` sudah menutup klik, tetapi tombol
+ * yang tertutup lapisan semi-transparan masih terbaca sebagai tombol yang
+ * "kusam" - dan pada ponsel, kusam berarti mati.
+ *
+ * =====================================================================
+ * Opasitas 0,10 dan rotasi -14 derajat
+ * =====================================================================
+ * Cukup untuk terbaca pada tangkapan layar, cukup pudar untuk tidak
+ * mengganggu membaca soal. Rotasinya membuat satu baris tidak pernah
+ * sejajar dengan baris teks soal - tanda air yang sejajar terbaca sebagai
+ * bagian dari soal, dan anak akan mengira itu instruksi.
+ *
+ * `color` dan `font` dibaca dari token rangkanya, sehingga lapisan ini ikut
+ * gelap di rangka gelap tanpa satu nilai pun ditulis di sini.
+ */
+:is(.konsol-siswa, .rangka-ujian) .tanda-air {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: var(--space-lg) var(--space-md);
+    padding: var(--space-md);
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.1;
+    transform: rotate(-14deg) scale(1.6);
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/*
+ * Cetak - dan ini penutup jalur yang tidak memakai tombol tangkap layar.
+ *
+ * Ctrl+P di ponsel membuka dialog cetak tanpa mengirim `keydown`, sehingga
+ * penangan pintasan di `Kerjakan.tsx` tidak melihatnya. Yang bisa dilakukan
+ * adalah membuat hasil cetaknya tidak berisi soal sama sekali: menyembunyikan
+ * isi dan menggantinya satu kalimat. Menyembunyikan soal TIDAK mencegah
+ * cetak - ia membuat cetakannya tidak berguna, dan itu yang bisa dicapai
+ * halaman web.
+ */
+@media print {
+    :is(.konsol-siswa, .rangka-ujian) .tanda-air {
+        display: none;
+    }
+
+    /* Anak-anak `main` disembunyikan, BUKAN `main`-nya: `display: none` pada
+       induk ikut menghapus `::after`-nya, sehingga kalimat pengganti tidak
+       akan pernah tercetak. */
+    :is(.konsol-siswa, .rangka-ujian) main > *,
+    :is(.konsol-siswa, .rangka-ujian) .bilah-judul {
+        display: none !important;
+    }
+
+    :is(.konsol-siswa, .rangka-ujian) main::after {
+        content: 'Naskah ujian tidak untuk dicetak atau disalin.';
+        display: block;
+        font-family: var(--font-sans);
+        font-size: var(--text-md);
+        color: var(--color-ink);
+    }
+}

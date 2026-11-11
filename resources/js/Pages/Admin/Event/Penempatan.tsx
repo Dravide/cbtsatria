@@ -321,6 +321,23 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                     <span className="text-xs text-bad">{b.sebab}</span>
                                 ),
                         },
+                        {
+                            judul: 'Aksi',
+                            kelas: 'w-44',
+                            render: (b) => (
+                                <Tombol
+                                    nada={b.bisa ? 'pri' : 'sek'}
+                                    title={
+                                        b.bisa
+                                            ? `Terapkan peta ruang event ke ${b.sesi}`
+                                            : `${b.sesi} belum bisa memakai peta - ${b.sebab}`
+                                    }
+                                    onClick={() => pakai(jalur, b.sesi_id, laman.benih)}
+                                >
+                                    Pakai penempatan
+                                </Tombol>
+                            ),
+                        },
                     ]}
                 />
             </Kotak>
@@ -497,4 +514,9 @@ function sebar(jalur: string, benih: string) {
 
 function kocokUlang(jalur: string) {
     router.post(`${jalur}/penempatan/kocok-ulang`, {}, { preserveScroll: true });
+}
+
+/** Terapkan peta ruang event ke SATU sesi - tombol "Pakai penempatan". */
+function pakai(jalur: string, sesiId: number, benih: string) {
+    router.post(`${jalur}/penempatan/sesi/${sesiId}`, { benih }, { preserveScroll: true });
 }

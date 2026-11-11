@@ -363,7 +363,7 @@ export function UmpanBalik() {
  */
 export function KodeTeks({ kode }: { kode: string }) {
     return (
-        <span className="font-mono text-sm tracking-[0.18em] text-ink">{kode}</span>
+        <span className="font-mono text-sm text-ink">{kode}</span>
     );
 }
 
@@ -560,16 +560,28 @@ export function pakaiFilter(jalur: string, awal: Record<string, string>) {
  * Untuk master data, laman tambah sendiri berarti setiap penambahan kelas
  * memindahkan Admin keluar dari daftar yang sedang ia lihat, lalu kembali
  * dengan posisi gulir yang hilang. Panel menjaga konteksnya.
+ *
+ * ---------------------------------------------------------------------
+ * `gelap` mengubah lapisannya, dan hanya lapisannya
+ * ---------------------------------------------------------------------
+ * Di dalam `.rangka-ujian` setiap token warna dipetakan ulang - termasuk
+ * `--color-ink`, yang di sana nyaris putih. Lapisan `bg-ink/40` karena itu
+ * berubah menjadi kabut TERANG di atas laman gelap, dan panelnya sendiri
+ * tetap benar (`bg-surface` memetakan ke permukaan gelap). Yang salah hanya
+ * lapisannya, dan itulah satu-satunya yang diganti `gelap`: tinta gelap
+ * sungguhan dengan opasitas lebih tinggi.
  */
 export function Modal({
     judul,
     terbuka,
     padaTutup,
+    gelap = false,
     children,
 }: {
     judul: string;
     terbuka: boolean;
     padaTutup: () => void;
+    gelap?: boolean;
     children: ReactNode;
 }) {
     // Escape menutup, dan hanya di sini - bukan di setiap laman yang memakai
@@ -600,7 +612,17 @@ export function Modal({
     }
 
     return (
-        <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 backdrop-blur-[2px] sm:p-8">
+        <div
+            className={
+                'fixed inset-0 z-40 flex items-start justify-center overflow-y-auto p-4 backdrop-blur-[2px] sm:p-8 ' +
+                // `bg-paper` dan bukan `bg-black`: seluruh warna di berkas ini
+                // lewat token, dan `paper` di dalam `.rangka-ujian` adalah
+                // gelapnya laman itu sendiri - lapisan yang sama warnanya
+                // dengan latar, hanya digelapkan, itulah yang dibaca sebagai
+                // "di belakang".
+                (gelap ? 'bg-paper/85' : 'bg-ink/40')
+            }
+        >
             <div
                 role="dialog"
                 aria-modal="true"

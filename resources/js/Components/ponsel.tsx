@@ -111,14 +111,14 @@ export function TabbarPonsel({ ruangId, aktif }: { ruangId: number; aktif: strin
  * "ini isi pokoknya" dari "ini daftar di bawahnya".
  *
  * =====================================================================
- * `papan` - kelas yang tidak melakukan apa-apa di luar konsol siswa
+ * `daftar` - kelas yang tidak melakukan apa-apa di luar konsol siswa
  * =====================================================================
  * Kotak ini dipakai konsol PENGAWAS dan konsol SISWA, dan keduanya memakai
  * material yang berbeda: pengawas memakai kotak bersudut membulat seperti
- * sisa konsol lain, siswa memakai papan bergaris 2px dari tema Wayfind.
+ * sisa konsol lain, siswa memakai lembar putih bergaris dari tema Terrazzo.
  *
- * Karena itu kelas `papan` dipasang di sini dan seluruh gayanya hidup di
- * `resources/css/konsol-siswa.css` di bawah selektor `.konsol-siswa .papan`.
+ * Karena itu kelas `daftar` dipasang di sini dan seluruh gayanya hidup di
+ * `resources/css/konsol-siswa.css` di bawah selektor `.konsol-siswa .daftar`.
  * Di halaman pengawas kelas itu tidak punya aturan sama sekali: yang tinggal
  * hanya utility Tailwind di bawah, dan kotaknya persis seperti sebelumnya.
  *
@@ -134,7 +134,7 @@ export function TabbarPonsel({ ruangId, aktif }: { ruangId: number; aktif: strin
  *
  * Gantinya: huruf badan satu tingkat lebih kecil, sentence case, tanpa
  * jarak huruf. Yang menandai kepala sekarang adalah GARIS di bawahnya
- * (papan) atau latar yang satu langkah lebih gelap - bukan hurufnya.
+ * (daftar) atau latar yang satu langkah lebih gelap - bukan hurufnya.
  */
 export function KotakPonsel({
     judul,
@@ -152,7 +152,7 @@ export function KotakPonsel({
     return (
         <section
             className={
-                'papan rounded-wf border ' +
+                'daftar rounded-wf border ' +
                 (solid ? 'border-line bg-surface-2/60' : 'border-line bg-surface')
             }
         >
@@ -192,7 +192,7 @@ export function KpiPonsel({
         : 'text-ink';
 
     return (
-        <div className="papan rounded-wf border border-line bg-surface px-2 py-1.5">
+        <div className="daftar rounded-wf border border-line bg-surface px-2 py-1.5">
             <span className="block text-[11px] text-ink-2">{label}</span>
             <b className={'angka block font-display text-base leading-tight ' + warna}>{nilai}</b>
         </div>

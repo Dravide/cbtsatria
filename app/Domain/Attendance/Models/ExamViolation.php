@@ -83,6 +83,22 @@ class ExamViolation extends Model
         'sesi_ganda' => 'Sesi ganda',
         'jaringan' => 'Jaringan terputus',
 
+        // Layar yang terbagi - split screen, jendela mengambang, atau jendela
+        // aplikasi lain yang menutupi sebagian soal.
+        //
+        // Dicatat sebagai jenis TERSENDIRI, bukan dilipat ke
+        // `keluar_layar_penuh`: keduanya sering terjadi bersama, tetapi yang
+        // dibaca pengawas berbeda. Keluar dari layar penuh bisa berarti anak
+        // menyentuh tombol kembali; layar yang terbagi berarti separuh soal
+        // sudah tidak di layar itu. Menyatukannya menghapus perbedaan yang
+        // justru satu-satunya alasan jenis ini ada.
+        //
+        // Yang TIDAK dilaporkan: jendela aplikasi lain yang menempel di atas
+        // soal tanpa mengubah ukuran viewport. Peramban tidak bisa melihat
+        // jendela yang bukan miliknya, dan menebaknya berarti menuduh anak
+        // atas hal yang tidak diukur.
+        'layar_terbagi' => 'Layar terbagi / jendela mengambang',
+
         // Satu-satunya jenis yang BUKAN perbuatan siswa, dan ia ada di sini
         // karena tabel ini memang satu-satunya riwayat yang dibaca plate 16
         // dan plate 29. Pembukaan kunci HARUS meninggalkan baris - catatan

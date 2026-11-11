@@ -64,7 +64,9 @@ class QuestionPackageController
         $halaman = TabelQuery::buat(
             $query,
             $request,
-            cariDi: ['name', 'description'],
+            // `code` ikut dicari: satu-satunya alasan Guru menyebut kode
+            // adalah supaya bisa mengetiknya di kotak ini.
+            cariDi: ['name', 'code', 'description'],
             bolehDiurut: ['name', 'status'],
             penyaring: ['mapel' => 'subject_id', 'status' => 'status'],
             urutBawaan: 'id',
@@ -74,6 +76,7 @@ class QuestionPackageController
         return Inertia::render('Guru/Paket/Index', [
             'baris' => $halaman->through(fn (QuestionPackage $paket) => [
                 'id' => $paket->id,
+                'kode' => $paket->code,
                 'nama' => $paket->name,
                 'mapel' => $paket->subject?->name,
                 'tingkat' => $paket->grade_level,
@@ -106,6 +109,7 @@ class QuestionPackageController
         return Inertia::render('Guru/Paket/Detail', [
             'paket' => [
                 'id' => $paket->id,
+                'kode' => $paket->code,
                 'nama' => $paket->name,
                 'mapel_id' => $paket->subject_id,
                 'mapel' => $paket->subject?->name,

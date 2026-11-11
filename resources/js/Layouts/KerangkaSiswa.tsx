@@ -26,11 +26,11 @@ import { UmpanBalik } from '@/Components/ui';
  * bentuk tampilan yang harus dipelajari anak yang sama".
  *
  * =====================================================================
- * Material papan - `.konsol-siswa`, dan mengapa ia kelas dan bukan :root
+ * Material konsol - `.konsol-siswa`, dan mengapa ia kelas dan bukan :root
  * =====================================================================
- * Konsol siswa memakai tema Wayfind (references/themes/wayfind.md): kertas
- * abu sejuk, Chivo Mono pada seluruh halaman, kotak bergaris 2px, pelat
- * tinta, kobalt untuk yang hidup dan amber untuk angka di atas tinta.
+ * Konsol siswa memakai tema Terrazzo: kertas gading, lembar putih bergaris
+ * tinta, Syne pada kepala dan Onest pada badan, mono hanya untuk waktu dan
+ * kode, dan rust sebagai satu-satunya sinyal.
  *
  * Tokennya TIDAK boleh tinggal di `:root`: `app.css` dipakai lima peran -
  * Admin, Guru, Pengawas, Siswa dan pintu ujian - dan tema di `:root` akan
@@ -149,11 +149,27 @@ export default function KerangkaSiswa({
                     {bilah && (
                         <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface px-3 py-2">
                             <div className="flex min-w-0 items-center gap-2">
-                                {kiri ?? (
-                                    <span className="truncate text-[12px] font-medium text-ink">
-                                        {judul}
-                                    </span>
-                                )}
+                                {/*
+                                 * H1, dan ukurannya sengaja TIDAK naik.
+                                 *
+                                 * Sebelumnya baris ini `<span>`, dan seluruh
+                                 * konsol menjadi empat laman tanpa satu pun
+                                 * judul - pembaca layar mengumumkan isi tanpa
+                                 * pernah menyebut laman mana yang sedang
+                                 * dibuka, dan garis besar dokumennya kosong.
+                                 *
+                                 * Yang salah bukan ukurannya, melainkan
+                                 * elemennya: ponsel 26rem dengan bilah 12px
+                                 * adalah bentuk yang sudah dipilih, dan judul
+                                 * raksasa di atas daftar jadwal akan
+                                 * menggeser satu-satunya ujian yang penting
+                                 * ke bawah lipatan. Jadi yang diganti
+                                 * elemennya, dan kelas `bilah-judul`
+                                 * mengembalikan huruf badannya.
+                                 */}
+                                <h1 className="bilah-judul min-w-0">
+                                    {kiri ?? judul}
+                                </h1>
                             </div>
 
                             {kanan && (

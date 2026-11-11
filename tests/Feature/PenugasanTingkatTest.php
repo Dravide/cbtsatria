@@ -355,7 +355,14 @@ it('mengirim katalog tingkat dari kelas tahun ajaran aktif saja', function () {
     kelasTingkat('9B', '9');
     kelasTingkat('8A', '8');
 
-    $lampau = AcademicYear::factory()->untukSekolah($this->sekolah)->create(['is_active' => false]);
+    // Namanya DIPATOK, bukan dibiarkan diundi. `AcademicYearFactory` memilih
+    // tahun antara 2020 dan 2030, dan (school_id, name) unik - sehingga satu
+    // dari sebelas kali jalan, hasil undiannya '2026/2027' dan test ini merah
+    // dengan galat duplikat yang tidak ada hubungannya dengan tingkat.
+    $lampau = AcademicYear::factory()->untukSekolah($this->sekolah)->create([
+        'name' => '2025/2026',
+        'is_active' => false,
+    ]);
     SchoolClass::factory()->untukTahun($lampau)->create(['name' => '7A', 'grade_level' => '7']);
 
     $tahunLain = AcademicYear::factory()->untukSekolah($this->lain)->aktif()->create();

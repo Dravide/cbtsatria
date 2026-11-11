@@ -567,6 +567,54 @@ it('mengunci koreksi begitu hasilnya terbit, dan menolak koreksi sesudahnya', fu
     expect((float) hasilPeserta($data['peserta'][0])->refresh()->essay_score)->toBe(4.0);
 });
 
+it('membuka laman koreksi satu jawaban sebelum dan sesudah publikasi', function () {
+    // Halaman panel koreksi TIDAK PERNAH dibuka test mana pun sebelum ini,
+    // dan justru di sanalah satu galat produksi lahir: `UjianGuru` memuat
+    // event dengan select sempit (`event:id,name`), sehingga
+    // `SchoolEvent::koreksiTerkunci()` mengembalikan null dan melempar
+    // TypeError - halaman koreksi rusak total, padahal datanya benar.
+    //
+    // Test ini membuka kedua keadaannya. Yang pertama menjaga "bisa dibuka",
+    // yang kedua menjaga bahwa nilai `terkunci` benar-benar mengikuti event
+    // dan bukan sekadar tidak meledak.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $guru = guruPenilai($data['ujian']);
+
+    $attempt = kerjakanUjian($this, $data, 0);
+    $jawaban = jawabanUraian($attempt);
+
+    masukUji($this, $guru)
+        ->post("/guru/koreksi/jawaban/{$jawaban->id}", [
+            'kriteria' => [['kriteria' => 'Ketepatan konsep', 'poin' => 4]],
+        ])
+        ->assertRedirect();
+
+    masukUji($this, $guru)
+        ->get("/guru/koreksi/jawaban/{$jawaban->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Guru/Koreksi/Jawaban')
+            ->where('terkunci', false)
+            ->where('jawaban.id', $jawaban->id)
+            ->where('koreksi.score', 4)
+        );
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/hasil/terbitkan")
+        ->assertRedirect();
+
+    // Sesudah publikasi panelnya TETAP terbuka - Guru masih boleh membacanya,
+    // yang tertutup hanya penyuntingannya. Membalas 403 di sini akan
+    // menyembunyikan nilai yang menjadi dasar anaknya, dan itu bukan kunci.
+    masukUji($this, $guru)
+        ->get("/guru/koreksi/jawaban/{$jawaban->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Guru/Koreksi/Jawaban')
+            ->where('terkunci', true)
+        );
+});
+
 it('membuka kembali koreksi tanpa mencabut publikasinya, dengan alasan yang tercatat', function () {
     $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
     $guru = guruPenilai($data['ujian']);

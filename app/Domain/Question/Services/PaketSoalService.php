@@ -47,6 +47,7 @@ class PaketSoalService
             'school_id' => $schoolId,
             'created_by' => $penulisId,
             'subject_id' => $data['subject_id'],
+            'code' => $this->kodeBaru($schoolId, (int) $data['subject_id']),
             'name' => $data['name'],
             'grade_level' => $data['grade_level'] ?? null,
             'description' => $data['description'] ?? null,
@@ -56,6 +57,47 @@ class PaketSoalService
         $this->logger->log('Membuat paket soal', $paket, ['nama' => $paket->name]);
 
         return $paket;
+    }
+
+    /**
+     * Kode paket berikutnya untuk satu mapel.
+     *
+     * Bentuknya sengaja SAMA dengan `BankSoalService::kodeBaru()` -
+     * `P-<subject_id>-<urut>` melawan `Q-<subject_id>-<urut>`. Dua pola
+     * berbeda bentuk untuk dua benda yang sederajat membuat Guru menebak
+     * mana yang mana, dan kode yang harus ditebak tidak berguna.
+     *
+     * Yang dibaca adalah kode TERBESAR yang sudah ada, bukan jumlah baris:
+     * paket yang pernah dihapus meninggalkan lubang di penomoran, dan
+     * menghitung baris akan memakai ulang nomor yang sudah pernah dipakai.
+     */
+    public function kodeBaru(int $schoolId, int $subjectId): string
+    {
+        $awalan = 'P-'.$subjectId.'-';
+
+        $terakhir = QuestionPackage::tanpaTenant()
+            ->where('school_id', $schoolId)
+            ->where('subject_id', $subjectId)
+            ->where('code', 'like', $awalan.'%')
+            ->orderByDesc('id')
+            ->value('code');
+
+        $urut = $terakhir === null
+            ? 1
+            : ((int) mb_substr((string) $terakhir, mb_strlen($awalan))) + 1;
+
+        // Satu percobaan ulang bila kode itu sudah ada: dua Guru yang menekan
+        // Simpan pada saat yang sama bisa membaca kode terakhir yang sama,
+        // dan satu di antaranya harus mendapat nomor berikutnya - bukan galat.
+        while (QuestionPackage::tanpaTenant()
+            ->where('school_id', $schoolId)
+            ->where('code', $awalan.$urut)
+            ->exists()
+        ) {
+            $urut++;
+        }
+
+        return $awalan.$urut;
     }
 
     /**

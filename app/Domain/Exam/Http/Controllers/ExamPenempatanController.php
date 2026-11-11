@@ -232,6 +232,102 @@ class ExamPenempatanController
         );
     }
 
+    /**
+     * Terapkan peta ruang event ke SATU sesi - tombol "Pakai penempatan".
+     *
+     * ---------------------------------------------------------------------
+     * Bukan alamat peta yang berbeda, melainkan sasaran terapan yang dipilih
+     * ---------------------------------------------------------------------
+     * Peta ruangnya tetap satu untuk seluruh event - itulah keputusan yang
+     * dibalik pada 07 Nov 2026, dan rute ini tidak mengubahnya. `{sesi}` di
+     * lintasannya adalah SASARAN: dari peta event yang sama, hanya kursi sesi
+     * ini yang ditulis. Sesi yang tidak bisa memakai peta menyertai penyebaran
+     * seluruh event di `sebar()`; di sini sesi yang sama bisa dipakai SATU per
+     * satu, begitu keadaannya sudah diperbaiki.
+     *
+     * Kelayakannya diperiksa ulang di sini, tidak dipercayai dari layar:
+     * tombolnya hidup untuk setiap baris (lihat Penempatan.tsx) sehingga
+     * Admin bisa menekannya untuk sesi yang belum siap - dan laman harus
+     * mengatakannya sebagai penolakan, bukan diam-diam menerapkan sebagian.
+     * Sesi yang tidak lengkap TIDAK menulis satu kursi pun - prinsip yang sama
+     * dengan `sebarEvent()`.
+     */
+    public function pakaiSesi(
+        Request $request,
+        SchoolEvent $event,
+        ExamSession $sesi,
+        PenempatanKocok $kocok,
+        PenempatanService $penempatan,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+        $this->pastikanSesiMilikEvent($sesi, $event);
+
+        $data = $request->validate([
+            'benih' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        $ujian = $sesi->exam;
+
+        if ($ujian === null) {
+            abort(404, 'Ujian sesi itu tidak ditemukan.');
+        }
+
+        // Peserta ujian ditarik lebih dulu - jebakan 07 Nov 2026 yang sama
+        // dengan `sebarEvent()`: `petaSesi()` hanya bisa memetakan peserta
+        // yang baris `exam_participants`-nya sudah ada, dan tidak ada satu pun
+        // bila ujiannya belum pernah lewat laman Jadwal.
+        $penempatan->tarikPeserta($ujian);
+
+        try {
+            $susunan = $kocok->susun($event, $data['benih'] ?? null);
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        if ($susunan['kurang'] > 0) {
+            return back()->with(
+                'galat',
+                "Kapasitas seluruh ruang event hanya {$susunan['kapasitas']} kursi ".
+                "untuk {$susunan['peserta']} peserta.",
+            );
+        }
+
+        $peta = $kocok->petaSesi($event, $sesi, $susunan['per_ruang']);
+
+        if (! $peta['lengkap']) {
+            $sebab = array_merge(
+                $peta['ruang_hilang'] === [] ? [] : ['ruang event tidak dipakai sesi ini: '.implode(', ', $peta['ruang_hilang'])],
+                $peta['terlalu_penuh'],
+                $peta['tidak_ditempatkan'],
+            );
+
+            return back()->with(
+                'galat',
+                "{$sesi->label()} - ".implode('; ', $sebab),
+            );
+        }
+
+        try {
+            $jumlah = array_sum($penempatan->sebarKeRuang($ujian, $sesi, $peta['peta']));
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $logger->log('Menerapkan peta ruang ke satu sesi', $event, [
+            'sesi' => $sesi->label(),
+            'ujian' => $ujian->id,
+            'peserta' => $jumlah,
+            'benih' => $susunan['benih'],
+        ]);
+
+        return back()->with(
+            'sukses',
+            "{$sesi->label()} memakai peta ruang event: {$jumlah} peserta ditempatkan ".
+            "(kocokan #{$susunan['benih']}).",
+        );
+    }
+
     /* -------------------------------------------------- 16c - Denah kursi */
 
     /**
@@ -491,6 +587,19 @@ class ExamPenempatanController
         } catch (DomainException $e) {
             return ['pesan' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Sesi harus benar-benar milik event di URL.
+     *
+     * Binding implisit menemukan sesi di seluruh sekolah, dan scope tenant
+     * tidak menutupnya karena sekolahnya sama. Tanpa pemeriksaan ini, peta
+     * event A bisa diterapkan ke sesi event B lewat URL yang diutak-atik.
+     * 404, bukan 403: bagi event ini sesi itu tidak ada.
+     */
+    private function pastikanSesiMilikEvent(ExamSession $sesi, SchoolEvent $event): void
+    {
+        abort_unless($sesi->exam?->event_id === $event->id, 404);
     }
 
     /**

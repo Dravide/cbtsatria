@@ -170,6 +170,13 @@ class ExamJadwalController
                 'status' => $s->status->value,
                 'status_label' => $s->status->label(),
 
+                // Pembatalan membawa KAPAN dan MENGAPA di barisnya sendiri.
+                // `status` hanya menjawab "batal"; sesi yang hilang dari
+                // jadwal tanpa alasannya membuat Admin berikutnya menyusun
+                // ulang jadwal yang sudah sengaja dibatalkan.
+                'dibatalkan_pada' => $s->cancelled_at?->toIso8601String(),
+                'alasan_batal' => $s->cancel_reason,
+
                 // Nilai untuk panel "Ubah sesi". Tiga waktu dikirim dalam
                 // bentuk `Y-m-d\TH:i` - bentuk yang diminta `datetime-local`,
                 // sama seperti field Mulai/Selesai di form event. Dikirim
@@ -522,6 +529,47 @@ class ExamJadwalController
         $logger->log('Menutup sesi ujian', $event, ['sesi' => $sesi->label()]);
 
         return back()->with('sukses', "Sesi {$sesi->label()} ditutup.");
+    }
+
+    /**
+     * Batalkan sesi.
+     *
+     * Alasannya diterima dari form dan disimpan di sesinya sendiri, bukan
+     * hanya di `activity_logs`: pertanyaan "mengapa sesi ini hilang dari
+     * jadwal" ditanyakan dari laman jadwal, dan log dibaca di laman lain.
+     *
+     * Tombol ini adalah satu-satunya jalan keluar yang benar untuk sesi yang
+     * ruangnya sudah punya berita acara - `hapusSesi()` menolaknya, dan
+     * penolakan itu menyuruh membatalkan. Lihat `SesiService::batalkan()`.
+     */
+    public function batalSesi(
+        Request $request,
+        SchoolEvent $event,
+        Exam $ujian,
+        ExamSession $sesi,
+        SesiService $service,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $sesi);
+        $this->pastikanMilikEvent($ujian->event_id, $event);
+        $this->pastikanSesiMilikUjian($sesi->exam_id, $ujian);
+
+        $valid = $request->validate([
+            'alasan' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        try {
+            $service->batalkan($sesi, $valid['alasan'] ?? null);
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $logger->log('Membatalkan sesi ujian', $event, [
+            'sesi' => $sesi->label(),
+            'alasan' => $valid['alasan'] ?? null,
+        ]);
+
+        return back()->with('sukses', "Sesi {$sesi->label()} dibatalkan. Tokennya dicabut, dan jadwal ini tidak dihitung lagi.");
     }
 
     public function hapusSesi(

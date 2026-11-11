@@ -10,6 +10,7 @@ use App\Domain\Question\Http\Requests\SimpanSoalRequest;
 use App\Domain\Question\Models\Question;
 use App\Domain\Question\Services\AmpuanMapel;
 use App\Domain\Question\Services\BankSoalService;
+use App\Domain\Question\Services\PenulisSoalAi;
 use App\Domain\Tenancy\Services\PengaturanAiSekolah;
 use App\Support\TabelQuery;
 use Illuminate\Http\RedirectResponse;
@@ -117,6 +118,13 @@ class QuestionController
             'jenis' => JenisSoal::untukTab(),
             'status' => StatusSoal::untukFilter(),
             'bolehMenulis' => $user->role->value === 'teacher',
+            // Generate AI hidup di laman ini sejak 2026-11-10 - lihat
+            // Resources/js/Pages/Guru/BankSoal/GenerateAi.tsx. `jenisAi`
+            // dibaca dari PenulisSoalAi::JENIS_DIDUKUNG dan bukan ditulis
+            // ulang di TypeScript: daftar salinan berhenti diperbarui diam-
+            // diam begitu jenis yang didukung bertambah.
+            'jenisAi' => $this->jenisAi(),
+            'ai' => $this->aiAktif(),
         ]);
     }
 
@@ -133,10 +141,6 @@ class QuestionController
             // Paket tujuan, bila builder dibuka dari laman paket (plate 03:
             // tombol "Simpan & tambah ke paket" hanya muncul di sini).
             'paketTujuan' => $request->integer('paket') ?: null,
-            // Hanya SAKLARNYA. Guru tidak perlu tahu penyedia mana yang
-            // dipakai sekolah, dan base URL maupun nama model yang tidak
-            // dikirim tidak bisa bocor dari devtools.
-            'ai' => $this->aiAktif(),
         ]);
     }
 
@@ -224,10 +228,6 @@ class QuestionController
             'mapel' => $this->pilihanMapel($request->user()),
             'jenis' => JenisSoal::untukTab(),
             'paketTujuan' => $request->integer('paket') ?: null,
-            // Hanya SAKLARNYA. Guru tidak perlu tahu penyedia mana yang
-            // dipakai sekolah, dan base URL maupun nama model yang tidak
-            // dikirim tidak bisa bocor dari devtools.
-            'ai' => $this->aiAktif(),
         ]);
     }
 
@@ -325,6 +325,24 @@ class QuestionController
                 'nama' => $m->name,
                 'kode' => $m->code,
             ])
+            ->all();
+    }
+
+    /**
+     * Jenis soal yang boleh dihasilkan AI, dengan labelnya.
+     *
+     * Cermin `PenulisSoalAi::JENIS_DIDUKUNG`, dibaca dari enum yang sama -
+     * bukan daftar tetap di sini. Satu daftar yang dipakai modal Generate
+     * dan satu yang diperiksa endpoint; kalau keduanya ditulis terpisah,
+     * yang pertama akan menawarkan jenis yang ditolak yang kedua.
+     *
+     * @return array<int, array{nilai: string, label: string, pendek: string}>
+     */
+    private function jenisAi(): array
+    {
+        return collect(JenisSoal::untukTab())
+            ->whereIn('nilai', PenulisSoalAi::JENIS_DIDUKUNG)
+            ->values()
             ->all();
     }
 

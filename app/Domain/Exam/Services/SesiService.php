@@ -229,6 +229,76 @@ class SesiService
     }
 
     /**
+     * Batalkan sesi.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa pembatalan BUKAN penghapusan, dan itu ditulis di tempat lain
+     * ---------------------------------------------------------------------
+     * `PembersihRuangSesiService` sudah menyuruh Admin membatalkan alih-alih
+     * menghapus begitu ruang sesinya punya berita acara final atau insiden -
+     * dua bukti yang TIDAK boleh hilang. Sampai sekarang nasihat itu tidak
+     * punya tombol: `StatusSesi::Batal` ada di enum sejak Fase 5, grafnya
+     * mengizinkannya, dan lima pembaca menanganinya dengan benar, tetapi
+     * tidak ada satu pun penulisnya. Satu-satunya jalan yang tersisa adalah
+     * menghapus, dan penghapusan itulah yang ditolak.
+     *
+     * ---------------------------------------------------------------------
+     * Token dicabut, attempt TIDAK disentuh
+     * ---------------------------------------------------------------------
+     * Token dicabut di sini karena token milik modul ini, dan sesi yang
+     * dibatalkan tidak boleh menyisakan kredensial yang masih membuka pintu:
+     * `TokenSesi::terbitkan()` menolak menerbitkan untuk sesi Batal, dan
+     * tanpa pencabutan di sini token yang sudah beredar tetap sah.
+     *
+     * Attempt yang sedang berjalan TIDAK ditutup di sini, dan itu batas
+     * modul, bukan kelalaian: `exam_attempts` milik Attendance, dan Exam
+     * tidak boleh menyentuhnya (`DomainBoundariesTest`). Yang menutupnya
+     * adalah `MesinUjian::tutupBilaKedaluwarsa()` pada setiap pembacaan
+     * attempt dan oleh penjadwal `ujian:tutup-kedaluwarsa`; `deadline_at`
+     * setiap attempt sudah dibatasi `hard_end_at` sesinya, sehingga tidak ada
+     * attempt yang bisa menggantung selamanya sesudah pembatalan.
+     *
+     * ---------------------------------------------------------------------
+     * Event TIDAK dipindahkan, dan itu berbeda dari `tutup()`
+     * ---------------------------------------------------------------------
+     * `tutup()` menutup eventnya bila sesi terakhir ditutup, karena ujiannya
+     * memang sudah selesai dijalankan. Pembatalan BUKAN penyelesaian:
+     * sesinya justru tidak jadi dijalankan, dan satu-satunya jalan keluar
+     * yang masuk akal sesudahnya adalah menyusun sesi pengganti di event yang
+     * sama.
+     *
+     * Memindahkan event ke `Selesai` di sini akan menutup pintu itu: graf
+     * `EventStatus` tidak punya jalan kembali dari `Selesai` selain `Arsip`,
+     * dan `mulai()` pada sesi pengganti akan tetap berhasil - `pindahkanEvent`
+     * diam-diam melewati transisi yang ditolak graf - sehingga sekolah
+     * menjalankan ujian di bawah event yang sistemnya sendiri anggap sudah
+     * selesai. Admin tetap bisa memindahkan eventnya lewat laman event bila
+     * memang tidak ada pengganti.
+     */
+    public function batalkan(ExamSession $sesi, ?string $alasan = null): ExamSession
+    {
+        if (! $sesi->status->bolehPindahKe(StatusSesi::Batal)) {
+            throw new DomainException(
+                "Sesi {$sesi->label()} berstatus {$sesi->status->label()} dan tidak bisa dibatalkan.",
+            );
+        }
+
+        $alasan = trim((string) $alasan);
+
+        return DB::transaction(function () use ($sesi, $alasan) {
+            $sesi->forceFill([
+                'status' => StatusSesi::Batal,
+                'cancelled_at' => now(),
+                'cancel_reason' => $alasan === '' ? null : mb_substr($alasan, 0, 200),
+            ])->save();
+
+            $sesi->tokens()->whereNull('revoked_at')->update(['revoked_at' => now()]);
+
+            return $sesi->refresh();
+        });
+    }
+
+    /**
      * Hapus sesi.
      *
      * Penempatannya dikosongkan lebih dulu, di dalam transaksi, dan itu bukan

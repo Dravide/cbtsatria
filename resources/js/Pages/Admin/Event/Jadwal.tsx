@@ -49,6 +49,9 @@ type Baris = {
     peserta: number;
     status: string;
     status_label: string;
+    /** Kapan sesi dibatalkan, bila memang dibatalkan. */
+    dibatalkan_pada: string | null;
+    alasan_batal: string | null;
     /** Nilai mentah `Y-m-d\TH:i` untuk memuat ulang panel "Ubah sesi". */
     buka_iso: string | null;
     tutup_iso: string | null;
@@ -345,7 +348,20 @@ export default function EventJadwal({
                         kelas: 'w-28',
                         render: (b) => (
                             <span className="flex items-center gap-1.5">
-                                <Chip nada={nadaStatus(b.status)}>{b.status_label}</Chip>
+                                {/* Alasannya dibawa di `title`, bukan sebagai
+                                    baris sendiri: kolom ini 7rem, dan satu
+                                    kalimat pembatalan akan mendorong Status
+                                    sesi lain keluar dari kolomnya. Yang
+                                    selalu terbaca adalah chip-nya; yang
+                                    ingin tahu mengapa mengarahkan penunjuk. */}
+                                <span
+                                    title={
+                                        b.alasan_batal ??
+                                        (b.status === 'batal' ? 'Dibatalkan tanpa keterangan.' : undefined)
+                                    }
+                                >
+                                    <Chip nada={nadaStatus(b.status)}>{b.status_label}</Chip>
+                                </span>
                             </span>
                         ),
                     },
@@ -979,6 +995,38 @@ function AksiSesi({
                     onClick={() => kirim('mulai')}
                 >
                     Buka
+                </Tombol>
+            )}
+
+            {/* Batalkan - dan ia HANYA muncul selama sesinya belum final.
+                Alasannya ditanyakan lebih dulu dan dikirim bersama
+                permintaannya: baris "batal" tanpa keterangan membuat Admin
+                berikutnya menyusun ulang jadwal yang sudah sengaja
+                dibatalkan. Batal pada dialog berarti tidak ada permintaan
+                sama sekali - pola yang sama dengan buka kunci di papan
+                monitoring. */}
+            {!final && (
+                <Tombol
+                    nada="bahaya"
+                    title="Batalkan sesi: tokennya dicabut, dan sesi ini tidak dihitung lagi di jadwal."
+                    onClick={() => {
+                        const alasan = window.prompt(
+                            `Batalkan ${baris.label}?\n\nToken sesi ini akan dicabut. Tulis alasannya (boleh dikosongkan):`,
+                            '',
+                        );
+
+                        if (alasan === null) {
+                            return;
+                        }
+
+                        router.post(
+                            `${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/batal`,
+                            { alasan },
+                            { preserveScroll: true },
+                        );
+                    }}
+                >
+                    Batalkan
                 </Tombol>
             )}
 

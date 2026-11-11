@@ -4,6 +4,7 @@ namespace App\Domain\Exam\Http\Controllers;
 
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Models\SupervisionAssignment;
@@ -74,6 +75,33 @@ class ExamPengawasController
             ->orderBy('exam_session_id')
             ->orderBy('id')
             ->get();
+
+        // Tampilkan hanya baris untuk sesi yang SUDAH punya peserta terdaftar.
+        // Laman ini menugaskan pengawas ke ruang yang benar-benar akan dipakai;
+        // sesi yang belum punya peserta sama sekali belum membutuhkan pengawas,
+        // dan menampilkan jadwalnya sekarang berarti menawarkan penugasan untuk
+        // ujian yang tidak menjalankan siapa pun - keramaian yang menenggelamkan
+        // sesi yang justru membutuhkan perhatian.
+        //
+        // Kelayakannya dihitung per UJIAN, bukan per sesi: peserta tergabung ke
+        // ujian, dan satu ujian biasanya punya satu sesi (sesi susulan dikecualikan
+        // terpisah). Ujian inilah yang dijadwalkan - sesi sebenarnya gelombangnya.
+        $idUjianBerpeserta = ExamParticipant::query()
+            ->whereIn('exam_id', $event->exams()->pluck('id'))
+            ->where('status', ExamParticipant::STATUS_TERDAFTAR)
+            ->distinct()
+            ->pluck('exam_id');
+
+        // Baris SESI-TANPA-RUANG dihitung terhadap himpunan ruangan SEBELUM
+        // penyaringan ini. Sesi yang belum punya peserta sengaja tidak muncul
+        // pada tabel, tetapi ia TETAP punya ruang - dan menyatakannya sebagai
+        // "sesi tanpa ruang" adalah laporan yang salah tentang keadaannya.
+        $semuaRuangan = $ruangan;
+
+        $ruangan = $ruangan->filter(
+            fn (ExamSessionRoom $r) => $r->session?->exam_id !== null
+                && $idUjianBerpeserta->contains($r->session->exam_id),
+        );
 
         $baris = $ruangan->map(fn (ExamSessionRoom $r) => [
             'id' => $r->id,
@@ -152,8 +180,12 @@ class ExamPengawasController
             // ruang-sesi, dan sesi tanpa ruang tidak punya tempat untuk
             // menempel. Daftarnya dikirim supaya halaman bisa mengatakan itu,
             // alih-alih menampilkan tabel kosong tanpa penjelasan.
+            //
+            // Dibandingkan terhadap `$semuaRuangan`, BUKAN `$ruangan` yang
+            // sudah disaring: sesi yang belum punya peserta tetap punya ruang,
+            // dan menyatakannya sebagai "tanpa ruang" adalah laporan yang salah.
             'sesi_tanpa_ruang' => $sesi
-                ->reject(fn (ExamSession $s) => $ruangan->contains('exam_session_id', $s->id))
+                ->reject(fn (ExamSession $s) => $semuaRuangan->contains('exam_session_id', $s->id))
                 ->map(fn (ExamSession $s) => [
                     'id' => $s->id,
                     'label' => $s->label(),

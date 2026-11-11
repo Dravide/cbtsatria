@@ -30,6 +30,22 @@ use Illuminate\Database\Eloquent\Builder;
  * SEBELUM ujiannya selesai, dan daftar yang kosong sampai ada jawaban masuk
  * akan membuat Guru mengira ia tidak ditugaskan. Penyaringan "sudah ada
  * jawabannya" terjadi di dalam laman masing-masing, bukan di sini.
+ *
+ * ---------------------------------------------------------------------
+ * `event` sengaja TIDAK dipersempit kolomnya
+ * ---------------------------------------------------------------------
+ * `with('event:id,name')` terlihat hemat, tetapi model `SchoolEvent` yang
+ * setengah termuat menjawab `null` untuk setiap kolom yang tidak dipilih -
+ * dan `SchoolEvent::koreksiTerkunci(): bool` lalu melempar TypeError, bukan
+ * mengembalikan `false`. Gejalanya adalah halaman koreksi yang rusak total,
+ * dan penyebabnya satu daftar kolom yang terlihat tidak berbahaya.
+ *
+ * Kalau daftar itu dipersempit lagi, kolom berikut harus ikut: `gradings_locked`
+ * (`koreksiTerkunci()`), `results_published_at` (`hasilTerbit()`),
+ * `results_announced_at`, `show_objectives`, `show_explanations`. Daftar itu
+ * akan bertambah setiap kali `SchoolEvent` mendapat accessor baru, dan satu
+ * kelalaian mengulangi galat yang sama. Baris event adalah satu per event -
+ * memuat seluruhnya tidak menambah satu kueri pun, hanya beberapa kolom.
  */
 class UjianGuru
 {
@@ -39,7 +55,7 @@ class UjianGuru
     public static function untuk(int $guruId): Builder
     {
         return Exam::query()
-            ->with(['subject:id,name', 'event:id,name'])
+            ->with(['subject:id,name', 'event'])
             ->where(function (Builder $q) use ($guruId) {
                 // Penugasan event - yang paling sempit dan paling langsung.
                 $q->whereIn('subject_id', function ($sub) use ($guruId) {

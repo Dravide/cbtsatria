@@ -51,6 +51,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'hard_end_at',
     'duration_minutes',
     'status',
+    'cancelled_at',
+    'cancel_reason',
 ])]
 class ExamSession extends Model
 {
@@ -67,6 +69,7 @@ class ExamSession extends Model
             'hard_end_at' => 'datetime',
             'duration_minutes' => 'integer',
             'status' => StatusSesi::class,
+            'cancelled_at' => 'datetime',
         ];
     }
 

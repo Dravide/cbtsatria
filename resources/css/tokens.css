@@ -1,154 +1,121 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: Wayfind (deal 2/3, seed student-exam-console-tests-27df) · redesign: full · copy: verbatim
- * nav: kept (kerangka ponsel, dalam material papan) · signature: papan ujian, ujian yang paling mendesak diangkat ke pelat tinta · states: kosong, penuh · wayfind: platform
- * axes: light/mono/cool · posture: committed · contrast: pass · v2.0.0 */
-
-/* Hallmark · waive 37 · konsol siswa memakai SATU keluarga: Chivo Mono memikul display, badan dan angka sekaligus · tiga keluarga lain milik empat peran non-siswa, dan tidak satu pun keluarga itu dipakai di dalam konsol siswa */
-
-/* Hallmark · dismissed 40 · kendali mati dan bidang isian mati: keadaan :disabled tidak menerima fokus, dan yang menandainya justru abu yang paling pucat; menaikkan kontrasnya membuatnya terbaca sebagai kendali yang bisa ditekan */
-
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Terrazzo (deal 3/3, seed student-quiet-exam-console-22a3·082792ec) · redesign: full · copy: verbatim
+ * screen: the urgent exam as an ink band, the schedule as ruled rows · states: empty, populated
+ * nav: kept (kerangka ponsel) · signature: the exam you have to sit now, raised onto the ink band · terrazzo: off-white · v2.0.0
+ */
 /* Hallmark · dismissed 41 · tinta di atas aksen bernama --color-on-accent di seluruh repo sejak Fase 1; --color-accent-ink adalah nama KEDUA bagi nilai yang sama, dan dua nama untuk satu nilai adalah yang membuatnya berselisih kelak */
-
-/* Hallmark · reworded "— pilih —" to "belum dipilih" · lantai 19 menamai tanda pisah yang diketik sebagai tanda baca kalimat, dan "belum dipilih" sudah menjadi kosakata nilai kosong di konsol ini */
-
-/* Hallmark · reworded "—" to "-" · lantai 19 pada nomor soal yang belum ada: tanda pisah di sel tabel adalah tanda baca, dan yang berdiri di situ memang tanda kurang */
+/* Hallmark · dismissed 29 · `backdrop-blur-[2px]` itu lapisan dialog Modal bersama, bukan bloom dekoratif di belakang teks; ia ada supaya isi di belakang dialog terbaca sebagai "di belakang" */
+/* Hallmark · finish-review: subagent · 1 finding · 1 resolved (jadwal membaca besok, bukan sekarang; hero review not run) */
 /*
 |--------------------------------------------------------------------------
-| Token konsol siswa - tema Wayfind, TERKUNCI pada `.konsol-siswa`
+| Token konsol siswa - tema Terrazzo, TERKUNCI pada `.konsol-siswa`
 |--------------------------------------------------------------------------
-| Nama berkasnya `tokens.css` karena di sinilah token sebuah tema tinggal,
-| tetapi artinya di proyek ini BERBEDA dari scaffold Hallmark: blok di bawah
-| TIDAK di `:root`, melainkan di `.konsol-siswa`.
-|
-| Alasannya app.css dipakai LIMA peran - Admin, Guru, Pengawas, Siswa, dan
-| pintu ujian. Token Wayfind di `:root` akan menata ulang empat peran yang
-| tidak diminta berubah oleh laporan ini. `.konsol-siswa` dipasang
-| `KerangkaSiswa` HANYA pada rangka terang; rangka gelap ujian tidak
-| menyentuhnya sama sekali.
-|
-| Caranya sama dengan `.rangka-ujian` di app.css: Tailwind 4 memancarkan
-| setiap utility sebagai `var(--color-*)`, sehingga menimpa custom property
-| pada satu elemen pembungkus mengganti seluruh subtree tanpa satu kelas
-| `dark:` pun.
+| Nama berkasnya `tokens.css` karena di sinilah token sebuah tema tinggal.
+| Blok di bawah TIDAK di `:root`, melainkan di `.konsol-siswa`, karena
+| `app.css` dipakai lima peran - Admin, Guru, Pengawas, Siswa dan pintu
+| ujian - dan token di `:root` akan menata ulang empat peran yang tidak
+| diminta berubah. Caranya sama dengan `.rangka-ujian` di app.css: Tailwind 4
+| memancarkan setiap utility sebagai `var(--color-*)`, jadi menimpa custom
+| property pada satu elemen pembungkus mengganti seluruh subtree.
 |
 | Nama tokennya SENGAJA sama dengan @theme di app.css. Setiap `bg-surface`,
-| `text-ink-3`, `border-line` yang sudah tertulis di delapan laman siswa tidak
-| perlu diubah; yang berubah hanya nilainya, di satu tempat ini.
+| `text-ink-3`, `border-line` yang sudah tertulis di laman siswa tidak perlu
+| diubah; yang berubah hanya nilainya, di satu tempat ini.
 |
 | =====================================================================
-| Wayfind, dan mengapa tema ini yang dipilih
+| Terrazzo, dan mengapa tema ini menggantikan Wayfind
 | =====================================================================
-| `references/themes/wayfind.md` adalah papan keberangkatan: kertas abu
-| sejuk, tinta biru-hitam, Chivo Mono pada SELURUH halaman, kotak bergaris
-| 2px, pelat tinta yang memuat satu perintah beserta angkanya, kobalt untuk
-| yang sedang hidup, amber untuk angka di atas tinta. Tema itu menyatakan
-| sendiri bahwa ia "dibaca dari tiga meter, sekilas" - dan itu tepat
-| keluhan yang dilaporkan: status ujian tidak menonjol.
+| Tema sebelumnya (Wayfind) adalah papan keberangkatan: Chivo Mono pada
+| SELURUH halaman, kotak bergaris 2px di mana-mana, dan empat kolom bersumbu
+| tetap di dalam ponsel 26rem. Ia terbaca dari jauh, tetapi konsol ini
+| dibaca dari 30 sentimeter oleh anak yang sedang menunggu - dan di jarak itu
+| huruf mono selebar itu dan garis 2px sedemikian banyaknya adalah kebisingan.
 |
-| Yang TIDAK diambil dari Wayfind: tata letaknya. Tema memberi material,
-| bukan rencana. Kerangka ponselnya tetap milik proyek ini.
+| Terrazzo adalah kebalikannya pada setiap sumbu yang penting: kertas gading
+| dengan satu warna sinyal (rust), huruf kepala geometris yang lebar di atas
+| badan sans yang tenang, mono HANYA untuk kode dan waktu, dan kedalaman
+| lewat bayangan offset keras yang selalu ke kanan bawah - bukan lewat garis
+| tebal di setiap sisi.
 */
 
 .konsol-siswa {
-    /* Permukaan - colourway `platform` */
-    --color-paper: oklch(95.5% 0.006 250);
-    --color-surface: oklch(99.5% 0.005 250);
-    --color-surface-2: oklch(91% 0.009 250);
-    --color-line: oklch(80% 0.011 250);
+    /* Permukaan - colourway `off-white` */
+    --color-paper: oklch(96% 0.009 82);
+    --color-surface: oklch(99.5% 0.003 82);
+    --color-surface-2: oklch(92% 0.012 82);
+    --color-paper-3: oklch(87.5% 0.014 80);
+    --color-line: oklch(81% 0.012 80);
 
-    /*
-     * Garis yang MENANDAI - 2px, jauh lebih gelap dari --color-line. Wayfind
-     * memisahkan "pemisah baris" (1px abu) dari "batas objek" (2px tinta):
-     * yang pertama memisahkan dua hal yang sama, yang kedua menandai tempat
-     * sebuah benda dimulai.
-     */
-    --color-line-2: oklch(34% 0.014 262);
+    /* Garis yang MENANDAI: 2px tinta, hanya pada sisi yang memulai sebuah
+       benda (atas tabel, tepi kartu) - bukan pada setiap sisi. */
+    --color-line-2: oklch(16% 0.006 60);
 
     /* Teks */
-    --color-ink: oklch(16% 0.014 262);
-    --color-ink-2: oklch(29% 0.014 262);
-    --color-ink-3: oklch(47% 0.016 260);
+    --color-ink: oklch(16% 0.006 60);
+    --color-ink-2: oklch(27% 0.006 60);
+    --color-ink-3: oklch(46% 0.01 60);
+
+    /* Sinyal: rust. Ia menandai AKSI dan PILIHAN SEKARANG, tidak menghias
+       permukaan. Kurang dari 5% layar, sesuai postur `restrained`. */
+    --color-accent: oklch(53% 0.15 38);
+    --color-accent-soft: oklch(91% 0.035 45);
+    --color-on-accent: oklch(99.5% 0.003 82);
+    --color-focus: oklch(50% 0.16 38);
 
     /*
-     * Aksen: kobalt, dan hanya untuk yang HIDUP - aksi utama dan pilihan
-     * sekarang. Wayfind melarang kobalt dipakai sebagai hiasan; ia menandai
-     * keadaan, bukan menghias permukaan. `--color-accent-2` (amber) tidak
-     * dipakai sebagai teks di atas kertas sama sekali; ia hanya tinggal di
-     * dalam pelat tinta.
+     * Pita tinta - bidang gelap yang memuat satu perintah dan angkanya.
+     *
+     * DUA tinta pita, bukan tiga: `plate-ink` untuk kalimat pokok dan
+     * `plate-ink-2` untuk keterangan di bawahnya. Keduanya HARUS terang;
+     * tinta biasa di atas pita adalah tinta gelap di atas tinta gelap.
      */
-    --color-accent: oklch(51% 0.22 264);
-    --color-accent-soft: oklch(94% 0.035 264);
-    --color-on-accent: oklch(99.5% 0.003 250);
-    --color-focus: oklch(51% 0.22 264);
+    --color-plate: oklch(16% 0.006 60);
+    --color-plate-ink: oklch(96% 0.01 80);
+    --color-plate-ink-2: oklch(76% 0.012 70);
+    --color-plate-line: oklch(38% 0.01 60);
 
     /*
-     * Pelat - bidang tinta yang memuat satu perintah dan angkanya.
+     * Nada status - TIGA nada hangat, bukan lima warna.
      *
-     * DUA tinta pelat, bukan tiga: `plate-ink` untuk kalimat pokoknya dan
-     * `plate-ink-2` untuk keterangan di bawahnya. Ketiganya HARUS terang -
-     * tinta biasa (`--color-ink-2`, `--color-ink-3`) di atas pelat adalah
-     * tinta gelap di atas tinta gelap.
+     *   ok    rust      - ujian ini hidup; inilah yang harus dikerjakan
+     *   warn  umbi 62   - ada yang menghalangi, dan itu bisa dibereskan
+     *   bad   bata 22   - berhenti; ini bukan ujian yang bisa dilanjutkan
+     *   info  netral    - sudah lewat, tidak ada yang perlu dilakukan
      *
-     * Dulu ada `--color-plate-ok` (hijau) untuk satu kalimat keadaan baik.
-     * Ia DIHAPUS: Wayfind melarang warna cerah KETIGA (Do-nots), dan dengan
-     * kobalt, amber, dan merah, hijau adalah yang keempat. Kalimat "Presensi
-     * sudah diverifikasi Pengawas" tidak kehilangan apa pun dengan memakai
-     * `plate-ink` - ia kalimat keadaan, bukan angka, dan yang membedakannya
-     * dari keterangan di bawahnya adalah bahwa ia berdiri sendiri.
+     * Ketiganya berada dalam keluarga hangat yang sama (hue 22 sampai 62),
+     * jadi papan tidak pernah tampil sebagai pelangi - kesalahan yang paling
+     * mudah terjadi pada chip status.
      */
-    --color-plate: oklch(16% 0.014 262);
-    --color-plate-ink: oklch(95.5% 0.006 250);
-    --color-plate-ink-2: oklch(76% 0.012 262);
-    --color-plate-line: oklch(40% 0.012 262);
-    --color-figure: oklch(81% 0.16 82);
+    --color-ok: oklch(45% 0.14 38);
+    --color-ok-bg: oklch(93% 0.033 45);
+    --color-warn: oklch(40% 0.09 62);
+    --color-warn-bg: oklch(93% 0.04 66);
+    --color-bad: oklch(40% 0.13 22);
+    --color-bad-bg: oklch(93% 0.036 26);
+    --color-info: oklch(38% 0.012 60);
+    --color-info-bg: oklch(92% 0.012 80);
 
-    /*
-     * Status - dan inilah inti perubahannya.
-     *
-     * Sebelumnya keempat nada status memakai kekuatan yang hampir sama,
-     * sehingga "siap dimulai" dan "sudah dikerjakan" adalah dua chip kelabu
-     * yang hanya berbeda katanya. Di sini nadanya dibagi menurut APA YANG
-     * PERLU DILAKUKAN ANAK:
-     *
-     *   ok    kobalt  - ujian ini sedang hidup, inilah yang harus dikerjakan
-     *   warn  amber   - ada yang menghalangi, dan itu bisa dibereskan
-     *   bad   merah   - berhenti; ini bukan ujian yang bisa dilanjutkan
-     *   info  netral  - sudah lewat, tidak ada yang perlu dilakukan
-     *
-     * Wayfind melarang warna cerah ketiga; merah di sini bukan warna ketiga
-     * melainkan satu-satunya yang berarti bahaya, dan ia hanya dipakai untuk
-     * pelanggaran dan ujian terkunci.
-     */
-    --color-ok: oklch(38% 0.12 264);
-    --color-ok-bg: oklch(93% 0.032 264);
-    --color-warn: oklch(40% 0.088 82);
-    --color-warn-bg: oklch(94% 0.045 84);
-    --color-bad: oklch(40% 0.15 26);
-    --color-bad-bg: oklch(94% 0.035 26);
-    --color-info: oklch(38% 0.05 252);
-    --color-info-bg: oklch(93% 0.012 252);
+    /* Huruf - dua keluarga dan satu penyimpang, seperti tema ini menuntut. */
+    --font-display: 'Syne', ui-sans-serif, sans-serif;
+    --font-sans: 'Onest', ui-sans-serif, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    /* Huruf - SATU keluarga. Wayfind tidak pernah memakai huruf proporsional. */
-    --font-display: 'Chivo Mono', ui-monospace, monospace;
-    --font-sans: 'Chivo Mono', ui-monospace, monospace;
-    --font-mono: 'Chivo Mono', ui-monospace, monospace;
-
-    /* Bentuk - Wayfind bergaris, tidak membulat dan tidak berbayang */
+    /* Bentuk - Terrazzo tidak pernah membulat */
     --radius-wf: 0;
     --shadow-wf: none;
+    --shadow-kotak: none;
+    --shadow-kartu: 4px 4px 0 var(--color-paper-3);
     --rule-bar: 2px;
     --rule-hair: 1px;
-    --tracking-display: -0.03em;
-    --display-weight: 800;
+    --tracking-display: -0.025em;
+    --display-weight: 700;
 
     /*
      * Jarak dan ukuran huruf. Skalanya tetap dan rapat - ini layar kerja di
      * dalam ponsel, bukan halaman yang dibaca sambil menggulir. Rasionya 1.15,
      * di dalam rentang 1.125 sampai 1.2 yang diminta flow.md § App screens,
-     * dan TIDAK ada satu pun ukuran fluid: kepala yang berubah ukuran
-     * mengikuti lebar layar membuat dua ponsel menampilkan tata letak yang
-     * berbeda untuk soal yang sama.
+     * dan tidak ada satu pun ukuran fluid.
      *
-     * Ukuran terkecilnya 11px, bukan 10px atau 8px - lantai REFLEX 75.
+     * Ukuran terkecil 11px, bukan 10px atau 8px - lantai REFLEX 75.
      */
     --space-3xs: 2px;
     --space-2xs: 4px;
@@ -167,7 +134,7 @@
     --text-3xl: 1.520875rem;
     --text-display: 1.75rem;
 
-    /* Gerak: keadaan, bukan hiasan. Papan berhenti mendadak, tanpa pegas. */
+    /* Gerak: keadaan, bukan hiasan. */
     --dur-micro: 120ms;
     --dur-short: 220ms;
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -179,26 +146,26 @@
 }
 
 /*
- * Kepala bernada papan: 800, rapat, sentence case. Tidak ada satu pun kepala
- * berkapit di konsol ini.
+ * Kepala bernada Terrazzo: Syne 700, rapat, sentence case. Tidak ada satu pun
+ * kepala berkapit di konsol ini.
  */
 .konsol-siswa :is(h1, h2, h3) {
     font-family: var(--font-display);
-    font-weight: 800;
+    font-weight: var(--display-weight);
     letter-spacing: var(--tracking-display);
     line-height: 1.02;
+    text-wrap: balance;
     overflow-wrap: break-word;
     min-width: 0;
 }
 
 /*
- * Permukaan peramban yang tidak digambar sendiri - lantai F16. Wayfind
- * melarang warna cerah di luar paletnya, jadi bahkan bilah gulir dan pilihan
- * teks memakai kobalt dan kertasnya.
+ * Permukaan peramban yang tidak digambar sendiri - lantai F16. Bilah gulir
+ * dan pilihan teks memakai sinyal dan kertasnya.
  */
 .konsol-siswa ::selection {
-    background-color: var(--color-accent);
-    color: var(--color-on-accent);
+    background-color: var(--color-accent-soft);
+    color: var(--color-ink);
 }
 
 .konsol-siswa {
