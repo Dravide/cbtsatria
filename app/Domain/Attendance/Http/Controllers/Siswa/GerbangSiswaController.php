@@ -63,6 +63,9 @@ class GerbangSiswaController extends SiswaDasar
 
         $peserta->loadMissing([
             'exam.subject:id,name',
+            // `enforce_fullscreen` milik EVENT - lihat `aturan()` di bawah,
+            // dan `KerjakanSiswaController` yang memakai prop yang sama.
+            'exam.event:id,enforce_fullscreen',
             'session',
             'room.eventRoom.room:id,code,name',
         ]);
@@ -70,11 +73,16 @@ class GerbangSiswaController extends SiswaDasar
         $layak = $this->kelayakan->periksa($peserta);
         $berjalan = $this->kelayakan->attemptBerjalan($peserta);
 
-        // Sesi ini dijaga token atau tidak - dibaca dari token AKTIF, bukan
-        // dari ada-tidaknya token yang pernah terbit. Token yang dicabut
-        // berarti sesinya kembali tidak ber-token, dan gerbang yang tetap
-        // menampilkan kotak tokennya akan membuat anak mencari kode yang
-        // sudah tidak berlaku.
+        // Sesi ini punya token AKTIF atau belum - dan sejak 2026-11-10
+        // "belum" berarti pintunya TERTUTUP, bukan "ujian tanpa token".
+        // Dibaca dari token aktif, bukan dari ada-tidaknya token yang pernah
+        // terbit: token yang dicabut menghasilkan keadaan yang sama dengan
+        // token yang belum pernah dibuat, dan kotak token yang tetap tampil
+        // akan membuat anak mencari kode yang sudah tidak berlaku.
+        //
+        // Yang dipakai laman: `false` membuat kotak token dan tombol Mulai
+        // mati, dan laman menyegar sendiri sampai tokennya terbit. Lihat
+        // `resources/js/Pages/Siswa/Gerbang.tsx`.
         $sesi = $peserta->session;
         $berToken = $sesi !== null && $sesi->tokenAktif() !== null;
 
@@ -100,7 +108,41 @@ class GerbangSiswaController extends SiswaDasar
             // tidak diberi tahu, dan itulah yang membuat sanksi pelanggaran
             // bisa dibela.
             'aturan' => $this->aturan($peserta),
+
+            // Apakah laman ini harus meminta layar penuh sebelum ujian
+            // dimulai.
+            //
+            // `enforce_fullscreen` ada di event sejak Fase 3, tetapi sampai
+            // sekarang ia hanya tersimpan: gerbang tidak memintanya, laman
+            // pengerjaan tidak memeriksanya, dan tidak ada satu baris pun di
+            // peramban yang membacanya. Artinya pilihannya ada di formulir
+            // Admin dan tidak berakibat apa pun.
+            //
+            // Yang TIDAK dikirim adalah ambang pelanggaran - dan itu tetap
+            // berlaku di sini: yang dibaca laman ini hanya satu boolean yang
+            // mengubah tampilan, bukan aturan main.
+            'wajib_layar_penuh' => $this->wajibLayarPenuh($peserta),
         ]);
+    }
+
+    /**
+     * Apakah event menuntut layar penuh.
+     *
+     * Rantainya peserta -> ujian -> event, sama dengan `ExamAttempt::ambang()`.
+     * Rantai yang putus jatuh ke `false`, bukan ke `true`: menuntut layar
+     * penuh dari event yang tidak bisa dibaca berarti memblokir ujian karena
+     * data yang hilang - dan ujian yang tidak bisa dimulai jauh lebih mahal
+     * daripada ujian yang tidak memakai layar penuh.
+     *
+     * Bawaannya `false` juga karena alasan yang lebih besar: peramban hanya
+     * mengizinkan `requestFullscreen()` dari klik pengguna, dan satu-satunya
+     * klik yang tersedia di sini adalah klik "Mulai". Bila pilihannya mati
+     * secara bawaan, satu sekolah yang belum mengaturnya tidak menemukan
+     * tombol yang tiba-tiba meminta izin layar.
+     */
+    private function wajibLayarPenuh(ExamParticipant $peserta): bool
+    {
+        return (bool) ($peserta->exam?->event?->enforce_fullscreen ?? false);
     }
 
     /**
@@ -178,6 +220,15 @@ class GerbangSiswaController extends SiswaDasar
 
         $aturan[] = 'Klik kanan, salin, dan keluar dari layar ujian dipantau.';
         $aturan[] = 'Waktu berjalan terus meski Anda keluar dari halaman ini.';
+
+        // Ditulis SEBELUM tombol ditekan, karena sesudahnya peramban akan
+        // meminta izin layar penuh dan anak yang tidak tahu sebabnya akan
+        // menolaknya - dan penolakan itu bukan pelanggaran, hanya ujian yang
+        // tidak memakai layar penuh.
+        if ($this->wajibLayarPenuh($peserta)) {
+            $aturan[] = 'Ujian ini berjalan dalam layar penuh. Jangan keluar dari layar penuh '
+                .'dan jangan membuka jendela lain di atas soal.';
+        }
 
         return $aturan;
     }

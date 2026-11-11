@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
-import { Chip, Inbox } from '@/Components/ui';
+import { Chip } from '@/Components/ui';
 import { KotakPonsel } from '@/Components/ponsel';
 
 /**
@@ -190,10 +190,10 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
                 </KotakPonsel>
             )}
 
-            <Inbox>
+            <p className="keterangan">
                 Hubungi Pengawas ruang untuk membuka kunci. Waktu ujian tetap berjalan selama
                 terkunci.
-            </Inbox>
+            </p>
         </KerangkaSiswa>
     );
 }

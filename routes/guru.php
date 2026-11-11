@@ -53,9 +53,23 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     | dengan alasan yang sama seperti `/bank-soal/baru` di atas: "ai" adalah
     | segmen yang sah-sah saja dicocokkan sebagai id soal.
     |
-    | `throttle:ai-soal` bukan hiasan - setiap permintaan di sini ditagih ke
-    | akun penyedia milik sekolah. Lihat PembatasLaju::AI_PER_GURU.
+    | DUA rute, dan pembagiannya menentukan:
+    |   /bank-soal/ai        menyusun soal, TIDAK menulis apa pun (JSON)
+    |   /bank-soal/ai/simpan menulis yang dicentang (redirect Inertia)
+    |
+    | Rute simpan didaftarkan lebih dulu supaya bentuk yang lebih spesifik
+    | tidak pernah dicoba di belakang yang umum - meski keduanya statis dan
+    | Laravel memilih yang cocok, urutannya dinyatakan di sini supaya tidak
+    | perlu ditebak pembaca berikutnya.
+    |
+    | `throttle:ai-soal` bukan hiasan - setiap permintaan `ai` ditagih ke
+    | akun penyedia milik sekolah. Lihat PembatasLaju::AI_PER_GURU. Rute
+    | `simpan` TIDAK dibatasi di sana: ia tidak menyentuh penyedia sama
+    | sekali, dan jatah yang terpakai untuk menekan Simpan adalah jatah yang
+    | hilang dari permintaan berikutnya.
     */
+    Route::post('/bank-soal/ai/simpan', [SoalAiController::class, 'simpan'])->name('bank-soal.ai.simpan');
+
     Route::post('/bank-soal/ai', [SoalAiController::class, 'generate'])
         ->middleware('throttle:ai-soal')
         ->name('bank-soal.ai');

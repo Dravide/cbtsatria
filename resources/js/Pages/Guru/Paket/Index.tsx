@@ -31,6 +31,7 @@ import {
  */
 type Baris = {
     id: number;
+    kode: string;
     nama: string;
     mapel: string | null;
     tingkat: string | null;
@@ -111,7 +112,7 @@ export default function PaketIndex({ baris, filter, mapel, bolehMenulis }: Props
                     <input
                         value={f.nilai.cari ?? ''}
                         onChange={(e) => f.ubah('cari', e.target.value)}
-                        placeholder="Cari nama paket..."
+                        placeholder="Cari nama atau kode paket..."
                         className={kelasInput + ' max-w-xs'}
                     />
 
@@ -138,6 +139,10 @@ export default function PaketIndex({ baris, filter, mapel, bolehMenulis }: Props
                                     {b.nama}
                                 </Link>
                                 <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-3">
+                                    {/* Kode paket berdiri paling depan, mono,
+                                        karena ia satu-satunya bagian baris ini
+                                        yang diketik orang - sisanya dibaca. */}
+                                    <span className="font-mono text-ink-2">{b.kode}</span>
                                     {b.mapel && <span>{b.mapel}</span>}
                                     {b.tingkat && <span>{b.tingkat}</span>}
                                     {!b.milik_saya && b.penulis && (

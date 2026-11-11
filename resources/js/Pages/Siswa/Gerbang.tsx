@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import { Field, kelasInput } from '@/Components/ui';
+import * as layar from '@/Components/layar';
 
 /**
  * Gerbang ujian - wireframe-peran.html plate 20 dan 21, `/siswa/ujian/{peserta}/gerbang`.
@@ -24,10 +25,23 @@ import { Field, kelasInput } from '@/Components/ui';
  * `window.location.reload` - memuat ulang dokumen penuh akan meminta
  * bundel JS lagi setiap 15 detik pada ponsel yang sinyalnya sedang buruk.
  *
- * Penyegaran itu HANYA hidup saat siswa benar-benar menunggu presensi.
- * Alasannya kesopanan pada server: gerbang yang sudah boleh dimulai tidak
- * punya apa pun yang bisa berubah, dan terus menanyakan hal yang sama
- * setiap 15 detik sepanjang waktu yang dihabiskan anak membaca aturan.
+ * Penyegaran itu HANYA hidup saat ada sesuatu yang benar-benar bisa berubah
+ * dengan sendirinya: siswa yang sedang menunggu presensi diverifikasi, dan
+ * siswa yang sudah layak tetapi tokennya belum diterbitkan Admin. Gerbang
+ * yang sudah boleh dimulai DAN sudah punya token tidak punya apa pun yang
+ * bisa berubah, dan terus menanyakan hal yang sama setiap 15 detik sepanjang
+ * waktu yang dihabiskan anak membaca aturan.
+ *
+ * ---------------------------------------------------------------------
+ * Tanpa token aktif, pintunya tertutup - bukan terbuka
+ * ---------------------------------------------------------------------
+ * Sampai 2026-11-10 laman ini menulis "Ujian ini tidak memakai token." saat
+ * sesinya belum punya token, dan `MesinUjian::periksaToken()` melewatkan
+ * pemeriksaan sama sekali. Sekolah yang lupa menerbitkan token di
+ * `/admin/events/{event}/token` mendapati siswanya bisa mengerjakan ujian
+ * tanpa satu pun kredensial. Sekarang setiap sesi dijaga token, dan keadaan
+ * "belum terbit" ditampilkan apa adanya: kotak token tetap ada tetapi mati,
+ * tombolnya mati, dan laman ini menyegar sendiri sampai tokennya terbit.
  *
  * ---------------------------------------------------------------------
  * Tombol mati, bukan tombol hilang
@@ -57,12 +71,21 @@ type Props = {
     melanjutkan: boolean;
     sisa_detik: number | null;
     aturan: string[];
+    wajib_layar_penuh: boolean;
 };
 
 /** Selang penyegaran sendiri - angka yang sama dengan kalimat di plate 20. */
 const SELANG_MS = 15_000;
 
-export default function Gerbang({ peserta, layak, ber_token, melanjutkan, sisa_detik, aturan }: Props) {
+export default function Gerbang({
+    peserta,
+    layak,
+    ber_token,
+    melanjutkan,
+    sisa_detik,
+    aturan,
+    wajib_layar_penuh,
+}: Props) {
     const form = useForm({ token: '' });
 
     // Satu penanda, bukan state: penyegaran tidak boleh memicu render ulang
@@ -77,8 +100,18 @@ export default function Gerbang({ peserta, layak, ber_token, melanjutkan, sisa_d
     // berarti menanyakan berkali-kali jawaban yang sudah pasti.
     const menungguPresensi = !layak.boleh && layak.alasan === PESAN_BELUM_DIPRESENSI;
 
+    // Belum boleh mulai juga bisa karena TOKEN belum diterbitkan Admin.
+    // Sejak `MesinUjian::periksaToken()` menolak sesi tanpa token aktif,
+    // gerbang ini adalah satu-satunya pintu - dan token yang terbit belakangan
+    // hanya bisa diketahui dengan menanyakan ulang ke server. Tanpa
+    // penyegaran, siswa yang duduk di depan laman ini akan menunggu selamanya
+    // walau Admin sudah menerbitkannya semenit kemudian.
+    const menungguToken = layak.boleh && !ber_token;
+
+    const menyegarSendiri = menungguPresensi || menungguToken;
+
     useEffect(() => {
-        if (!menungguPresensi) {
+        if (!menyegarSendiri) {
             return;
         }
 
@@ -90,7 +123,7 @@ export default function Gerbang({ peserta, layak, ber_token, melanjutkan, sisa_d
             menyegar.current = true;
 
             router.reload({
-                only: ['layak', 'melanjutkan', 'sisa_detik'],
+                only: ['layak', 'melanjutkan', 'sisa_detik', 'ber_token'],
                 onFinish: () => {
                     menyegar.current = false;
                 },
@@ -98,10 +131,23 @@ export default function Gerbang({ peserta, layak, ber_token, melanjutkan, sisa_d
         }, SELANG_MS);
 
         return () => window.clearInterval(jam);
-    }, [menungguPresensi]);
+    }, [menyegarSendiri]);
 
     const kirim = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Layar penuh diminta DI SINI, di dalam penangan kirim, dan bukan di
+        // efek mana pun: peramban hanya mengizinkan `requestFullscreen()`
+        // dari gestur pengguna, dan klik "Mulai" adalah satu-satunya gestur
+        // yang tersedia sebelum ujian berjalan.
+        //
+        // Kegagalan atau penolakan TIDAK menahan pengiriman. Ujian yang tidak
+        // dimulai karena izin layar ditolak jauh lebih merugikan daripada
+        // ujian yang berjalan tanpa layar penuh, dan yang mencatat
+        // pelanggaran layar adalah laman pengerjaan - bukan gerbang ini.
+        if (wajib_layar_penuh) {
+            layar.minta();
+        }
 
         // Endpoint `mulai` sendiri yang memeriksa ulang presensi, jendela
         // sesi, dan token - dan ia mengembalikan galatnya sebagai galat
@@ -201,9 +247,9 @@ function BelumBoleh({
 }) {
     return (
         <div className="grid place-content-center justify-items-center gap-3 py-8">
-            <section className="papan w-[min(88vw,20rem)] overflow-hidden">
-                <header className="papan-kepala">
-                    <span className="text-warn">Akses Ujian Belum Tersedia</span>
+            <section className="daftar w-[min(88vw,20rem)] overflow-hidden">
+                <header className="daftar-kepala">
+                    <h2 className="text-warn">Akses Ujian Belum Tersedia</h2>
                 </header>
 
                 <div className="space-y-2.5 p-3 text-center">
@@ -260,51 +306,68 @@ function SiapMulai({
                         tulis ruang {ruang ?? 'ujian'}.
                     </>
                 ) : (
-                    <>Presensi Anda sudah diverifikasi Pengawas. Ujian ini tidak memakai token.</>
+                    <>
+                        Presensi Anda sudah diverifikasi Pengawas. Token ujian sesi ini belum
+                        diterbitkan. Tunggu Pengawas ruang atau Admin menerbitkannya, lalu ketik
+                        tokennya di sini.
+                    </>
                 )}
             </p>
 
-            {berToken && (
-                <div className="w-[9.5rem]">
-                    {/* Token dibaca dari papan tulis lalu diketik di ponsel, jadi
-                        ia diminta dalam huruf besar dengan keyboard yang tidak
-                        mengoreksi ejaan. `autoCorrect`, `autoCapitalize`, dan
-                        `spellCheck` dimatikan karena koreksi otomatis ponsel
-                        mengubah kode acak menjadi kata yang mirip - dan siswa
-                        melihat tokennya "salah" padahal yang salah adalah
-                        ponselnya.
+            {/* Kotak token tetap tampil walau tokennya belum terbit. Yang
+                berubah hanya tombolnya: mati sampai tokennya ada. Menyembunyikan
+                kotaknya akan membuat laman ini tampak selesai - dan siswa yang
+                melihatnya akan menekan tombol yang memang tidak bisa dipakai. */}
+            <div className="w-[9.5rem]">
+                {/* Token dibaca dari papan tulis lalu diketik di ponsel, jadi
+                    ia diminta dalam huruf besar dengan keyboard yang tidak
+                    mengoreksi ejaan. `autoCorrect`, `autoCapitalize`, dan
+                    `spellCheck` dimatikan karena koreksi otomatis ponsel
+                    mengubah kode acak menjadi kata yang mirip - dan siswa
+                    melihat tokennya "salah" padahal yang salah adalah
+                    ponselnya.
 
-                        Huruf besarnya datang dari NILAINYA (`toUpperCase` di
-                        bawah), bukan dari `text-transform` di sini. Dulu kelas
-                        `uppercase` berdiri di baris ini bersama jarak huruf
-                        0,35em, dan keduanya dicatat lantai 67: yang menuliskan
-                        huruf besar dua kali adalah dua tempat yang bisa
-                        berselisih, dan jarak huruf sememat itu tidak menambah
-                        keterbacaan satu huruf pun. */}
-                    <Field label="" galat={form.errors.token}>
-                        <input
-                            value={form.data.token}
-                            onChange={(e) => form.setData('token', e.target.value.toUpperCase())}
-                            autoComplete="off"
-                            autoCorrect="off"
-                            autoCapitalize="characters"
-                            spellCheck={false}
-                            inputMode="text"
-                            maxLength={12}
-                            placeholder="— — — — — —"
-                            className={kelasInput + ' text-center font-mono text-base'}
-                        />
-                    </Field>
-                </div>
-            )}
+                    Huruf besarnya datang dari NILAINYA (`toUpperCase` di
+                    bawah), bukan dari `text-transform` di sini. Dulu kelas
+                    `uppercase` berdiri di baris ini bersama jarak huruf
+                    0,35em, dan keduanya dicatat lantai 67: yang menuliskan
+                    huruf besar dua kali adalah dua tempat yang bisa
+                    berselisih, dan jarak huruf sememat itu tidak menambah
+                    keterbacaan satu huruf pun. */}
+                <Field label="" galat={form.errors.token}>
+                    <input
+                        value={form.data.token}
+                        onChange={(e) => form.setData('token', e.target.value.toUpperCase())}
+                        disabled={!berToken}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        inputMode="text"
+                        maxLength={12}
+                        placeholder="— — — — — —"
+                        className={kelasInput + ' text-center font-mono text-base disabled:opacity-50'}
+                    />
+                </Field>
+            </div>
 
-            <button type="submit" disabled={form.processing} className="tombol tombol--pri w-full max-w-[20rem]">
+            <button
+                type="submit"
+                disabled={form.processing || !berToken}
+                className="tombol tombol--pri w-full max-w-[20rem]"
+            >
                 {form.processing
                     ? 'Menyiapkan…'
-                    : melanjutkan
-                      ? 'Lanjutkan ujian'
-                      : 'Mulai ujian'}
+                    : !berToken
+                      ? 'Menunggu token'
+                      : melanjutkan
+                        ? 'Lanjutkan ujian'
+                        : 'Mulai ujian'}
             </button>
+
+            {/* Satu kalimat, dan hanya saat tokennya memang belum ada: laman
+                ini menyegar sendiri, dan menyebutnya sekali di sini cukup. */}
+            {!berToken && <p className="catatan">Halaman ini menyegar sendiri setiap 15 detik</p>}
 
             {/* Siswa yang kembali setelah sinyalnya putus harus tahu waktunya
                 sudah berjalan sejak tadi - kalimat ini yang mencegahnya
@@ -319,9 +382,9 @@ function SiapMulai({
             {/* Aturan main ditulis LENGKAP sebelum tombol mulai - plate 21.
                 Isinya dari server, bukan teks tetap di sini: durasi dan
                 kebolehan mundur datang dari ujian yang sesungguhnya. */}
-            <section className="papan overflow-hidden">
-                <header className="papan-kepala">
-                    <span>Aturan ujian</span>
+            <section className="daftar overflow-hidden">
+                <header className="daftar-kepala">
+                    <h2>Aturan ujian</h2>
                 </header>
 
                 <ul className="space-y-1.5 p-3 text-left">

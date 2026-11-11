@@ -73,7 +73,40 @@ class KerjakanSiswaController extends SiswaDasar
             return redirect()->route('siswa.selesai', ['peserta' => $peserta->id]);
         }
 
-        $peserta->loadMissing(['exam.subject:id,name', 'session', 'room.eventRoom.room:id,code,name']);
+        $peserta->loadMissing('session');
+
+        // ---------------------------------------------------------------
+        // Pintu yang sama dengan gerbang, diperiksa ULANG di sini
+        // ---------------------------------------------------------------
+        // `MesinUjian::mulai()` sudah menolak sesi tanpa token aktif, tetapi
+        // penolakan itu hanya berlaku pada SATU permintaan - yang memulai.
+        // Laman ini bisa dibuka langsung dari bilah alamat (`/kerjakan`),
+        // dari riwayat peramban, atau dari tab yang tidak pernah ditutup,
+        // dan sebelum pemeriksaan ini ia menyerahkan seluruh soal beserta
+        // jawaban yang tersimpan tanpa satu pun kredensial. Persis itulah
+        // yang dilaporkan: sekolah lupa menerbitkan token, dan siswanya
+        // tetap bisa mengerjakan.
+        //
+        // Yang dikembalikan adalah gerbang dengan galat bertanda `token`,
+        // bukan 403: siswa yang berada di sini punya penempatan yang sah dan
+        // hanya kehilangan kuncinya, dan laman gerbang adalah tempat ia bisa
+        // mengetiknya begitu Admin menerbitkannya.
+        if ($peserta->session?->tokenAktif() === null) {
+            return redirect()
+                ->route('siswa.gerbang', ['peserta' => $peserta->id])
+                ->withErrors([
+                    'token' => 'Token ujian sesi ini belum diterbitkan atau sudah dicabut. '
+                        .'Tunggu Pengawas ruang atau Admin menerbitkannya, lalu ketik tokennya di gerbang.',
+                ]);
+        }
+
+        $peserta->loadMissing([
+            'exam.subject:id,name',
+            // `wajib_layar_penuh` membacanya lewat rantai yang sama dengan
+            // `ExamAttempt::ambang()`.
+            'exam.event:id,enforce_fullscreen',
+            'room.eventRoom.room:id,code,name',
+        ]);
 
         return Inertia::render('Siswa/Kerjakan', [
             'peserta' => $this->ringkasPeserta($peserta),
@@ -92,7 +125,51 @@ class KerjakanSiswaController extends SiswaDasar
             // dan menuliskannya sebagai 20 akan membuatnya berbeda dari yang
             // tertulis di plate 21 begitu pengaturannya diubah.
             'simpan_tiap_detik' => $this->selangSimpan(),
+
+            // Gerbang memintanya, dan laman ini MENEGAKKANNYA SEPANJANG
+            // pengerjaan - lihat `penjaga` di `Kerjakan.tsx`. Dikirim di sini
+            // juga karena laman ini bisa dibuka langsung dari bilah alamat
+            // atau dari riwayat, tanpa melewati gerbang sama sekali.
+            'wajib_layar_penuh' => $this->wajibLayarPenuh($peserta),
+
+            // Identitas untuk tanda air - lihat `TandaAir` di
+            // `Kerjakan.tsx`.
+            //
+            // Screenshot TIDAK BISA diblokir peramban: tidak ada API yang
+            // memberitahu bahwa tombolnya ditekan, dan tidak ada yang bisa
+            // mencegahnya. Yang bisa dikerjakan adalah membuat hasilnya
+            // menyebut pemiliknya - sehingga tangkapan layar yang beredar
+            // menunjuk satu peserta, bukan "salah satu siswa".
+            //
+            // Nama dan username adalah identitas yang SUDAH dimiliki akun
+            // siswa, dan `username` adalah NIS di sekolah ini - lihat
+            // `AkunSiswaController`, yang menampilkannya sebagai nomor induk.
+            // Tidak ada kolom baru dan tidak ada NISN: tanda air yang
+            // menyebut NISN menyebar nomor yang lebih sensitif daripada yang
+            // dibutuhkan untuk membuktikan siapa pemilik tangkapan layar.
+            'tanda_air' => [
+                'nama' => (string) auth()->user()?->name,
+                'nomor_induk' => (string) auth()->user()?->username,
+            ],
         ]);
+    }
+
+    /**
+     * Apakah event menuntut layar penuh.
+     *
+     * Rantainya peserta -> ujian -> event, dan rantai yang putus jatuh ke
+     * `false` - alasan yang sama dengan `GerbangSiswaController`: menuntut
+     * layar penuh dari data yang hilang berarti memblokir ujian karena
+     * kelalaian data, dan itu jauh lebih mahal daripada ujian tanpa layar
+     * penuh.
+     *
+     * Dibaca dari event, BUKAN dari pengaturan sekolah: sekolah yang
+     * menyelenggarakan ujian harian dan ujian akhir membutuhkan keduanya
+     * berbeda, dan `enforce_fullscreen` memang hidup di event untuk itu.
+     */
+    private function wajibLayarPenuh(ExamParticipant $peserta): bool
+    {
+        return (bool) ($peserta->exam?->event?->enforce_fullscreen ?? false);
     }
 
     /**

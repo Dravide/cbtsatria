@@ -34,6 +34,12 @@ use Illuminate\Support\Collection;
  *   heartbeat_gap         -> jaringan
  *   guard_lost            -> jaringan
  *   (baru)                -> sesi_ganda, perangkat_berubah
+ *   split/floating window -> layar_terbagi
+ *
+ * `layar_terbagi` sengaja TIDAK dilipat ke `keluar_layar_penuh`. Layar penuh
+ * yang hilang bisa terjadi karena satu sentuhan tombol kembali; layar yang
+ * terbagi berarti separuh soal sudah tidak di layar itu. Dua kalimat yang
+ * berbeda bagi pengawas, jadi dua jenis.
  *
  * ---------------------------------------------------------------------
  * Tingkat 0 TIDAK dicatat, dan itu diperiksa di sini
@@ -84,6 +90,12 @@ final class TanggaPelanggaran
         'keluar_layar_penuh' => 1,
         'jaringan' => 1,
         'pintasan_terlarang' => 2,
+        // Terbagi 3, bukan 1: layar yang terbagi berarti separuh soal sudah
+        // tidak terlihat, dan itu bukan gangguan sepersekian detik seperti
+        // berpindah tab. Tetapi juga BUKAN 5 dan bukan `SEGERA_KUNCI` -
+        // ponsel lipat, rotasi, dan papan tik yang muncul semuanya bisa
+        // menyerupainya, dan yang memutuskan tetap pengawas.
+        'layar_terbagi' => 3,
         'perangkat_berubah' => 3,
         'salin_tempel' => 5,
         'sesi_ganda' => 5,

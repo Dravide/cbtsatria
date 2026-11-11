@@ -1,6 +1,5 @@
 import { router } from '@inertiajs/react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
-import { Inbox } from '@/Components/ui';
 
 /**
  * Riwayat pelanggaran saya - wireframe-peran.html plate 29.
@@ -137,12 +136,13 @@ export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: P
              * tingkat di bawahnya. "Terberat" bersatuan tingkat, dan itu
              * ditulis - angka 0 tanpa satuan tidak menerangkan apa pun.
              */}
-            <section className="papan grid grid-cols-3 overflow-hidden">
+            <section className="daftar grid grid-cols-3 overflow-hidden">
                 <SelAngka
                     label="Total kejadian"
                     nilaiTeks={String(angka.total)}
                     satuan=""
-                    nada={angka.total > 0 ? 'warn' : 'ok'}
+                    nada={angka.total > 0 ? 'warn' : undefined}
+                    akhir={false}
                 />
                 {/* "Terberat" adalah tingkat keberatan satu PERISTIWA (1..5),
                     bukan tingkat eskalasi (0..3). Dua hal berbeda yang pernah
@@ -152,34 +152,38 @@ export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: P
                     nilaiTeks={angka.terberat > 0 ? String(angka.terberat) : 'tidak ada'}
                     satuan={angka.terberat > 0 ? 'tingkat' : ''}
                     nada={angka.terberat >= 5 ? 'bad' : angka.terberat > 0 ? 'warn' : undefined}
+                    akhir={false}
                 />
                 <SelAngka
                     label="Pernah dikunci"
                     nilaiTeks={angka.pernah_dikunci > 0 ? String(angka.pernah_dikunci) : 'belum'}
                     satuan={angka.pernah_dikunci > 0 ? 'kali' : ''}
                     nada={angka.pernah_dikunci > 0 ? 'bad' : undefined}
+                    akhir
                 />
             </section>
 
-            <section className="papan overflow-hidden">
-                <header className="papan-kepala">
-                    <span>Kejadian</span>
+            <section className="daftar overflow-hidden">
+                <header className="daftar-kepala">
+                    <h2>Kejadian</h2>
                     {riwayat.length > 0 && (
-                        <span className="angka ml-auto text-ink">{riwayat.length}</span>
+                        <span className="angka ml-auto text-[12px] text-ink-2">
+                            {riwayat.length}
+                        </span>
                     )}
                 </header>
 
                 {riwayat.length === 0 ? (
                     <div className="px-3 py-6">
-                        <p className="text-[12px] leading-relaxed text-ink-2">
+                        <p className="text-[13px] leading-relaxed text-ink-2">
                             Tidak ada catatan pelanggaran untuk event ini.
                         </p>
                     </div>
                 ) : (
                     riwayat.map((r) => (
-                        <div key={r.id} className="papan-baris px-3 py-2">
+                        <div key={r.id} className="daftar-baris px-3 py-2.5">
                             <div className="flex items-center gap-2">
-                                <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                                <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
                                     {r.jenis}
                                 </span>
                                 <span className="angka shrink-0 text-[11px] text-ink-2">
@@ -194,11 +198,10 @@ export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: P
                              * Lantai 63 menamai `A · B · C` sebagai tanda baca
                              * templat: titik tengah yang berdiri di antara
                              * segala hal tidak menerangkan hubungan apa pun.
-                             * Papan di beranda sudah meninggalkan pola ini.
                              *
-                             * Nilai yang kosong tetap DILEWATI, seperti pada
-                             * kalimat lama - sel kosong lebih buruk daripada
-                             * kalimat yang kehilangan satu bagiannya.
+                             * Nilai yang kosong tetap DILEWATI - sel kosong
+                             * lebih buruk daripada kalimat yang kehilangan
+                             * satu bagiannya.
                              */}
                             <div className="mt-0.5 flex items-center gap-2 text-[11px] text-ink-2">
                                 <span className="min-w-0 flex-1 truncate">
@@ -213,10 +216,10 @@ export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: P
                 )}
             </section>
 
-            <Inbox>
+            <p className="keterangan">
                 Anda dapat mengajukan keberatan atas catatan ini kepada Pengawas ruang atau Admin
                 sekolah. Catatan pelanggaran tidak dapat dihapus.
-            </Inbox>
+            </p>
         </KerangkaSiswa>
     );
 }
@@ -227,26 +230,54 @@ function SelAngka({
     nilaiTeks,
     satuan,
     nada,
+    akhir,
 }: {
     label: string;
     nilaiTeks: string;
     satuan: string;
     nada?: 'ok' | 'warn' | 'bad';
+    akhir: boolean;
 }) {
+    // Kata ("tidak ada", "belum") tidak pernah dicetak sebesar angka. Angka
+    // di sel ini adalah satuan hitung, dan memberi kata ukuran angka membuat
+    // tiga sel terlihat seperti tiga nilai yang sama pentingnya.
+    const kata = /\D/.test(nilaiTeks);
+
+    // Nol BUKAN sinyal - lihat pemanggilnya. Rust menandai perbuatan atau
+    // pilihan, dan "0 kejadian" adalah kebalikan dari keduanya.
+    const nol = nilaiTeks === '0';
+
     return (
-        <div className="min-w-0 border-r border-line px-2 py-2 last:border-r-0">
+        <div className={'min-w-0 px-2.5 py-2 ' + (akhir ? '' : 'border-r border-line')}>
             <span className="block truncate text-[11px] text-ink-2">{label}</span>
             <span
                 className={
-                    'angka mt-0.5 block truncate font-display text-lg leading-none ' +
-                    (nada ? NADA_ANGKA[nada] : 'text-ink')
+                    'mt-1 block truncate leading-none ' +
+                    (kata ? 'text-[13px] font-medium ' : 'angka-hitung text-[19px] ') +
+                    (nadakah(nada, nol))
                 }
             >
                 {nilaiTeks}
             </span>
-            {satuan && <span className="mt-0.5 block truncate text-[11px] text-ink-2">{satuan}</span>}
+            {satuan && <span className="mt-1 block truncate text-[11px] text-ink-2">{satuan}</span>}
         </div>
     );
+}
+
+/**
+ * Warna satu sel angka.
+ *
+ * Nol selalu netral. Rust, amber dan hijau menandai sesuatu yang TERJADI;
+ * memberi nol warna sinyal berarti halaman paling berteriak justru pada
+ * keadaan yang paling tenang - dan pada laman ini, saat tidak ada kejadian,
+ * warna itu satu-satunya warna di seluruh layar.
+ */
+function nadakah(nada: 'ok' | 'warn' | 'bad' | undefined, nol: boolean): string {
+    if (nol) {
+        return 'text-ink-2';
+    }
+
+    return nada ? NADA_ANGKA[nada] : 'text-ink';
 }
 
 /** Tingkat keberatan sebagai sel bergaris, bukan lencana bulat. */

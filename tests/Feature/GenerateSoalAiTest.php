@@ -295,6 +295,48 @@ it('mencoba ulang sekali tanpa response_format saat penyedia menolaknya', functi
     expect($kedua->data())->not->toHaveKey('response_format');
 });
 
+it('mencoba ulang sekali dengan anggaran lebih besar saat model kehabisan token untuk berpikir', function () {
+    // Model penalaran menghabiskan `max_tokens` pada `reasoning_content` dan
+    // berhenti sebelum satu baris JSON pun lahir: `finish_reason` menjadi
+    // "length" dan `content` kosong. Kalau dibiarkan, `urai()` melaporkan
+    // "bukan JSON" pada jawaban yang sebenarnya tidak pernah ada - dan ini
+    // persis yang terjadi pada isian rumpang dengan anggaran satu soal
+    // (pengamatan langsung, 2026-11-11: kena separuh dari percobaan, sementara
+    // pilihan ganda hampir selalu lolos).
+    Http::fakeSequence('*/chat/completions')
+        ->push([
+            'choices' => [[
+                'finish_reason' => 'length',
+                'message' => ['role' => 'assistant', 'content' => null],
+            ]],
+            'usage' => ['completion_tokens' => 1500],
+        ], 200)
+        ->push(['choices' => [['message' => ['content' => json_encode([
+            'judul' => 'Soal yang akhirnya lahir',
+            'pertanyaan' => '<p>Pertanyaan</p>',
+            'opsi' => [
+                ['kunci' => 'a', 'teks' => '1'],
+                ['kunci' => 'b', 'teks' => '2'],
+                ['kunci' => 'c', 'teks' => '3'],
+                ['kunci' => 'd', 'teks' => '4'],
+            ],
+            'kunci' => ['b'],
+        ])]]]], 200);
+
+    masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi(['subject_id' => $this->mapel->id]))
+        ->assertOk()
+        ->assertJson(['kunci' => ['b']]);
+
+    Http::assertSentCount(2);
+
+    // Percobaan kedua menggandakan anggaran token: model yang kehabisan
+    // tempat berpikir tidak akan menulis apa pun di kolom yang sama.
+    $kedua = Http::recorded()[1][0];
+
+    expect($kedua->data()['max_tokens'])->toBe(3000);
+});
+
 /* ------------------------------------------------------ Keamanan keluaran */
 
 it('membersihkan HTML berbahaya dari keluaran AI', function () {
@@ -469,6 +511,151 @@ it('melaporkan AI yang belum diatur sebelum memanggil penyedia', function () {
     Http::assertNothingSent();
 });
 
+/* ------------------------------------------------------ Beberapa soal */
+//
+// Satu permintaan mengembalikan N soal. Bentuknya `{soal: [...]}` HANYA
+// ketika N > 1; permintaan satu soal tetap datar, dan test-test di atas
+// adalah buktinya - seluruhnya membaca `judul`, `kunci`, `opsi` langsung dari
+// akar jawaban.
+
+/** Satu soal pilihan ganda yang sah, dengan penanda agar mudah dibedakan. */
+function soalPilihanGanda(string $judul, string $kunci = 'a'): array
+{
+    return [
+        'judul' => $judul,
+        'pertanyaan' => "<p>Pertanyaan {$judul}</p>",
+        'pembahasan' => '<p>Pembahasan.</p>',
+        'opsi' => [
+            ['kunci' => 'a', 'teks' => '1'],
+            ['kunci' => 'b', 'teks' => '2'],
+            ['kunci' => 'c', 'teks' => '3'],
+            ['kunci' => 'd', 'teks' => '4'],
+        ],
+        'kunci' => [$kunci],
+    ];
+}
+
+it('mengembalikan tiga soal dalam satu larik saat diminta tiga', function () {
+    jawabAi(['soal' => [
+        soalPilihanGanda('Soal satu', 'a'),
+        soalPilihanGanda('Soal dua', 'b'),
+        soalPilihanGanda('Soal tiga', 'c'),
+    ]]);
+
+    $jawaban = masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jumlah' => 3,
+        ]))
+        ->assertOk()
+        ->assertJsonCount(3, 'soal');
+
+    // Ketiganya soal yang BERBEDA, bukan satu soal yang diulang: itulah satu-
+    // satunya alasan meminta tiga sekaligus.
+    expect($jawaban->json('soal.*.judul'))->toBe(['Soal satu', 'Soal dua', 'Soal tiga'])
+        ->and($jawaban->json('soal.*.kunci'))->toBe([['a'], ['b'], ['c']]);
+
+    // Satu panggilan HTTP, bukan tiga. Permintaan berulang berarti biaya
+    // berulang untuk hasil yang sama.
+    Http::assertSentCount(1);
+});
+
+it('meminta model membalas larik bernama saat jumlah lebih dari satu', function () {
+    jawabAi(['soal' => [soalPilihanGanda('Satu'), soalPilihanGanda('Dua')]]);
+
+    masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jumlah' => 2,
+        ]))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        $pesan = $request->data()['messages'] ?? [];
+        $sistem = $pesan[0]['content'] ?? '';
+        $pengguna = $pesan[1]['content'] ?? '';
+
+        // Pembungkusnya HARUS objek berkunci `soal`: `KlienAi::urai()` menolak
+        // larik telanjang, jadi model yang membalas `[...]` akan gagal pada
+        // keluaran yang sebenarnya benar.
+        return str_contains($sistem, '"soal"')
+            && str_contains($sistem, 'tepat 2 soal')
+            && str_contains($pengguna, 'Buat 2 soal berbeda');
+    });
+});
+
+it('menaikkan batas token dan waktu tunggu seiring jumlah soal', function () {
+    jawabAi(['soal' => [soalPilihanGanda('Satu'), soalPilihanGanda('Dua'), soalPilihanGanda('Tiga')]]);
+
+    masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jumlah' => 3,
+        ]))
+        ->assertOk();
+
+    // Batas token di Pengaturan diisi untuk SATU soal (1500). Tiga soal yang
+    // dijanjikan 1500 token akan terpotong di soal kedua, dan JSON terpotong
+    // bukan JSON yang kurang - ia tidak bisa diurai sama sekali.
+    Http::assertSent(fn ($request) => $request->data()['max_tokens'] === 4500);
+});
+
+it('membatalkan SELURUH permintaan bila satu soal cacat', function () {
+    $sebelum = Question::query()->count();
+
+    jawabAi(['soal' => [
+        soalPilihanGanda('Soal baik', 'a'),
+        // Dua jawaban benar untuk pilihan ganda tunggal: cacat, dan tidak
+        // bisa diperbaiki dengan menebak.
+        array_replace(soalPilihanGanda('Soal cacat', 'a'), ['kunci' => ['a', 'b']]),
+        soalPilihanGanda('Soal baik lagi', 'c'),
+    ]]);
+
+    masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jumlah' => 3,
+        ]))
+        ->assertStatus(422)
+        ->assertJsonPath('pesan', 'AI mengembalikan soal yang bentuknya tidak sah, dan tidak disimpan. '
+            .'Coba lagi, atau susun soalnya secara manual.');
+
+    expect(Question::query()->count())->toBe($sebelum);
+});
+
+it('menolak keluaran tanpa larik soal saat diminta lebih dari satu', function () {
+    // Model yang tetap membalas satu objek meski diminta tiga tidak boleh
+    // dianggap tiga soal kosong - atau, lebih buruk, satu soal yang diterima
+    // diam-diam sehingga Guru mengira tiga soalnya sudah datang.
+    jawabAi(soalPilihanGanda('Hanya satu'));
+
+    masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jumlah' => 3,
+        ]))
+        ->assertStatus(422)
+        ->assertJsonPath('pesan', 'Penyedia AI menjawab, tetapi bukan dalam bentuk JSON yang diminta. '
+            .'Modelnya mungkin tidak mendukung mode JSON - coba model lain di Pengaturan.');
+});
+
+it('menolak model yang mengembalikan soal lebih banyak dari yang diminta', function () {
+    jawabAi(['soal' => [
+        soalPilihanGanda('Satu'), soalPilihanGanda('Dua'), soalPilihanGanda('Tiga'),
+    ]]);
+
+    masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jumlah' => 2,
+        ]))
+        ->assertStatus(422);
+
+    // Memotong diam-diam ke dua soal berarti Guru menyimpan soal yang tidak
+    // ia minta, dengan tagihan untuk tiga.
+    expect(Question::query()->count())->toBe(0);
+});
+
 /* -------------------------------------------------------------- Izin */
 
 it('menolak Admin memakai Generate AI', function () {
@@ -516,13 +703,33 @@ it('menolak jenis soal yang tidak didukung AI', function () {
     masukSoalAi($this, $this->guru)
         ->postJson('/guru/bank-soal/ai', mintaAi([
             'subject_id' => $this->mapel->id,
-            'jenis' => 'menjodohkan',
+            // `media` - BUKAN `menjodohkan`: menjodohkan sudah didukung
+            // sejak mode lanjut (2026-11-10). Media tetap ditolak karena
+            // stimulusnya berupa berkas, dan model tidak bisa menghasilkannya -
+            // soal "media" dari AI hanyalah soal biasa berlabel salah.
+            'jenis' => 'media',
         ]))
         ->assertStatus(422)
         ->assertJsonValidationErrors('jenis');
 
     Http::assertNothingSent();
 });
+
+it('menolak jumlah soal di luar satu sampai sepuluh', function (int $jumlah) {
+    Http::fake();
+
+    masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jumlah' => $jumlah,
+        ]))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('jumlah');
+
+    // Ditolak SEBELUM menghubungi penyedia: permintaan yang ditolak setelah
+    // terkirim tetap ditagih.
+    Http::assertNothingSent();
+})->with([0, 11]);
 
 /* --------------------------------------------------------- Batas laju */
 
@@ -552,4 +759,256 @@ it('membatasi permintaan AI per Guru per menit', function () {
         ->postJson('/guru/bank-soal/ai', mintaAi(['subject_id' => $this->mapel->id]))
         ->assertStatus(429)
         ->assertJsonPath('pesan', 'Terlalu banyak permintaan AI. Tunggu satu menit, lalu coba lagi.');
+});
+
+/* -------------------------------------------------------- Mode lanjut */
+
+it('membuat lebih dari satu jenis dalam satu permintaan', function () {
+    // Satu permintaan campuran = satu panggilan penyedia PER JENIS. Jawaban
+    // penyedia dipalsukan bergiliran supaya tiga bentuk berbeda bisa diuji
+    // sekaligus.
+    Http::fakeSequence('*/chat/completions')
+        ->push(['choices' => [['message' => ['content' => json_encode([
+            'judul' => 'Himpunan',
+            'pertanyaan' => '<p>Anggota {1,2,3} adalah</p>',
+            'opsi' => [
+                ['kunci' => 'a', 'teks' => '1, 2, 3'],
+                ['kunci' => 'b', 'teks' => '1, 2'],
+                ['kunci' => 'c', 'teks' => '2, 3'],
+                ['kunci' => 'd', 'teks' => '3'],
+            ],
+            'kunci' => ['a'],
+        ], JSON_UNESCAPED_UNICODE)]]]], 200)
+        ->push(['choices' => [['message' => ['content' => json_encode([
+            'judul' => 'Bilangan prima',
+            'pertanyaan' => '<p>3 adalah bilangan prima.</p>',
+            'opsi' => [['kunci' => 'b', 'teks' => 'Benar'], ['kunci' => 's', 'teks' => 'Salah']],
+            'kunci' => ['benar'],
+        ], JSON_UNESCAPED_UNICODE)]]]], 200)
+        ->push(['choices' => [['message' => ['content' => json_encode([
+            'judul' => 'Ibu kota',
+            'pertanyaan' => '<p>Ibu kota Indonesia adalah ...</p>',
+            'kunci' => ['Jakarta'],
+        ], JSON_UNESCAPED_UNICODE)]]]], 200);
+
+    $jawab = masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jenis' => ['pilihan_ganda', 'benar_salah', 'isian_singkat'],
+            'jumlah' => 3,
+        ]))
+        ->assertOk()
+        ->json();
+
+    expect($jawab['soal'])->toHaveCount(3)
+        ->and(array_column($jawab['soal'], 'jenis'))
+        ->toBe(['pilihan_ganda', 'benar_salah', 'isian_singkat']);
+
+    // Tiga jenis = tiga panggilan penyedia, bukan satu permintaan longgar
+    // yang meminta model memilih bentuk per unsur.
+    Http::assertSentCount(3);
+});
+
+it('menolak campuran yang memuat satu jenis tak didukung', function () {
+    Http::fake();
+
+    masukSoalAi($this, $this->guru)
+        ->postJson('/guru/bank-soal/ai', mintaAi([
+            'subject_id' => $this->mapel->id,
+            'jenis' => ['pilihan_ganda', 'media'],
+        ]))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('jenis');
+
+    Http::assertNothingSent();
+});
+
+/* --------------------------------------------------------- Jalur simpan */ it('menyimpan soal yang dicentang ke bank soal', function () {
+    $sebelum = Question::query()->count();
+
+    masukSoalAi($this, $this->guru)
+        ->post('/guru/bank-soal/ai/simpan', [
+            'subject_id' => $this->mapel->id,
+            'soal' => [[
+                'jenis' => 'pilihan_ganda',
+                'tingkat' => 'sulit',
+                'judul' => 'Himpunan penyelesaian',
+                'pertanyaan' => '<p>Himpunan penyelesaian 2x + 5 = 17 adalah</p>',
+                'pembahasan' => '<p>Kurangi 5, bagi 2.</p>',
+                'opsi' => [
+                    ['kunci' => 'a', 'teks' => '6'],
+                    ['kunci' => 'b', 'teks' => '11'],
+                    ['kunci' => 'c', 'teks' => '12'],
+                    ['kunci' => 'd', 'teks' => '22'],
+                ],
+                'kunci' => ['a'],
+            ]],
+        ])
+        ->assertRedirect('/guru/bank-soal');
+
+    expect(Question::query()->count())->toBe($sebelum + 1);
+
+    $soal = Question::query()->latest('id')->first();
+
+    expect($soal->question_type->value)->toBe('pilihan_ganda')
+        ->and($soal->difficulty)->toBe('sulit')
+        ->and($soal->status)->toBe('draft')
+        // Kode dibangkitkan BankSoalService, bukan dikirim peramban.
+        ->and($soal->code)->toStartWith('Q-')
+        ->and($soal->answer_key_json)->toBe(['opsi' => ['a']]);
+});
+
+it('menyimpan campuran jenis dalam satu kiriman', function () {
+    masukSoalAi($this, $this->guru)
+        ->post('/guru/bank-soal/ai/simpan', [
+            'subject_id' => $this->mapel->id,
+            'soal' => [
+                [
+                    'jenis' => 'menjodohkan',
+                    'judul' => 'Ibu kota negara',
+                    'pertanyaan' => '<p>Jodohkan negara dengan ibu kotanya.</p>',
+                    'butir' => [
+                        ['kunci' => 'k1', 'grup' => 'kiri', 'teks' => 'Indonesia', 'pasangan' => 'p1'],
+                        ['kunci' => 'k2', 'grup' => 'kiri', 'teks' => 'Malaysia', 'pasangan' => 'p2'],
+                        ['kunci' => 'p1', 'grup' => 'kanan', 'teks' => 'Jakarta', 'pasangan' => null],
+                        ['kunci' => 'p2', 'grup' => 'kanan', 'teks' => 'Kuala Lumpur', 'pasangan' => null],
+                    ],
+                    'pasangan' => ['k1' => 'p1', 'k2' => 'p2'],
+                ],
+                [
+                    'jenis' => 'angka',
+                    'judul' => 'Akar kuadrat',
+                    'pertanyaan' => '<p>Akar kuadrat dari 144 adalah ...</p>',
+                    'nilai' => 12,
+                    'toleransi' => 0,
+                ],
+                [
+                    'jenis' => 'uraian',
+                    'judul' => 'Jelaskan fotosintesis',
+                    'pertanyaan' => '<p>Jelaskan proses fotosintesis.</p>',
+                    'rubrik' => [
+                        ['kriteria' => 'Menyebut bahan', 'keterangan' => 'Air, CO2', 'skor_maks' => 2],
+                        ['kriteria' => 'Menyebut hasil', 'keterangan' => 'Glukosa, O2', 'skor_maks' => 3],
+                    ],
+                ],
+            ],
+        ])
+        ->assertRedirect('/guru/bank-soal');
+
+    $jenis = Question::query()->orderBy('id')->pluck('question_type')->map->value->all();
+
+    expect($jenis)->toBe(['menjodohkan', 'angka', 'uraian']);
+
+    $angka = Question::query()->where('question_type', 'angka')->first();
+    expect($angka->answer_key_json)->toMatchArray(['nilai' => 12.0]);
+
+    // Uraian: kunci WAJIB null, dan rubriknya tersimpan.
+    $uraian = Question::query()->where('question_type', 'uraian')->first();
+    expect($uraian->answer_key_json)->toBeNull()
+        ->and($uraian->rubrik)->toHaveCount(2);
+});
+
+it('tidak menulis satu baris pun bila satu soal dalam kiriman cacat', function () {
+    $sebelum = Question::query()->count();
+
+    masukSoalAi($this, $this->guru)
+        ->post('/guru/bank-soal/ai/simpan', [
+            'subject_id' => $this->mapel->id,
+            'soal' => [
+                [
+                    'jenis' => 'isian_singkat',
+                    'judul' => 'Ibu kota',
+                    'pertanyaan' => '<p>Ibu kota Indonesia.</p>',
+                    'varian' => ['Jakarta'],
+                ],
+                [
+                    // Dua jawaban benar untuk pilihan ganda - bentuk yang
+                    // ditolak SkemaJenisSoal.
+                    'jenis' => 'pilihan_ganda',
+                    'judul' => 'Cacat',
+                    'pertanyaan' => '<p>Dua jawaban benar.</p>',
+                    'opsi' => [
+                        ['kunci' => 'a', 'teks' => '1'],
+                        ['kunci' => 'b', 'teks' => '2'],
+                        ['kunci' => 'c', 'teks' => '3'],
+                        ['kunci' => 'd', 'teks' => '4'],
+                    ],
+                    'kunci' => ['a', 'b'],
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors('soal');
+
+    // Seluruh kiriman ditolak: yang pertama sah, tetapi Guru mencentang
+    // keduanya dalam satu klik - menyimpan sebagian berarti melaporkan
+    // "tersimpan" untuk kiriman yang gagal.
+    expect(Question::query()->count())->toBe($sebelum);
+});
+
+it('menyebut nomor soal yang gagal disimpan', function () {
+    masukSoalAi($this, $this->guru)
+        ->post('/guru/bank-soal/ai/simpan', [
+            'subject_id' => $this->mapel->id,
+            'soal' => [
+                ['jenis' => 'isian_singkat', 'judul' => 'Satu', 'pertanyaan' => '<p>a</p>', 'varian' => ['x']],
+                ['jenis' => 'isian_singkat', 'judul' => 'Dua', 'pertanyaan' => '<p>b</p>', 'varian' => ['y']],
+                ['jenis' => 'isian_singkat', 'judul' => 'Tiga', 'pertanyaan' => '<p>c</p>', 'varian' => []],
+            ],
+        ])
+        ->assertSessionHasErrors('soal');
+
+    // Nomornya DIPERIKSA isinya, bukan hanya keberadaan galatnya: Guru
+    // melihat tiga kartu, dan "soal nomor tiga" adalah satu-satunya kalimat
+    // yang bisa ia tindak lanjuti.
+    expect(session('errors')->first('soal'))->toContain('nomor 3');
+});
+
+it('menolak kiriman simpan dari Admin', function () {
+    masukSoalAi($this, $this->admin)
+        ->post('/guru/bank-soal/ai/simpan', [
+            'subject_id' => $this->mapel->id,
+            'soal' => [['jenis' => 'isian_singkat', 'judul' => 'x', 'pertanyaan' => '<p>x</p>', 'varian' => ['x']]],
+        ])
+        ->assertForbidden();
+
+    expect(Question::query()->count())->toBe(0);
+});
+
+it('menolak simpan untuk mapel yang tidak diampu', function () {
+    masukSoalAi($this, $this->guru)
+        ->post('/guru/bank-soal/ai/simpan', [
+            'subject_id' => $this->mapelLain->id,
+            'soal' => [['jenis' => 'isian_singkat', 'judul' => 'x', 'pertanyaan' => '<p>x</p>', 'varian' => ['x']]],
+        ])
+        ->assertStatus(422);
+
+    expect(Question::query()->count())->toBe(0);
+});
+
+it('menolak kiriman simpan yang melebihi batas', function () {
+    masukSoalAi($this, $this->guru)
+        ->post('/guru/bank-soal/ai/simpan', [
+            'subject_id' => $this->mapel->id,
+            'soal' => array_fill(0, 31, [
+                'jenis' => 'isian_singkat', 'judul' => 'x', 'pertanyaan' => '<p>x</p>', 'varian' => ['x'],
+            ]),
+        ])
+        ->assertSessionHasErrors('soal');
+
+    expect(Question::query()->count())->toBe(0);
+});
+
+/* ----------------------------------------------------- Prop laman daftar */
+
+it('mengirim daftar jenis AI ke laman bank soal', function () {
+    masukSoalAi($this, $this->guru)
+        ->get('/guru/bank-soal')
+        ->assertInertia(fn ($halaman) => $halaman
+            ->component('Guru/BankSoal/Index')
+            ->where('ai', true)
+            // Sembilan jenis, dan `media` TIDAK termasuk: stimulusnya berupa
+            // berkas, dan model tidak bisa menghasilkannya.
+            ->has('jenisAi', 9)
+            ->where('jenisAi.0.nilai', 'pilihan_ganda')
+        );
 });

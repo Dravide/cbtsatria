@@ -70,9 +70,24 @@ class KlienAi
     public const SUHU = 0.4;
 
     /**
+     * Langit-langit anggaran token untuk percobaan ulang setelah model kena
+     * `max_tokens`. Dua kali lipat dari batas biasa, sejalan dengan
+     * `PenulisSoalAi::BATAS_TOKEN_MAKS` (16000) - angka yang sama, karena
+     * pelepasan itu memang milik satu permintaan yang sama.
+     */
+    public const BATAS_TOKEN_ULANG = 16000;
+
+    /**
      * Kirim percakapan, kembalikan isi `content` yang sudah diurai sebagai JSON.
      *
-     * @param  array{base_url:string, model:string, api_key:string, batas_token?:int}  $konfigurasi
+     * `batas_waktu` boleh diturunkan pemanggil. Satu soal selesai jauh di
+     * bawah 45 detik, tetapi sepuluh soal dalam satu keluaran butuh waktu
+     * yang jauh lebih panjang - dan batas yang tetap membuat permintaan
+     * yang sebenarnya akan berhasil diputus di tengah jalan, lalu ditagih
+     * penuh tanpa hasil. Nilai yang tidak masuk akal diabaikan, bukan
+     * dipercaya: konstanta di atas tetap menjadi lantai dan langit-langitnya.
+     *
+     * @param  array{base_url:string, model:string, api_key:string, batas_token?:int, batas_waktu?:int}  $konfigurasi
      * @param  array<int, array{role:string, content:string}>  $pesan
      * @return array<string, mixed>
      *
@@ -81,6 +96,11 @@ class KlienAi
     public function kirim(array $konfigurasi, array $pesan): array
     {
         $url = rtrim($konfigurasi['base_url'], '/').'/chat/completions';
+
+        $batasWaktu = max(
+            self::BATAS_WAKTU,
+            (int) ($konfigurasi['batas_waktu'] ?? self::BATAS_WAKTU),
+        );
 
         $body = [
             'model' => $konfigurasi['model'],
@@ -94,7 +114,7 @@ class KlienAi
             'response_format' => ['type' => 'json_object'],
         ];
 
-        $tanggapan = $this->kirimPermintaan($url, $konfigurasi['api_key'], $body, $konfigurasi['model']);
+        $tanggapan = $this->kirimPermintaan($url, $konfigurasi['api_key'], $body, $konfigurasi['model'], $batasWaktu);
 
         // ---------------------------------------------------------------
         // Fallback `response_format`
@@ -110,7 +130,7 @@ class KlienAi
         if ($this->menolakResponseFormat($tanggapan->status(), $tanggapan->body())) {
             unset($body['response_format']);
 
-            $tanggapan = $this->kirimPermintaan($url, $konfigurasi['api_key'], $body, $konfigurasi['model']);
+            $tanggapan = $this->kirimPermintaan($url, $konfigurasi['api_key'], $body, $konfigurasi['model'], $batasWaktu);
         }
 
         if ($tanggapan->failed()) {
@@ -122,7 +142,65 @@ class KlienAi
             throw GalatPenyedia::status($tanggapan->status(), mb_substr($tanggapan->body(), 0, 300, 'UTF-8'));
         }
 
+        // ---------------------------------------------------------------
+        // Model yang menghabiskan anggaran tokennya untuk BERPIKIR tidak gagal;
+        // ia belum sempat menjawab
+        // ---------------------------------------------------------------
+        // Model penalaran (seperti deepseek dengan `reasoning_content`) menulis
+        // pemikirannya lebih dulu, dan `max_tokens` 1500 untuk SATU soal mudah
+        // habis ditelan berpikir sebelum baris JSON pertama lahir - `finish_reason`
+        // menjadi "length", `content` tetap null atau terpotong di tengah objek,
+        // dan `urai()` melaporkan "bukan JSON" pada jawaban yang sebenarnya tidak
+        // pernah ada. Pengamatan langsung pada penyedia yang dipakai (2026-11-11):
+        // jenis dengan penalaran lebih panjang (isian rumpang) kena jauh lebih
+        // sering daripada pilihan ganda, dan `jumlah` yang lebih besar lolos
+        // karena anggarannya ikut dikalikan di `PenulisSoalAi`.
+        //
+        // Menggandakan anggaran lalu bertanya sekali lagi adalah perbaikan yang
+        // hanya menyentuh keadaan "benar-benar kehabisan token": `finish_reason`
+        // length adalah satu-satunya sinyalnya, dan jawaban yang selesai (`stop`)
+        // tidak pernah diulang. Anggaran kedua dipakai apa yang dikirim, dan
+        // percobaan ketiga tidak ada - model yang masih belum selesai di kolom
+        // yang lebih besar bukan persoalan anggaran, melainkan output yang cacat.
+        if ($this->kehabisanAnggaran($tanggapan)) {
+            $body['max_tokens'] = min(
+                self::BATAS_TOKEN_ULANG,
+                ((int) ($body['max_tokens'] ?? 1500)) * 2,
+            );
+
+            Log::warning('Model AI kehabisan max_tokens; mencoba ulang dengan anggaran lebih besar.', [
+                'model' => $konfigurasi['model'],
+                'batas_token' => $body['max_tokens'],
+            ]);
+
+            $tanggapan = $this->kirimPermintaan($url, $konfigurasi['api_key'], $body, $konfigurasi['model'], $batasWaktu);
+
+            if ($tanggapan->failed()) {
+                Log::warning('Penyedia AI menolak permintaan ulang.', [
+                    'status' => $tanggapan->status(),
+                    'model' => $konfigurasi['model'],
+                ]);
+
+                throw GalatPenyedia::status($tanggapan->status(), mb_substr($tanggapan->body(), 0, 300, 'UTF-8'));
+            }
+        }
+
         return $this->urai($tanggapan->json());
+    }
+
+    /**
+     * Model berhenti karena kehabisan anggaran token, bukan karena selesai.
+     *
+     * `finish_reason` "length" adalah sinyal dari penyedia bahwa respons
+     * berhenti di tengah batas `max_tokens`. Alasan lain ("stop",
+     * "tool_calls", "content_filter") bukan anggaran, dan tidak pantas diulang
+     * dengan anggaran yang lebih besar - jawaban yang ditolak kebijakan tidak
+     * akan berubah hanya karena diberi lebih banyak token.
+     */
+    private function kehabisanAnggaran(Response $tanggapan): bool
+    {
+        return $tanggapan->status() === 200
+            && data_get($tanggapan->json(), 'choices.0.finish_reason') === 'length';
     }
 
     /**
@@ -132,10 +210,10 @@ class KlienAi
      * batas waktu yang tertinggal di satu salinan saja sudah cukup untuk
      * membuat satu jalur menggantung selamanya.
      */
-    private function kirimPermintaan(string $url, string $kunci, array $body, string $model): Response
+    private function kirimPermintaan(string $url, string $kunci, array $body, string $model, int $batasWaktu): Response
     {
         try {
-            return Http::timeout(self::BATAS_WAKTU)
+            return Http::timeout($batasWaktu)
                 ->connectTimeout(self::BATAS_SAMBUNG)
                 ->withToken($kunci)
                 ->acceptJson()

@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Chip, Inbox, Kotak, Tombol, kelasInput } from '@/Components/ui';
+import { Chip, Inbox, Kotak, Tombol, TombolTautan, kelasInput } from '@/Components/ui';
 
 /**
  * Presensi lintas ruang, dari konsol Admin - PRD §3.5.
@@ -75,6 +75,35 @@ type Peserta = {
     diverifikasi_jam: string | null;
 };
 
+/**
+ * Berita acara satu ruang-SESI, diringkas untuk kartu ruang event.
+ *
+ * `dibuka: false` berarti pengawasnya BELUM PERNAH membuka lamannya - dan
+ * laman Admin ini sengaja tidak membuatkan draf untuk ruang itu, karena
+ * `LaporanSesiService::untuk()` memakai `firstOrCreate` dan Admin yang
+ * menyegarkan papan tiap lima menit akan membuat 33 draf kosong. Draf yang
+ * dibuat hanya dengan dibuka berarti berhenti menjadi kabar "pengawas sudah
+ * datang" - satu-satunya kabar yang diberikannya kepada Admin.
+ *
+ * `ruang_sesi_id` adalah kunci yang BENAR untuk berita acara; `baris` di
+ * laman ini berkunci RUANG EVENT, dan satu ruang event bisa memuat beberapa
+ * ruang-sesi. Karena itu bentuknya daftar.
+ */
+type BeritaAcara = {
+    ruang_sesi_id: number;
+    pengawas: string[];
+    url: string;
+    dibuka: boolean;
+    final: boolean;
+    dikirim_pada: string | null;
+    foto: number;
+    foto_sesudah: boolean;
+    ttd_pengawas: boolean;
+    ttd_oleh: string | null;
+    kurang: string[];
+    selesai: boolean;
+};
+
 type Baris = {
     ruang_id: number;
     ruang: string;
@@ -96,6 +125,7 @@ type Baris = {
         pending: number;
     };
     insiden: number;
+    berita_acara: BeritaAcara[];
     peserta: Peserta[];
 };
 
@@ -108,6 +138,7 @@ type Props = {
         hadir: number;
         peserta: number;
         insiden: number;
+        berita_acara_belum: number;
     };
     opsi: Record<string, string>;
     tanpa_pengawas: string[];
@@ -132,7 +163,7 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
         >
             <Head title={`Presensi · ${event.nama}`} />
 
-            <div className="mb-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="mb-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {/* "Ruang", bukan "Ruang-sesi": jalur per-ruang-event menghitung
                     ruangan event, dan label yang menyebut sesi akan membuat Admin
                     mencari kartu yang jumlahnya memang berbeda. */}
@@ -145,6 +176,16 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
                 <KPI label="Hadir" nilai={angka.hadir} nada="ok" />
                 <KPI label="Peserta" nilai={angka.peserta} />
                 <KPI label="Insiden" nilai={angka.insiden} nada={angka.insiden > 0 ? 'bad' : undefined} />
+                {/* Berita acara yang belum final. Angka ini yang membuat Admin
+                    tahu harus mengejar pengawas ruang mana SEBELUM arsipnya
+                    diminta - dan "belum dibuka" sengaja ikut terhitung, karena
+                    ruang yang belum disentuh sama belum selesainya dengan ruang
+                    yang fotonya kurang. */}
+                <KPI
+                    label="Berita acara belum"
+                    nilai={angka.berita_acara_belum}
+                    nada={angka.berita_acara_belum > 0 ? 'bad' : 'ok'}
+                />
             </div>
 
             {tanpa_pengawas.length > 0 && (
@@ -180,6 +221,29 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
                                 ) : (
                                     <Chip nada="ok">tuntas</Chip>
                                 )}
+                                {/* Chip berita acara di KEPALA kartu, bukan hanya
+                                    di badannya: Admin memindai kepala-kepala
+                                    kartu untuk mencari ruang yang tertinggal,
+                                    dan dokumen yang belum selesai adalah
+                                    bagian dari "tertinggal" itu. Dihitung dari
+                                    baris yang sama dengan blok di bawahnya -
+                                    dua hitungan atas data yang sama adalah dua
+                                    angka yang bisa berbeda diam-diam. */}
+                                <Chip
+                                    nada={
+                                        b.berita_acara.length === 0
+                                            ? 'mute'
+                                            : b.berita_acara.every((l) => l.selesai)
+                                              ? 'ok'
+                                              : 'warn'
+                                    }
+                                >
+                                    {b.berita_acara.length === 0
+                                        ? 'tanpa berita acara'
+                                        : b.berita_acara.every((l) => l.selesai)
+                                          ? 'berita acara final'
+                                          : `berita acara ${b.berita_acara.filter((l) => l.selesai).length}/${b.berita_acara.length}`}
+                                </Chip>
                                 <Tombol onClick={() => setBuka(buka === b.ruang_id ? null : b.ruang_id)}>
                                     {buka === b.ruang_id ? 'Tutup daftar' : 'Koreksi presensi'}
                                 </Tombol>
@@ -218,6 +282,8 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
                             </p>
                         )}
 
+                        <BlokBeritaAcara ruang={b.ruang} laporan={b.berita_acara} />
+
                         {buka === b.ruang_id && (
                             <div className="mt-4 border-t border-line pt-3">
                                 <DaftarPeserta
@@ -232,6 +298,133 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
                 ))}
             </div>
         </AdminLayout>
+    );
+}
+
+/**
+ * Berita acara satu kartu ruang - ringkasannya, dan pintu ke dokumennya.
+ *
+ * =====================================================================
+ * Admin MEMBACA, dan karena itu tidak ada satu pun tombol yang menulis
+ * =====================================================================
+ * Yang ditawarkan di sini hanya "Buka berita acara": tautan ke laman dokumen
+ * di tab baru, yang memang boleh dibuka Admin. Menandatangani dan mengirim
+ * tetap milik pengawas ruangnya - `AttendancePolicy::tandatangani()`,
+ * `BeritaAcaraController::tandaTangan()`, dan prop `boleh_ttd` menegakkannya
+ * di tiga tempat, dan laman ini tidak boleh menjadi tempat keempat yang
+ * menawarkan tombol yang pasti ditolak.
+ *
+ * =====================================================================
+ * Yang BELUM dibuka tetap digambar sebagai baris, bukan disembunyikan
+ * =====================================================================
+ * Ruang yang pengawasnya belum menyentuh berita acaranya adalah ruang yang
+ * paling perlu dilihat Admin. Menghilangkan barisnya membuat kartu yang
+ * bersih terbaca "tidak ada yang perlu dikerjakan" untuk ruang yang justru
+ * paling tertinggal.
+ *
+ * =====================================================================
+ * Satu ruang event bisa punya BEBERAPA berita acara
+ * =====================================================================
+ * Berita acara melekat pada ruang-SESI, dan satu ruang event dipakai
+ * beberapa sesi (pagi dan siang, atau dua mapel). Karena itu daftarnya
+ * ditampilkan apa adanya, dengan jam sesinya - dua tanda tangan atas dua
+ * sesi adalah dua dokumen yang berbeda, bukan satu dokumen dua kali.
+ */
+function BlokBeritaAcara({ ruang, laporan }: { ruang: string; laporan: BeritaAcara[] }) {
+    if (laporan.length === 0) {
+        return (
+            <p className="mt-3 border-t border-line/60 pt-2.5 text-[11px] text-ink-3">
+                Ruang {ruang} belum punya sesi, sehingga belum ada berita acara yang bisa
+                dibuat untuknya.
+            </p>
+        );
+    }
+
+    return (
+        <div className="mt-3 border-t border-line/60 pt-2.5">
+            <p className="mb-1.5 text-[11px] text-ink-3">
+                Berita acara ruang-sesi. Admin membaca, mencetak, dan mengunduhnya; tanda
+                tangan tetap milik pengawas ruangnya.
+            </p>
+
+            <div className="space-y-1.5">
+                {laporan.map((l) => (
+                    <div
+                        key={l.ruang_sesi_id}
+                        className="rounded-wf border border-line/70 bg-surface px-2.5 py-2"
+                    >
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-ink">
+                                {l.dibuka ? 'Berita acara' : 'Belum dibuka'}
+                            </span>
+
+                            {l.dibuka && (
+                                <>
+                                    {l.selesai ? (
+                                        <Chip nada="ok">final</Chip>
+                                    ) : (
+                                        <Chip nada="warn">draf</Chip>
+                                    )}
+                                    <Chip nada={l.foto_sesudah ? 'ok' : 'mute'}>
+                                        {l.foto} foto
+                                    </Chip>
+                                    <Chip nada={l.ttd_pengawas ? 'ok' : 'mute'}>
+                                        {l.ttd_pengawas ? 'tanda tangan pengawas' : 'belum ditandatangani'}
+                                    </Chip>
+                                </>
+                            )}
+
+                            {l.dikirim_pada && (
+                                <span className="text-[11px] text-ink-3">
+                                    dikirim {l.dikirim_pada}
+                                </span>
+                            )}
+
+                            <span className="ml-auto">
+                                <TombolTautan
+                                    href={l.url}
+                                    title={`Berita acara ruang ${ruang} · ${l.pengawas.join(', ') || 'tanpa pengawas'}`}
+                                >
+                                    Buka berita acara
+                                </TombolTautan>
+                            </span>
+                        </div>
+
+                        {l.dibuka && !l.selesai && l.kurang.length > 0 && (
+                            <p className="mt-1 text-[11px] leading-relaxed text-warn">
+                                Kurang: {l.kurang.join(' ')}
+                            </p>
+                        )}
+
+                        {/* Ruang yang belum dibuka TIDAK diberi keterangan
+                            "kurang": tidak ada yang kurang pada dokumen yang
+                            belum ada, dan menyebutkannya terbaca sebagai
+                            pengawas yang lalai alih-alih sesi yang belum
+                            berjalan.
+
+                            Yang disebutkan justru konsekuensi menekan
+                            tautannya: lamannya MEMBUAT draf begitu dibuka -
+                            lihat `LaporanSesiService::untuk()`. Admin yang
+                            membukanya untuk memeriksa menghapus kabar
+                            "pengawas belum datang" untuk ruang itu, dan ia
+                            perlu tahu itu SEBELUM menekannya. */}
+                        {!l.dibuka && (
+                            <p className="mt-1 text-[11px] leading-relaxed text-ink-3">
+                                Pengawasnya belum membuka laman ini. Membukanya membuat draf
+                                kosong, dan kabar &ldquo;belum dibuka&rdquo; hilang untuk
+                                ruangan ini.
+                            </p>
+                        )}
+
+                        {l.ttd_oleh && (
+                            <p className="mt-1 text-[11px] text-ink-3">
+                                Ditandatangani {l.ttd_oleh}
+                            </p>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 }
 

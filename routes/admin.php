@@ -307,6 +307,13 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/siapkan', [ExamJadwalController::class, 'siapkanSesi'])->name('events.sesi.siapkan');
     Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/mulai', [ExamJadwalController::class, 'mulaiSesi'])->name('events.sesi.mulai');
     Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/tutup', [ExamJadwalController::class, 'tutupSesi'])->name('events.sesi.tutup');
+    // `StatusSesi::Batal` ada di enum dan grafnya sejak Fase 5, dan lima
+    // pembaca sudah menanganinya - tetapi sampai sekarang tidak ada satu pun
+    // penulisnya. Sesi yang ruangnya berisi berita acara final tidak bisa
+    // DIHAPUS (RESTRICT, dan penolakannya menyuruh membatalkan), jadi tanpa
+    // rute ini satu sesi yang batal terselenggara tidak punya jalan keluar
+    // sama sekali. Lihat `SesiService::batalkan()`.
+    Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/batal', [ExamJadwalController::class, 'batalSesi'])->name('events.sesi.batal');
     Route::delete('/events/{event}/ujian/{ujian}/sesi/{sesi}', [ExamJadwalController::class, 'hapusSesi'])->name('events.sesi.hapus');
 
     // 16b - penempatan peserta ke ruang (wireframe plate 16b, PRD §9.5).
@@ -327,9 +334,17 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // berlaku sepanjang event, jadi sesi bukan bagian dari alamatnya -
     // dan rute yang menyebut sesi akan menyiratkan peta yang berbeda per
     // sesi, persis yang dibalik pada 07 Nov 2026.
+    //
+    // PENGECUALIAN SATU-SATUNYA adalah rute SESI di bawah, yang menyebut
+    // `{sesi}` pada lintasannya. `{sesi}` di sana BUKAN alamat peta - peta
+    // ruangnya tetap satu untuk seluruh event (itulah yang dibalik pada
+    // 07 Nov 2026) - ia SASARAN terapan: peta event yang sama, dipakai ke
+    // satu sesi itu saja. "Pakai penempatan" di tabel kelayakan adalah jalan
+    // keluar untuk sesi yang belum bisa disebar bersama seluruh event.
     Route::get('/events/{event}/penempatan', [ExamPenempatanController::class, 'index'])->name('events.penempatan');
     Route::post('/events/{event}/penempatan', [ExamPenempatanController::class, 'sebar'])->name('events.penempatan.sebar');
     Route::post('/events/{event}/penempatan/kocok-ulang', [ExamPenempatanController::class, 'kocokUlang'])->name('events.penempatan.kocok-ulang');
+    Route::post('/events/{event}/penempatan/sesi/{sesi}', [ExamPenempatanController::class, 'pakaiSesi'])->name('events.penempatan.sesi');
 
     // 16c - denah tempat duduk (wireframe plate 16c). Menyusul rute
     // penempatan, dan urutannya mengikat: `/penempatan/denah` harus
@@ -399,6 +414,18 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // anak tidak kehilangan tempatnya di rekap.
     Route::get('/events/{event}/monitoring/ruang/{ruang}', [PemantauanEventController::class, 'monitoringRuang'])
         ->name('events.monitoring.ruang');
+
+    // Buka kunci dari papan monitoring. Sampai 2026-11-11 satu-satunya jalan
+    // membuka attempt terkunci adalah tautan ruang pengawas, dan tautan itu
+    // 404 untuk siswa yang sudah berpindah ke sesi berikutnya - justru anak
+    // yang paling perlu dibuka. Admin yang sedang memantau melihatnya
+    // terkunci tanpa satu pun tombol.
+    //
+    // `{peserta}` di sini adalah id `exam_participants`, bukan id siswa:
+    // satu anak punya satu baris peserta per ujian, dan yang terkunci adalah
+    // pengerjaannya, bukan akunnya.
+    Route::post('/events/{event}/monitoring/peserta/{peserta}/buka', [PemantauanEventController::class, 'bukaKunci'])
+        ->name('events.monitoring.buka');
 
     /*
     |----------------------------------------------------------------------

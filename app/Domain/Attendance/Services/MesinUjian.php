@@ -120,10 +120,25 @@ class MesinUjian
     /**
      * Periksa token untuk sesi ini.
      *
-     * `null` berarti tidak ada token yang diketik - dan itu hanya sah bila
-     * sesinya memang belum punya token aktif. Ujian ber-token yang dimulai
-     * tanpa mengetik apa pun harus ditolak, atau seluruh gunanya token hilang
-     * pada hari pertama.
+     * -----------------------------------------------------------------
+     * Tidak ada token aktif berarti pintunya TERTUTUP, bukan terbuka
+     * -----------------------------------------------------------------
+     * Dulu cabang ini `return` - sesi tanpa token dianggap "tidak dijaga
+     * token" - dan akibatnya sekolah yang lupa menerbitkan token di
+     * `/admin/events/{event}/token` mendapati siswanya bisa mengerjakan ujian
+     * tanpa satu pun kredensial. Yang bocor justru saat pengawas lupa, dan
+     * tidak ada satu orang pun yang tahu.
+     *
+     * Keputusan yang menggantikannya: setiap sesi dijaga token. Token yang
+     * belum terbit sama dengan pintu yang belum dibuka, dan satu-satunya
+     * jalan membukanya adalah menerbitkannya. Token yang dicabut tanpa
+     * pengganti menghasilkan keadaan yang sama - dan itu memang yang
+     * dimaksud pencabutan.
+     *
+     * Pesannya sengaja menyebut dua kemungkinan sekaligus (belum terbit /
+     * sudah dicabut) karena `tokenAktif()` mengembalikan `null` untuk
+     * keduanya, dan siswa yang menebak-nebak penyebabnya akan menanyakan hal
+     * yang salah ke pengawas.
      */
     private function periksaToken(?ExamSession $sesi, ?string $kodeToken): void
     {
@@ -134,8 +149,10 @@ class MesinUjian
         $aktif = $sesi->tokenAktif();
 
         if ($aktif === null) {
-            // Tanpa token terbit, sesi ini memang tidak dijaga token.
-            return;
+            throw ValidationException::withMessages([
+                'token' => 'Token ujian sesi ini belum diterbitkan atau sudah dicabut. '
+                    .'Tunggu Pengawas ruang atau Admin menerbitkannya, lalu ketik tokennya di sini.',
+            ]);
         }
 
         if ($kodeToken === null || trim($kodeToken) === '') {

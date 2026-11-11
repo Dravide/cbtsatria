@@ -12,6 +12,7 @@ import {
     nadaStatus,
     pakaiFilter,
 } from '@/Components/ui';
+import { GenerateAi, JenisAi, Mapel } from './GenerateAi';
 
 /**
  * Laman Guru 02 - bank soal. Wireframe-peran.html plate 02.
@@ -66,10 +67,16 @@ type Props = {
         status: string;
     };
     jumlah: number;
-    mapel: { id: number; nama: string }[];
+    mapel: Mapel[];
     jenis: { nilai: string; label: string; pendek: string }[];
     status: Opsi[];
     bolehMenulis: boolean;
+    // Jenis soal yang boleh dihasilkan AI, dibaca server dari
+    // PenulisSoalAi::JENIS_DIDUKUNG - bukan daftar yang ditulis ulang di
+    // sini, karena daftar salinan berhenti diperbarui diam-diam.
+    jenisAi?: JenisAi[];
+    // Hanya SAKLARNYA. Base URL dan nama model tidak dikirim ke peramban.
+    ai?: boolean;
 };
 
 export default function BankSoalIndex({
@@ -80,8 +87,11 @@ export default function BankSoalIndex({
     jenis,
     status,
     bolehMenulis,
+    jenisAi = [],
+    ai = false,
 }: Props) {
     const [pilih, setPilih] = useState<number[]>([]);
+    const [modalAi, setModalAi] = useState(false);
 
     const f = pakaiFilter('/guru/bank-soal', {
         cari: filter.cari,
@@ -117,6 +127,9 @@ export default function BankSoalIndex({
             breadcrumb="/guru/bank-soal"
             aksi={
                 <>
+                    {bolehMenulis && ai && jenisAi.length > 0 && (
+                        <Tombol onClick={() => setModalAi(true)}>Generate AI</Tombol>
+                    )}
                     <Link href="/guru/bank-soal/impor" className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2">
                         Impor
                     </Link>
@@ -132,6 +145,17 @@ export default function BankSoalIndex({
             }
         >
             <Head title="Bank soal" />
+
+            {/* Pratinjau hasil AI ditaruh DI ATAS bilah saringan: ia bukan
+                bagian dari penyaringan, dan Guru yang baru meminta sepuluh
+                soal harus melihatnya tanpa menggulir melewati lima menu
+                turun. Modal dan tombolnya hidup di komponen ini. */}
+            <GenerateAi
+                mapel={mapel}
+                jenisAi={jenisAi}
+                terbuka={modalAi}
+                padaTutup={() => setModalAi(false)}
+            />
 
             <div className="mb-3">
                 <BilahFilter padaKirim={f.terapkan}>

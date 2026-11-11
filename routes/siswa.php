@@ -6,6 +6,7 @@ use App\Domain\Attendance\Http\Controllers\Siswa\JadwalSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\KerjakanSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\NilaiSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\PelanggaranSiswaController;
+use App\Domain\Attendance\Http\Controllers\Siswa\RiwayatSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\SelesaiSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\TerkunciSiswaController;
 use App\Domain\Exam\Http\Controllers\ExamMediaSiswaController;
@@ -84,6 +85,18 @@ Route::middleware(['auth', 'siswa'])->prefix('siswa')->name('siswa.')->group(fun
     // Plate 28-29 - nilai dan riwayat pelanggaran sendiri.
     Route::get('/nilai', [NilaiSiswaController::class, 'index'])->name('nilai');
     Route::get('/pelanggaran', [PelanggaranSiswaController::class, 'index'])->name('pelanggaran');
+
+    // Riwayat jawaban satu ujian - "soal nomor 7 saya jawab apa".
+    //
+    // Alamatnya memuat {peserta} karena riwayat MILIK SATU PENEMPATAN, bukan
+    // milik satu anak: seorang siswa boleh mengerjakan dua ujian berbeda di
+    // event yang sama, dan riwayat tanpa penempatan tidak bisa menjawab
+    // ujian mana yang dimaksud.
+    //
+    // Dijaga TIGA pintu di controllernya - publikasi, `show_objectives`, dan
+    // `show_explanations` - dan ketiganya menjawab 404 atau null, bukan
+    // menyembunyikan sesuatu di laman. Lihat RiwayatSiswaController.
+    Route::get('/ujian/{peserta}/riwayat', [RiwayatSiswaController::class, 'tampilkan'])->name('riwayat');
 
     // Tab keempat konsol siswa - identitas, ganti sandi, dan keluar. Tidak
     // digambar wireframe mana pun; isinya dikunci pemilik produk 2026-11-07

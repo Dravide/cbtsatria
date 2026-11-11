@@ -749,6 +749,154 @@ it('menolak sesi milik ujian lain lewat rute siapkan', function () {
     expect($lain['sesi']->refresh()->status)->toBe(StatusSesi::Draft);
 });
 
+/* -------------------------------------------------- Batalkan sesi (2026-11-11) */
+
+/*
+ * Pembatalan sesi punya penulisnya sejak 2026-11-11.
+ *
+ * Sebelumnya `StatusSesi::Batal` hanya ADA: enumnya, grafnya, dan lima
+ * pembacanya sudah benar sejak Fase 5, tetapi tidak ada satu pun yang bisa
+ * memindahkan sesi ke sana. Satu-satunya jalan keluar untuk sesi yang batal
+ * terselenggara adalah menghapus - dan penghapusan itulah yang ditolak
+ * `PembersihRuangSesiService` ketika ruangnya berisi berita acara.
+ */
+it('membatalkan sesi, mencatat alasannya, dan mencabut tokennya', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    expect($data['sesi']->tokenAktif())->not->toBeNull();
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/batal", [
+            'alasan' => 'Listrik padam di seluruh gedung',
+        ])
+        ->assertSessionHas('sukses');
+
+    $sesi = $data['sesi']->refresh();
+
+    expect($sesi->status)->toBe(StatusSesi::Batal)
+        ->and($sesi->cancel_reason)->toBe('Listrik padam di seluruh gedung')
+        ->and($sesi->cancelled_at)->not->toBeNull()
+        // Token yang sudah beredar TIDAK boleh tetap sah: sesi yang batal
+        // tidak punya pintu masuk, dan token yang masih berlaku berarti
+        // kredensial yang dibacakan pengawas tetap membuka gerbang.
+        ->and($sesi->tokenAktif())->toBeNull();
+});
+
+it('membatalkan sesi tanpa alasan, dan menyimpannya sebagai kosong', function () {
+    // Alasan memang tidak wajib, tetapi kolomnya harus tetap null - bukan
+    // string kosong yang harus diingat-ingat setiap kali dibaca.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/batal")
+        ->assertSessionHas('sukses');
+
+    expect($data['sesi']->refresh()->cancel_reason)->toBeNull();
+});
+
+it('membatalkan sesi yang sudah berjalan', function () {
+    // Sesi yang sedang berjalan tetap bisa dibatalkan - grafnya memang
+    // mengizinkan, dan itulah kejadian yang paling sering: ujiannya sudah
+    // dimulai ketika ruangnya harus dikosongkan.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    app(SesiService::class)->siapkan($data['sesi']);
+    app(SesiService::class)->mulai($data['sesi']);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/batal")
+        ->assertSessionHas('sukses');
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Batal);
+});
+
+it('menolak membatalkan sesi yang sudah selesai, dan tidak menyentuhnya', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    app(SesiService::class)->siapkan($data['sesi']);
+    app(SesiService::class)->mulai($data['sesi']);
+    app(SesiService::class)->tutup($data['sesi']);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/batal")
+        ->assertSessionHas('galat');
+
+    $sesi = $data['sesi']->refresh();
+
+    expect($sesi->status)->toBe(StatusSesi::Selesai)
+        ->and($sesi->cancelled_at)->toBeNull();
+});
+
+it('menolak sesi milik ujian lain lewat rute batal', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $lain = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$lain['sesi']->id}/batal")
+        ->assertNotFound();
+
+    expect($lain['sesi']->refresh()->status)->toBe(StatusSesi::Draft);
+});
+
+it('membatalkan sesi yang berita acaranya sudah final - satu-satunya jalan keluar', function () {
+    // Inilah alasan fiturnya ada. `hapusSesi()` menolaknya dengan pesan
+    // "Batalkan sesinya alih-alih menghapusnya", dan sampai sekarang tidak
+    // ada tombol "Batalkan" mana pun.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    SessionReport::create([
+        'school_id' => $this->sekolah->id,
+        'exam_session_room_id' => $data['ruang']->first()->id,
+        'status' => 'final',
+        'created_by' => $this->admin->id,
+    ]);
+
+    masukSebagai($this, $this->admin)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}")
+        ->assertSessionHas('galat', fn (string $pesan) => str_contains($pesan, 'Batalkan'));
+
+    masukSebagai($this, $this->admin)
+        ->post("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}/batal", [
+            'alasan' => 'Ruang dipakai kegiatan lain',
+        ])
+        ->assertSessionHas('sukses');
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Batal)
+        // Berita acaranya TETAP ADA. Itu seluruh gunanya: sesi yang batal
+        // bukan berarti ruangannya tidak pernah kejadian apa-apa.
+        ->and(SessionReport::query()->where('exam_session_room_id', $data['ruang']->first()->id)->exists())->toBeTrue();
+});
+
+it('mengirim alasan pembatalan di baris jadwal', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    app(SesiService::class)->batalkan($data['sesi'], 'Gedung dipakai pemilu');
+
+    masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->where('baris.0.status', 'batal')
+            ->where('baris.0.status_label', 'Batal')
+            ->where('baris.0.alasan_batal', 'Gedung dipakai pemilu')
+            ->whereNot('baris.0.dibatalkan_pada', null)
+        );
+});
+
+it('tidak memindahkan event saat sesinya dibatalkan', function () {
+    // `tutup()` memindahkan event ke Selesai bila sesi terakhir ditutup;
+    // pembatalan TIDAK. Sesi yang batal adalah sesi yang tidak jadi
+    // dijalankan, dan Admin harus tetap bisa menyusun sesi penggantinya di
+    // event yang sama - lihat docblock SesiService::batalkan().
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $sebelum = $this->event->refresh()->status;
+
+    app(SesiService::class)->batalkan($data['sesi']);
+
+    expect($this->event->refresh()->status)->toBe($sebelum);
+});
+
 it('tidak lagi mengirim status ujian ke panel', function () {
     // `exams.status` dijatuhkan 2026-11-07 (migrasi 0016_01_01_000030). Kalau
     // propnya muncul lagi di sini, berarti ada yang menambahkan kolomnya
@@ -1581,5 +1729,33 @@ it('mengirim saran sebagai saran, bukan sebagai perhatian', function () {
             ->where('angka.saran_per_ruang', 2)
             ->has('saran', 2)
             ->missing('perhatian')
+        );
+});
+
+it('hanya menampilkan baris untuk sesi yang sudah punya peserta', function () {
+    // Baris tabel pengawas adalah (ruang, sesi) - dan tiap baris menawarkan
+    // penugasan. Sesi yang belum punya peserta sama sekali belum membutuhkan
+    // pengawas; menampilkan jadwalnya berarti menawarkan penugasan untuk ujian
+    // yang tidak menjalankan siapa pun, keramaian yang menenggelamkan sesi yang
+    // justru membutuhkan perhatian.
+    //
+    // Ujian kedua dibuat dengan `siapkanCalon(..., 0)`: ia punya sesi dan
+    // ruang (baris ruang-sesinya ada di tabel) tetapi NOL peserta. Yang
+    // menguji filter adalah ruangnya yang TETAP dikeluarkan - kalau yang
+    // disaring durasinya atau jumlah ruangnya, test ini lulus tanpa membuktikan
+    // apa-apa.
+    jadwalkan($this->event, $this->mapel, $this->admin);
+
+    siapkanCalon($this->event, $this->mapel, $this->admin, 0);
+
+    masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/pengawas")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Pengawas')
+            ->has('baris', 2)
+            ->where('angka.ruang', 2)
+            // Sesinya tetap punya ruang, jadi ia tidak boleh dilaporkan
+            // sebagai "sesi tanpa ruang".
+            ->where('sesi_tanpa_ruang', [])
         );
 });

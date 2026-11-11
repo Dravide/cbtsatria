@@ -7,13 +7,15 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    {{-- Chivo Mono adalah material konsol siswa (tema Wayfind): papan
-         keberangkatan, dibaca dari tiga meter. Ia dimuat di sini, bukan
+    {{-- Syne, Onest dan JetBrains Mono adalah material konsol siswa (tema
+         Terrazzo): kepala geometris yang lebar, badan sans yang tenang, dan
+         mono untuk waktu serta kode saja. Ketiganya dimuat di sini, bukan
          lewat @import di CSS, karena berkas ini sudah punya preconnect ke
-         fonts.gstatic.com dan satu permintaan koneksi untuk tiga keluarga
-         lebih murah daripada dua. --}}
+         fonts.gstatic.com dan satu permintaan koneksi untuk enam keluarga
+         lebih murah daripada dua. Archivo dan IBM Plex tetap dipakai empat
+         peran lain. --}}
     <link
-        href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Chivo+Mono:wght@400;500;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Onest:wght@400;500&family=Syne:wght@700&display=swap"
         rel="stylesheet"
     >
 

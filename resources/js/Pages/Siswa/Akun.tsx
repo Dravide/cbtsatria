@@ -108,16 +108,20 @@ export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_
                 </Peringatan>
             )}
 
-            <section className="papan overflow-hidden">
-                <header className="papan-kepala">
-                    <span>Identitas</span>
+            <section className="daftar overflow-hidden">
+                <header className="daftar-kepala">
+                    <h2>Identitas</h2>
                 </header>
 
-                <div className="px-3 py-2.5">
+                <div className="px-3 py-3">
                     {/* Nama anak itu sendiri, dan ia satu-satunya nilai di sini
                         yang berukuran lebih besar dari badan teks. */}
-                    <b className="block truncate font-display text-base text-ink">{nama}</b>
-                    <span className="catatan mt-0.5 block truncate">{sekolah ?? 'Sekolah belum terdata'}</span>
+                    <b className="block truncate font-display text-[17px] leading-tight text-ink">
+                        {nama}
+                    </b>
+                    <span className="catatan mt-1 block truncate">
+                        {sekolah ?? 'Sekolah belum terdata'}
+                    </span>
                 </div>
 
                 {/*
@@ -134,12 +138,12 @@ export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_
                 </dl>
             </section>
 
-            <section className="papan overflow-hidden">
-                <header className="papan-kepala">
-                    <span>Ganti sandi</span>
+            <section className="daftar overflow-hidden">
+                <header className="daftar-kepala">
+                    <h2>Ganti sandi</h2>
                 </header>
 
-                <form onSubmit={simpan} className="space-y-2.5 p-3">
+                <form onSubmit={simpan} className="space-y-3 p-3">
                     <Field label="Sandi lama" galat={form.errors.current_password}>
                         <input
                             type="password"
@@ -180,9 +184,8 @@ export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_
                      * memutus sesi di perangkat lain - termasuk kalau
                      * sandinya memang dipakai orang lain.
                      *
-                     * 12px, BUKAN `.catatan` (11px): `.catatan` memang lantai
-                     * untuk teks fungsional sebaris, dan lantai REFLEX 75
-                     * menuntut 12px untuk teks yang mengalir beberapa baris.
+                     * 12px dan leading 1,6 - teks yang mengalir beberapa baris
+                     * di lantai REFLEX 75.
                      */}
                     <p className="text-[12px] leading-relaxed text-ink-2">
                         Mengganti sandi akan mengeluarkan akun Anda dari perangkat lain. Ponsel ini
@@ -199,7 +202,7 @@ export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_
                 </form>
             </section>
 
-            <section className="papan p-3">
+            <section className="daftar">
                 <Link
                     href="/logout"
                     method="post"
@@ -209,7 +212,7 @@ export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_
                             e.preventDefault();
                         }
                     }}
-                    className="tombol w-full text-bad"
+                    className="tombol tombol--bahaya w-full"
                 >
                     Keluar dari akun
                 </Link>
@@ -231,8 +234,8 @@ export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_
  */
 function BarisNilai({ label, nilai }: { label: string; nilai: string | null }) {
     return (
-        <div className="papan-baris flex items-baseline gap-3 px-3 py-2">
-            <dt className="w-[84px] shrink-0 text-[11px] text-ink-2">{label}</dt>
+        <div className="daftar-baris flex items-baseline gap-3 px-3 py-2">
+            <dt className="w-[84px] shrink-0 text-[11px] text-ink-3">{label}</dt>
             <dd className="angka min-w-0 flex-1 truncate text-[12px] text-ink">
                 {nilai ?? 'belum terdata'}
             </dd>

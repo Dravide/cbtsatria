@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import KerangkaPonsel from '@/Layouts/KerangkaPonsel';
 import { Chip, Inbox, Peringatan } from '@/Components/ui';
@@ -106,6 +106,22 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
         <KerangkaPonsel
             judul={`Pelanggaran ${peserta.nama}`}
             bilah={false}
+            // Bilah bawah dengan jalan pulang. Laman ini dibuka dari baris
+            // nama di papan monitoring, dan sebelumnya satu-satunya cara
+            // keluar adalah tombol kembali PERAMBAN - yang tidak ada di
+            // ponsel yang dipakai sebagai aplikasi, dan tidak dikenal
+            // pengawas yang baru pertama memegangnya. Rutenya disebut
+            // eksplisit, bukan `router.back()`, karena laman ini bisa dibuka
+            // langsung dari tautan yang dikirim lewat pesan, dan riwayat
+            // kosong akan meninggalkannya di tempat yang sama.
+            aksiBawah={
+                <Link
+                    href={`/pengawas/ruang/${ruang.id}/monitoring`}
+                    className="flex items-center justify-center gap-1.5 rounded-wf border border-line bg-surface px-3 py-2 text-xs font-medium text-ink"
+                >
+                    <span aria-hidden="true">‹</span> Kembali ke monitoring
+                </Link>
+            }
         >
             <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur">
                 <span className="min-w-0 truncate text-[11px] text-ink-3">

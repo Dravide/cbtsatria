@@ -2,14 +2,18 @@
 
 namespace App\Domain\Attendance\Http\Controllers;
 
+use App\Domain\Attendance\Enums\PeranTandaTangan;
+use App\Domain\Attendance\Enums\SisiFoto;
 use App\Domain\Attendance\Enums\StatusPresensi;
 use App\Domain\Attendance\Models\AttemptQuestion;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\ExamViolation;
+use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Attendance\Services\InsidenService;
 use App\Domain\Attendance\Services\KehadiranService;
 use App\Domain\Attendance\Services\KonteksRuang;
+use App\Domain\Attendance\Services\PencatatPelanggaran;
 use App\Domain\Event\Models\EventRoom;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\ExamParticipant;
@@ -75,6 +79,7 @@ class PemantauanEventController
         private readonly InsidenService $insiden,
         private readonly NomorKursi $kursi,
         private readonly PetaKursiEvent $peta,
+        private readonly PencatatPelanggaran $pencatat,
     ) {}
 
     /**
@@ -116,11 +121,16 @@ class PemantauanEventController
 
         $ruangan = $this->ruangan($event);
 
+        // Berita acaranya dibaca SEKALI untuk kedua bentuk laman - lihat
+        // `beritaAcara()`. Dua pemanggilan berarti dua kueri atas tabel yang
+        // sama untuk laman yang hanya dibuka satu kali.
+        $laporan = $this->beritaAcara($ruangan);
+
         $roster = $this->peta->rosterEvent($event);
 
         return $roster === null
-            ? $this->presensiPerRuangSesi($event, $ruangan)
-            : $this->presensiPerRuangEvent($event, $ruangan, $roster);
+            ? $this->presensiPerRuangSesi($event, $ruangan, $laporan)
+            : $this->presensiPerRuangEvent($event, $ruangan, $roster, $laporan);
     }
 
     /**
@@ -129,8 +139,9 @@ class PemantauanEventController
      * Dipakai event yang belum pernah dikocok - lihat catatan `presensi()`.
      *
      * @param  Collection<int, ExamSessionRoom>  $ruangan
+     * @param  Collection<int, SessionReport>  $laporan  kunci: exam_session_room_id
      */
-    private function presensiPerRuangSesi(SchoolEvent $event, Collection $ruangan): Response
+    private function presensiPerRuangSesi(SchoolEvent $event, Collection $ruangan, Collection $laporan): Response
     {
         // Satu query presensi untuk SELURUH event, bukan satu per ruang.
         // Laman ini dibuka Admin di tengah hari-H saat basis data paling
@@ -158,7 +169,7 @@ class PemantauanEventController
         // lihat catatan `InsidenService::jumlahTerbukaPerRuang()`.
         $insidenPerRuang = $this->insiden->jumlahTerbukaPerRuang($ruangan);
 
-        $baris = $ruangan->map(function (ExamSessionRoom $ruang) use ($records, $recordsPerRuang, $insidenPerRuang) {
+        $baris = $ruangan->map(function (ExamSessionRoom $ruang) use ($records, $recordsPerRuang, $insidenPerRuang, $laporan) {
             $rekap = $this->kehadiran->rekapDari(
                 $recordsPerRuang->get($ruang->id, new Collection),
             );
@@ -181,6 +192,11 @@ class PemantauanEventController
                     ->all(),
                 'rekap' => $rekap,
                 'insiden' => $insidenPerRuang[$ruang->id] ?? 0,
+
+                // Jalur ini barisnya SUDAH ruang-sesi, jadi berita acaranya
+                // satu - bandingkan `presensiPerRuangEvent()`, yang harus
+                // menggabungkan beberapa ruang-sesi di bawah satu ruang event.
+                'berita_acara' => [$this->ringkasLaporan($ruang, $laporan->get($ruang->id))],
 
                 // Daftar anak-anaknyalah yang membuat laman ini bisa MEMPERBAIKI
                 // sesuatu; tanpa mereka, Admin hanya bisa melihat bahwa satu
@@ -220,8 +236,9 @@ class PemantauanEventController
      *
      * @param  Collection<int, ExamSessionRoom>  $ruangan  Ruang sesi event ini.
      * @param  array<int, array<int, array{id: ?int, student_id: int, kursi: int, nama: ?string, nis: ?string, kelas: ?string}>>  $roster
+     * @param  Collection<int, SessionReport>  $laporan  kunci: exam_session_room_id
      */
-    private function presensiPerRuangEvent(SchoolEvent $event, Collection $ruangan, array $roster): Response
+    private function presensiPerRuangEvent(SchoolEvent $event, Collection $ruangan, array $roster, Collection $laporan): Response
     {
         // Id penempatan setiap siswa, dipakai menautkan baris presensinya.
         // Dibaca dari simpanan `PetaKursiEvent` yang sudah diisi
@@ -283,6 +300,16 @@ class PemantauanEventController
                 ->values()
                 ->all());
 
+        // Berita acara per ruang EVENT. Satu ruang event bisa menampung
+        // BEBERAPA ruang-sesi - satu per sesi yang memakainya - dan berita
+        // acaranya melekat pada ruang-SESI, bukan pada ruang event. Karena
+        // itu daftarnya, bukan satu nilai: ruang yang dipakai ujian pagi dan
+        // siang punya dua laporan yang ditandatangani orang yang berbeda.
+        //
+        // Dikelompokkan dari koleksi yang SUDAH dimuat, sehingga tidak ada
+        // kueri per ruang - sifat yang dijaga `PemantauanQueryTest`.
+        $ruangSesiPerRuang = $ruangan->groupBy(fn (ExamSessionRoom $r) => (int) $r->event_room_id);
+
         $baris = [];
 
         foreach ($roster as $idRuangEvent => $anggota) {
@@ -304,6 +331,10 @@ class PemantauanEventController
                 'pengawas' => $pengawasPerRuang[$idRuangEvent] ?? [],
                 'rekap' => $this->rekapRuangEvent($anggota, $idPenempatan, $records),
                 'insiden' => (int) ($insidenPerRuang[$idRuangEvent] ?? 0),
+                'berita_acara' => ($ruangSesiPerRuang->get((int) $idRuangEvent) ?? collect())
+                    ->map(fn (ExamSessionRoom $r) => $this->ringkasLaporan($r, $laporan->get($r->id)))
+                    ->values()
+                    ->all(),
                 'peserta' => $this->pesertaRuangEvent($anggota, $idPenempatan, $records),
             ];
         }
@@ -458,6 +489,17 @@ class PemantauanEventController
                 'hadir' => $baris->sum(fn (array $b) => $b['rekap']['hadir']),
                 'peserta' => $baris->sum(fn (array $b) => $b['rekap']['total']),
                 'insiden' => $baris->sum('insiden'),
+
+                // Ruang yang berita acaranya BELUM final - dan "belum" di sini
+                // mencakup dua keadaan yang sama-sama perlu dikejar Admin:
+                // belum pernah dibuka pengawasnya, dan sudah dibuka tetapi
+                // fotonya/tanda tangannya belum lengkap. Keduanya dihitung
+                // sebagai satu angka karena pertanyaan Admin-nya satu: "ruang
+                // mana yang dokumennya belum selesai".
+                'berita_acara_belum' => $baris
+                    ->filter(fn (array $b) => collect($b['berita_acara'])
+                        ->contains(fn (array $l) => $l['selesai'] === false))
+                    ->count(),
             ],
 
             'opsi' => StatusPresensi::options(),
@@ -709,6 +751,117 @@ class PemantauanEventController
     /* ------------------------------------------------------------- Pembantu */
 
     /**
+     * Berita acara SELURUH ruang-sesi event ini, dalam satu kueri.
+     *
+     * ---------------------------------------------------------------------
+     * MEMBACA saja - dan itu berbeda dari laman pengawas
+     * ---------------------------------------------------------------------
+     * `LaporanSesiService::untuk()` memakai `firstOrCreate`, sehingga LAMAN
+     * PENGAWAS membuat draf hanya dengan dibuka. Di sini itu justru salah:
+     * Admin yang menyegarkan papan presensi setiap lima menit akan membuat
+     * 33 draf kosong, dan "pengawas sudah membuka berita acaranya" - satu-
+     * satunya informasi yang diberikan draf kepada Admin - berhenti berarti
+     * apa pun.
+     *
+     * Karena itu yang dibaca hanya baris yang SUDAH ada, dan ruang tanpa
+     * draf dikirim sebagai `null` di `ringkasLaporan()`.
+     *
+     * ---------------------------------------------------------------------
+     * Dua relasi dimuat sekaligus, dan tidak ada yang dijalankan per ruang
+     * ---------------------------------------------------------------------
+     * Satu kueri laporan + satu kueri berkas + satu kueri tanda tangan,
+     * berapa pun jumlah ruangnya. Menghitung "berapa foto" dan "ada tanda
+     * tangan pengawas" lewat relasi yang tidak dimuat akan menghasilkan N+1
+     * pada laman yang dibuka Admin di tengah ujian.
+     *
+     * @param  Collection<int, ExamSessionRoom>  $ruangan
+     * @return Collection<int, SessionReport> kunci: exam_session_room_id
+     */
+    private function beritaAcara(Collection $ruangan): Collection
+    {
+        if ($ruangan->isEmpty()) {
+            return collect();
+        }
+
+        return SessionReport::query()
+            ->whereIn('exam_session_room_id', $ruangan->pluck('id'))
+            ->with([
+                'berkas:id,session_report_id,sisi,path,nama_asli',
+                'tandaTangan:id,session_report_id,peran,nama,path,pelaku_label',
+            ])
+            ->get()
+            ->keyBy('exam_session_room_id');
+    }
+
+    /**
+     * Satu baris berita acara, ringkas - untuk ditumpangkan pada kartu ruang.
+     *
+     * ---------------------------------------------------------------------
+     * Ia TIDAK memuat isi laporannya, dan itu disengaja
+     * ---------------------------------------------------------------------
+     * Catatan, foto, dan tanda tangan adalah isi DOKUMEN, dan dokumen dibaca
+     * di lamannya sendiri (`/pengawas/ruang/{ruang}/berita-acara`) - lengkap
+     * dengan fotonya dan kolom tanda tangannya. Yang dikirim di sini hanya
+     * cukup untuk menjawab pertanyaan Admin: "ruang mana yang berita
+     * acaranya belum selesai".
+     *
+     * `url` dibangun di server, bukan disusun di React: alamat yang hidup di
+     * dua tempat adalah alamat yang suatu hari berbeda di salah satunya -
+     * pola yang sama dengan `ruang_url` di `monitoring()`.
+     *
+     * ---------------------------------------------------------------------
+     * `null` berarti BELUM DIBUKA, dan itu bukan "kosong"
+     * ---------------------------------------------------------------------
+     * Ruang tanpa baris laporan belum pernah dibuka pengawasnya. Mengirim
+     * draf kosong untuknya akan menyamakan dua keadaan yang berbeda: "belum
+     * disentuh siapa pun" dan "sudah dibuka, belum diisi" - dan Admin yang
+     * mengejar pengawas perlu membedakannya.
+     *
+     * @return array<string, mixed>
+     */
+    private function ringkasLaporan(ExamSessionRoom $ruang, ?SessionReport $laporan): array
+    {
+        $kurang = $laporan?->kekuranganFinal() ?? [];
+        $ttd = $laporan?->tandaTanganPeran(PeranTandaTangan::Pengawas);
+
+        return [
+            'ruang_sesi_id' => (int) $ruang->id,
+            'pengawas' => $ruang->supervisors
+                ->map(fn ($t) => $t->supervisor?->name)
+                ->filter()
+                ->values()
+                ->all(),
+            'url' => route('pengawas.berita-acara', ['ruang' => $ruang->id], absolute: false),
+
+            // `false` = belum pernah dibuka pengawasnya. Tidak ada draf yang
+            // dibuat untuknya - lihat `beritaAcara()`.
+            'dibuka' => $laporan !== null,
+            'final' => $laporan?->final() ?? false,
+            'dikirim_pada' => $laporan?->submitted_at?->format('d M H:i'),
+
+            // Jumlah foto, bukan daftar URL-nya: yang membuka berita acaranya
+            // membuka lamannya, dan di sana fotonya tampil seukuran aslinya.
+            'foto' => $laporan === null
+                ? 0
+                : $laporan->berkas->count(),
+            'foto_sesudah' => $laporan?->berkasSisi(SisiFoto::Sesudah->value) !== null,
+
+            // Tanda tangan pengawas adalah SATU-SATUNYA yang wajib - lihat
+            // `PeranTandaTangan::wajib()` - sehingga ia satu-satunya yang
+            // menentukan selesainya dokumen.
+            'ttd_pengawas' => $ttd !== null,
+            'ttd_oleh' => $ttd?->nama,
+
+            // Daftar APA yang masih kurang, dari modelnya - bukan disusun
+            // ulang di sini. Aturan yang hidup di dua tempat akan berbeda
+            // suatu hari, dan yang berbeda berupa laporan yang tampak selesai
+            // padahal belum.
+            'kurang' => $kurang,
+            'selesai' => $laporan !== null && $laporan->final(),
+        ];
+    }
+
+    /**
      * Baris presensi satu ruang, untuk daftar peserta di laman Admin.
      *
      * Admin tidak memanggil nama satu per satu - tetapi ia MENGOREKSI, dan
@@ -746,6 +899,69 @@ class PemantauanEventController
             ->sortBy('nama')
             ->values()
             ->all();
+    }
+
+    /**
+     * Buka kunci satu peserta dari papan monitoring Admin.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa Admin perlu jalurnya sendiri
+     * ---------------------------------------------------------------------
+     * Sampai 2026-11-11 satu-satunya jalan membuka attempt yang terkunci
+     * adalah tautan ruang pengawas. Itu cukup selama pengawasnya ada di
+     * ruangnya - dan pada ujian yang siswanya sudah berpindah ke sesi
+     * berikutnya, tautan ruang sesi lama berakhir 404: pesertanya tidak lagi
+     * duduk di ruang itu. Admin yang sedang memantau justru melihat anak itu
+     * di papan, terkunci, tanpa satu pun tombol.
+     *
+     * ---------------------------------------------------------------------
+     * Yang ditulis SAMA dengan jalur pengawas
+     * ---------------------------------------------------------------------
+     * `PencatatPelanggaran::catatPembukaan()` dipakai ulang, bukan
+     * diduplikasi: pembukaan kunci menulis baris `kunci_dibuka` ke riwayat
+     * yang dibaca siswa di `/siswa/pelanggaran`, dan dua jalur yang menulis
+     * dua bentuk baris akan membuat riwayat itu punya dua bahasa.
+     *
+     * Pelakunya ditandai lewat `pelaku_label` yang menyebut "Admin", sehingga
+     * catatan siswa tidak menyebut pengawas ruang yang tidak pernah
+     * menyentuhnya.
+     */
+    public function bukaKunci(SchoolEvent $event, Request $request, ExamParticipant $peserta): RedirectResponse
+    {
+        Gate::authorize('view', $event);
+
+        // Peserta harus benar-benar milik event ini. Tanpa pemeriksaan ini,
+        // nomor peserta berurutan cukup untuk membuka kunci anak di sekolah
+        // lain pada event yang tidak sedang dipantau.
+        abort_unless((int) $peserta->exam?->event_id === (int) $event->id, 404);
+
+        $valid = $request->validate([
+            'alasan' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        $attempt = ExamAttempt::query()
+            ->where('exam_participant_id', $peserta->id)
+            ->orderByDesc('attempt_number')
+            ->first();
+
+        if ($attempt === null) {
+            return back()->with('galat', 'Peserta ini belum mulai mengerjakan, jadi tidak ada yang terkunci.');
+        }
+
+        if (! $attempt->dikunci()) {
+            return back()->with('galat', 'Pengerjaan peserta ini tidak sedang terkunci.');
+        }
+
+        $alasan = trim((string) ($valid['alasan'] ?? ''));
+
+        $this->pencatat->catatPembukaan(
+            $attempt,
+            'Admin '.($request->user()?->name ?? ''),
+            $alasan === '' ? 'Dibuka dari papan monitoring Admin.' : $alasan,
+            $request->user()?->id,
+        );
+
+        return back()->with('sukses', 'Kunci dibuka. Penghitung pelanggaran tidak direset, dan pembukaannya tercatat.');
     }
 
     /**
@@ -849,6 +1065,34 @@ class PemantauanEventController
                         ->map(fn (ExamViolation $v) => $v->jumlah.' '.strtolower(ExamViolation::JENIS[$v->violation_type] ?? $v->violation_type))
                         ->values()
                         ->all(),
+
+                    // --------------------------------------------------
+                    // Keadaan layar, dibaca dari DENYUT dan RIWAYAT
+                    // --------------------------------------------------
+                    // Keduanya di sini punya alasan yang berbeda, dan
+                    // menyatukannya akan membuat salah satunya berbohong.
+                    //
+                    // `layar_penuh` adalah KEADAAN SEKARANG, dilaporkan
+                    // setiap tiga puluh detik (`DenyutService`). Ia bisa
+                    // basi, dan ia menyebut keadaan - bukan perbuatan.
+                    // Karena itu ia tidak pernah menambah penghitung
+                    // pelanggaran; yang menambah adalah `keluar_layar_penuh`.
+                    //
+                    // `layar_terbagi` adalah JUMLAH PERISTIWA yang sudah
+                    // tercatat. Ia tidak pernah berkurang, dan ia menjawab
+                    // pertanyaan yang berbeda: "berapa kali".
+                    //
+                    // Keduanya berasal dari koleksi yang SUDAH dimuat
+                    // (`$a` dari `attemptTerakhir()`, `$jenis` dari
+                    // `pelanggaranPeserta()`), sehingga dua isyarat ini tidak
+                    // menambah satu kueri pun - sifat yang dijaga
+                    // `PemantauanQueryTest`.
+                    'layar_penuh' => $a === null
+                        ? null
+                        : (bool) ($a->guard_flags_json['layar_penuh'] ?? false),
+                    'layar_terbagi' => (int) ($jenis
+                        ->firstWhere('violation_type', 'layar_terbagi')?->jumlah ?? 0),
+
                     'terkunci' => $a?->dikunci() ?? false,
                     'kunci_alasan' => $a?->lock_reason,
                 ];

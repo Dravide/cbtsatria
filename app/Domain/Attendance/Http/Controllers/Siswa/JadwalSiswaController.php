@@ -108,10 +108,23 @@ class JadwalSiswaController extends SiswaDasar
         // "menunggu" pada kartu utama berarti: hari ini, dan belum selesai.
         // Kartu yang menunjuk ujian minggu depan akan membuat anak menekan
         // tombol yang pasti ditolak gerbangnya.
+        //
+        // `copy()` WAJIB. `$sekarang` adalah satu instance Carbon yang dipakai
+        // ULANG oleh pemanggil untuk setiap baris, dan `modify()` mengubahnya
+        // di tempat. Tanpa salinan, batas "besok" ini menggeser `$sekarang`
+        // sehari penuh untuk sisa fungsi ini - sehingga status yang dihitung
+        // baris 135 dibandingkan dengan BESOK, bukan dengan sekarang.
+        //
+        // Gejalanya persis kebalikan dari yang terbaca: sesi yang sudah tutup
+        // dilaporkan "terlewat" (nada bad) sementara `boleh_mulai` di baris
+        // yang sama bernilai true, dan `sekarang` yang dikirim ke peramban
+        // bertanggal besok.
+        $batasUtama = $sekarang->copy()->addDay();
+
         $utama = ! $selesai
             && $sesi !== null
             && $sesi->hard_end_at >= $sekarang
-            && $sesi->access_opens_at <= $sekarang->modify('+1 day');
+            && $sesi->access_opens_at <= $batasUtama;
 
         return [
             'peserta_id' => $p->id,

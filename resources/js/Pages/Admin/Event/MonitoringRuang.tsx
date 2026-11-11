@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Chip, Inbox, Kotak, Modal } from '@/Components/ui';
 
@@ -135,6 +135,17 @@ type Anak = {
     denyut: string | null;
     pelanggaran: number;
     jenis_pelanggaran: string[];
+    /**
+     * Keadaan layar penuh menurut denyut terakhir - `null` bila anak belum
+     * pernah mengirim denyut sama sekali.
+     *
+     * Ia BISA BASI, dan itu sebabnya ia bukan penghitung pelanggaran:
+     * kejadiannya dicatat terpisah sebagai `keluar_layar_penuh`, dan yang
+     * dibaca di sini hanya keadaannya sekarang.
+     */
+    layar_penuh: boolean | null;
+    /** Berapa kali layar anak terbagi selama ujian - jumlah PERISTIWA. */
+    layar_terbagi: number;
     terkunci: boolean;
     kunci_alasan: string | null;
     /**
@@ -225,6 +236,32 @@ export default function EventMonitoringRuang({
 }: Props) {
     // Anak yang rincian soalnya sedang dibuka. `null` berarti modalnya tutup.
     const [rincian, setRincian] = useState<Anak | null>(null);
+
+    /**
+     * Buka kunci satu peserta, dengan alasan yang diminta lebih dulu.
+     *
+     * Alasannya ditanyakan di sini, bukan dikirim kosong: `catatPembukaan()`
+     * menulis alasannya ke riwayat yang dibaca SISWA di
+     * `/siswa/pelanggaran`, dan baris "Dibuka dari papan monitoring Admin"
+     * yang generik membuat anak membaca alasan yang tidak menerangkan apa
+     * pun. Batal pada dialog berarti tidak ada permintaan sama sekali.
+     */
+    const bukaKunci = (a: Anak) => {
+        const alasan = window.prompt(
+            `Buka kunci pengerjaan ${a.nama}?\n\nAlasan pembukaan akan tercatat di riwayat pelanggaran siswa.`,
+            '',
+        );
+
+        if (alasan === null) {
+            return;
+        }
+
+        router.post(
+            `/admin/events/${event.id}/monitoring/peserta/${a.peserta_id}/buka`,
+            { alasan },
+            { preserveScroll: true },
+        );
+    };
 
     return (
         <AdminLayout
@@ -317,7 +354,12 @@ export default function EventMonitoringRuang({
 
             <RingkasSoal soal={soal} angka={angka_soal} />
 
-            <DaftarAnak anak={anak} ruang={ruang.kode} padaRincian={setRincian} />
+            <DaftarAnak
+                anak={anak}
+                ruang={ruang.kode}
+                padaRincian={setRincian}
+                padaBukaKunci={bukaKunci}
+            />
 
             <Modal
                 judul={rincian ? `Butir soal · ${rincian.nama}` : 'Butir soal'}
@@ -677,10 +719,12 @@ function DaftarAnak({
     anak,
     ruang,
     padaRincian,
+    padaBukaKunci,
 }: {
     anak: Anak[];
     ruang: string;
     padaRincian: (a: Anak) => void;
+    padaBukaKunci: (a: Anak) => void;
 }) {
     if (anak.length === 0) {
         return (
@@ -719,11 +763,48 @@ function DaftarAnak({
 
                         <span className="ml-auto flex flex-wrap items-center gap-2">
                             {a.terkunci && <Chip nada="bad">terkunci</Chip>}
+
+                            {/* Layar, dan mengapa dua chip dan bukan satu.
+                                `layar_penuh === false` adalah KEADAAN yang
+                                dilaporkan denyut - bisa basi, dan anak yang
+                                baru saja kembali ke layar penuh masih tampil
+                                di sini sampai tiga puluh detik berikutnya.
+                                Ia berwarna `warn`, bukan `bad`: yang
+                                terpenting adalah jumlah kejadian di
+                                sebelahnya. */}
+                            {a.layar_penuh === false && <Chip nada="warn">di luar layar penuh</Chip>}
+                            {a.layar_terbagi > 0 && (
+                                <Chip nada={a.layar_terbagi >= 3 ? 'bad' : 'warn'}>
+                                    layar terbagi {a.layar_terbagi}×
+                                </Chip>
+                            )}
+
                             {a.pelanggaran > 0 && (
                                 <Chip nada="warn">{a.jenis_pelanggaran.join(', ')}</Chip>
                             )}
                             {a.terhubung === false && <Chip nada="bad">terputus</Chip>}
                             <Chip nada={a.status_nada as 'mute'}>{a.status_label}</Chip>
+
+                            {/* Buka kunci, DI SINI dan bukan di laman
+                                pengawas saja - lihat catatan
+                                `bukaKunci()` di PemantauanEventController.
+                                Tautan ruang pengawas 404 untuk siswa yang
+                                sudah berpindah sesi, dan justru anak itulah
+                                yang Admin lihat terkunci di papan ini.
+
+                                Tombolnya hanya muncul pada baris yang memang
+                                terkunci: tombol yang selalu ada dan selalu
+                                ditolak mengajari Admin untuk tidak
+                                memercayai papannya. */}
+                            {a.terkunci && (
+                                <button
+                                    type="button"
+                                    onClick={() => padaBukaKunci(a)}
+                                    className="rounded-wf border border-accent bg-accent px-2 py-0.5 text-[11px] font-medium text-on-accent hover:bg-accent/90"
+                                >
+                                    Buka kunci
+                                </button>
+                            )}
 
                             {/* Rincian butirnya dibuka di modal, bukan
                                 dituliskan di baris ini: satu anak bisa

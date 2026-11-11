@@ -52,6 +52,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'school_id',
     'created_by',
     'subject_id',
+    'code',
     'name',
     'grade_level',
     'description',

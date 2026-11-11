@@ -11,6 +11,7 @@ use App\Domain\Attendance\Support\TanggaPelanggaran;
 use App\Domain\Event\Support\AmbangPelanggaran;
 use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamQuestion;
+use App\Domain\Exam\Services\TokenSesi;
 use App\Domain\Identity\Models\User;
 use App\Domain\Question\Models\QuestionMedia;
 use App\Domain\Tenancy\Models\School;
@@ -162,6 +163,77 @@ it('menolak token yang salah dan token yang tidak diisi', function () {
         ->assertRedirect("/siswa/ujian/{$peserta->id}/kerjakan");
 
     expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_BERJALAN);
+});
+
+/* =====================================================================
+ | Sesi tanpa token aktif - pintunya TERTUTUP, bukan terbuka
+ |===================================================================== */
+
+it('menolak memulai dan membuka laman pengerjaan saat token belum diterbitkan', function () {
+    // Keadaan yang dilaporkan: sekolah lupa menerbitkan token di
+    // `/admin/events/{event}/token`, dan siswa tetap bisa mengerjakan.
+    //
+    // Sampai 2026-11-10 ada DUA jalan yang membiarkannya: `periksaToken()`
+    // melewatkan sesi tanpa token sama sekali, dan `/kerjakan` tidak
+    // memeriksa apa pun sehingga alamat itu bisa dibuka langsung. Keduanya
+    // ditutup, dan test ini mencoba keduanya.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+
+    app(TokenSesi::class)->cabutSemua($data['sesi']);
+
+    // Bahwa cabutnya berhasil, bukan test yang lulus karena sesinya memang
+    // tidak pernah punya token.
+    expect($data['sesi']->fresh()?->tokenAktif())->toBeNull();
+
+    // 1. Gerbangnya sendiri menyatakan bahwa tokennya belum ada.
+    masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/gerbang")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('layak.boleh', true)
+            ->where('ber_token', false)
+        );
+
+    // 2. Memulai ditolak, termasuk kalau token lama masih diketik - token
+    //    yang dicabut tidak membuka apa pun.
+    mulaiAttempt($this, $data['siswa'][0], $peserta)
+        ->assertSessionHasErrors('token');
+
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token'])
+        ->assertSessionHasErrors('token');
+
+    expect(ExamAttempt::query()->where('exam_participant_id', $peserta->id)->count())->toBe(0);
+
+    // 3. Dan alamat `/kerjakan` yang dibuka langsung tidak menyerahkan soal.
+    //    Di sini yang menolaknya adalah "belum ada attempt" - lihat test
+    //    berikutnya untuk attempt yang SUDAH berjalan lalu tokennya dicabut.
+    masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/kerjakan")
+        ->assertRedirect("/siswa/ujian/{$peserta->id}/gerbang");
+});
+
+it('mengembalikan siswa ke gerbang saat token ujian yang sedang berjalan dicabut', function () {
+    // Keadaan yang berbeda dari di atas, dan yang lebih berbahaya: attempt
+    // sudah BERJALAN, lalu tokennya dicabut di tengah ujian. Sebelum
+    // pemeriksaan di `tampilkan()`, anak yang memuat ulang laman ini tetap
+    // menerima seluruh soal beserta jawabannya.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_BERJALAN);
+
+    app(TokenSesi::class)->cabutSemua($data['sesi']);
+
+    masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/kerjakan")
+        ->assertRedirect("/siswa/ujian/{$peserta->id}/gerbang")
+        ->assertSessionHasErrors('token');
 });
 
 it('menolak siswa lain membuka penempatan yang bukan miliknya', function () {
@@ -875,6 +947,35 @@ it('menolak berkas soal lewat tiga jalan, dan membukanya lewat jalan yang benar'
 /* =====================================================================
  | Plate 19, 25, 28, 29 - laman yang membaca, bukan menulis
  |===================================================================== */
+
+it('membaca satu jam yang sama untuk status dan untuk jam yang dikirim', function () {
+    // Regresi 2026-11-11. `bentukBaris()` dulu memanggil
+    // `$sekarang->modify('+1 day')` untuk menghitung batas kartu utama.
+    // `modify()` mengubah Carbon DI TEMPAT, dan `$sekarang` adalah satu
+    // instance yang dipakai ulang untuk setiap baris - sehingga status yang
+    // dihitung sesudahnya dibandingkan dengan BESOK.
+    //
+    // Gejalanya tidak terlihat sebagai galat: sesi yang masih terbuka
+    // dilaporkan "terlewat" berwarna bad sementara `boleh_mulai` di baris
+    // yang sama bernilai true, dan `sekarang` yang sampai ke peramban
+    // bertanggal besok. Karena itu yang diperiksa di sini adalah KETIGANYA
+    // sekaligus - status, nada, dan tanggal kiriman.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta']->firstWhere('student_id', $data['siswa'][0]->id);
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get('/siswa')
+        ->viewData('page')['props'];
+
+    $baris = collect($props['jadwal'])->firstWhere('peserta_id', $peserta->id);
+
+    expect($baris['status'])->toBe('siap dimulai')
+        ->and($baris['nada'])->toBe('ok')
+        ->and($baris['boleh_mulai'])->toBeTrue()
+        ->and(substr($props['sekarang'], 0, 10))->toBe(now()->format('Y-m-d'));
+});
 
 it('menampilkan jadwal, nilai, dan riwayat pelanggaran siswa itu sendiri', function () {
     $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);

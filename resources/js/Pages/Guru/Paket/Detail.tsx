@@ -65,6 +65,7 @@ type SoalBank = {
 
 type Paket = {
     id: number;
+    kode: string;
     nama: string;
     mapel_id: number;
     mapel: string | null;
@@ -203,6 +204,10 @@ export default function PaketDetail({ paket, butir, ringkasan, bank, bolehUbah }
                 )}
 
                 <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
+                    {/* Kode paling depan dan mono: ia yang diketik orang saat
+                        menyebut paket ini di ruang guru, dan satu-satunya
+                        bagian baris ini yang perlu dibaca huruf demi huruf. */}
+                    <span className="font-mono text-ink-2">{paket.kode}</span>
                     <Chip nada={paket.status === 'siap' ? 'ok' : 'mute'}>
                         {paket.status === 'siap' ? 'Siap' : 'Draft'}
                     </Chip>

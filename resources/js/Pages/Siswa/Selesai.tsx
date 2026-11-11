@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
-import { Inbox, Peringatan } from '@/Components/ui';
+import { Peringatan } from '@/Components/ui';
 
 /**
  * Konfirmasi dan penutupan - wireframe-peran.html plate 26 dan 27.
@@ -157,10 +157,10 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                     )}
                 </div>
 
-                <Inbox>
+                <p className="keterangan">
                     Nilai keluar setelah seluruh uraian selesai dikoreksi Guru. Anda dapat
                     memeriksanya di tab <b>Nilai</b>.
-                </Inbox>
+                </p>
             </KerangkaSiswa>
         );
     }
@@ -199,7 +199,7 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                 </div>
             }
         >
-            <section className="papan grid grid-cols-4 overflow-hidden">
+            <section className="daftar grid grid-cols-4 overflow-hidden">
                 <SelAngka label="Terjawab" nilai={String(progres.terjawab)} nada="ok" />
                 <SelAngka
                     label="Kosong"
@@ -222,9 +222,9 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
             )}
 
             {adaKosong && (
-                <section className="papan overflow-hidden">
-                    <header className="papan-kepala">
-                        <span>Nomor yang belum terjawab</span>
+                <section className="daftar overflow-hidden">
+                    <header className="daftar-kepala">
+                        <h2>Nomor yang belum terjawab</h2>
                     </header>
 
                     <div className="grid grid-cols-5 gap-1.5 p-3">
@@ -266,7 +266,7 @@ function SelAngka({
 
     return (
         <div className="min-w-0 border-r border-line px-2 py-2 text-center last:border-r-0">
-            <b className={'angka block font-display text-lg leading-none ' + warna}>{nilai}</b>
+            <b className={'angka-hitung block text-[17px] leading-none ' + warna}>{nilai}</b>
             <span className="mt-1 block truncate text-[11px] text-ink-2">{label}</span>
         </div>
     );
