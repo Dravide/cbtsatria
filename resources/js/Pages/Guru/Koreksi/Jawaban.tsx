@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import GuruLayout from '@/Layouts/GuruLayout';
 import { Chip, Field, Inbox, Peringatan, Tombol, kelasInput } from '@/Components/ui';
+import { Html } from '@/Components/PratinjauButir';
 import { formatPoin } from '@/Components/angka';
 
 /**
@@ -203,12 +204,13 @@ export default function KoreksiJawaban({
                     <div className="p-4">
                         <p className="mb-3 text-xs text-ink-3">{soal.judul}</p>
 
-                        {/* Teks soal dirender sebagai teks, BUKAN HTML. Soal
-                            bisa memuat HTML dan laman ini bukan tempatnya;
-                            yang perlu dibaca Guru di sini adalah jawaban. */}
+                        {/* Teks soal adalah HTML berformat dari snapshot, jadi
+                            dirender lewat `Html` - pola yang sama dengan
+                            `Siswa/Riwayat`. Jawaban siswa di bawahnya tetap
+                            teks biasa: yang ia ketik tidak pernah HTML. */}
                         {soal.teks && (
-                            <div className="mb-3 rounded-wf border border-line bg-surface-2/50 px-3 py-2 text-xs leading-relaxed text-ink-2 whitespace-pre-line">
-                                {soal.teks}
+                            <div className="mb-3 rounded-wf border border-line bg-surface-2/50 px-3 py-2">
+                                <Html nilai={soal.teks} />
                             </div>
                         )}
 

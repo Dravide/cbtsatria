@@ -597,6 +597,11 @@ it('membuka laman koreksi satu jawaban sebelum dan sesudah publikasi', function 
             ->where('terkunci', false)
             ->where('jawaban.id', $jawaban->id)
             ->where('koreksi.score', 4)
+            // BENTUKNYA, bukan sekadar isinya: `soal_json` adalah
+            // `['teks' => '...']`, dan mengirim array itu apa adanya membuat
+            // React melempar "Objects are not valid as a React child" -
+            // halaman koreksi BLANK, sementara server membalas 200.
+            ->where('soal.teks', fn ($teks) => is_string($teks))
         );
 
     masukUji($this, $this->admin)
