@@ -101,6 +101,19 @@ class LaporanController
             ],
             'tabel' => $this->halaman($baris, $request),
             'total' => $baris->count(),
+
+            // Ringkasan per keadaan kehadiran - lihat `kehadiran()` di
+            // `LaporanData`. Dihitung dari `$baris` yang SAMA dengan tabel,
+            // bukan dari kueri sendiri: angka di atas tabel yang berbeda dari
+            // baris di bawahnya adalah angka yang membuat Admin menghitung
+            // ulang barisnya satu per satu lalu tidak percaya pada keduanya.
+            //
+            // Hanya dikirim pada laporan kehadiran. Prop berisi nol untuk
+            // empat laporan lain akan tampil sebagai ringkasan kosong yang
+            // tidak diminta siapa pun.
+            'ringkasan_kehadiran' => $jenis === 'kehadiran'
+                ? LaporanData::ringkasanKehadiran($baris)
+                : [],
             // Riwayat ekspor ikut dikirim karena ekspor berjalan di latar
             // belakang: tanpa daftar ini Admin yang menekan tombol lalu
             // berpindah laman tidak punya cara menemukan berkasnya.

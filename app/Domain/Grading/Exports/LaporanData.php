@@ -3,10 +3,13 @@
 namespace App\Domain\Grading\Exports;
 
 use App\Domain\Academic\Models\SchoolClass;
+use App\Domain\Attendance\Enums\StatusPresensi;
+use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\ExamViolation;
 use App\Domain\Event\Models\EventClass;
 use App\Domain\Exam\Models\Exam;
+use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamQuestion;
 use App\Domain\Grading\Models\ExamResult;
 use App\Domain\Grading\Models\QuestionAnalysis;
@@ -92,6 +95,7 @@ class LaporanData
                 'nama' => 'Nama',
                 'kelas' => 'Kelas',
                 'ujian' => 'Ujian',
+                'kehadiran' => 'Kehadiran',
                 'status' => 'Status pengerjaan',
                 'mulai' => 'Mulai',
                 'kumpul' => 'Dikumpulkan',
@@ -238,36 +242,143 @@ class LaporanData
             ->values();
     }
 
+    /**
+     * Kehadiran per PENEMPATAN, bukan per attempt.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa barisnya penempatan, dan bukan pengerjaan
+     * ---------------------------------------------------------------------
+     * Versi sebelumnya menyusuri `ExamAttempt`, sehingga tabel ini hanya
+     * memuat siswa yang SUDAH membuka ujian. Siswa yang tidak pernah masuk
+     * - yaitu orang yang justru dicari saat laporan kehadiran dibuka - tidak
+     * punya attempt, dan karena itu tidak punya baris sama sekali. Laporan
+     * yang tidak bisa menyebut siapa yang tidak datang bukan laporan
+     * kehadiran; ia laporan pengerjaan.
+     *
+     * Yang menentukan kehadiran adalah `attendance_records`, yang ditulis
+     * pengawas di ruang dan bukan disimpulkan dari aktivitas peramban:
+     * siswa yang hadir tetapi tidak mengerjakan apa pun tetap HADIR, dan
+     * siswa yang membuka ujian lalu pergi tetap TIDAK HADIR bila pengawas
+     * mencatatnya begitu.
+     *
+     * ---------------------------------------------------------------------
+     * Tiga keadaan yang harus dibedakan, dan tidak boleh digabung
+     * ---------------------------------------------------------------------
+     *   1. Sudah diverifikasi pengawas - Hadir / Terlambat / Tidak hadir /
+     *      Izin, dibaca dari `attendance_records`.
+     *   2. Belum diverifikasi - barisnya ada, statusnya masih `pending`.
+     *   3. Belum ditempatkan - belum punya kursi, jadi belum punya baris
+     *      presensi sama sekali. Menggabungkannya dengan (2) akan menuduh
+     *      Admin lalai memverifikasi orang yang belum pernah ia tempatkan.
+     *
+     * Peserta berstatus `dikecualikan` tidak ikut: ia memang tidak
+     * dijadwalkan mengerjakan ujian ini, dan menghitungnya sebagai tidak
+     * hadir adalah tuduhan yang salah alamat.
+     *
+     * @param  array<string, mixed>  $p
+     * @return Collection<int, array<string, mixed>>
+     */
     private static function kehadiran(int $eventId, array $p): Collection
     {
-        return ExamAttempt::query()
-            ->whereHas('penempatan.exam', fn ($q) => $q->where('event_id', $eventId))
+        $peserta = ExamParticipant::query()
+            ->whereHas('exam', fn ($q) => $q->where('event_id', $eventId))
+            ->where('status', ExamParticipant::STATUS_TERDAFTAR)
             ->when($p['kelas'] ?? null, fn ($q, $kelas) => $q->whereHas(
-                'penempatan.pesertaEvent',
+                'pesertaEvent',
                 fn ($s) => $s->where('class_id', $kelas),
             ))
             ->when($p['mapel'] ?? null, fn ($q, $mapel) => $q->whereHas(
-                'penempatan.exam',
+                'exam',
                 fn ($s) => $s->where('subject_id', $mapel),
             ))
             ->with([
-                'penempatan.exam:id,title,subject_id',
-                'penempatan.pesertaEvent:id,student_id,class_id',
-                'penempatan.pesertaEvent.student:id,name,username',
-                'penempatan.pesertaEvent.kelas:id,name',
+                'exam:id,title,subject_id',
+                'pesertaEvent:id,student_id,class_id',
+                'pesertaEvent.student:id,name,username',
+                'pesertaEvent.kelas:id,name',
             ])
-            ->orderBy('id')
-            ->get()
-            ->map(fn (ExamAttempt $a) => [
-                'nis' => $a->penempatan?->pesertaEvent?->student?->username,
-                'nama' => $a->penempatan?->pesertaEvent?->student?->name,
-                'kelas' => $a->penempatan?->pesertaEvent?->kelas?->name,
-                'ujian' => $a->penempatan?->exam?->title,
-                'status' => $a->labelStatus(),
-                'mulai' => $a->started_at?->format('Y-m-d H:i'),
-                'kumpul' => $a->submitted_at?->format('Y-m-d H:i'),
-            ])
+            ->orderBy('exam_id')
+            ->orderBy('student_id')
+            ->get();
+
+        $idPenempatan = $peserta->pluck('id');
+
+        // Dua kueri tetap, berapa pun jumlah pesertanya. Membaca presensi dan
+        // pengerjaan lewat relasi per baris berarti dua kueri per siswa, dan
+        // laporan satu angkatan berarti lebih dari dua ribu kueri untuk
+        // halaman yang seharusnya selesai dalam satu tarikan napas.
+        $presensi = AttendanceRecord::query()
+            ->whereIn('exam_participant_id', $idPenempatan)
+            ->get(['exam_participant_id', 'attendance_status'])
+            ->keyBy('exam_participant_id');
+
+        // Attempt TERAKHIR saja: peserta yang mengulang punya lebih dari satu,
+        // dan yang menjawab "apakah ia mengerjakan" adalah yang terakhir.
+        $pengerjaan = ExamAttempt::query()
+            ->whereIn('exam_participant_id', $idPenempatan)
+            ->orderByDesc('id')
+            ->get(['id', 'exam_participant_id', 'status', 'started_at', 'submitted_at'])
+            ->keyBy('exam_participant_id');
+
+        return $peserta
+            ->map(function (ExamParticipant $penempatan) use ($presensi, $pengerjaan) {
+                $catatan = $presensi->get($penempatan->id);
+                $attempt = $pengerjaan->get($penempatan->id);
+
+                return [
+                    'nis' => $penempatan->pesertaEvent?->student?->username,
+                    'nama' => $penempatan->pesertaEvent?->student?->name,
+                    'kelas' => $penempatan->pesertaEvent?->kelas?->name,
+                    'ujian' => $penempatan->exam?->title,
+                    'kehadiran' => $catatan === null
+                        ? 'Belum ditempatkan'
+                        : $catatan->attendance_status->label(),
+                    'status' => $attempt?->labelStatus(),
+                    'mulai' => $attempt?->started_at?->format('Y-m-d H:i'),
+                    'kumpul' => $attempt?->submitted_at?->format('Y-m-d H:i'),
+                ];
+            })
             ->values();
+    }
+
+    /**
+     * Jumlah per keadaan kehadiran, dari baris yang SAMA dengan tabelnya.
+     *
+     * Dihitung dari `kehadiran()`, bukan dari kueri sendiri: ringkasan yang
+     * angkanya berbeda dari daftar di bawahnya adalah ringkasan yang membuat
+     * Admin menghitung ulang barisnya satu per satu.
+     *
+     * Urutannya mengikuti `StatusPresensi` dengan dua tambahan - "Belum
+     * diverifikasi" dan "Belum ditempatkan" - karena keduanya bukan nilai
+     * enum: yang pertama ada di database sebagai `pending`, yang kedua
+     * ketiadaan barisnya.
+     *
+     * @param  Collection<int, array<string, mixed>>  $baris
+     * @return array<int, array{kunci: string, label: string, jumlah: int, nada: string}>
+     */
+    public static function ringkasanKehadiran(Collection $baris): array
+    {
+        $hitung = fn (string $label) => $baris->where('kehadiran', $label)->count();
+
+        return [
+            ['kunci' => 'hadir', 'label' => 'Hadir', 'jumlah' => $hitung('Hadir'), 'nada' => 'ok'],
+            ['kunci' => 'terlambat', 'label' => 'Terlambat', 'jumlah' => $hitung('Terlambat'), 'nada' => 'info'],
+            ['kunci' => 'tidak_hadir', 'label' => 'Tidak hadir', 'jumlah' => $hitung('Tidak hadir'), 'nada' => 'bad'],
+            ['kunci' => 'izin', 'label' => 'Izin', 'jumlah' => $hitung('Izin'), 'nada' => 'warn'],
+            [
+                'kunci' => 'belum_diverifikasi',
+                'label' => StatusPresensi::Pending->label(),
+                'jumlah' => $hitung(StatusPresensi::Pending->label()),
+                'nada' => 'mute',
+            ],
+            [
+                'kunci' => 'belum_ditempatkan',
+                'label' => 'Belum ditempatkan',
+                'jumlah' => $hitung('Belum ditempatkan'),
+                'nada' => 'mute',
+            ],
+            ['kunci' => 'total', 'label' => 'Seluruh baris', 'jumlah' => $baris->count(), 'nada' => 'mute'],
+        ];
     }
 
     private static function pelanggaran(int $eventId, array $p): Collection

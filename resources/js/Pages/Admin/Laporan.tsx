@@ -65,6 +65,15 @@ type Props = {
         tautan: { url: string | null; label: string; active: boolean }[];
     };
     total: number;
+    /**
+     * Ringkasan kehadiran - hanya terisi pada laporan kehadiran.
+     *
+     * Datang dari server, bukan dihitung di sini: tabel di layar hanya
+     * memuat lima puluh baris pertama, dan ringkasan yang dihitung dari
+     * `tabel.data` akan menyebut angka yang berubah setiap kali Admin
+     * berpindah halaman.
+     */
+    ringkasan_kehadiran: { kunci: string; label: string; jumlah: number; nada: string }[];
     ekspor: Ekspor[];
 };
 
@@ -79,6 +88,7 @@ export default function Laporan({
     filter,
     tabel,
     total,
+    ringkasan_kehadiran,
     ekspor,
 }: Props) {
     const [kirim, setKirim] = useState<string | null>(null);
@@ -261,6 +271,35 @@ export default function Laporan({
                     setiap perubahan. */}
             </div>
 
+            {/* ------------------------------------------ Ringkasan kehadiran */}
+            {ringkasan_kehadiran.length > 0 && (
+                <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                    {ringkasan_kehadiran.map((r) => (
+                        <div
+                            key={r.kunci}
+                            className={
+                                'rounded-wf border px-3 py-2 ' +
+                                (r.kunci === 'total'
+                                    ? 'border-line bg-surface-2/40'
+                                    : 'border-line bg-surface')
+                            }
+                        >
+                            <p className="text-[11px] text-ink-3">{r.label}</p>
+                            <p className="mt-0.5 flex items-baseline gap-1.5">
+                                <span className="font-display text-lg font-semibold text-ink">
+                                    {formatAngka(r.jumlah)}
+                                </span>
+                                {r.kunci !== 'total' && (
+                                    <Chip nada={nadaChip(r.nada)}>
+                                        {r.jumlah === 0 ? 'tidak ada' : 'orang'}
+                                    </Chip>
+                                )}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* -------------------------------------------------- Tabel */}
             <div className="overflow-hidden rounded-wf border border-line bg-surface">
                 <div className="overflow-x-auto">
@@ -411,6 +450,25 @@ function Sel({ kolom, nilai }: { kolom: string; nilai: string | number | null })
                 {teks}
             </Chip>
         );
+    }
+
+    // Kolom kehadiran juga chip: "Hadir" / "Tidak hadir" adalah keadaan, dan
+    // yang paling sering dicari di laporan ini justru yang BERWARNA MERAH.
+    // Teks biasa membuat Admin memindai dua ratus baris dengan mata.
+    if (kolom === 'kehadiran') {
+        const teks = String(nilai);
+        const nada =
+            teks === 'Hadir'
+                ? 'ok'
+                : teks === 'Terlambat'
+                  ? 'info'
+                  : teks === 'Tidak hadir'
+                    ? 'bad'
+                    : teks === 'Izin'
+                      ? 'warn'
+                      : 'mute';
+
+        return <Chip nada={nada}>{teks}</Chip>;
     }
 
     if (kolom === 'putusan') {
