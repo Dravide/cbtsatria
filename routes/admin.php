@@ -122,6 +122,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/pengguna/impor/unggah', [UserImportController::class, 'unggah'])->name('pengguna.impor.unggah');
     Route::get('/pengguna/impor/template', [UserImportController::class, 'template'])->name('pengguna.impor.template');
     Route::post('/pengguna/impor/{batch}/konfirmasi', [UserImportController::class, 'konfirmasi'])->name('pengguna.impor.konfirmasi');
+    Route::delete('/pengguna/impor/{batch}', [UserImportController::class, 'batalkan'])->name('pengguna.impor.batal');
     Route::get('/pengguna/impor/{batch}/laporan', [UserImportController::class, 'laporan'])->name('pengguna.impor.laporan');
 
     // 05c - ekspor pengguna. TIDAK ada `GET /pengguna/ekspor`: riwayatnya

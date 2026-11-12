@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
@@ -63,6 +64,11 @@ class UserImportController
                 'diperbarui' => (int) $batch->updated_rows,
                 'total' => (int) $batch->total_rows,
                 'ada_laporan' => $batch->error_report_path !== null,
+                // Riwayat memuat tombol Batalkan untuk baris yang belum
+                // diimpor. Yang sudah `dikonfirmasi` menolaknya di server
+                // juga; yang di sini hanya menentukan tombolnya tampil atau
+                // tidak.
+                'boleh_batal' => $batch->statusImpor() !== StatusImporPengguna::Dikonfirmasi,
                 'diunggah_pada' => $batch->created_at?->diffForHumans(),
             ])
             ->all();
@@ -139,6 +145,32 @@ class UserImportController
         return redirect()
             ->route('admin.pengguna.impor')
             ->with('sukses', $this->pesanKonfirmasi($batch));
+    }
+
+    /**
+     * Batalkan berkas yang belum diimpor.
+     *
+     * Seluruh baris `{batch}` memeriksa kepemilikannya lebih dulu, dan itu
+     * alasannya sama dengan `laporan()`: membatalkan impor Admin lain tidak
+     * bisa dibedakan dari menghapus pekerjaannya. Baris yang sudah
+     * `dikonfirmasi` menolak - lihat `ImporPenggunaService::batalkan()`.
+     */
+    public function batalkan(
+        Request $request,
+        UserImportBatch $batch,
+        ImporPenggunaService $service,
+    ): RedirectResponse {
+        Gate::authorize('import', User::class);
+
+        $this->pastikanMiliknya($request, $batch);
+
+        try {
+            $service->batalkan($batch);
+        } catch (ValidationException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        return back()->with('sukses', 'Berkas impor dibatalkan. Berkas yang sama kini boleh diunggah lagi.');
     }
 
     /**

@@ -382,6 +382,50 @@ class ImporPenggunaService
         return $batch->fresh();
     }
 
+    /* ------------------------------------------------------- Pembatalan */
+
+    /**
+     * Buang berkas yang belum diimpor - beserta berkasnya di disk.
+     *
+     * =====================================================================
+     * Mengapa barisnya DIHAPUS, bukan sekadar ditandai
+     * =====================================================================
+     * `berkas_hash` unik per (sekolah, Admin), dan itulah yang menolak
+     * unggahan ulang berkas yang sama. Baris yang dibatalkan harus melepaskan
+     * kuncinya, kalau tidak Admin yang membatalkan pratinjau berkas salah,
+     * memperbaiki berkasnya, lalu mengunggahnya kembali akan ditolak dengan
+     * "berkas ini sudah pernah Anda unggah" - oleh baris yang ia sendiri baru
+     * saja batalkan.
+     *
+     * Yang TIDAK boleh dibatalkan adalah berkas `dikonfirmasi`: akunnya sudah
+     * tertulis. Menghapus barisnya berarti menghapus catatan bahwa impor itu
+     * pernah terjadi, dan tidak mengembalikan satu akun pun.
+     *
+     * @throws ValidationException
+     */
+    public function batalkan(UserImportBatch $batch): void
+    {
+        if ($batch->statusImpor() === StatusImporPengguna::Dikonfirmasi) {
+            throw ValidationException::withMessages([
+                'berkas' => 'Berkas ini sudah diimpor, jadi tidak bisa dibatalkan. Akun yang sudah tersimpan harus diubah satu per satu di laman Pengguna.',
+            ]);
+        }
+
+        $this->logger->log('Membatalkan berkas impor pengguna', $batch, [
+            'nama_asli' => $batch->nama_asli,
+            'status' => $batch->statusImpor()->value,
+        ]);
+
+        // Folder batch memuat berkas unggahan DAN laporan galatnya - lihat
+        // `folder()`. Menghapus foldernya berarti tidak ada berkas yatim yang
+        // tertinggal di disk privat tanpa baris yang menunjuknya.
+        Storage::disk('local')->deleteDirectory(
+            $this->folder((int) $batch->school_id, (int) $batch->id),
+        );
+
+        $batch->delete();
+    }
+
     /* ------------------------------------------------------- Mekanisme */
 
     /**

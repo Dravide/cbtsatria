@@ -75,6 +75,7 @@ type Riwayat = {
     diperbarui: number;
     total: number;
     ada_laporan: boolean;
+    boleh_batal: boolean;
     diunggah_pada: string | null;
 };
 
@@ -162,6 +163,36 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
             {},
             { preserveScroll: true, onFinish: () => setKirim(false) },
         );
+    };
+
+    /**
+     * Batalkan satu berkas impor.
+     *
+     * Barisnya DIHAPUS - bukan ditandai - karena `berkas_hash` unik per Admin:
+     * baris yang dibatalkan harus melepaskan kuncinya, kalau tidak berkas yang
+     * sama tidak akan pernah bisa diunggah lagi setelah diperbaiki. Karena itu
+     * konfirmasinya menyebut apa yang hilang, bukan sekadar "Batalkan?".
+     */
+    const batalkan = (id: number, nama: string) => {
+        if (kirim) {
+            return;
+        }
+
+        const setuju = window.confirm(
+            `Batalkan impor "${nama}"?\n\nSeluruh baris pratinjaunya dibuang dan berkasnya dihapus. ` +
+                'Tidak ada akun yang tersimpan dari berkas ini, dan berkas yang sama boleh diunggah lagi setelah diperbaiki.',
+        );
+
+        if (!setuju) {
+            return;
+        }
+
+        setKirim(true);
+
+        router.delete(`/admin/pengguna/impor/${id}`, {
+            preserveScroll: true,
+            onFinish: () => setKirim(false),
+        });
     };
 
     return (
@@ -361,6 +392,15 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
                                 Berkas ini tidak bisa dikonfirmasi lagi.
                             </span>
                         )}
+
+                        <Tombol
+                            nada="bahaya"
+                            onClick={() => batalkan(aktif.id, aktif.nama_asli)}
+                            disabled={kirim}
+                            title="Buang berkas ini beserta pratinjaunya, tanpa menyimpan satu akun pun"
+                        >
+                            Batalkan impor
+                        </Tombol>
                     </footer>
 
                     <div className="border-t border-line px-4 py-2.5">
@@ -438,14 +478,27 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
                                         <Chip nada={nadaStatus(r.status)}>{r.status_label}</Chip>
                                     </td>
                                     <td className="px-4 py-2 text-right">
-                                        {r.ada_laporan && (
-                                            <a
-                                                href={`/admin/pengguna/impor/${r.id}/laporan`}
-                                                className="text-[11px] font-medium text-accent hover:underline"
-                                            >
-                                                Laporan galat
-                                            </a>
-                                        )}
+                                        <div className="flex items-center justify-end gap-2">
+                                            {r.ada_laporan && (
+                                                <a
+                                                    href={`/admin/pengguna/impor/${r.id}/laporan`}
+                                                    className="text-[11px] font-medium text-accent hover:underline"
+                                                >
+                                                    Laporan galat
+                                                </a>
+                                            )}
+                                            {r.boleh_batal && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => batalkan(r.id, r.nama_asli)}
+                                                    disabled={kirim}
+                                                    className="text-[11px] font-medium text-bad hover:underline disabled:opacity-50"
+                                                    title="Buang berkas ini beserta pratinjaunya"
+                                                >
+                                                    Batalkan
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

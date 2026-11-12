@@ -891,3 +891,107 @@ it('menolak jenis kelamin yang tidak dikenal', function () {
     expect($batch->pratinjau_json['sah'])->toBe(0)
         ->and($batch->pratinjau_json['baris'][0]['kolom'])->toBe('jenis_kelamin');
 });
+
+/* ========================================================= Pembatalan */
+
+it('membatalkan berkas impor beserta berkasnya di disk', function () {
+    $batch = unggahPengguna($this, [judulPengguna(), barisSiswa()]);
+
+    $jalur = $batch->file_path;
+
+    Storage::disk('local')->assertExists($jalur);
+
+    masukImporPengguna($this, $this->admin)
+        ->delete("/admin/pengguna/impor/{$batch->id}")
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    expect(UserImportBatch::query()->whereKey($batch->id)->exists())->toBeFalse()
+        ->and(Storage::disk('local')->exists($jalur))->toBeFalse();
+});
+
+it('membatalkan pratinjau tidak menghapus satu pun akun', function () {
+    $batch = unggahPengguna($this, [judulPengguna(), barisSiswa()]);
+
+    // Pratinjau memang tidak pernah menulis akun - dan pembatalannya juga
+    // tidak boleh menyentuh apa pun selain barisnya sendiri.
+    $sebelum = User::query()->count();
+
+    masukImporPengguna($this, $this->admin)
+        ->delete("/admin/pengguna/impor/{$batch->id}")
+        ->assertSessionHas('sukses');
+
+    expect(User::query()->count())->toBe($sebelum)
+        ->and(User::query()->where('name', 'Ani Mulyani')->exists())->toBeFalse();
+});
+
+it('melepaskan kunci berkas sehingga berkas yang sama boleh diunggah lagi', function () {
+    $baris = [judulPengguna(), barisSiswa()];
+
+    $batch = unggahPengguna($this, $baris, null, 'pengguna.csv');
+
+    // Prasyaratnya dibuktikan lebih dulu: selama barisnya ada, berkas yang
+    // sama DITOLAK - itulah penjaga idempotensinya.
+    masukImporPengguna($this, $this->admin)
+        ->post('/admin/pengguna/impor/unggah', ['berkas' => berkasPengguna($baris, 'pengguna.csv')])
+        ->assertSessionHasErrors('berkas');
+
+    masukImporPengguna($this, $this->admin)
+        ->delete("/admin/pengguna/impor/{$batch->id}")
+        ->assertSessionHas('sukses');
+
+    // Sesudah dibatalkan, kuncinya harus lepas - kalau tidak Admin yang
+    // membatalkan berkas salah tidak akan pernah bisa mengunggah berkas yang
+    // sudah ia perbaiki.
+    masukImporPengguna($this, $this->admin)
+        ->post('/admin/pengguna/impor/unggah', ['berkas' => berkasPengguna($baris, 'pengguna.csv')])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(UserImportBatch::query()->count())->toBe(1);
+});
+
+it('menolak membatalkan berkas yang sudah diimpor', function () {
+    $batch = unggahPengguna($this, [judulPengguna(), barisSiswa()]);
+
+    konfirmasiPengguna($this, $batch);
+
+    masukImporPengguna($this, $this->admin)
+        ->delete("/admin/pengguna/impor/{$batch->id}")
+        ->assertRedirect()
+        ->assertSessionHas('galat');
+
+    // Catatan impornya tetap ada, dan akunnya tidak ikut hilang: menghapus
+    // barisnya hanya akan menghapus bukti bahwa impor itu pernah terjadi.
+    expect(UserImportBatch::query()->whereKey($batch->id)->exists())->toBeTrue()
+        ->and(User::query()->where('name', 'Ani Mulyani')->exists())->toBeTrue();
+});
+
+it('memberi Admin sekolah lain 404 saat membatalkan, bukan 403', function () {
+    $batch = unggahPengguna($this, [judulPengguna(), barisSiswa()]);
+
+    masukImporPengguna($this, $this->adminLain)
+        ->delete("/admin/pengguna/impor/{$batch->id}")
+        ->assertNotFound();
+
+    // Dibaca TANPA scope sekolah: kueri berscope akan menjawab "tidak ada"
+    // untuk alasan yang salah - sekolahnya sendiri - bukan karena barisnya
+    // selamat dari pembatalan.
+    expect(UserImportBatch::query()->withoutGlobalScopes()->whereKey($batch->id)->exists())->toBeTrue();
+});
+
+it('menandai baris riwayat mana yang masih boleh dibatalkan', function () {
+    $dipratinjau = unggahPengguna($this, [judulPengguna(), barisSiswa()]);
+
+    konfirmasiPengguna($this, $dipratinjau);
+
+    masukImporPengguna($this, $this->admin)
+        ->get('/admin/pengguna/impor')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/PenggunaImpor')
+            // Berkas yang sudah diimpor tidak menawarkan tombol Batalkan -
+            // tombol yang pasti ditolak server lebih baik tidak dirender.
+            ->where('riwayat.0.boleh_batal', false)
+        );
+});
