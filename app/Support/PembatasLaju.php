@@ -101,6 +101,9 @@ final class PembatasLaju
     /** Nama limiter untuk ganti sandi mandiri. */
     public const SANDI = 'ganti-sandi';
 
+    /** Nama limiter untuk laman pindai presensi `/hadir/{kode}`. */
+    public const PINDAI = 'pindai-presensi';
+
     /**
      * Permintaan AI per Guru, per menit.
      *
@@ -206,6 +209,38 @@ final class PembatasLaju
     /** Pesan saat satu akun melampaui batas percobaan ganti sandinya. */
     public const PESAN_SANDI = 'Terlalu banyak percobaan. Tunggu satu menit, lalu coba lagi.';
 
+    /**
+     * Permintaan pindai per IP, per menit.
+     *
+     * Tiga ratus, dan angka itu dihitung dalam PERMINTAAN, bukan dalam
+     * SISWA - itulah yang membuat perkiraan "32 pindai" salah.
+     *
+     * Satu siswa menghasilkan DUA permintaan: satu saat laman `/hadir/{kode}`
+     * dibuka, satu saat tombol "Saya hadir di ruang ini" ditekan. Satu ruang
+     * berisi 32 anak karena itu 64 permintaan dalam beberapa detik, dan satu
+     * NAT sekolah biasanya melayani lebih dari satu ruang ujian sekaligus.
+     * Dua ratus akan menolak ruang ketiga tepat pada menit pertama.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa hanya per-IP, tanpa pasangan per-kode atau per-ruang
+     * ---------------------------------------------------------------------
+     * Berbeda dari pintu ruang, yang dijaga di sini BUKAN angka enam digit
+     * - kodenya enam belas karakter dari alfabet tiga puluh satu, sehingga
+     * menebaknya bukan risiko yang bisa dijaga pembatas laju. Yang tersisa
+     * hanyalah satu risiko: satu alamat yang menembakkan tebakan beruntun ke
+     * `/hadir/{apa saja}`. Pembatas per-IP menutupnya tanpa perlu kunci
+     * kedua.
+     *
+     * Kunci per-ruang TIDAK bisa dipakai, dan ini penting: satu ruang
+     * memang menerima puluhan permintaan dalam hitungan detik, dan pembatas
+     * per-ruang akan menolak anak-anak yang justru sedang mengantre di depan
+     * pintu.
+     */
+    public const PINDAI_PER_IP = 300;
+
+    /** Pesan saat satu jaringan melampaui batas percobaan pindainya. */
+    public const PESAN_PINDAI = 'Terlalu banyak pindai dari jaringan ini. Tunggu satu menit, lalu coba lagi.';
+
     public static function kunciPintuPasangan(string $slug, string $ip): string
     {
         return "pintu:{$slug}|{$ip}";
@@ -224,6 +259,16 @@ final class PembatasLaju
     public static function kunciGerbangIp(string $ip): string
     {
         return "token.ip:{$ip}";
+    }
+
+    /**
+     * Kunci pembatas pindai presensi: per IP, tanpa pasangan per-ruang.
+     *
+     * Lihat `PINDAI_PER_IP` tentang mengapa per-ruang justru salah di sini.
+     */
+    public static function kunciPindaiIp(string $ip): string
+    {
+        return "pindai.ip:{$ip}";
     }
 
     /**

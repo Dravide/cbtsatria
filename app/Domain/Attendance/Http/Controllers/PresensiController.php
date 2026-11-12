@@ -2,15 +2,20 @@
 
 namespace App\Domain\Attendance\Http\Controllers;
 
+use App\Domain\Attendance\Enums\StatusPengakuan;
 use App\Domain\Attendance\Enums\StatusPresensi;
+use App\Domain\Attendance\Models\AttendanceAcknowledgement;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Services\KehadiranService;
+use App\Domain\Attendance\Services\KodePindai;
 use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
+use App\Support\Qr\KodeQr;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -49,6 +54,7 @@ class PresensiController
 {
     public function __construct(
         private readonly KehadiranService $kehadiran,
+        private readonly KodePindai $pindai,
         private readonly ActivityLogger $logger,
     ) {}
 
@@ -71,9 +77,16 @@ class PresensiController
         // yang sama, dan yang berhak menentukannya adalah `NomorKursi`.
         $nomor = $this->kehadiran->nomorKursiRuang($ruang);
 
+        // Peta sumber per penempatan - "pindai 07:32" / "pengawas 07:28"
+        // pada baris kursi. Dibaca sekali untuk seluruh ruang, bukan per
+        // baris: daftar ini 32 baris dan tiap baris akan menembak satu kueri.
+        $sumber = $this->sumberPerPeserta($ruang);
+
         return Inertia::render('Pengawas/Presensi', [
             ...$this->kepala($ruang, $konteks),
             'rekap' => $this->kehadiran->rekap($ruang),
+            'pindai' => $this->payloadPindai($ruang),
+            'pengakuan' => $this->daftarPengakuan($ruang, $nomor),
             'kursi' => $records->values()->map(fn (AttendanceRecord $r) => [
                 'record_id' => $r->id,
                 'peserta_id' => $r->exam_participant_id,
@@ -97,10 +110,13 @@ class PresensiController
                 // Kolom Pengerjaan berasal dari server dan tidak bisa
                 // diketik siapa pun - plate 12 memisahkannya dari kolom
                 // Presensi justru karena keduanya masalah yang berbeda.
-                // Fase 6 belum punya penulis attempt, jadi keadaannya
-                // `belum` untuk semua orang sampai Fase 7 mengisinya.
                 'pengerjaan' => $this->pengerjaan($r),
                 'sisa' => $r->log->count() > 0 ? $r->log->count().' perubahan' : null,
+
+                // Sumbernya, dan itu bukan kolom tersembunyi - plate C:
+                // "anak saya hadir atas dasar apa" dijawab dari layar yang
+                // sama. null berarti belum ada presensi sama sekali.
+                'sumber' => $sumber[$r->exam_participant_id] ?? null,
             ])->all(),
         ]);
     }
@@ -331,6 +347,225 @@ class PresensiController
     }
 
     /* ------------------------------------------------------------- Pembantu */
+
+    /**
+     * Payload kotak pindai - plate A1/A2.
+     *
+     * =====================================================================
+     * Kode diterbitkan SETIAP KALI laman dimuat, dan itu bukan pemborosan
+     * =====================================================================
+     * `code_hash` satu arah, jadi kode yang sudah terbit tidak bisa dibaca
+     * kembali. Satu-satunya saat laman memegang kode mentahnya adalah saat
+     * ia menerbitkannya sendiri - karena itu setiap muat menerbitkan satu
+     * baris baru, dan yang sebelumnya mati 60 detik kemudian.
+     *
+     * Rotasi berikutnya datang dari endpoint JSON yang dipanggil pitanya
+     * saat habis, bukan dari penyegaran seluruh laman: pengawas yang sedang
+     * menandai presensi tidak boleh kehilangan posisinya tiap menit.
+     */
+    private function payloadPindai(ExamSessionRoom $ruang): ?array
+    {
+        // Kode hanya berguna bila sesinya sedang berjalan. Kotak yang tampil
+        // dengan kode sah di sesi yang belum dibuka akan membuat siswa
+        // memindai lalu ditolak "sesi belum dibuka" - dan siswa itu akan
+        // menuduh kodenya, bukan jadwalnya.
+        $sesi = $ruang->session;
+
+        if ($sesi === null || ! $sesi->status->aktif()) {
+            return null;
+        }
+
+        $terbit = $this->pindai->terbitkan($ruang);
+        $kode = $terbit['kode'];
+        $url = route('siswa.hadir', ['kode' => $kode]);
+
+        return [
+            'kode' => $kode,
+            'url' => $url,
+            'qr' => KodeQr::dataUri($url, 320),
+            'sisa' => $terbit['baris']->sisaDetik(),
+            'umur' => KodePindai::UMUR_DETIK,
+        ];
+    }
+
+    /**
+     * Daftar pengakuan yang belum dikonfirmasi - plate A3.
+     *
+     * Hanya `menunggu`: baris yang sudah dikonfirmasi bukan lagi urusan
+     * lembar ini, dan menampilkannya di sini akan membuat tombol massalnya
+     * tampak belum mengerjakan apa pun.
+     *
+     * @param  array<int, int>  $nomor
+     */
+    private function daftarPengakuan(ExamSessionRoom $ruang, array $nomor): array
+    {
+        $baris = AttendanceAcknowledgement::query()
+            ->where('status', StatusPengakuan::Menunggu)
+            ->whereHas('penempatan', fn ($q) => $q->where('exam_session_room_id', $ruang->id))
+            ->with([
+                'penempatan.student:id,name',
+                'penempatan.student.studentProfile:id,user_id,nis',
+                'penempatan.pesertaEvent.kelas:id,name',
+                'penempatan.session:id,access_opens_at',
+            ])
+            ->get()
+            ->sortBy(fn (AttendanceAcknowledgement $a) => $a->penempatan?->student?->name)
+            ->values();
+
+        return $baris->map(function (AttendanceAcknowledgement $a) use ($nomor) {
+            $penempatan = $a->penempatan;
+            $status = $this->pindai->statusDariPindai($a);
+
+            return [
+                'id' => $a->id,
+                'peserta_id' => $a->exam_participant_id,
+                'kursi' => $nomor[(int) $penempatan?->student_id] ?? null,
+                'nama' => $penempatan?->student?->name ?? 'Peserta',
+                'nis' => $penempatan?->student?->studentProfile?->nis,
+                'kelas' => $penempatan?->pesertaEvent?->kelas?->name,
+                'jam' => $a->scanned_at?->format('H:i'),
+                // Status yang AKAN dicatat, bukan yang sudah dicatat - dan
+                // dihitung dari jam PINDAI, bukan jam konfirmasi (plate C).
+                'akan' => $status->value,
+                'akan_label' => $status->pendek(),
+                'akan_nada' => $status->nada(),
+                // Centang bawaan hanya pada yang masih di dalam batas masuk.
+                // Kalau semua tercentang sejak awal, tombol massal berubah
+                // menjadi "catat apa pun yang datang" - plate A3.
+                'tepat' => $status === StatusPresensi::Hadir,
+            ];
+        })->all();
+    }
+
+    /**
+     * Sumber presensi tiap penempatan di ruang ini.
+     *
+     * `pindai` bila ada pengakuan yang sudah dikonfirmasi - jamnya jam
+     * PINDAI, karena itulah yang menentukan statusnya. `pengawas` bila
+     * presensinya ditandai langsung dari daftar kursi, dan jamnya jam
+     * verifikasi.
+     *
+     * Keduanya dibaca sekali untuk seluruh ruang: 32 baris dengan satu
+     * kueri per baris adalah 32 kueri yang tidak perlu.
+     *
+     * @return array<int, array{jenis: string, jam: string|null}>
+     */
+    private function sumberPerPeserta(ExamSessionRoom $ruang): array
+    {
+        $pesertaIds = ExamParticipant::query()
+            ->where('exam_session_room_id', $ruang->id)
+            ->pluck('id');
+
+        if ($pesertaIds->isEmpty()) {
+            return [];
+        }
+
+        $dikonfirmasi = AttendanceAcknowledgement::query()
+            ->whereIn('exam_participant_id', $pesertaIds)
+            ->where('status', StatusPengakuan::Dikonfirmasi)
+            ->get()
+            ->keyBy('exam_participant_id');
+
+        $terverifikasi = AttendanceRecord::query()
+            ->whereIn('exam_participant_id', $pesertaIds)
+            ->whereNotNull('verified_at')
+            ->get()
+            ->keyBy('exam_participant_id');
+
+        $sumber = [];
+
+        foreach ($pesertaIds as $id) {
+            $pengakuan = $dikonfirmasi->get($id);
+
+            if ($pengakuan !== null) {
+                // Jam PINDAI, bukan jam konfirmasi - itulah angka yang
+                // dibaca siswa di layarnya sendiri dan yang menentukan
+                // hadir/terlambat.
+                $sumber[(int) $id] = [
+                    'jenis' => 'pindai',
+                    'jam' => $pengakuan->scanned_at?->format('H:i'),
+                ];
+
+                continue;
+            }
+
+            $record = $terverifikasi->get($id);
+
+            if ($record !== null) {
+                $sumber[(int) $id] = [
+                    'jenis' => 'pengawas',
+                    'jam' => $record->verified_at?->format('H:i'),
+                ];
+            }
+        }
+
+        return $sumber;
+    }
+
+    /**
+     * Kode pindai berikutnya, untuk rotasi 60 detik - plate A1/A2.
+     *
+     * Dijawab JSON, bukan redirect: laman memanggilnya dari latar belakang
+     * setiap kali pitanya habis, dan redirect akan memuat ulang seluruh
+     * laman - tepat saat pengawas sedang menandai kursi.
+     */
+    public function rotasiPindai(ExamSessionRoom $ruang): JsonResponse
+    {
+        KonteksRuang::dari($ruang);
+
+        $sesi = $ruang->session;
+
+        if ($sesi === null || ! $sesi->status->aktif()) {
+            return response()->json([
+                'galat' => 'Sesi ini belum berjalan. Kode pindai hanya terbit saat sesi dibuka.',
+            ], 409);
+        }
+
+        $terbit = $this->pindai->terbitkan($ruang);
+        $kode = $terbit['kode'];
+        $url = route('siswa.hadir', ['kode' => $kode]);
+
+        return response()->json([
+            'kode' => $kode,
+            'url' => $url,
+            'qr' => KodeQr::dataUri($url, 320),
+            'sisa' => $terbit['baris']->sisaDetik(),
+        ]);
+    }
+
+    /**
+     * Konfirmasi sekelompok pengakuan - plate A3.
+     *
+     * Status tiap baris DITURUNKAN dari jam pindainya sendiri, sehingga satu
+     * tombol bisa mencatat sebagian hadir dan sebagian terlambat. Satu baris
+     * log per siswa, seperti verifikasi massal yang sudah ada.
+     */
+    public function konfirmasi(ExamSessionRoom $ruang, Request $request): RedirectResponse
+    {
+        $konteks = KonteksRuang::dari($ruang);
+
+        $valid = $request->validate([
+            'pengakuan_ids' => ['required', 'array', 'min:1'],
+            'pengakuan_ids.*' => ['integer'],
+        ], [], ['pengakuan_ids' => 'pengakuan']);
+
+        $hasil = $this->pindai->konfirmasi($ruang, $valid['pengakuan_ids'], $konteks);
+
+        $this->logger->log('Konfirmasi pengakuan presensi', $ruang, [
+            'ruang' => $konteks->kodeRuang(),
+            'diminta' => count($valid['pengakuan_ids']),
+            'berubah' => $hasil['berubah'],
+            'dilewati' => $hasil['dilewati'],
+        ]);
+
+        if ($hasil['berubah'] === 0 && $hasil['dilewati'] === 0) {
+            return back()->with('galat', 'Tidak ada pengakuan yang bisa dikonfirmasi.');
+        }
+
+        return back()->with('sukses', $hasil['berubah'] === 0
+            ? 'Pengakuan sudah dikonfirmasi - status presensinya tidak berubah.'
+            : "{$hasil['berubah']} peserta dicatat dari pindai.");
+    }
 
     /**
      * Keadaan pengerjaan untuk satu baris presensi.

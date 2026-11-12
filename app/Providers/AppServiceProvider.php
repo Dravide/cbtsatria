@@ -148,5 +148,31 @@ class AppServiceProvider extends ServiceProvider
                     ->route('siswa.akun')
                     ->with('galat', PembatasLaju::PESAN_SANDI)),
         ]);
+
+        // ----------------------------------------------------------------
+        // Pindai presensi - POST /hadir/{kode}
+        // ----------------------------------------------------------------
+        // Hanya POST-nya, dan alasannya DUA:
+        //
+        //   1. GET laman itu dimuat ulang berkali-kali oleh anak yang sedang
+        //      menunggu pengawas - plate B5 menaruh tombol "Muat ulang" di
+        //      sana. Membatasi GET berarti menghukum perilaku yang diminta
+        //      laman itu sendiri.
+        //   2. Kalau GET ikut dibatasi, `->response()` di bawah akan
+        //      mengalihkan ke `/hadir/{kode}` - yang juga dibatasi, dan
+        //      habisnya jatah berubah menjadi lingkaran alihan tanpa akhir.
+        //      Karena itu tujuannya laman jadwal, yang tidak dijaga limiter
+        //      mana pun.
+        //
+        // GET tetap aman tanpa pembatas: kodenya enam belas karakter dari
+        // alfabet tiga puluh satu (31^16), jauh di luar jangkauan tebak -
+        // lihat `KodePindai::PANJANG_KODE`.
+        RateLimiter::for(PembatasLaju::PINDAI, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::PINDAI_PER_IP)
+                ->by(PembatasLaju::kunciPindaiIp((string) $request->ip()))
+                ->response(fn () => redirect()
+                    ->route('siswa.jadwal')
+                    ->with('galat', PembatasLaju::PESAN_PINDAI)),
+        ]);
     }
 }

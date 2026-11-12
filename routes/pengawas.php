@@ -43,6 +43,17 @@ Route::middleware('pengawas')->prefix('pengawas')->name('pengawas.')->group(func
     Route::get('/ruang/{ruang}/presensi/{peserta}', [PresensiController::class, 'satu'])->name('presensi.satu');
     Route::post('/ruang/{ruang}/presensi/verifikasi', [PresensiController::class, 'verifikasi'])->name('presensi.verifikasi');
     Route::post('/ruang/{ruang}/presensi/massal', [PresensiController::class, 'massal'])->name('presensi.massal');
+
+    // Pindai presensi - wireframe-presensi-qr.html plate A1-A3.
+    //
+    // `pindai` menjawab JSON, bukan redirect: laman memanggilnya dari latar
+    // belakang setiap kali pita 60 detiknya habis, dan redirect akan memuat
+    // ulang seluruh laman tepat saat pengawas sedang menandai kursi.
+    //
+    // `konfirmasi` menulis presensi lewat `KodePindai::konfirmasi()`, satu
+    // baris log per siswa - sama seperti `massal` di atas.
+    Route::post('/ruang/{ruang}/presensi/pindai', [PresensiController::class, 'rotasiPindai'])->name('presensi.pindai');
+    Route::post('/ruang/{ruang}/presensi/konfirmasi', [PresensiController::class, 'konfirmasi'])->name('presensi.konfirmasi');
     Route::get('/ruang/{ruang}/koreksi', [PresensiController::class, 'koreksi'])->name('koreksi');
     Route::post('/ruang/{ruang}/koreksi/{peserta}', [PresensiController::class, 'simpanKoreksi'])->name('koreksi.simpan');
     Route::post('/ruang/{ruang}/kembalikan/{peserta}', [PresensiController::class, 'kembalikan'])->name('kembalikan');

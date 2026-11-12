@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
+use App\Domain\Attendance\Http\Controllers\Siswa\HadirSiswaController;
 use App\Domain\Identity\Http\Controllers\Auth\LoginController;
 use App\Domain\Identity\Http\Controllers\Auth\PasswordResetLinkController;
 use Illuminate\Support\Facades\Route;
@@ -85,6 +86,37 @@ Route::post('/p/{slug}', [PintuRuangController::class, 'buka'])
 // Menyerahkan kembali hibah sesi. Di luar grup auth dengan alasan yang sama:
 // yang memegangnya tidak punya akun untuk keluar darinya.
 Route::post('/p/{slug}/keluar', [PintuRuangController::class, 'keluar'])->name('pintu.ruang.keluar');
+
+/*
+|--------------------------------------------------------------------------
+| Pindai presensi siswa - `/hadir/{kode}`
+|--------------------------------------------------------------------------
+| Alamat ini TERTANAM DI DALAM QR yang tampil di laman presensi pengawas
+| (wireframe-presensi-qr.html plate A1-B6), dan itulah sebabnya ia tidak
+| berada di dalam awalan `/siswa`:
+|
+|   - QR yang sudah dipindai kamera tidak bisa memilih awalan. Alamat yang
+|     lebih panjang berarti QR yang lebih padat, dan itu justru merugikan
+|     ponsel murah yang memindainya.
+|   - Ia juga dimuat ulang berkali-kali oleh anak yang menunggu pengawas
+|     (plate B5), sehingga alamat yang pendek lebih mudah dibaca ulang di
+|     bilah alamat.
+|
+| Yang menjaganya tetap `auth`, bukan middleware `siswa`: akun itulah yang
+| menentukan SIAPA yang dicatat, dan tamu dialihkan ke login lalu
+| DIKEMBALIKAN ke sini lewat `redirect()->intended()`. Peran siswa diperiksa
+| di controller - lihat HadirSiswaController.
+|
+| `throttle:pindai-presensi` hanya pada POST. Yang dibatasi adalah penulisan
+| pengakuan; GET-nya justru diminta diulang oleh laman tunggu.
+*/
+Route::middleware('auth')->group(function () {
+    Route::get('/hadir/{kode}', [HadirSiswaController::class, 'tampilkan'])->name('siswa.hadir');
+
+    Route::post('/hadir/{kode}', [HadirSiswaController::class, 'akui'])
+        ->middleware('throttle:pindai-presensi')
+        ->name('siswa.hadir.akui');
+});
 
 /*
 |--------------------------------------------------------------------------
