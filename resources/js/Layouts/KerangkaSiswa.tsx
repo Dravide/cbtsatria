@@ -184,25 +184,43 @@ export default function KerangkaSiswa({
                     </main>
 
                     {aksiBawah && (
-                        <div className="sticky bottom-0 z-20 space-y-1.5 border-t border-line bg-surface px-3 py-2">
-                            {aksiBawah}
+                        // Bilah aksi MELAYANG, alasannya sama dengan tabbar di
+                        // bawah: bilah yang menempel penuh di tepi bawah
+                        // menutupi baris terakhir isi laman. Di pengerjaan,
+                        // baris terakhir itu adalah kalimat terakhir soal -
+                        // yang justru dibaca anak paling akhir sebelum menjawab.
+                        <div className="sticky bottom-0 z-20 px-3 pb-3 pt-1">
+                            <div className="space-y-1.5 overflow-hidden rounded-wf border border-line bg-surface p-2 shadow-lg">
+                                {aksiBawah}
+                            </div>
                         </div>
                     )}
 
-                    {tabbarAktif && <TabbarSiswa aktif={tabbarAktif} />}
+                    {tabbarAktif && (
+                        // Tabbar MELAYANG - alasannya sama dengan
+                        // `KerangkaPonsel`: bilah yang menempel penuh menutupi
+                        // baris terakhir daftar di ponsel layar pendek.
+                        <div className="sticky bottom-0 z-20 px-3 pb-3 pt-1">
+                            <div className="overflow-hidden rounded-wf border border-line bg-surface shadow-lg">
+                                <TabbarSiswa aktif={tabbarAktif} />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Keluar dari akun hanya muncul di beranda siswa yang tabbarnya
                         ada. Di tengah ujian ia tidak muncul - lihat `tanpaKeluar`. */}
                     {!tabbarAktif && !tanpaKeluar && (
-                        <div className="border-t border-line bg-surface px-3 py-2 text-center">
-                            <Link
-                                href="/logout"
-                                method="post"
-                                as="button"
-                                className="catatan font-medium hover:text-bad"
-                            >
-                                Keluar dari akun
-                            </Link>
+                        <div className="sticky bottom-0 z-20 px-3 pb-3 pt-1">
+                            <div className="overflow-hidden rounded-wf border border-line bg-surface p-2 text-center shadow-lg">
+                                <Link
+                                    href="/logout"
+                                    method="post"
+                                    as="button"
+                                    className="catatan font-medium hover:text-bad"
+                                >
+                                    Keluar dari akun
+                                </Link>
+                            </div>
                         </div>
                     )}
                 </div>

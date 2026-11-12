@@ -388,10 +388,14 @@
  * Tab hidup ditandai dua hal sekaligus - garis atas rust DAN tinta penuh -
  * karena pada ponsel yang dipegang sambil berjalan satu garis tipis di tepi
  * layar adalah tanda yang paling mudah hilang.
+ *
+ * Sejak bilah ini MELAYANG di dalam wadahnya (lihat `KerangkaSiswa`), garis
+ * tepi dan latarnya pindah ke wadah itu. Yang tinggal di sini hanya susunan
+ * selnya: latar sendiri akan menutupi wadah yang membulat, dan garis tepi
+ * sendiri akan menggambar kotak di dalam kotak.
  */
 .konsol-siswa .tabbar {
-    border-top: var(--rule-hair) solid var(--color-line-2);
-    background-color: var(--color-surface);
+    background-color: transparent;
 }
 
 .konsol-siswa .tabbar > * {

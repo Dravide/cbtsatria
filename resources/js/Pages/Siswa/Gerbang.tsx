@@ -157,6 +157,14 @@ export default function Gerbang({
         form.post(`/siswa/ujian/${peserta.peserta_id}/gerbang`);
     };
 
+    const labelTombol = form.processing
+        ? 'Menyiapkan…'
+        : !ber_token
+          ? 'Menunggu token'
+          : melanjutkan
+            ? 'Lanjutkan ujian'
+            : 'Mulai ujian';
+
     return (
         <KerangkaSiswa
             judul="Gerbang ujian"
@@ -174,6 +182,32 @@ export default function Gerbang({
                 ) : (
                     <span className="border border-line-2 bg-warn-bg px-1.5 py-0.5 text-[11px] font-medium text-warn">
                         menunggu
+                    </span>
+                )
+            }
+            aksiBawah={
+                // Satu tombol, di bilah MELAYANG - bukan di tengah isi laman.
+                //
+                // Alasannya menyangkut yang sedang dibaca anak: aturan ujian
+                // adalah daftar terpanjang di laman ini, dan tombol yang
+                // berdiri di ATAS daftar itu menghilang begitu anak menggulir
+                // untuk membacanya. Anak yang sudah membaca sampai bawah lalu
+                // harus menggulir balik ke atas untuk mulai.
+                //
+                // Tombol MATI tetap ditampilkan saat belum boleh - plate 20 -
+                // jadi bilah ini selalu punya isi, tidak pernah kosong.
+                layak.boleh ? (
+                    <button
+                        type="submit"
+                        form="gerbang-mulai"
+                        disabled={form.processing || !ber_token}
+                        className="tombol tombol--pri w-full"
+                    >
+                        {labelTombol}
+                    </button>
+                ) : (
+                    <span className="tombol w-full" aria-disabled="true">
+                        Mulai ujian
                     </span>
                 )
             }
@@ -255,12 +289,12 @@ function BelumBoleh({
                 <div className="space-y-2.5 p-3 text-center">
                     <p className="text-[12px] leading-relaxed text-warn">{alasan}</p>
 
-                    {/* Tombol mati, bukan tombol hilang - plate 20: siswa
-                        harus tahu bahwa yang kurang adalah verifikasi, bukan
-                        haknya untuk ikut ujian. */}
-                    <span className="tombol w-full" aria-disabled="true">
-                        Mulai ujian
-                    </span>
+                    {/* Tombol mati "Mulai ujian" TIDAK diulang di sini: ia
+                        sudah berdiri di bilah melayang bawah, dan dua tombol
+                        mati dengan tulisan sama pada satu layar terbaca
+                        sebagai dua hal yang berbeda. Plate 20 tetap
+                        terpenuhi - tombolnya terlihat, hanya tidak bisa
+                        ditekan. */}
 
                     {petunjuk && <p className="text-[12px] leading-relaxed text-ink-2">{petunjuk}</p>}
 
@@ -298,7 +332,10 @@ function SiapMulai({
     ruang: string | null;
 }) {
     return (
-        <form onSubmit={kirim} className="grid justify-items-center gap-3 py-4">
+        // `id` menghubungkan FORM ini dengan tombol kirim yang tinggal di
+        // bilah melayang `KerangkaSiswa` - `form="gerbang-mulai"` pada
+        // tombol itu. Tanpa id, tombol di luar form tidak mengirimkan apa pun.
+        <form id="gerbang-mulai" onSubmit={kirim} className="grid justify-items-center gap-3 py-4">
             <p className="max-w-[22rem] text-[12px] leading-relaxed text-ink-2">
                 {berToken ? (
                     <>
@@ -351,19 +388,9 @@ function SiapMulai({
                 </Field>
             </div>
 
-            <button
-                type="submit"
-                disabled={form.processing || !berToken}
-                className="tombol tombol--pri w-full max-w-[20rem]"
-            >
-                {form.processing
-                    ? 'Menyiapkan…'
-                    : !berToken
-                      ? 'Menunggu token'
-                      : melanjutkan
-                        ? 'Lanjutkan ujian'
-                        : 'Mulai ujian'}
-            </button>
+            {/* Tombol "Mulai" TIDAK di sini: ia tinggal di bilah melayang
+                `KerangkaSiswa` dan menunjuk form ini lewat `form="gerbang-mulai"`.
+                Lihat catatan di `Gerbang()`. */}
 
             {/* Satu kalimat, dan hanya saat tokennya memang belum ada: laman
                 ini menyegar sendiri, dan menyebutnya sekali di sini cukup. */}

@@ -110,6 +110,24 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
                 </span>
             }
             kanan={<Chip nada="bad">terkunci</Chip>}
+            aksiBawah={
+                // Bilah bawah yang TIDAK punya tombol - dan itu disengaja,
+                // lihat catatan berkas ini. Isinya keadaan, bukan kendali:
+                // satu-satunya jalan keluar adalah pengawas datang ke kursi.
+                //
+                // Yang membuatnya layak ada: sisa waktu. Kalimat "waktu tetap
+                // berjalan" di ujung isi laman hilang begitu anak menggulir
+                // riwayat kejadiannya, dan justru anak yang menggulir itulah
+                // yang sedang menghitung berapa lama ia boleh menunggu.
+                <div className="flex items-center gap-2">
+                    <span className="min-w-0 flex-1 text-[11px] leading-tight text-ink-3">
+                        Menunggu Pengawas membuka kunci
+                    </span>
+                    <span className="shrink-0 font-mono text-[12px] tabular-nums text-warn">
+                        {sisa > 0 ? formatSisa(sisa) : 'habis'}
+                    </span>
+                </div>
+            }
         >
             <div className="grid justify-items-center gap-2 py-4 text-center">
                 <b className="font-display text-[14px] text-bad">Ujian Anda dikunci</b>

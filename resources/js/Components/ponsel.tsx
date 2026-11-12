@@ -78,7 +78,11 @@ const TAB = [
 
 export function TabbarPonsel({ ruangId, aktif }: { ruangId: number; aktif: string }) {
     return (
-        <nav className="sticky bottom-0 z-20 grid grid-cols-4 border-t border-line bg-surface">
+        // Tanpa `sticky` dan tanpa garis tepi sendiri: bilah ini sekarang
+        // duduk di DALAM wadah melayang yang digambar `KerangkaPonsel`, dan
+        // dua garis tepi - satu dari wadah, satu dari bilah - terbaca sebagai
+        // kotak di dalam kotak.
+        <nav className="grid grid-cols-4">
             {TAB.map((t) => {
                 const on = t.segmen === aktif;
 
