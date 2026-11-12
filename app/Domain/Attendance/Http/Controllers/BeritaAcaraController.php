@@ -6,6 +6,7 @@ use App\Domain\Attendance\Enums\PeranTandaTangan;
 use App\Domain\Attendance\Enums\SisiFoto;
 use App\Domain\Attendance\Enums\StatusPresensi;
 use App\Domain\Attendance\Models\AttendanceRecord;
+use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Attendance\Models\SessionReportSignature;
 use App\Domain\Attendance\Services\InsidenService;
 use App\Domain\Attendance\Services\KonteksRuang;
@@ -98,44 +99,21 @@ class BeritaAcaraController
                 'boleh_final' => $laporan->bolehFinal(),
             ],
 
-            // Kedua sisi selalu dikirim, termasuk yang masih kosong -
-            // "Ambil foto sesudah ujian" adalah kotak yang harus DILIHAT
-            // pengawas, bukan kotak yang muncul setelah ia mengingatnya
-            // sendiri.
-            'foto' => collect(SisiFoto::cases())->map(function (SisiFoto $sisi) use ($laporan) {
-                $berkas = $laporan->berkas->firstWhere('sisi', $sisi);
+            // Satu foto, satu tanda tangan - dan kotaknya tetap dikirim
+            // meski masih kosong. "Ambil foto keadaan ruang" adalah kotak
+            // yang harus DILIHAT pengawas, bukan kotak yang muncul setelah
+            // ia mengingatnya sendiri.
+            //
+            // `SisiFoto` masih punya dua sisi karena baris lama di disk bisa
+            // saja memakai `sebelum`, dan `kekuranganFinal()` tetap menuntut
+            // sisi yang sama (`sesudah`). Yang menyusut di sini hanyalah
+            // yang DITAWARKAN lamannya.
+            'foto' => [$this->kartuFoto($laporan, SisiFoto::Sesudah)],
 
-                return [
-                    'sisi' => $sisi->value,
-                    'label' => $sisi->label(),
-                    'petunjuk' => $sisi->petunjuk(),
-                    'ada' => $berkas !== null,
-                    'url' => $berkas === null ? null : route('laporan.foto', $berkas),
-                    'diambil_pada' => $berkas?->diambil_pada?->format('H:i'),
-                    'diunggah_pada' => $berkas?->diunggah_pada?->format('d M H:i'),
-                    'ukuran' => $berkas?->ukuranTerbaca(),
-                    'nama_asli' => $berkas?->nama_asli,
-                    'terlambat' => $berkas !== null
-                        && $berkas->diambil_pada !== null
-                        && $berkas->diunggah_pada !== null
-                        && $berkas->diunggah_pada->diffInHours($berkas->diambil_pada) > 2,
-                ];
-            })->all(),
-
-            'tanda_tangan' => collect(PeranTandaTangan::cases())->map(function (PeranTandaTangan $peran) use ($laporan) {
-                $ttd = $laporan->tandaTangan->first(fn (SessionReportSignature $t) => $t->peran === $peran);
-
-                return [
-                    'peran' => $peran->value,
-                    'label' => $peran->label(),
-                    'wajib' => $peran->wajib(),
-                    'ada' => $ttd !== null,
-                    'nama' => $ttd?->nama,
-                    'oleh' => $ttd?->pelaku_label,
-                    'jam' => $ttd?->ditandatangani_pada?->format('H:i'),
-                    'url' => $ttd === null ? null : route('laporan.ttd', $ttd),
-                ];
-            })->all(),
+            // Hanya pengawas ruang. Panitia menandatangani di luar aplikasi,
+            // dan peran yang ditawarkan tetapi tidak pernah dipakai hanya
+            // menambah satu kotak kosong di laman ponsel.
+            'tanda_tangan' => [$this->kartuTandaTangan($laporan, PeranTandaTangan::Pengawas)],
         ]);
     }
 
@@ -166,6 +144,10 @@ class BeritaAcaraController
 
         if ($sisi === null) {
             return back()->with('galat', 'Sisi foto itu tidak dikenal.');
+        }
+
+        if ($sisi !== SisiFoto::Sesudah) {
+            return back()->with('galat', 'Berita acara ini hanya meminta satu foto: keadaan ruang sesudah ujian.');
         }
 
         try {
@@ -224,6 +206,14 @@ class BeritaAcaraController
 
         if ($peran === null) {
             return back()->with('galat', 'Peran penanda tangan itu tidak dikenal.');
+        }
+
+        // Hanya pengawas ruang. Panitia menandatangani di luar aplikasi -
+        // lihat `PeranTandaTangan::wajib()` - dan menerimanya di sini berarti
+        // menerima tanda tangan yang tidak pernah dituntut dan tidak pernah
+        // dibaca siapa pun.
+        if ($peran !== PeranTandaTangan::Pengawas) {
+            return back()->with('galat', 'Berita acara ini hanya ditandatangani pengawas ruang.');
         }
 
         try {
@@ -316,6 +306,55 @@ class BeritaAcaraController
     }
 
     /* ------------------------------------------------------------- Pembantu */
+
+    /**
+     * Satu kartu foto berita acara.
+     *
+     * @return array<string, mixed>
+     */
+    private function kartuFoto(SessionReport $laporan, SisiFoto $sisi): array
+    {
+        $berkas = $laporan->berkas->firstWhere('sisi', $sisi);
+
+        return [
+            'sisi' => $sisi->value,
+            'label' => $sisi->label(),
+            'petunjuk' => $sisi->petunjuk(),
+            'ada' => $berkas !== null,
+            'url' => $berkas === null ? null : route('laporan.foto', $berkas),
+            'diambil_pada' => $berkas?->diambil_pada?->format('H:i'),
+            'diunggah_pada' => $berkas?->diunggah_pada?->format('d M H:i'),
+            'ukuran' => $berkas?->ukuranTerbaca(),
+            'nama_asli' => $berkas?->nama_asli,
+            'terlambat' => $berkas !== null
+                && $berkas->diambil_pada !== null
+                && $berkas->diunggah_pada !== null
+                && $berkas->diunggah_pada->diffInHours($berkas->diambil_pada) > 2,
+        ];
+    }
+
+    /**
+     * Satu kartu tanda tangan berita acara.
+     *
+     * @return array<string, mixed>
+     */
+    private function kartuTandaTangan(SessionReport $laporan, PeranTandaTangan $peran): array
+    {
+        $ttd = $laporan->tandaTangan->first(
+            fn (SessionReportSignature $t) => $t->peran === $peran,
+        );
+
+        return [
+            'peran' => $peran->value,
+            'label' => $peran->label(),
+            'wajib' => $peran->wajib(),
+            'ada' => $ttd !== null,
+            'nama' => $ttd?->nama,
+            'oleh' => $ttd?->pelaku_label,
+            'jam' => $ttd?->ditandatangani_pada?->format('H:i'),
+            'url' => $ttd === null ? null : route('laporan.ttd', $ttd),
+        ];
+    }
 
     /**
      * Angka kepala plate 18: hadir, terlambat, tidak hadir, insiden.

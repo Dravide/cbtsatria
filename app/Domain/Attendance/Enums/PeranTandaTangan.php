@@ -22,6 +22,12 @@ namespace App\Domain\Attendance\Enums;
  * sementara `panitia` disediakan karena berita acara sekolah memang
  * ditandatangani dua pihak - dan menyediakan perannya sekarang lebih murah
  * daripada menambah kolomnya kelak.
+ *
+ * Sejak 2026-11-12 lamannya hanya menawarkan `pengawas`: panitia
+ * menandatangani di luar aplikasi, dan kotak tanda tangan yang tidak pernah
+ * dituntut hanya menambah satu kotak kosong di ponsel pengawas. `panitia`
+ * tetap ada sebagai case karena baris lama bisa memakainya; controller
+ * menolak tanda tangan bertanda `panitia` dengan kalimat.
  */
 enum PeranTandaTangan: string
 {

@@ -5,14 +5,19 @@ namespace App\Domain\Attendance\Enums;
 /**
  * Sisi foto berita acara - PRD §12.2.
  *
- * Dua sisi, dan keduanya wajib: satu sebelum ujian dimulai, satu sesudah
- * seluruh peserta keluar. Bukan satu foto "ruang ujian" - karena satu foto
- * tidak bisa membuktikan dua hal yang berbeda, dan yang perlu dibuktikan
- * justru keduanya: ruangnya kosong saat dibuka, dan kosong saat ditutup.
+ * ---------------------------------------------------------------------
+ * Dua sisi di skema, SATU yang ditawarkan lamannya
+ * ---------------------------------------------------------------------
+ * Sejak 2026-11-12 laman berita acara hanya meminta satu foto: keadaan ruang
+ * sesudah ujian. Ia sisi yang sama dengan syarat pengiriman final, sehingga
+ * laman yang hanya menawarkan satu foto tetap bisa menghasilkan laporan
+ * lengkap.
  *
- * Urutannya juga bukan urusan tampilan: `sesudah` adalah syarat pengiriman
- * final, dan pengawas yang mengirim lebih dulu tidak akan pernah bisa
- * melengkapinya.
+ * `sebelum` TETAP ada di enum - bukan karena lamannya menawarkannya, tetapi
+ * karena baris lama di `session_report_files` bisa saja memakainya, dan
+ * menghapus case-nya akan membuat baris itu gagal di-cast saat dibaca.
+ * Controller menolak unggahan bertanda `sebelum` dengan kalimat, bukan dengan
+ * galat 500.
  */
 enum SisiFoto: string
 {

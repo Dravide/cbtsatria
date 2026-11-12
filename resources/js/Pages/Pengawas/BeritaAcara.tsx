@@ -231,7 +231,7 @@ export default function BeritaAcara({
                 judul="Foto keadaan ruang"
                 kanan={
                     <Chip nada={foto.every((f) => f.ada) ? 'ok' : 'warn'}>
-                        {foto.filter((f) => f.ada).length} dari {foto.length}
+                        {foto.filter((f) => f.ada).length > 0 ? 'ada' : 'belum ada'}
                     </Chip>
                 }
             >
@@ -367,7 +367,11 @@ export default function BeritaAcara({
                 solid
                 padat
                 judul="Tanda tangan"
-                kanan={<Chip nada="info">{tanda_tangan.length} peran</Chip>}
+                kanan={
+                    <Chip nada={tanda_tangan.some((t) => t.ada) ? 'ok' : 'warn'}>
+                        {tanda_tangan.some((t) => t.ada) ? 'ditandatangani' : 'wajib'}
+                    </Chip>
+                }
             >
                 {tanda_tangan.map((t) => (
                     <TtdPonsel

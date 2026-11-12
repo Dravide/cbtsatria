@@ -532,6 +532,12 @@ it('admin mengunduh berita acara, dan ditolak saat menandatangani', function () 
             // Tombolnya tidak dirender bagi orang yang permintaannya pasti
             // ditolak.
             ->where('boleh_ttd', false)
+            // Satu foto dan satu tanda tangan: keadaannya sendiri yang
+            // dipersempit, bukan hanya tampilannya.
+            ->has('foto', 1)
+            ->where('foto.0.sisi', SisiFoto::Sesudah->value)
+            ->has('tanda_tangan', 1)
+            ->where('tanda_tangan.0.peran', PeranTandaTangan::Pengawas->value)
         );
 
     masukSebagai($this, $this->admin)
@@ -591,34 +597,39 @@ it('pengiriman final ditolak tanpa foto sesudah, dan tanpa tanda tangan pengawas
             'Tanda tangan pengawas belum ada.',
         );
 
-    // (2) Foto SEBELUM tidak menutup kekurangannya: yang dituntut adalah foto
-    //     sesudah. Ruang yang fotonya lupa diambil sebelum peserta masuk
-    //     tetap harus bisa dilaporkan.
-    $sisi->simpanFoto($laporan, SisiFoto::Sebelum, UploadedFile::fake()->image('sebelum.jpg'));
-
+    // (2) Laman berita acara hanya menawarkan SATU foto - keadaan ruang
+    //     sesudah ujian. Sisi `sebelum` masih ada di enumnya (baris lama di
+    //     disk bisa memakainya) tetapi unggahannya ditolak dengan kalimat,
+    //     bukan dengan galat 500 dan bukan dengan menyimpannya diam-diam.
     masukSebagai($this, $pengawas)
-        ->post("/pengawas/ruang/{$ruang->id}/berita-acara/kirim")
+        ->post("/pengawas/ruang/{$ruang->id}/berita-acara/foto", [
+            'sisi' => SisiFoto::Sebelum->value,
+            'foto' => UploadedFile::fake()->image('sebelum.jpg'),
+        ])
+        ->assertRedirect()
         ->assertSessionHas('galat');
 
-    expect($laporan->fresh()->final())->toBeFalse()
-        ->and($laporan->fresh()->kekuranganFinal())->toContain('Tanda tangan pengawas belum ada.');
+    expect($laporan->fresh()->berkas()->count())->toBe(0)
+        ->and($laporan->fresh()->kekuranganFinal())->toContain(
+            'Foto sesudah ujian belum diunggah.',
+            'Tanda tangan pengawas belum ada.',
+        );
 
-    // (3) Tanda tangan PANITIA tidak cukup: yang wajib adalah peran
-    //     `pengawas`. Inilah yang membuat "tanda tangan melekat pada peran
-    //     dan sesi, bukan pada orang" punya artinya.
+    // (3) Tanda tangan PANITIA ditolak: yang menandatangani berita acara ini
+    //     hanya pengawas ruang. Peran `panitia` tetap ada di enumnya karena
+    //     baris lama bisa memakainya, tetapi lamannya tidak menawarkannya -
+    //     dan yang tidak ditawarkan tidak boleh bisa diselundupkan lewat
+    //     permintaan langsung.
     masukSebagai($this, $pengawas)
         ->post("/pengawas/ruang/{$ruang->id}/berita-acara/ttd", [
             'peran' => PeranTandaTangan::Panitia->value,
             'nama' => 'Panitia Sekolah',
             'tanda_tangan' => 'data:image/png;base64,'.base64_encode('ttd'),
         ])
-        ->assertSessionHas('sukses');
-
-    masukSebagai($this, $pengawas)
-        ->post("/pengawas/ruang/{$ruang->id}/berita-acara/kirim")
         ->assertSessionHas('galat');
 
-    expect($laporan->fresh()->kekuranganFinal())->toContain('Tanda tangan pengawas belum ada.');
+    expect(SessionReportSignature::query()->count())->toBe(0)
+        ->and($laporan->fresh()->kekuranganFinal())->toContain('Tanda tangan pengawas belum ada.');
 
     // (4) Lengkap: foto sesudah, tanda tangan pengawas, dan kedua pernyataan.
     $sisi->simpanFoto($laporan, SisiFoto::Sesudah, UploadedFile::fake()->image('sesudah.jpg'));
@@ -651,10 +662,12 @@ it('pengiriman final ditolak tanpa foto sesudah, dan tanpa tanda tangan pengawas
         ->and($final->pelaku_label)->toBe($pengawas->name);
 
     // Berita acara yang sudah final tidak bisa diubah isinya - kalau bisa,
-    // seluruh janji "draf tersimpan otomatis" berubah menjadi lubang.
+    // seluruh janji "draf tersimpan otomatis" berubah menjadi lubang. Perannya
+    // sengaja `pengawas` supaya yang menolak benar-benar status finalnya,
+    // bukan penjaga peran di controller.
     masukSebagai($this, $pengawas)
         ->post("/pengawas/ruang/{$ruang->id}/berita-acara/ttd", [
-            'peran' => PeranTandaTangan::Panitia->value,
+            'peran' => PeranTandaTangan::Pengawas->value,
             'nama' => 'Orang Lain',
             'tanda_tangan' => 'data:image/png;base64,'.base64_encode('ttd'),
         ])
