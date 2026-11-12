@@ -431,6 +431,22 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/events/{event}/monitoring/peserta/{peserta}/buka', [PemantauanEventController::class, 'bukaKunci'])
         ->name('events.monitoring.buka');
 
+    // Reset dan hentikan manual - dua tindakan Admin atas satu pengerjaan,
+    // keduanya dari papan yang sama dengan `buka` di atas.
+    //
+    // Reset membatalkan attempt terakhir dan menghapus nilainya, sehingga
+    // anak mengulang dari soal pertama lewat gerbang biasa. "Hentikan"
+    // mengunci attempt dengan pesan yang ditulis Admin, dan pesan itu yang
+    // dibaca siswa di plate 25 - lihat `PengendaliPengerjaan`.
+    //
+    // Keduanya menuntut kalimat dari Admin, dan keduanya tercatat di
+    // `activity_logs`: satu menghapus nilai seorang anak, yang lain
+    // menghentikan ujian yang sedang ia kerjakan.
+    Route::post('/events/{event}/monitoring/peserta/{peserta}/reset', [PemantauanEventController::class, 'resetUjian'])
+        ->name('events.monitoring.reset');
+    Route::post('/events/{event}/monitoring/peserta/{peserta}/hentikan', [PemantauanEventController::class, 'blokirPeserta'])
+        ->name('events.monitoring.hentikan');
+
     /*
     |----------------------------------------------------------------------
     | 21-22 Publikasi hasil & laporan - Fase 8

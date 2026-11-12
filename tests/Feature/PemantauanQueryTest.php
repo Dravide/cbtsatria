@@ -8,8 +8,10 @@ use App\Domain\Attendance\Models\ExamIncident;
 use App\Domain\Attendance\Models\ExamViolation;
 use App\Domain\Attendance\Services\InsidenService;
 use App\Domain\Attendance\Services\KonteksRuang;
+use App\Domain\Attendance\Services\MesinUjian;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
+use App\Domain\Grading\Models\ExamResult;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\School;
 use App\Domain\Tenancy\Services\SchoolResolver;
@@ -649,4 +651,241 @@ it('menolak membuka kunci peserta yang tidak sedang terkunci', function () {
         ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$belum->id}/buka")
         ->assertRedirect()
         ->assertSessionHas('galat');
+});
+
+/* =====================================================================
+ | Reset dan penghentian pengerjaan - ditambahkan 2026-11-13
+ |===================================================================== */
+
+/**
+ * Attempt yang sudah DIKUMPULKAN, lewat jalur yang sama dengan tombol siswa.
+ *
+ * `MesinUjian::kumpulkan()` dipanggil langsung, bukan endpoint `/selesai`,
+ * karena yang dibutuhkan di sini bukan pembuktian rute itu - ia sudah punya
+ * testnya sendiri - melainkan baris `exam_results` yang lahir sesudahnya.
+ * Jawabannya sengaja kosong: yang diuji adalah baris nilainya DIHAPUS, dan
+ * nilai nol tetap satu baris.
+ */
+function selesaikanAttempt(ExamParticipant $peserta): ExamAttempt
+{
+    $attempt = attemptBerjalan($peserta);
+
+    app(MesinUjian::class)->kumpulkan($attempt);
+
+    return $attempt->refresh();
+}
+
+it('mereset pengerjaan supaya siswa mengulang dari awal', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    $attempt = selesaikanAttempt($peserta);
+
+    expect(ExamResult::query()->where('exam_attempt_id', $attempt->id)->exists())->toBeTrue()
+        ->and($attempt->violation_count)->toBe(0);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/reset", [
+            'alasan' => 'Perangkatnya mati di menit pertama, pengerjaan diulang.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    $batal = $attempt->refresh();
+
+    // Attemptnya DIBATALKAN, bukan dihapus dan bukan dikembalikan ke berjalan:
+    // barisnya tetap ada karena soal dan jawaban yang sudah dikerjakannya
+    // adalah riwayat, dan yang berubah hanyalah artinya.
+    expect($batal->status)->toBe(ExamAttempt::STATUS_BATAL)
+        ->and($batal->lock_reason)->toBeNull()
+        // Penghitung pelanggaran TIDAK naik: reset bukan pelanggaran siswa,
+        // dan menaikkannya akan menggeser tangga milik anaknya.
+        ->and($batal->violation_count)->toBe(0);
+
+    // Baris nilainya hilang. Tanpa ini, nilai atas pengerjaan yang menurut
+    // sistem tidak berlaku tetap terbaca di `/siswa/nilai`: sumbernya
+    // menyaring `published_at`, bukan status attempt.
+    expect(ExamResult::query()->where('exam_attempt_id', $batal->id)->exists())->toBeFalse();
+
+    $baris = ExamViolation::query()
+        ->where('exam_attempt_id', $batal->id)
+        ->where('violation_type', 'diblokir_admin')
+        ->sole();
+
+    expect($baris->severity)->toBe(0)
+        ->and($baris->metadata_json['tindakan'])->toBe('reset')
+        ->and($baris->metadata_json['alasan'])->toBe('Perangkatnya mati di menit pertama, pengerjaan diulang.')
+        ->and($baris->metadata_json['oleh'])->toContain('Admin');
+
+    // Dan anaknya benar-benar bisa mengulang: gerbangnya menerima attempt
+    // baru walau `max_attempts` ujian ini 1, karena yang dihitung adalah
+    // attempt yang DIKIRIM atau KEDALUWARSA - lihat KelayakanUjian.
+    masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/kerjakan")
+        ->assertRedirect("/siswa/ujian/{$peserta->id}/gerbang");
+
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token'])
+        ->assertRedirect();
+
+    $baru = attemptBerjalan($peserta);
+
+    expect($baru->attempt_number)->toBe(2)
+        ->and($baru->status)->toBe(ExamAttempt::STATUS_BERJALAN)
+        ->and($baru->violation_count)->toBe(0);
+});
+
+it('menolak mereset pengerjaan yang sudah dibatalkan', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    selesaikanAttempt($peserta);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/reset", [
+            'alasan' => 'Pengerjaan diulang karena perangkat mati.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    // Tombol yang tertekan dua kali tidak mencetak dua baris riwayat: yang
+    // kedua dibalas galat, bukan sukses yang tidak terjadi.
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/reset", [
+            'alasan' => 'Pengerjaan diulang karena perangkat mati.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('galat');
+
+    expect(ExamViolation::query()->where('violation_type', 'diblokir_admin')->count())->toBe(1);
+});
+
+it('menolak reset tanpa alasan tertulis', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+    selesaikanAttempt($peserta);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/reset", ['alasan' => ''])
+        ->assertSessionHasErrors('alasan');
+
+    // Ditolak berarti TIDAK ada yang berubah - bukan "dibatalkan setengah".
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_DIKIRIM)
+        ->and(ExamResult::query()->count())->toBe(1);
+});
+
+it('menghentikan pengerjaan dengan pesan yang dibaca siswa', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    $pesan = 'Hentikan dulu, panggil pengawas ke kursi 1.';
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/hentikan", [
+            'pesan' => $pesan,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    $attempt = attemptBerjalan($peserta);
+
+    expect($attempt->status)->toBe(ExamAttempt::STATUS_DIKUNCI)
+        ->and($attempt->lock_reason)->toBe($pesan)
+        ->and($attempt->locked_at)->not->toBeNull()
+        // Penghentian oleh ORANG tidak menggeser tangga pelanggaran.
+        ->and($attempt->violation_count)->toBe(0);
+
+    $baris = ExamViolation::query()
+        ->where('exam_attempt_id', $attempt->id)
+        ->where('violation_type', 'diblokir_admin')
+        ->sole();
+
+    expect($baris->severity)->toBe(0)
+        ->and($baris->metadata_json['pesan'])->toBe($pesan)
+        ->and($baris->resolved_by)->toBe($this->admin->id);
+
+    // Lamannya kerja mengalihkan ke laman terkunci, dan DI SANA pesannya
+    // dibaca anaknya - bukan sekadar tersimpan di kolom.
+    masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/kerjakan")
+        ->assertRedirect("/siswa/ujian/{$peserta->id}/terkunci");
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/terkunci")
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($props['attempt']['alasan'])->toBe($pesan)
+        // Kalimat laman berbeda untuk penghentian oleh Admin: "terdeteksi 0
+        // pelanggaran" di atas pesan Admin adalah kalimat yang tidak masuk
+        // akal, dan `jumlah` memang nol di kasus ini.
+        ->and($props['attempt']['oleh_admin'])->toBeTrue()
+        ->and($props['attempt']['jumlah'])->toBe(0);
+
+    // Dan bisa dihidupkan lagi lewat jalur buka kunci yang sudah ada.
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/buka", [
+            'alasan' => 'Sudah ditanyai, lanjutkan.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_BERJALAN);
+});
+
+it('menolak menghentikan pengerjaan yang tidak sedang berjalan', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+    selesaikanAttempt($peserta);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/hentikan", [
+            'pesan' => 'Hentikan dulu, panggil pengawas.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('galat');
+
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_DIKIRIM)
+        ->and(ExamViolation::query()->where('violation_type', 'diblokir_admin')->count())->toBe(0);
+});
+
+it('menolak reset dan penghentian peserta dari event lain', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    $lain = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$lain['event']->id}/monitoring/peserta/{$peserta->id}/reset", [
+            'alasan' => 'Pengerjaan diulang karena perangkat mati.',
+        ])
+        ->assertNotFound();
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$lain['event']->id}/monitoring/peserta/{$peserta->id}/hentikan", [
+            'pesan' => 'Hentikan dulu, panggil pengawas.',
+        ])
+        ->assertNotFound();
+
+    // Dan tidak ada satu pun yang berubah: penolakan yang tetap menghentikan
+    // pengerjaannya adalah penolakan yang tidak menolak apa pun.
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_BERJALAN)
+        ->and(ExamViolation::query()->where('violation_type', 'diblokir_admin')->count())->toBe(0);
 });

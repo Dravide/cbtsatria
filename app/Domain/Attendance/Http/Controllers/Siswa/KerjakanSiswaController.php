@@ -61,6 +61,13 @@ class KerjakanSiswaController extends SiswaDasar
 
         $attempt = $this->mesin->tutupBilaKedaluwarsa($attempt);
 
+        // Pengerjaan yang direset Admin berakhir di GERBANG, bukan di laman
+        // selesai: anaknya belum selesai, ia mengulang dari awal, dan laman
+        // "Ujian dikumpulkan" akan membacakan pengumpulan yang tidak terjadi.
+        if ($attempt->status === ExamAttempt::STATUS_BATAL) {
+            return redirect()->route('siswa.gerbang', ['peserta' => $peserta->id]);
+        }
+
         // Attempt yang terkunci punya lamannya sendiri (plate 25), dan
         // attempt yang sudah ditutup punya ringkasannya (plate 26-27).
         // Membiarkan anak mengetik di laman ini berarti jawaban yang tidak

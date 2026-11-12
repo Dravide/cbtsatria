@@ -85,6 +85,16 @@ class TerkunciSiswaController extends SiswaDasar
                 'alasan' => $attempt->lock_reason,
                 'terkunci_pada' => $attempt->locked_at?->toIso8601String(),
                 'jumlah' => $attempt->violation_count,
+                // Penguncian oleh ORANG, bukan oleh tangga pelanggaran -
+                // lihat PengendaliPengerjaan::blokir(). Lamanya yang
+                // menentukan kalimat mana yang dibaca anak: "Terdeteksi 0
+                // pelanggaran" di atas pesan Admin adalah kalimat yang tidak
+                // masuk akal, dan `jumlah` memang nol pada kasus itu.
+                //
+                // Dibaca dari baris TERAKHIR, bukan dari keberadaan baris
+                // mana pun: attempt yang pernah diblokir lalu dibuka lalu
+                // terkunci lagi oleh pelanggaran bukan penghentian Admin.
+                'oleh_admin' => $pelanggaran->last()?->violation_type === 'diblokir_admin',
                 // Waktu terus berjalan - lihat catatan kelas ini.
                 'sisa_detik' => $this->mesin->sisaDetik($attempt),
                 'deadline' => $attempt->deadline_at?->toIso8601String(),

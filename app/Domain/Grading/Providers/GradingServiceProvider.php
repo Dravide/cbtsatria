@@ -2,6 +2,7 @@
 
 namespace App\Domain\Grading\Providers;
 
+use App\Domain\Attendance\Contracts\PenghapusHasil;
 use App\Domain\Attendance\Contracts\PenilaiPengerjaan;
 use App\Domain\Attendance\Contracts\SumberNilai;
 use App\Domain\Grading\Models\EssayGrading;
@@ -9,6 +10,7 @@ use App\Domain\Grading\Models\ExamResult;
 use App\Domain\Grading\Models\QuestionAnalysis;
 use App\Domain\Grading\Models\ReportExport;
 use App\Domain\Grading\Policies\GradingPolicy;
+use App\Domain\Grading\Services\PenghapusHasilService;
 use App\Domain\Grading\Services\PenghitungAnalisis;
 use App\Domain\Grading\Services\PenghitungHasil;
 use App\Domain\Grading\Services\PenilaiOtomatis;
@@ -69,6 +71,11 @@ class GradingServiceProvider extends ServiceProvider
         // Dan satu lagi, arah yang sama: laman "Nilai saya" hidup di modul
         // Attendance, dan ia membaca angka yang dihitung di sini.
         $this->app->singleton(SumberNilai::class, SumberNilaiService::class);
+
+        // Ketiga: reset ujian membatalkan attempt, dan baris nilai untuk
+        // pengerjaan yang dibatalkan harus hilang. Attendance tidak boleh
+        // menyentuh `exam_results` sendiri - lihat PenghapusHasil.
+        $this->app->singleton(PenghapusHasil::class, PenghapusHasilService::class);
     }
 
     public function boot(): void

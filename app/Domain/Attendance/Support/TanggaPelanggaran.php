@@ -86,6 +86,11 @@ final class TanggaPelanggaran
      */
     public const TINGKAT = [
         'klik_kanan' => 0,
+        // Dua tindakan ORANG, bukan perbuatan siswa - lihat
+        // ExamViolation::JENIS_PENGAWAS. Tingkatnya 0 supaya keduanya tidak
+        // pernah menggeser tangga milik anaknya.
+        'kunci_dibuka' => 0,
+        'diblokir_admin' => 0,
         'pindah_tab' => 1,
         'keluar_layar_penuh' => 1,
         'jaringan' => 1,
@@ -192,6 +197,7 @@ final class TanggaPelanggaran
     {
         return match (true) {
             $v->violation_type === 'kunci_dibuka' => 'dibuka pengawas',
+            $v->violation_type === 'diblokir_admin' => 'dihentikan Admin',
             $v->resolved_at !== null => 'ditangani',
             default => 'dicatat',
         };

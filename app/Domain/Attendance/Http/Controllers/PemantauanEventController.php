@@ -14,6 +14,8 @@ use App\Domain\Attendance\Services\InsidenService;
 use App\Domain\Attendance\Services\KehadiranService;
 use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Attendance\Services\PencatatPelanggaran;
+use App\Domain\Attendance\Services\PengendaliPengerjaan;
+use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Event\Models\EventRoom;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\Exam;
@@ -28,6 +30,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 /**
  * Presensi dan monitoring lintas ruang, dari konsol Admin - PRD §3.5.
@@ -980,6 +983,131 @@ class PemantauanEventController
     }
 
     /**
+     * Reset satu peserta supaya mengerjakan ulang dari awal.
+     *
+     * ---------------------------------------------------------------------
+     * Yang dibatalkan adalah ATTEMPTNYA, bukan jawabannya
+     * ---------------------------------------------------------------------
+     * Attempt terakhir ditandai `batal`, dan baris nilainya dihapus lewat
+     * kontrak `PenghapusHasil` milik modul Grading. Anaknya lalu memulai
+     * attempt BERIKUTNYA lewat gerbang biasa - urutan soal dan deadline baru,
+     * dan `KelayakanUjian` tidak menghitung attempt yang batal sebagai
+     * kesempatan yang sudah dipakai.
+     *
+     * Itu sebabnya reset TIDAK menaikkan `max_attempts` ujian: kesempatan
+     * yang dipakai adalah attempt yang dikirim atau kedaluwarsa, dan yang
+     * dibatalkan bukan salah satunya.
+     *
+     * Alasan wajib diisi. Ini tindakan yang menghapus nilai seorang anak, dan
+     * Admin yang tidak bisa menyebutkan alasannya tiga bulan kemudian adalah
+     * Admin yang tidak punya dasar untuk melakukannya.
+     */
+    public function resetUjian(
+        SchoolEvent $event,
+        Request $request,
+        ExamParticipant $peserta,
+        PengendaliPengerjaan $kendali,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('view', $event);
+
+        abort_unless((int) $peserta->exam?->event_id === (int) $event->id, 404);
+
+        $valid = $request->validate([
+            'alasan' => ['required', 'string', 'min:4', 'max:200'],
+        ], [], ['alasan' => 'alasan reset']);
+
+        $attempt = ExamAttempt::query()
+            ->where('exam_participant_id', $peserta->id)
+            ->orderByDesc('attempt_number')
+            ->first();
+
+        if ($attempt === null) {
+            return back()->with('galat', 'Peserta ini belum mulai mengerjakan, jadi tidak ada yang bisa direset.');
+        }
+
+        $alasan = trim($valid['alasan']);
+        $pelaku = 'Admin '.($request->user()?->name ?? '');
+
+        try {
+            $nomor = $kendali->reset($attempt, $pelaku, $alasan);
+        } catch (RuntimeException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $logger->log('Meriset pengerjaan ujian', $attempt, [
+            'peserta_id' => $peserta->id,
+            'attempt_number' => $nomor,
+            'alasan' => $alasan,
+        ]);
+
+        return back()->with(
+            'sukses',
+            'Pengerjaan ke-'.$nomor.' dibatalkan. Peserta akan mengulang dari soal pertama saat membuka gerbang lagi.',
+        );
+    }
+
+    /**
+     * Hentikan satu peserta secara manual, dengan pesan dari Admin.
+     *
+     * ---------------------------------------------------------------------
+     * Pesannya ADALAH isinya
+     * ---------------------------------------------------------------------
+     * Kalimat yang ditulis Admin di sini mendarat di `lock_reason`, dan
+     * `lock_reason` adalah yang dibaca siswa di plate 25. Itu satu-satunya
+     * mekanisme yang dibutuhkan - tidak ada tabel pesan tersendiri, dan tidak
+     * ada notifikasi yang harus diantar.
+     *
+     * Yang ditambahkan di sini hanya baris riwayat `diblokir_admin` supaya
+     * riwayat pelanggaran tetap menjawab "apa yang terjadi pada attempt ini",
+     * dan supaya penghentian oleh ORANG tidak tertukar dengan penghentian
+     * oleh tangga pelanggaran.
+     *
+     * Membuka kuncinya tetap lewat `bukaKunci()` yang sudah ada: ia hanya
+     * memeriksa `dikunci()`, sehingga tidak peduli siapa yang mengunci.
+     */
+    public function blokirPeserta(
+        SchoolEvent $event,
+        Request $request,
+        ExamParticipant $peserta,
+        PengendaliPengerjaan $kendali,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('view', $event);
+
+        abort_unless((int) $peserta->exam?->event_id === (int) $event->id, 404);
+
+        $valid = $request->validate([
+            'pesan' => ['required', 'string', 'min:4', 'max:300'],
+        ], [], ['pesan' => 'pesan penghentian']);
+
+        $attempt = ExamAttempt::query()
+            ->where('exam_participant_id', $peserta->id)
+            ->orderByDesc('attempt_number')
+            ->first();
+
+        if ($attempt === null) {
+            return back()->with('galat', 'Peserta ini belum mulai mengerjakan, jadi tidak ada yang bisa dihentikan.');
+        }
+
+        $pesan = trim($valid['pesan']);
+        $pelaku = 'Admin '.($request->user()?->name ?? '');
+
+        try {
+            $kendali->blokir($attempt, $pesan, $pelaku, $request->user()?->id);
+        } catch (RuntimeException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $logger->log('Menghentikan pengerjaan peserta', $attempt, [
+            'peserta_id' => $peserta->id,
+            'pesan' => $pesan,
+        ]);
+
+        return back()->with('sukses', 'Pengerjaan dihentikan. Pesan yang Anda tulis tampil di layar peserta.');
+    }
+
+    /**
      * Satu baris per peserta, untuk daftar yang dibuka Admin di bawah ruangnya.
      *
      * ---------------------------------------------------------------------
@@ -1076,7 +1204,15 @@ class PemantauanEventController
                     'butir' => $butir['butir'] ?? null,
 
                     'pelanggaran' => $a?->violation_count ?? 0,
+
+                    // Tindakan ORANG tidak ikut jadi chip - lihat
+                    // `ExamViolation::JENIS_PENGAWAS`. Chip ini dibaca sebagai
+                    // "apa yang dilakukan anaknya", dan baris reset Admin akan
+                    // membubuhkan "1 diblokir admin" pada anak yang justru
+                    // sedang mengulang dengan bersih. Keadaan terkuncinya
+                    // sudah dibawa chip `terkunci` dan `kunci_alasan`.
                     'jenis_pelanggaran' => $jenis
+                        ->reject(fn (ExamViolation $v) => in_array($v->violation_type, ExamViolation::JENIS_PENGAWAS, true))
                         ->map(fn (ExamViolation $v) => $v->jumlah.' '.strtolower(ExamViolation::JENIS[$v->violation_type] ?? $v->violation_type))
                         ->values()
                         ->all(),

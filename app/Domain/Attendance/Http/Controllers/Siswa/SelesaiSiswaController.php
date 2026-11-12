@@ -65,6 +65,13 @@ class SelesaiSiswaController extends SiswaDasar
             return redirect()->route('siswa.terkunci', ['peserta' => $peserta->id]);
         }
 
+        // Attempt yang dibatalkan Admin tidak punya "sesudah dikumpulkan".
+        // Lamannya gerbang, karena anaknya memang akan mengulang dari awal -
+        // lihat PengendaliPengerjaan::reset().
+        if ($attempt->status === ExamAttempt::STATUS_BATAL) {
+            return redirect()->route('siswa.gerbang', ['peserta' => $peserta->id]);
+        }
+
         $peserta->loadMissing(['exam.subject:id,name', 'session', 'room.eventRoom.room:id,code,name']);
 
         $selesai = $attempt->status !== ExamAttempt::STATUS_BERJALAN;
@@ -129,6 +136,13 @@ class SelesaiSiswaController extends SiswaDasar
         // dan siswa yang menekan Kumpulkan satu detik terlalu lambat harus
         // menerima catatan yang sebenarnya.
         $attempt = $this->mesin->tutupBilaKedaluwarsa($attempt);
+
+        // Attempt yang dibatalkan Admin tidak punya "dikumpulkan": lamannya
+        // gerbang, karena anaknya memang akan mengulang dari awal - lihat
+        // PengendaliPengerjaan::reset().
+        if ($attempt->status === ExamAttempt::STATUS_BATAL) {
+            return redirect()->route('siswa.gerbang', ['peserta' => $peserta->id]);
+        }
 
         $this->mesin->kumpulkan($attempt);
 

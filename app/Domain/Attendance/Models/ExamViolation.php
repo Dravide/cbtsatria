@@ -111,10 +111,20 @@ class ExamViolation extends Model
         // kesalahannya tidak terbaca sebagai pelanggaran siswa: yang
         // membedakannya adalah `labelTingkat()` di bawah.
         'kunci_dibuka' => 'Kunci dibuka pengawas',
+
+        // Kebalikan dari baris di atas: ujian DIHENTIKAN oleh Admin, dengan
+        // pesan yang ditulis Admin sendiri dan dibaca siswa di plate 25.
+        //
+        // Ada di tabel yang sama karena alasannya sama - "apa yang terjadi
+        // pada attempt ini" harus punya satu jawaban. Tanpa baris ini,
+        // penghentian manual hanya meninggalkan `lock_reason` terisi, dan
+        // riwayat tidak lagi bisa membedakan penguncian oleh tangga
+        // pelanggaran dari keputusan orang.
+        'diblokir_admin' => 'Diblokir Admin',
     ];
 
     /** Jenis yang merupakan tindakan pengawas, bukan perbuatan siswa. */
-    public const JENIS_PENGAWAS = ['kunci_dibuka'];
+    public const JENIS_PENGAWAS = ['kunci_dibuka', 'diblokir_admin'];
 
     protected function casts(): array
     {
@@ -169,8 +179,20 @@ class ExamViolation extends Model
      */
     public function labelTingkat(): string
     {
-        if (in_array($this->violation_type, self::JENIS_PENGAWAS, true)) {
+        // Tindakan orang tidak pernah "Berat". Pembukaan kunci yang terbaca
+        // "Berat" di riwayat siswa adalah catatan yang menuduh anak atas
+        // perbuatan orang dewasa.
+        //
+        // Labelnya dipisah karena pelakunya memang berbeda: pembukaan kunci
+        // oleh pengawas ruang, penghentian oleh Admin di papan monitoring.
+        // Menyatukan keduanya menjadi satu kalimat akan menulis "tindakan
+        // pengawas" pada baris yang Admin tulis dari ruang kerjanya.
+        if ($this->violation_type === 'kunci_dibuka') {
             return 'tindakan pengawas';
+        }
+
+        if (in_array($this->violation_type, self::JENIS_PENGAWAS, true)) {
+            return 'tindakan Admin';
         }
 
         return match (true) {

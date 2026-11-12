@@ -136,7 +136,11 @@ class NilaiSiswaController extends SiswaDasar
      */
     private function bentukBaris(ExamParticipant $p, ?ExamAttempt $attempt, array $nilai): ?array
     {
-        if ($attempt === null) {
+        // Pengerjaan yang DIBATALKAN Admin (reset ujian) tidak meninggalkan
+        // baris nilai sama sekali - nilainya atas pengerjaan yang menurut
+        // sistem tidak berlaku. Menampilkannya sebagai "nilai belum dibuka"
+        // akan membuat anak menunggu nilai ujian yang akan ia ulang.
+        if ($attempt === null || $attempt->status === ExamAttempt::STATUS_BATAL) {
             return null;
         }
 
