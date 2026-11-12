@@ -89,6 +89,7 @@ class ExamRegistrar
                         $event,
                         (int) $data['subject_id'],
                         $data['exam_type'] ?? $event->event_type,
+                        $data['class_id'] ?? [],
                     ),
 
                 // Jenis ujian kini milik EVENT (`school_events.event_type`,
@@ -201,11 +202,13 @@ class ExamRegistrar
      * parameter supaya pemanggil lama yang mengirim `exam_type` eksplisit
      * (test, impor) tidak berubah perilakunya.
      *
-     * Bentuknya: `{jenis} {mapel}`, dan jenis yang kosong jatuh ke nama
-     * mapelnya saja. `exams.title` NOT NULL, jadi hasilnya tidak pernah
-     * string kosong: mapel yang tidak ditemukan pun menghasilkan "Ujian",
-     * bukan pelanggaran constraint dengan pesan yang tidak menjelaskan apa
-     * pun.
+     * Bentuknya: `{jenis} - {mapel} #{tingkat}`, dan bagian yang kosong
+     * dilewati. Tingkat diambil dari kelas sasaran ujian (lihat `tingkat()`),
+     * karena dalam satu event ada mapel yang sama untuk tiga tingkat dan yang
+     * membedakan ujiannya adalah kelas yang mengerjakannya. `exams.title` NOT
+     * NULL, jadi hasilnya tidak pernah string kosong: mapel yang tidak
+     * ditemukan pun menghasilkan "Ujian", bukan pelanggaran constraint dengan
+     * pesan yang tidak menjelaskan apa pun.
      *
      * ---------------------------------------------------------------------
      * Judul lama TIDAK ditimpa
@@ -214,8 +217,12 @@ class ExamRegistrar
      * sesudahnya tidak menarik judul ujian yang sudah dipakai di jadwal
      * tercetak dan di berita acara - alasan yang sama dengan `code`.
      */
-    public function judulOtomatis(SchoolEvent $event, int $subjectId, ?string $jenis = null): string
-    {
+    public function judulOtomatis(
+        SchoolEvent $event,
+        int $subjectId,
+        ?string $jenis = null,
+        array $classId = [],
+    ): string {
         $jenis ??= $event->event_type;
 
         $mapel = DB::table('event_subjects')
@@ -224,12 +231,70 @@ class ExamRegistrar
             ->where('event_subjects.subject_id', $subjectId)
             ->value('subjects.name');
 
+        $judul = $this->gabung($jenis, $mapel);
+        $tingkat = $this->tingkat($subjectId, $classId);
+
+        if ($tingkat === null) {
+            return $judul;
+        }
+
+        return $judul.' #'.$tingkat;
+    }
+
+    /**
+     * Tingkat yang dicantumkan di judul: `#9`.
+     *
+     * Diambil dari KELAS SASARAN lebih dulu, bukan dari mapelnya: satu mapel
+     * "Informatika" ada untuk tingkat 7, 8, dan 9, dan yang membedakan dua
+     * ujian Informatika di event yang sama adalah kelas yang mengerjakannya.
+     * Ujian tanpa kelas sasaran berarti "seluruh peserta event", jadi
+     * tingkatnya tidak bisa dijawab dan judulnya berhenti di nama mapel.
+     *
+     * Kelas sasaran yang mencampur dua tingkat juga tidak dijawab - menulis
+     * "#8" untuk ujian 8 dan 9 sekaligus lebih menyesatkan daripada tidak
+     * menulis apa pun. Fallback ke tingkat mapel hanya dipakai saat ujiannya
+     * memang tidak punya kelas sasaran.
+     *
+     * @param  array<int, int>  $classId
+     */
+    private function tingkat(int $subjectId, array $classId): ?string
+    {
+        if ($classId !== []) {
+            $tingkat = DB::table('classes')
+                ->whereIn('id', $classId)
+                ->whereNotNull('grade_level')
+                ->distinct()
+                ->pluck('grade_level')
+                ->map(fn ($t) => trim((string) $t))
+                ->filter()
+                ->unique()
+                ->values();
+
+            return $tingkat->count() === 1 ? $tingkat->first() : null;
+        }
+
+        $tingkat = DB::table('subjects')->where('id', $subjectId)->value('grade_level');
+
+        return blank($tingkat) ? null : trim((string) $tingkat);
+    }
+
+    /**
+     * Bentuk judul: `{jenis} - {mapel}`.
+     *
+     * Pemisahnya ` - ` dan bukan spasi, karena `ASESMEN SUMATIF AKHIR TAHUN
+     * Informatika` terbaca sebagai satu nama kegiatan yang panjang. Bagian
+     * yang kosong dilewati, sehingga jenis yang tidak diisi menghasilkan nama
+     * mapel saja - dan keduanya kosong menghasilkan "Ujian", bukan string
+     * kosong yang melanggar `exams.title` NOT NULL.
+     */
+    private function gabung(?string $jenis, ?string $mapel): string
+    {
         $bagian = array_filter([
             trim((string) $jenis),
             trim((string) $mapel),
         ], fn (string $s) => $s !== '');
 
-        return $bagian === [] ? 'Ujian' : implode(' ', $bagian);
+        return $bagian === [] ? 'Ujian' : implode(' - ', $bagian);
     }
 
     /**

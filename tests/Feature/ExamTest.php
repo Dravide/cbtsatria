@@ -20,6 +20,7 @@ use App\Domain\Event\Services\EventStatusService;
 use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Enums\StatusToken;
 use App\Domain\Exam\Models\Exam;
+use App\Domain\Exam\Models\ExamClass;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamQuestion;
 use App\Domain\Exam\Models\ExamSession;
@@ -965,13 +966,22 @@ it('mewarisi paket yang sudah terpasang di mapel saat ujian dibuat', function ()
         );
 });
 
-it('membangkitkan judul ujian dari jenis event dan nama mapel', function () {
+it('membangkitkan judul ujian dari jenis event, mapel, dan tingkat', function () {
     // Kolom "Judul ujian" tidak lagi tampil di panel Tambah ujian. Yang
     // dibangkitkan server harus memakai jenis dari EVENT, bukan jenis
     // per-ujian yang sudah tidak dipilih di mana pun: memakai pilihan lokal
     // berarti satu event bisa berisi dua jenis ujian yang berbeda, dan judul
     // yang dibaca di jadwal serta berita acara ikut berselisih.
+    //
+    // Tingkatnya ikut, karena satu event memuat mapel yang sama untuk tiga
+    // tingkat - "Informatika" saja tidak membedakan ujian 7 dan ujian 9.
     $this->event->forceFill(['event_type' => 'Ujian tengah semester'])->save();
+
+    // Kelas sasaran kosong berarti "seluruh peserta event", jadi tingkatnya
+    // diambil dari mapelnya - dan `SubjectFactory` memilih dari
+    // ['X', 'XI', 'XII', null], sehingga nilainya ditetapkan di sini
+    // daripada bergantung pada undian.
+    $this->mapel->forceFill(['grade_level' => 'IX'])->save();
 
     masukSebagai($this, $this->admin)->post("/admin/events/{$this->event->id}/ujian", [
         'subject_id' => $this->mapel->id,
@@ -981,11 +991,67 @@ it('membangkitkan judul ujian dari jenis event dan nama mapel', function () {
 
     $ujian = Exam::query()->orderByDesc('id')->firstOrFail();
 
-    expect($ujian->title)->toBe('Ujian tengah semester '.$this->mapel->name)
+    expect($ujian->title)->toBe('Ujian tengah semester - '.$this->mapel->name.' #IX')
         // `exam_type` ikut menyalin jenis event - kolomnya masih dibaca
         // laporan lama, dan nilai kosong di sana berarti laporan yang tidak
         // menyebut jenis ujiannya sama sekali.
         ->and($ujian->exam_type)->toBe('Ujian tengah semester');
+});
+
+it('mengambil tingkat dari kelas sasaran, bukan dari mapelnya', function () {
+    // Kelas yang dicentang lebih menentukan daripada mapel: ujian yang
+    // ditargetkan ke satu kelas harus menyebut tingkat kelas ITU.
+    $kelas = SchoolClass::query()
+        ->where('id', $this->event->classes()->pluck('class_id'))
+        ->firstOrFail();
+
+    $kelas->forceFill(['grade_level' => '7'])->save();
+
+    $this->mapel->forceFill(['grade_level' => '9'])->save();
+
+    masukSebagai($this, $this->admin)->post("/admin/events/{$this->event->id}/ujian", [
+        'subject_id' => $this->mapel->id,
+        'duration_minutes' => 60,
+        'class_id' => [$kelas->id],
+    ])->assertSessionHasNoErrors();
+
+    $ujian = Exam::query()->orderByDesc('id')->firstOrFail();
+
+    expect($ujian->title)->toBe(
+        $this->event->event_type.' - '.$this->mapel->name.' #7',
+    );
+});
+
+it('tidak menulis tingkat bila kelas sasarannya mencampur dua tingkat', function () {
+    // "#7" untuk ujian yang dikerjakan kelas 7 DAN 9 lebih menyesatkan
+    // daripada tidak menyebut tingkat sama sekali.
+    $kelas = SchoolClass::query()
+        ->where('id', $this->event->classes()->pluck('class_id'))
+        ->firstOrFail();
+
+    $kelas->forceFill(['grade_level' => '7'])->save();
+
+    $kedua = SchoolClass::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'academic_year_id' => $this->tahun->id,
+        'name' => 'X-2-'.$this->event->id,
+        'grade_level' => '9',
+    ]);
+
+    EventClass::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'class_id' => $kedua->id,
+    ]);
+
+    $ujian = app(ExamRegistrar::class)->buat($this->event, [
+        'subject_id' => $this->mapel->id,
+        'duration_minutes' => 60,
+        'class_id' => [$kelas->id, $kedua->id],
+    ], $this->admin->id);
+
+    expect($ujian->title)->toBe($this->event->event_type.' - '.$this->mapel->name)
+        ->and($ujian->title)->not->toContain('#');
 });
 
 it('tetap memakai judul eksplisit yang dikirim pemanggil', function () {
@@ -1666,6 +1732,80 @@ it('menolak Guru mengubah sesi', function () {
             'hard_end_at' => '2026-12-02 09:30',
         ],
     )->assertForbidden();
+});
+
+/* ---------------------------------------------------- Hapus ujian (§9.2) */
+
+it('menghapus ujian beserta sesinya yang belum berjalan', function () {
+    // Ujian yang salah pilih mapelnya: satu-satunya jalan keluar sebelum
+    // tombol ini ada adalah membiarkannya menggantung di daftar jadwal.
+    // Sesi Draft ikut terhapus - ia tidak memuat bukti apa pun.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $idSesi = $data['sesi']->id;
+    $idUjian = $data['ujian']->id;
+
+    masukSebagai($this, $this->admin)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$idUjian}")
+        ->assertRedirect()
+        ->assertSessionHas('sukses')
+        ->assertSessionMissing('galat');
+
+    expect(Exam::query()->whereKey($idUjian)->exists())->toBeFalse()
+        ->and(ExamSession::query()->whereKey($idSesi)->exists())->toBeFalse()
+        // Peserta dan kelas sasaran ikut ujiannya lewat cascade.
+        ->and(ExamParticipant::query()->where('exam_id', $idUjian)->count())->toBe(0)
+        ->and(ExamClass::query()->where('exam_id', $idUjian)->count())->toBe(0)
+        // Snapshot soalnya juga, dan itu yang membuat ujian ini benar-benar
+        // hilang - bukan baris induk yang pergi sementara butirnya tertinggal.
+        ->and(ExamQuestion::query()->where('exam_id', $idUjian)->count())->toBe(0);
+});
+
+it('menolak menghapus ujian yang sesinya sudah berjalan', function () {
+    // Nilai, jawaban, dan berita acara menempel pada sesi yang sudah
+    // berlangsung. Yang benar untuk itu adalah Batalkan - bukan Hapus yang
+    // membawa seluruh riwayatnya.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $data['sesi']->forceFill(['status' => StatusSesi::Berjalan])->save();
+
+    masukSebagai($this, $this->admin)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}")
+        ->assertRedirect()
+        ->assertSessionHas('galat', fn ($pesan) => is_string($pesan)
+            && str_contains($pesan, 'Batalkan'));
+
+    expect(Exam::query()->whereKey($data['ujian']->id)->exists())->toBeTrue()
+        ->and(ExamSession::query()->whereKey($data['sesi']->id)->exists())->toBeTrue();
+});
+
+it('tetap menolak menghapus ujian yang berita acaranya sudah dikirim', function () {
+    // Larangan yang sama dengan penghapusan SESI, dan alasannya sama:
+    // berita acara final adalah bukti yang ditandatangani. Memakai tombol
+    // Hapus ujian bukan jalan memutarnya.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $final = drafLaporan($data['ruang'][0]);
+    $final->forceFill(['status' => SessionReport::STATUS_FINAL, 'submitted_at' => now()])->save();
+
+    masukSebagai($this, $this->admin)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}")
+        ->assertRedirect()
+        ->assertSessionHas('galat', fn ($pesan) => is_string($pesan) && str_contains($pesan, 'berita acara'));
+
+    expect(Exam::query()->whereKey($data['ujian']->id)->exists())->toBeTrue()
+        ->and(SessionReport::query()->whereKey($final->id)->exists())->toBeTrue();
+});
+
+it('menolak Guru menghapus ujian', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $guru = User::factory()->guru()->untukSekolah($this->sekolah)->create();
+
+    masukSebagai($this, $guru)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}")
+        ->assertForbidden();
+
+    expect(Exam::query()->whereKey($data['ujian']->id)->exists())->toBeTrue();
 });
 
 /* ---------------------------------------- Pengawas 1 atau 2 per ruang §9.6 */

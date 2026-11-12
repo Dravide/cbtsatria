@@ -97,7 +97,7 @@ type Props = {
     validasi: { kunci: string; label: string; lulus: boolean; jumlah: number }[];
     ujian: Ujian[];
     ruang: { id: number; kode: string | null; nama: string | null; kapasitas: number; status: string }[];
-    kelas: { id: number; nama: string }[];
+    kelas: { id: number; nama: string; tingkat: string | null }[];
     mapel: { id: number; kode: string | null; nama: string | null }[];
     angka: { ujian: number; sesi: number; konflik: number; belum_ditempatkan: number };
 };
@@ -464,6 +464,29 @@ export default function EventJadwal({
                                     >
                                         Ubah
                                     </Tombol>
+                                    {/* Ujian lahir di laman ini, jadi salah
+                                        pilih mapel juga harus bisa dibatalkan
+                                        di laman ini. Sesi yang sudah berjalan
+                                        menolak di server dan pesannya muncul
+                                        sebagai galat - lihat
+                                        `hapusUjian()` di controller. */}
+                                    <Tombol
+                                        nada="bahaya"
+                                        title="Hapus ujian beserta jadwalnya"
+                                        onClick={() => {
+                                            if (
+                                                confirm(
+                                                    `Hapus ${u.kode} ${u.judul}? Seluruh sesinya yang belum berjalan ikut terhapus.`,
+                                                )
+                                            ) {
+                                                router.delete(`${jalur}/ujian/${u.id}`, {
+                                                    preserveScroll: true,
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        Hapus
+                                    </Tombol>
                                 </li>
                             ))}
                         </ul>
@@ -550,6 +573,26 @@ function FormUjian({
     // adalah nilai awalnya, sama dengan `subject_id` di atas.
     const namaMapelTerpilih =
         mapel.find((m) => m.id === isi.subject_id)?.nama ?? mapel[0]?.nama ?? '';
+
+    // Tingkat untuk pratinjau judul. Aturannya SAMA dengan
+    // `ExamRegistrar::tingkat()`: dari kelas sasaran yang dicentang, dan
+    // hanya bila seluruhnya satu tingkat. Kelas yang mencampur dua tingkat -
+    // atau belum dicentang sama sekali - berhenti tanpa `#`.
+    const tingkatTerpilih = (() => {
+        if (pilihKelas.length === 0) {
+            return null;
+        }
+
+        const tingkat = [
+            ...new Set(
+                pilihKelas
+                    .map((id) => kelas.find((k) => k.id === id)?.tingkat)
+                    .filter((t): t is string => Boolean(t && t.trim())),
+            ),
+        ];
+
+        return tingkat.length === 1 ? tingkat[0] : null;
+    })();
 
     const simpan = () => {
         padaGalat(null);
@@ -647,15 +690,19 @@ function FormUjian({
                     petunjuk={
                         mengubah
                             ? 'Judul ujian lama tidak dihitung ulang - ia sudah dipakai di jadwal dan berita acara.'
-                            : 'Dibuat otomatis dari jenis dan mata pelajaran.'
+                            : 'Dibuat otomatis dari jenis event, mata pelajaran, dan tingkat kelas sasaran.'
                     }
                 >
                     <p className="rounded-wf border border-line bg-surface-2/60 px-2.5 py-1.5 text-sm text-ink">
                         {mengubah
                             ? (ujianAwal.judul || '—')
-                            : [(jenisEvent ?? '').trim(), namaMapelTerpilih.trim()]
+                            : ([
+                                  (jenisEvent ?? '').trim(),
+                                  namaMapelTerpilih.trim(),
+                              ]
                                   .filter(Boolean)
-                                  .join(' ') || 'Ujian'}
+                                  .join(' - ') || 'Ujian') +
+                              (tingkatTerpilih ? ` #${tingkatTerpilih}` : '')}
                     </p>
                 </Field>
 

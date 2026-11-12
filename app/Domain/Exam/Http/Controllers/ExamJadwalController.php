@@ -250,8 +250,15 @@ class ExamJadwalController
             'kelas' => SchoolClass::query()
                 ->whereIn('id', $event->classes()->pluck('class_id'))
                 ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn (SchoolClass $k) => ['id' => $k->id, 'nama' => $k->name])
+                ->get(['id', 'name', 'grade_level'])
+                ->map(fn (SchoolClass $k) => [
+                    'id' => $k->id,
+                    'nama' => $k->name,
+                    // Dipakai pratinjau judul: ujian menyandang `#9` dari
+                    // tingkat kelas sasarannya, bukan dari mapelnya - satu
+                    // mapel Informatika ada untuk tiga tingkat.
+                    'tingkat' => $k->grade_level,
+                ])
                 ->all(),
 
             'mapel' => $event->subjects()->with('subject:id,code,name')->get()
@@ -388,8 +395,80 @@ class ExamJadwalController
         return back()->with('sukses', 'Ujian tersimpan.');
     }
 
-    /* -------------------------------------------------------- Sesi (§9.3) */
+    /**
+     * Hapus ujian beserta jadwalnya.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa ini boleh ada, padahal sesi punya "Batalkan"
+     * ---------------------------------------------------------------------
+     * Sesi yang sudah berjalan TIDAK boleh dihapus - jawaban, nilai, dan
+     * berita acaranya menempel di situ, dan `ExamPolicy::delete()` sendiri
+     * menuliskan bahwa jalan keluarnya adalah Batal. Ujian yang belum pernah
+     * punya sesi tidak punya satu pun dari itu: ia hanya baris yang salah
+     * ketik mapelnya, atau sisa percobaan menyusun jadwal.
+     *
+     * Karena itu aturannya bukan "Admin boleh menghapus apa saja", melainkan
+     * "hanya ujian yang belum pernah berjalan". Sesi yang masih Draft/Siap
+     * ikut dibuang lewat `SesiService::hapus()` - yang di dalamnya tetap
+     * memanggil `PembersihRuangSesi`, sehingga berita acara final dan insiden
+     * tetap MEMBLOKIR, bukan hilang diam-diam.
+     *
+     * ---------------------------------------------------------------------
+     * Yang sengaja TIDAK dikerjakan
+     * ---------------------------------------------------------------------
+     * Penempatan peserta tidak dilepas di sini. `exam_participants` menunjuk
+     * `exams` dengan ON DELETE CASCADE, dan `exam_session_id`-nya dikosongkan
+     * oleh `SesiService::hapus()` sebelum sesinya hilang - jadi barisnya ikut
+     * ujiannya, bukan tertinggal menunjuk sesi yang sudah tidak ada.
+     */
+    public function hapusUjian(
+        SchoolEvent $event,
+        Exam $ujian,
+        SesiService $service,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('delete', $ujian);
+        $this->pastikanMilikEvent($ujian->event_id, $event);
 
+        // Sesi yang sudah Selesai atau Batal berarti ujiannya sudah
+        // berlangsung. Yang pertama masih bisa dihapus bersama sesinya
+        // (menghapus sesi selesai tanpa peserta bukan hal mustahil), tetapi
+        // ujian yang punya sesi Selesai hampir selalu punya jawaban - dan
+        // jawaban tidak boleh hilang lewat tombol Hapus di daftar ujian.
+        $berjalan = $ujian->sessions()
+            ->whereIn('status', ['berjalan', 'selesai'])
+            ->count();
+
+        if ($berjalan > 0) {
+            return back()->with(
+                'galat',
+                "Ujian {$ujian->code} sudah punya {$berjalan} sesi yang berjalan atau selesai. ".
+                'Batalkan sesinya alih-alih menghapus ujiannya, supaya nilai dan berita acaranya tetap tersimpan.',
+            );
+        }
+
+        $kode = $ujian->code;
+        $judul = $ujian->title;
+
+        try {
+            foreach ($ujian->sessions()->orderBy('id')->get() as $sesi) {
+                $service->hapus($sesi);
+            }
+        } catch (DomainException $e) {
+            // Sesi yang ruangnya berisi berita acara final atau insiden -
+            // dua bukti yang tidak boleh hilang bersama jadwalnya. Pesannya
+            // sudah berkalimat dari `PembersihRuangSesiService`.
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $ujian->delete();
+
+        $logger->log('Menghapus ujian', $event, ['kode' => $kode, 'judul' => $judul]);
+
+        return back()->with('sukses', "Ujian {$kode} dihapus.");
+    }
+
+    /* -------------------------------------------------------- Sesi (§9.3) */
     public function simpanSesi(
         Request $request,
         SchoolEvent $event,

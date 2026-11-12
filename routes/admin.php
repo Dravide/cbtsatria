@@ -297,6 +297,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::post('/events/{event}/ujian', [ExamJadwalController::class, 'simpanUjian'])->name('events.ujian.store');
     Route::put('/events/{event}/ujian/{ujian}', [ExamJadwalController::class, 'ubahUjian'])->name('events.ujian.update');
+    // Ujian yang belum pernah berjalan boleh dihapus beserta sesinya - lihat
+    // `ExamJadwalController::hapusUjian()`. Sesi yang sudah berjalan menolak.
+    Route::delete('/events/{event}/ujian/{ujian}', [ExamJadwalController::class, 'hapusUjian'])->name('events.ujian.hapus');
 
     Route::post('/events/{event}/ujian/{ujian}/sesi', [ExamJadwalController::class, 'simpanSesi'])->name('events.sesi.store');
     Route::put('/events/{event}/ujian/{ujian}/sesi/{sesi}', [ExamJadwalController::class, 'ubahSesi'])->name('events.sesi.update');
