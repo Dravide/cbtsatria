@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Wireframe Presensi Pindai QR School CBT</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+
+/* ============================================================
+   Wireframe tiga peran School CBT — Guru, Pengawas, Siswa
+   Galeri miniatur laman. Primitif sama dengan konsol Admin
+   (lihat wireframe-admin.html) supaya ketiganya terbaca sebagai
+   satu sistem; yang baru di sini hanya primitif mesin ujian:
+   .qnav, .opt, .timer, .guard.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:70ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.fbtn{font:500 12px/1 var(--font-mono);letter-spacing:.04em;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.fbtn b{color:var(--ink-3);font-weight:500}
+.fbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.fbtn.on b{color:color-mix(in srgb,var(--on-accent) 70%,transparent)}
+.group{margin-bottom:38px;display:grid;gap:18px}
+.group[hidden]{display:none}
+.group > header{display:grid;gap:5px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.group > header h2{font-size:1.3rem;display:flex;gap:10px;align-items:baseline}
+.group > header em{font-style:normal;font-family:var(--font-mono);font-size:12px;color:var(--accent)}
+.group > header p{color:var(--ink-2);font-size:13.5px;max-width:72ch}
+
+.shots{display:grid;gap:22px;grid-template-columns:1fr}
+@media (min-width:760px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.shot{display:grid;gap:8px;min-width:0;align-content:start}
+.shot > .cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.shot .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+.shot h3{font-size:.95rem}
+.shot .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.shot .note{font-size:12.5px;color:var(--ink-2)}
+
+.wf{
+  position:relative;height:216px;overflow:hidden;background:var(--wf-bg);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+  color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr);font-size:10px;line-height:1.35;
+}
+.wf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:18px;background:linear-gradient(transparent,var(--wf-bg));pointer-events:none}
+.wf.lg{height:auto;min-height:400px;font-size:11.5px}
+.wf.lg::after{display:none}
+.wf.dark,.wd.dark{
+  --wf-bg:#12161f;--wf-soft:#1a2029;--wf-line:#39424f;--wf-dash:#4a5566;--wf-hair:#262e39;--wf-head:#1a2029;--wf-ink:#e2e8f1;--wf-dim:#8b96a6;
+  --on-accent:#0b0e14;--accent:#7aa8f0;--accent-soft:#1a2740;
+  --ok:#6ecfa0;--warn:#e0b062;--bad:#f08b93;--info:#79c0da;
+  --ok-bg:#122c22;--warn-bg:#2e2413;--bad-bg:#331a1d;--info-bg:#12252d;
+}
+.chrome{display:flex;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:6px;height:6px;border-radius:99px;background:var(--wf-dash)}
+.chrome .url{font-family:var(--font-mono);font-size:9px;color:var(--wf-dim);margin-left:4px}
+.grid2{display:grid;grid-template-columns:46px minmax(0,1fr);min-height:0}
+.wf.lg .grid2{grid-template-columns:132px minmax(0,1fr)}
+
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:8px 6px;display:grid;gap:3px;align-content:start;min-width:0}
+.rail .mark{width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);font:700 9px/16px var(--font-display);text-align:center;margin:0 auto 6px}
+.rail .mark.g{background:var(--ok)} .rail .mark.w{background:var(--warn)} .rail .mark.b{background:var(--bad)}
+.ni{display:flex;gap:6px;align-items:center;padding:4px 5px;border-radius:4px;font-size:9px;color:var(--wf-dim);min-width:0}
+.ni i{width:8px;height:8px;border-radius:2px;background:var(--wf-line);flex:none}
+.ni span{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf.lg .ni{font-size:11px;padding:5px 7px}
+.wf.lg .ni span{display:block}
+.ni.on{background:var(--wf-bg);color:var(--wf-ink);box-shadow:inset 2px 0 0 var(--accent)}
+.ni.on i{background:var(--accent)}
+.rail .sep{height:1px;background:var(--wf-hair);margin:4px 0}
+.rail .glab{display:none;font:500 8.5px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--wf-dim);padding:2px 5px}
+.wf.lg .glab{display:block}
+
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.crumb{font-size:9px;color:var(--wf-dim);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.sel.ev{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.body{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sub{font-size:9px;color:var(--wf-dim)}
+.ph .sp{margin-left:auto}
+.ln{height:5px;border-radius:2px;background:var(--wf-line)}
+.ln.s{height:4px;background:var(--wf-hair)}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.tr{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.tr:last-child{border-bottom:0}
+.tr.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.tr .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.lrow{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.lrow:last-child{border-bottom:0}
+.lrow.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.lrow .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.list{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.big{font-size:11px;padding:6px 14px}
+.btn.off{opacity:.5}
+.field{display:grid;gap:3px}
+.field .lb{font-size:9px;color:var(--wf-dim)}
+.input{height:16px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-bg)}
+.input.ta{height:34px}
+.input.code{display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);letter-spacing:.3em;font-size:11px;height:22px}
+.check{display:flex;gap:5px;align-items:center;font-size:9px;color:var(--wf-ink)}
+.check i{width:9px;height:9px;border:1px solid var(--wf-dash);border-radius:2px;flex:none}
+.check i.f{background:var(--accent);border-color:var(--accent)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--wf-hair);padding-bottom:0}
+.tab{font-size:9px;padding:4px 8px;color:var(--wf-dim);border-bottom:2px solid transparent}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* --- primitif baru: mesin ujian siswa --- */
+.timer{font-family:var(--font-mono);font-size:10px;font-weight:500;padding:3px 8px;border-radius:5px;background:var(--wf-soft);border:1px solid var(--wf-dash);color:var(--wf-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.timer.hot{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 40%,transparent);color:var(--bad)}
+.qnav{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
+.qnav b{font:500 8.5px/16px var(--font-mono);text-align:center;border:1px solid var(--wf-dash);border-radius:3px;background:var(--wf-bg);color:var(--wf-dim)}
+.qnav b.done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.qnav b.cur{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.qnav b.flag{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.opt{display:flex;gap:6px;align-items:center;padding:4px 6px;border:1px solid var(--wf-hair);border-radius:4px;font-size:9px;background:var(--wf-bg)}
+.opt i{width:10px;height:10px;border-radius:99px;border:1px solid var(--wf-dash);flex:none}
+.opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.opt.on i{background:var(--accent);border-color:var(--accent)}
+.opt.sq i{border-radius:2px}
+.pair{display:grid;gap:4px}
+.pair .pc{display:grid;grid-template-columns:1fr 14px 1fr;gap:5px;align-items:center;font-size:9px}
+.pair .pc span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pair .pc em{font-style:normal;text-align:center;color:var(--wf-dim)}
+.blank{display:inline-block;min-width:38px;border-bottom:1px solid var(--wf-dash);color:var(--wf-dim)}
+.numrow{display:flex;gap:5px;align-items:center}
+.numrow .input{width:56px}
+.guard{border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:7px 9px;display:grid;gap:5px;font-size:9px}
+.guard.hard{border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:var(--bad-bg);color:var(--bad)}
+.guard b{font-family:var(--font-display);font-size:11px;color:inherit}
+.lock{position:absolute;inset:0;background:color-mix(in srgb,var(--wf-bg) 92%,transparent);backdrop-filter:blur(1px);display:grid;place-content:center;justify-items:center;gap:7px;padding:14px;text-align:center;z-index:3}
+
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+
+/* --- primitif baru: berita acara (foto + tanda tangan) --- */
+.photo{position:relative;aspect-ratio:4/3;border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);display:grid;place-items:center;min-width:0;max-width:100%;overflow:hidden}
+.photo i{width:20px;height:15px;border:1px solid var(--wf-dash);border-radius:2px;display:block;position:relative}
+.photo i::after{content:"";position:absolute;left:2px;bottom:2px;right:2px;height:6px;background:linear-gradient(135deg,var(--wf-line) 25%,transparent 25%,transparent 50%,var(--wf-line) 50%,var(--wf-line) 75%,transparent 75%)}
+.photo .cap{position:absolute;left:0;right:0;bottom:0;padding:3px 5px;background:color-mix(in srgb,var(--wf-bg) 82%,transparent);font:500 8px/1.3 var(--font-mono);color:var(--wf-dim);text-align:left}
+.photo.filled{border-style:solid;border-color:var(--wf-hair)}
+.photo.filled i{opacity:.35}
+.sig{border:1px solid var(--wf-hair);border-radius:5px;background:var(--wf-bg);padding:5px;display:grid;gap:4px;min-width:0}
+.sig .pad{height:30px;border-bottom:1px dashed var(--wf-dash);position:relative}
+.sig .pad svg{position:absolute;inset:0;width:100%;height:100%}
+.sig .pad .hint{position:absolute;left:0;bottom:2px;font:500 8px/1 var(--font-mono);color:var(--wf-dim)}
+.sig .who{font-size:8.5px;color:var(--wf-dim);display:flex;gap:6px;flex-wrap:wrap}
+.sig.on{border-color:var(--accent)}
+
+/* --- primitif baru: rangka ponsel (Pengawas dan pengerjaan siswa) --- */
+.wd{position:relative;width:238px;max-width:100%;height:auto;min-height:318px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--wf-bg);box-shadow:var(--shadow);color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;font-size:9.5px;line-height:1.35;min-width:0}
+.wd .notch{position:relative;height:15px;background:var(--wf-head);border-bottom:1px solid var(--wf-hair)}
+.wd .notch::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:4px;width:46px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wd .scr{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
+.wd .hd{display:flex;gap:6px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);min-width:0;flex-wrap:wrap}
+.wd .hd b{font-family:var(--font-display);font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd .hd .sp{margin-left:auto}
+.wd .bd{padding:8px;display:grid;gap:7px;align-content:start;overflow:hidden;min-width:0}
+.wd .tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--wf-hair);border-radius:12px;background:var(--wf-head);margin:0 6px 6px;box-shadow:0 6px 14px -10px rgba(16,22,32,.55)}
+.wd .tabbar span{font:500 7.5px/1 var(--font-mono);color:var(--wf-dim);text-align:center;padding:8px 2px 9px;min-width:0;overflow:hidden;white-space:nowrap}
+.wd .tabbar span.on{color:var(--accent);box-shadow:inset 0 2px 0 var(--accent)}
+.wd .home{height:17px;background:var(--wf-head);display:grid;place-items:center}
+.wd .home::after{content:"";width:56px;height:4px;border-radius:99px;background:var(--wf-line)}
+.wd .card2{display:grid;gap:5px;border:1px solid var(--wf-hair);border-radius:8px;background:var(--wf-bg);padding:7px;min-width:0}
+.wd .lrow{display:grid;gap:6px;align-items:center;padding:6px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.wd .lrow:last-child{border-bottom:0}
+.wd .lrow.th{background:var(--wf-head);font:500 7.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim);padding:5px 7px}
+.wd .list{border:1px solid var(--wf-hair);border-radius:8px;overflow:hidden;min-width:0}
+.wd .sticky{border-top:1px solid var(--wf-hair);background:var(--wf-head);padding:6px;display:grid;gap:5px}
+.wd .full{flex:1;text-align:center}
+.wd .toko{font-family:var(--font-mono);font-size:19px;font-weight:500;letter-spacing:.3em;text-align:center;font-variant-numeric:tabular-nums}
+.wd .bar{height:4px;border-radius:99px;background:var(--wf-hair);overflow:hidden}
+.wd .bar i{display:block;height:100%;background:var(--accent)}
+.wd .bar i.ok{background:var(--ok)} .wd .bar i.bad{background:var(--bad)} .wd .bar i.warn{background:var(--warn)}
+.wd .tl{display:grid;gap:0}
+.wd .tl .ev{display:grid;grid-template-columns:38px 1fr;gap:7px;padding:5px 0;border-bottom:1px dashed var(--wf-hair);min-width:0}
+.wd .tl .ev:last-child{border-bottom:0}
+.wd .tl .ev .t{font-family:var(--font-mono);font-size:8px;color:var(--wf-dim);padding-top:1px}
+.wd .sheet{border:1px solid var(--wf-hair);border-radius:10px 10px 0 0;border-bottom:0;background:var(--wf-soft);padding:7px;display:grid;gap:6px;min-width:0}
+.wd .grip{width:30px;height:3px;border-radius:99px;background:var(--wf-dash);margin:0 auto}
+.wd .qstrip{display:flex;gap:3px;overflow:hidden}
+.wd .qstrip b{font:500 8.5px/18px var(--font-mono);text-align:center;border:1px solid var(--wf-dash);border-radius:3px;background:var(--wf-bg);color:var(--wf-dim);flex:0 0 18px}
+.wd .qstrip b.done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.wd .qstrip b.cur{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.wd .qstrip b.flag{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.wd .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.wd.lg{min-height:420px;font-size:10px}
+.wd .sel,.wd .timer,.wd .btn,.wd .chip{font-size:8px;padding:2px 5px}
+.wd .input.code{height:24px;font-size:13px}
+.wd .sub{font-size:8.5px}
+.wd .qnav{grid-template-columns:repeat(5,minmax(0,1fr))}
+.wd .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;display:grid;gap:5px;font-size:13.5px;color:var(--ink-2)}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.shots.phones{grid-template-columns:1fr}
+.shots.phones .cols.c2{grid-template-columns:1fr}
+.shots.phones.g1 .cols.c2{grid-template-columns:1fr}
+.shots.phones.g1{grid-template-columns:1fr;max-width:290px;margin:0 auto}
+@media (min-width:600px){.shots.phones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:760px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1060px){.shots.phones{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:1060px){.shots.phones.g1{grid-template-columns:1fr;max-width:290px;margin:0 auto}}
+
+</style>
+<style>
+/* ============================================================
+   Tambahan khusus berkas ini - primitif pindai.
+   Semuanya dibangun dari token yang sudah ada di atas, supaya
+   berkas ini terbaca sebagai bagian dari sistem yang sama dan
+   tidak membawa palet kedua.
+   ============================================================ */
+.qr{background:#fff;padding:5px;border-radius:6px;border:1px solid var(--wf-hair);width:104px;margin:0 auto;flex:none}
+.qr svg{display:block;width:100%;height:auto}
+.qr.big{width:168px;padding:8px;border-radius:8px}
+.qr.sm{width:62px;padding:4px}
+/* QR selalu gelap-di-atas-terang. Membaliknya di tema gelap membuat
+   pindai gagal, dan itu satu-satunya bagian berkas ini yang tidak
+   boleh ikut tema. */
+.qr figcaption{font:500 7.5px/1.3 var(--font-mono);color:#5c6675;text-align:center;padding-top:3px}
+
+.pindai{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;min-width:0}
+.pindai .ket{display:grid;gap:4px;min-width:0}
+.pindai .ket b{font-family:var(--font-display);font-size:10px}
+.sisa{display:flex;gap:5px;align-items:center}
+.sisa .bar{flex:1}
+.sisa b{font-family:var(--font-mono);font-size:9px;font-variant-numeric:tabular-nums}
+
+.sumber{font:500 7.5px/1 var(--font-mono);color:var(--wf-dim)}
+.centang{display:grid;place-items:center;gap:6px;text-align:center;padding:10px 4px}
+.centang .bulat{width:38px;height:38px;border-radius:99px;border:2px solid var(--ok);color:var(--ok);display:grid;place-items:center;font:700 18px/1 var(--font-display);background:var(--ok-bg)}
+.centang b{font-family:var(--font-display);font-size:13px}
+
+.langkah{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+.langkah > div{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:8px 9px;display:grid;gap:3px;min-width:0}
+.langkah .n{font-family:var(--font-mono);font-size:10px;color:var(--accent)}
+.langkah b{font-family:var(--font-display);font-size:12.5px}
+.langkah .s{font-size:11.5px;color:var(--ink-2)}
+@media (max-width:900px){.langkah{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.langkah{grid-template-columns:1fr}}
+
+.banding{width:100%;border-collapse:collapse;font-size:12.5px}
+.banding th,.banding td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+.banding th{font:500 11px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);background:var(--surface-2)}
+.banding td b{font-family:var(--font-display)}
+.banding code{white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ wireframe presensi pindai QR</span></div>
+    <div class="r">
+      <span>6 laman · pengawas + siswa</span><span>lanjutan: wireframe-peran.html plate 12</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Satu pindai, satu keputusan</div>
+    <h1>Presensi lewat pindai QR di laman pengawas</h1>
+    <p class="lede">Hari ini presensi dilakukan dengan menyusur daftar kursi dan menekan satu tombol per siswa &mdash; tiga puluh dua ketukan untuk ruang berisi tiga puluh dua anak, sementara belakangnya masih berdesakan. Yang diganti di sini bukan keputusan pengawas, melainkan <b>pengetikannya</b>: pengawas menampilkan satu kode pindai di layarnya, siswa memindai dengan ponselnya sendiri, dan yang tersisa bagi pengawas hanyalah satu ketukan untuk mengonfirmasi sekelompok sekaligus.</p>
+    <p class="lede">Berkas ini melanjutkan plate 12 di <span style="font-family:var(--font-mono);font-size:.85em">wireframe-peran.html</span> &mdash; primitif, token, dan aturan rumahnya sama. Yang ditambah hanya satu jalur masuk, dan yang dijaga tetap sama: <b>presensi adalah keputusan pengawas</b>, bukan sesuatu yang ditulis siswa untuk dirinya sendiri.</p>
+    <div class="scope">
+      <span class="tag">Pengawas · kode pindai &amp; konfirmasi</span>
+      <span class="tag">Siswa · pindai &amp; pengakuan</span>
+      <span class="tag">tanpa mengubah plate 12</span>
+    </div>
+  </div>
+
+  <div class="head" style="padding-top:0">
+    <div class="eyebrow">Alur</div>
+    <div class="langkah">
+      <div><span class="n">1</span><b>Kartu di daun pintu</b><span class="s">Admin mencetak tautan ruang <code>/p/r-01-il6q</code>. Tautan sendirian tidak membuka apa pun.</span></div>
+      <div><span class="n">2</span><b>Kode enam angka</b><span class="s">Pengawas membuka tautan itu dan mengetik kodenya. Hanya ia yang masuk.</span></div>
+      <div><span class="n">3</span><b>Kode pindai tampil</b><span class="s">Di laman presensinya muncul QR yang berganti sendiri tiap 60 detik.</span></div>
+      <div><span class="n">4</span><b>Siswa memindai</b><span class="s">Ponsel siswa membuka laman pengakuan: ruang, sesi, nama, kursi.</span></div>
+      <div><span class="n">5</span><b>Pengawas mengonfirmasi</b><span class="s">Satu ketukan untuk semua yang memindai. Presensi tetap miliknya.</span></div>
+    </div>
+  </div>
+
+  <div class="filters" role="group" aria-label="Saring laman menurut peran">
+    <button class="fbtn on" data-g="all">Semua <b>6</b></button>
+    <button class="fbtn" data-g="pengawas">Pengawas <b>3</b></button>
+    <button class="fbtn" data-g="siswa">Siswa <b>3</b></button>
+  </div>
+
+  <!-- ============================================================
+       A. PENGAWAS
+       ============================================================ -->
+  <section class="group" data-g="pengawas">
+    <header>
+      <h2><em>A</em> Pengawas &mdash; kode pindai di ruang</h2>
+      <p>Tiga laman, semuanya perluasan plate 12. Yang berubah hanya satu kotak di atas daftar kursi dan satu lapisan konfirmasi; daftar kursi, nomor kursi, dan tombol per siswa tetap ada persis seperti sebelumnya. Pindai adalah jalan pintas, bukan pengganti.</p>
+    </header>
+
+    <div class="shots phones">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">01</span><h3>Kode pindai di laman presensi</h3><span class="path">/pengawas/ruang/{id}/presensi</span></div>
+        <div class="wd lg">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="chip info">R-01</span><span class="crumb">Lab Komputer 1 · Matematika · S-01</span><span class="sp" style="margin-left:auto"></span><span class="timer">01:24:10</span></div>
+            <div class="bd">
+              <div class="cols c4">
+                <div class="kpi"><span class="lb">Peserta</span><b>32</b></div>
+                <div class="kpi"><span class="lb">Hadir</span><b>21</b></div>
+                <div class="kpi"><span class="lb">Memindai</span><b>6</b></div>
+                <div class="kpi"><span class="lb">Belum</span><b>5</b></div>
+              </div>
+
+              <div class="box solid">
+                <div class="ph"><span class="lb">Pindai untuk presensi</span><span class="sp"></span><span class="chip ok">berlaku</span></div>
+                <div class="pindai">
+                  <figure class="qr sm" style="margin:0">
+                    <svg viewBox="0 0 25 25" shape-rendering="crispEdges" role="img" aria-label="Kode pindai presensi (contoh)"><rect width="25" height="25" fill="#fff"/><path fill="#0b0e14" d="M0 0h7v1h-7zM8 0h1v1h-1zM14 0h1v1h-1zM18 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h3v1h-3zM14 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM10 2h2v1h-2zM13 2h4v1h-4zM18 2h1v1h-1zM20 2h3v1h-3zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM9 3h1v1h-1zM15 3h2v1h-2zM18 3h1v1h-1zM20 3h3v1h-3zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM12 4h4v1h-4zM18 4h1v1h-1zM20 4h3v1h-3zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM13 5h2v1h-2zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h7v1h-7zM9 7h2v1h-2zM13 7h3v1h-3zM1 8h4v1h-4zM6 8h2v1h-2zM9 8h2v1h-2zM12 8h1v1h-1zM14 8h4v1h-4zM20 8h1v1h-1zM22 8h2v1h-2zM1 9h1v1h-1zM3 9h2v1h-2zM7 9h4v1h-4zM12 9h1v1h-1zM14 9h2v1h-2zM20 9h2v1h-2zM24 9h1v1h-1zM0 10h1v1h-1zM3 10h1v1h-1zM6 10h1v1h-1zM8 10h3v1h-3zM12 10h1v1h-1zM14 10h1v1h-1zM17 10h2v1h-2zM20 10h2v1h-2zM0 11h1v1h-1zM2 11h4v1h-4zM7 11h3v1h-3zM11 11h2v1h-2zM18 11h3v1h-3zM24 11h1v1h-1zM3 12h1v1h-1zM5 12h2v1h-2zM14 12h1v1h-1zM18 12h1v1h-1zM23 12h1v1h-1zM1 13h1v1h-1zM7 13h1v1h-1zM10 13h1v1h-1zM12 13h1v1h-1zM14 13h1v1h-1zM17 13h1v1h-1zM22 13h3v1h-3zM1 14h2v1h-2zM5 14h2v1h-2zM8 14h1v1h-1zM10 14h2v1h-2zM15 14h1v1h-1zM17 14h2v1h-2zM24 14h1v1h-1zM0 15h5v1h-5zM8 15h1v1h-1zM11 15h3v1h-3zM15 15h1v1h-1zM18 15h1v1h-1zM20 15h4v1h-4zM0 16h3v1h-3zM4 16h1v1h-1zM6 16h1v1h-1zM11 16h1v1h-1zM13 16h2v1h-2zM17 16h3v1h-3zM24 16h1v1h-1zM10 17h1v1h-1zM13 17h2v1h-2zM17 17h2v1h-2zM24 17h1v1h-1zM0 18h7v1h-7zM12 18h1v1h-1zM17 18h2v1h-2zM21 18h3v1h-3zM0 19h1v1h-1zM6 19h1v1h-1zM10 19h1v1h-1zM12 19h1v1h-1zM14 19h2v1h-2zM17 19h2v1h-2zM0 20h1v1h-1zM2 20h3v1h-3zM6 20h1v1h-1zM9 20h2v1h-2zM12 20h1v1h-1zM18 20h2v1h-2zM22 20h1v1h-1zM0 21h1v1h-1zM2 21h3v1h-3zM6 21h1v1h-1zM10 21h1v1h-1zM14 21h1v1h-1zM17 21h1v1h-1zM22 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h3v1h-3zM6 22h1v1h-1zM10 22h1v1h-1zM12 22h2v1h-2zM17 22h2v1h-2zM21 22h1v1h-1zM23 22h2v1h-2zM0 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM10 23h2v1h-2zM13 23h1v1h-1zM15 23h1v1h-1zM17 23h2v1h-2zM20 23h3v1h-3zM24 23h1v1h-1zM0 24h7v1h-7zM8 24h1v1h-1zM15 24h1v1h-1zM19 24h2v1h-2zM22 24h1v1h-1z"/></svg>
+                  </figure>
+                  <div class="ket">
+                    <b>Tunjukkan layar ini ke siswa</b>
+                    <span class="sub">Kode berganti sendiri tiap 60 detik. Pindai yang tertinggal dari layar lama ditolak.</span>
+                    <div class="sisa">
+                      <div class="bar"><i style="width:70%"></i></div>
+                      <b>42s</b>
+                    </div>
+                  </div>
+                </div>
+                <span class="btn" style="justify-self:start">Layar penuh</span>
+              </div>
+
+              <div class="box" style="border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-bg)">
+                <div class="ph"><span class="lb" style="color:var(--warn)">6 siswa memindai</span><span class="sp"></span><span class="chip warn">menunggu konfirmasi</span></div>
+                <span class="sub" style="color:var(--warn)">Belum ada satu pun yang tercatat hadir. Yang mencatat tetap Anda.</span>
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <span class="btn pri">Konfirmasi semua (6)</span>
+                  <span class="btn">Tinjau</span>
+                </div>
+              </div>
+
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:20px minmax(0,1fr) auto"><span>Kursi</span><span>Nama · presensi</span><span>Tindakan</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) auto"><span class="c">01</span><div><span class="c">Abdul Rahman</span><div style="display:flex;gap:4px;align-items:center;margin-top:2px"><span class="chip ok">hadir</span><span class="sumber">pindai 07:32</span></div></div><span class="btn">Ubah</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) auto"><span class="c">02</span><div><span class="c">Ahmad Fauzi</span><div style="display:flex;gap:4px;align-items:center;margin-top:2px"><span class="chip ok">hadir</span><span class="sumber">pengawas 07:28</span></div></div><span class="btn">Ubah</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) auto"><span class="c">03</span><div><span class="c">Bunga Lestari</span><div style="display:flex;gap:4px;align-items:center;margin-top:2px"><span class="chip warn">memindai</span><span class="sumber">07:33 · belum dikonfirmasi</span></div></div><span class="btn pri">Hadir</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) auto"><span class="c">04</span><div><span class="c">Citra Dewi</span><div style="display:flex;gap:4px;align-items:center;margin-top:2px"><span class="chip mute">belum</span><span class="sumber">&mdash;</span></div></div><span class="btn pri">Hadir</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar"><span class="on">Presensi</span><span>Token</span><span>Monitoring</span><span>Laporan</span></div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Kotak pindai duduk <b>di atas</b> daftar kursi, bukan menggantikannya, karena dua pekerjaan itu berjalan bersamaan: di depan pintu siswa memindai, sementara pengawas tetap memanggil kursi 04 yang kosong. Menaruhnya di tab atau lapisan terpisah berarti pengawas kehilangan salah satunya selama ia melihat yang lain.</p>
+        <p class="note gap">Perhatikan angka-angkanya: <b>Hadir 21 dan Memindai 6 dijumlahkan bukan 32</b>. Enam yang memindai belum hadir &mdash; mereka menunggu keputusan. Kotak kuning menyebutkan itu dengan kalimat, bukan hanya dengan warna, karena angka yang terlihat seperti kemajuan padahal masih hutang adalah angka yang paling mudah disalahbaca sambil berdiri.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">02</span><h3>Kode pindai layar penuh</h3><span class="path">/pengawas/ruang/{id}/presensi &middot; lapisan</span></div>
+        <div class="wd lg">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="chip info">R-01</span><span class="crumb">Lab Komputer 1</span><span class="sp" style="margin-left:auto"></span><span class="chip ok">berlaku</span></div>
+            <div class="bd" style="justify-items:center;text-align:center">
+              <b style="font-family:var(--font-display);font-size:15px;letter-spacing:-.01em">Matematika · S-01</b>
+              <span class="sub">X-1 · X-2 &middot; 32 peserta</span>
+
+              <figure class="qr big" style="margin:4px auto 0">
+                <svg viewBox="0 0 25 25" shape-rendering="crispEdges" role="img" aria-label="Kode pindai presensi (contoh)"><rect width="25" height="25" fill="#fff"/><path fill="#0b0e14" d="M0 0h7v1h-7zM8 0h1v1h-1zM14 0h1v1h-1zM18 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h3v1h-3zM14 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM10 2h2v1h-2zM13 2h4v1h-4zM18 2h1v1h-1zM20 2h3v1h-3zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM9 3h1v1h-1zM15 3h2v1h-2zM18 3h1v1h-1zM20 3h3v1h-3zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM12 4h4v1h-4zM18 4h1v1h-1zM20 4h3v1h-3zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM13 5h2v1h-2zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h7v1h-7zM9 7h2v1h-2zM13 7h3v1h-3zM1 8h4v1h-4zM6 8h2v1h-2zM9 8h2v1h-2zM12 8h1v1h-1zM14 8h4v1h-4zM20 8h1v1h-1zM22 8h2v1h-2zM1 9h1v1h-1zM3 9h2v1h-2zM7 9h4v1h-4zM12 9h1v1h-1zM14 9h2v1h-2zM20 9h2v1h-2zM24 9h1v1h-1zM0 10h1v1h-1zM3 10h1v1h-1zM6 10h1v1h-1zM8 10h3v1h-3zM12 10h1v1h-1zM14 10h1v1h-1zM17 10h2v1h-2zM20 10h2v1h-2zM0 11h1v1h-1zM2 11h4v1h-4zM7 11h3v1h-3zM11 11h2v1h-2zM18 11h3v1h-3zM24 11h1v1h-1zM3 12h1v1h-1zM5 12h2v1h-2zM14 12h1v1h-1zM18 12h1v1h-1zM23 12h1v1h-1zM1 13h1v1h-1zM7 13h1v1h-1zM10 13h1v1h-1zM12 13h1v1h-1zM14 13h1v1h-1zM17 13h1v1h-1zM22 13h3v1h-3zM1 14h2v1h-2zM5 14h2v1h-2zM8 14h1v1h-1zM10 14h2v1h-2zM15 14h1v1h-1zM17 14h2v1h-2zM24 14h1v1h-1zM0 15h5v1h-5zM8 15h1v1h-1zM11 15h3v1h-3zM15 15h1v1h-1zM18 15h1v1h-1zM20 15h4v1h-4zM0 16h3v1h-3zM4 16h1v1h-1zM6 16h1v1h-1zM11 16h1v1h-1zM13 16h2v1h-2zM17 16h3v1h-3zM24 16h1v1h-1zM10 17h1v1h-1zM13 17h2v1h-2zM17 17h2v1h-2zM24 17h1v1h-1zM0 18h7v1h-7zM12 18h1v1h-1zM17 18h2v1h-2zM21 18h3v1h-3zM0 19h1v1h-1zM6 19h1v1h-1zM10 19h1v1h-1zM12 19h1v1h-1zM14 19h2v1h-2zM17 19h2v1h-2zM0 20h1v1h-1zM2 20h3v1h-3zM6 20h1v1h-1zM9 20h2v1h-2zM12 20h1v1h-1zM18 20h2v1h-2zM22 20h1v1h-1zM0 21h1v1h-1zM2 21h3v1h-3zM6 21h1v1h-1zM10 21h1v1h-1zM14 21h1v1h-1zM17 21h1v1h-1zM22 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h3v1h-3zM6 22h1v1h-1zM10 22h1v1h-1zM12 22h2v1h-2zM17 22h2v1h-2zM21 22h1v1h-1zM23 22h2v1h-2zM0 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM10 23h2v1h-2zM13 23h1v1h-1zM15 23h1v1h-1zM17 23h2v1h-2zM20 23h3v1h-3zM24 23h1v1h-1zM0 24h7v1h-7zM8 24h1v1h-1zM15 24h1v1h-1zM19 24h2v1h-2zM22 24h1v1h-1z"/></svg>
+                <figcaption>R-01 · berganti tiap 60 detik</figcaption>
+              </figure>
+
+              <div class="sisa" style="width:100%;max-width:180px;margin-top:4px">
+                <div class="bar"><i style="width:34%"></i></div>
+                <b>20s</b>
+              </div>
+
+              <span class="btn big">Arahkan kamera ponsel ke kode</span>
+              <span class="sub">Tidak butuh aplikasi. Ponsel akan membuka laman presensi Anda di peramban.</span>
+              <span class="chip mute">tekan untuk menutup</span>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Layar penuh ada karena satu sebab ukuran: kode selebar 6&nbsp;cm terbaca dari ponsel yang dipegang sendiri, tetapi tidak terbaca dari baris kelima. Pengawas tidak berjalan berkeliling sambil memutar layarnya &mdash; ia mengangkat ponselnya sekali, dan ruang memindai. Karena itu yang diperbesar hanya kode dan nama ruang; nomor kursi, daftar nama, dan tombol tindakan <b>tidak ikut</b> ke layar ini, karena layar ini diarahkan ke siswa.</p>
+        <p class="note gap">Pita waktu dan angka detik ada di dua tempat &mdash; di sini dan di laman presensi &mdash; supaya penolakan nanti bisa dijelaskan dengan angka yang siswa lihat sendiri: &ldquo;kode itu sudah 40 detik mati ketika Anda memindainya&rdquo;. Tanpa itu, penolakan terbaca sebagai sistem yang rusak.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">03</span><h3>Konfirmasi sekelompok</h3><span class="path">/pengawas/ruang/{id}/presensi &middot; lembar</span></div>
+        <div class="wd lg">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">6 siswa memindai</span><span class="sp" style="margin-left:auto"></span><span class="chip warn">belum tercatat</span></div>
+            <div class="bd">
+              <div class="inbox warn">Daftar ini adalah <b>pengakuan siswa</b>, bukan catatan. Tidak satu pun baris di sini mengubah presensi sampai Anda menekan tombolnya.</div>
+
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:20px minmax(0,1fr) 46px 40px"><span>Kursi</span><span>Nama · kelas</span><span>Pindai</span><span>Status</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) 46px 40px"><span class="check"><i class="f"></i></span><div><span class="c">Abdul Rahman</span><span class="sumber" style="display:block">X-1 · 2024001</span></div><span class="c">07:32</span><span class="chip ok">tepat</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) 46px 40px"><span class="check"><i class="f"></i></span><div><span class="c">Bunga Lestari</span><span class="sumber" style="display:block">X-1 · 2024003</span></div><span class="c">07:41</span><span class="chip warn">terlambat</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) 46px 40px"><span class="check"><i class="f"></i></span><div><span class="c">Citra Dewi</span><span class="sumber" style="display:block">X-2 · 2024004</span></div><span class="c">07:38</span><span class="chip ok">tepat</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) 46px 40px"><span class="check"><i class="f"></i></span><div><span class="c">Dedi Kurniawan</span><span class="sumber" style="display:block">X-2 · 2024005</span></div><span class="c">08:02</span><span class="chip bad">lewat batas</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) 46px 40px"><span class="check"><i class="f"></i></span><div><span class="c">Eka Putri</span><span class="sumber" style="display:block">XI-1 · 2024021</span></div><span class="c">08:04</span><span class="chip bad">lewat batas</span></div>
+                <div class="lrow" style="grid-template-columns:20px minmax(0,1fr) 46px 40px"><span class="check"><i></i></span><div><span class="c">Fajar Nugroho</span><span class="sumber" style="display:block">XI-2 · 2024033</span></div><span class="c">08:06</span><span class="chip bad">lewat batas</span></div>
+              </div>
+
+              <div class="box solid">
+                <div class="ph"><span class="lb">Yang akan dicatat</span></div>
+                <div class="cols c3">
+                  <div class="kpi"><span class="lb">Hadir</span><b>2</b></div>
+                  <div class="kpi"><span class="lb">Terlambat</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Tidak hadir</span><b>0</b></div>
+                </div>
+                <span class="sub">Tiga baris tanpa centang tetap bisa dikonfirmasi sebagai <b>terlambat</b> &mdash; itu keputusan Anda, bukan keputusan jam. Sisanya tetap <b>belum</b> sampai diputuskan.</span>
+              </div>
+
+              <div style="display:flex;gap:5px;flex-wrap:wrap">
+                <span class="btn pri">Catat 5 yang dicentang</span>
+                <span class="btn">Batal</span>
+              </div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Lembar ini menjawab pertanyaan yang paling sering ditanyakan orang tua: <b>atas dasar apa anak saya dicatat hadir?</b> Karena itu ia menyebut jam pindai dan status turunannya di samping nama, bukan hanya di baliknya. Dua baris terakhir pada contoh di atas sengaja lewat batas masuk &mdash; pengawas bisa tetap mencatatnya sebagai terlambat, dan yang tercatat adalah pilihan itu beserta namanya, bukan pindaiannya.</p>
+        <p class="note gap">Centang bawaan hanya pada yang masih di dalam batas. Kalau semua baris tercentang sejak awal, tombol massal berubah menjadi tombol &ldquo;catat apa pun yang datang&rdquo; &mdash; dan itu bukan yang tertulis di tombolnya.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       B. SISWA
+       ============================================================ -->
+  <section class="group" data-g="siswa">
+    <header>
+      <h2><em>B</em> Siswa &mdash; memindai dan mengaku</h2>
+      <p>Tiga laman, semuanya rangka ponsel, semuanya tanpa satu pun nama siswa lain. Yang dibuka ponsel siswa bukan daftar hadir, melainkan satu baris: dirinya sendiri.</p>
+    </header>
+
+    <div class="shots phones">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">04</span><h3>Hasil pindai &mdash; pengakuan</h3><span class="path">/hadir/{kode}</span></div>
+        <div class="wd lg">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="chip info">R-01</span><span class="crumb">Lab Komputer 1 · Matematika · S-01</span><span class="sp" style="margin-left:auto"></span><span class="chip ok">kode sah</span></div>
+            <div class="bd">
+              <div class="box solid">
+                <div class="ph"><span class="lb">Ruang dan sesi</span><span class="sp"></span><span class="sub">07:30&ndash;09:00</span></div>
+                <b style="font-family:var(--font-display);font-size:12px">Lab Komputer 1 &middot; Matematika</b>
+                <span class="sub">SMK Negeri 1 &middot; S-01 &middot; pengawas: Andi Saputra</span>
+              </div>
+
+              <div class="box solid">
+                <div class="ph"><span class="lb">Anda</span><span class="sp"></span><span class="chip info">kursi 03</span></div>
+                <b style="font-family:var(--font-display);font-size:12px">Bunga Lestari</b>
+                <span class="sub">X-1 &middot; NIS 2024003</span>
+                <div class="inbox">Penempatan Anda memang di ruang dan sesi ini. Menekan tombol di bawah menyatakan Anda hadir di ruang ini sekarang.</div>
+              </div>
+
+              <span class="btn pri big full">Saya hadir di ruang ini</span>
+              <span class="btn full">Bukan saya / batalkan</span>
+
+              <div class="inbox warn">Presensi belum tercatat sampai Pengawas mengonfirmasinya. Kalau Anda meninggalkan ruang tanpa dikonfirmasi, status Anda tetap <b>belum</b>.</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Laman ini menuntut login siswa, dan yang menentukan siapa yang dicatat adalah <b>sesi login itu</b> &mdash; bukan kode pindai. Kode pindai hanya menjawab &ldquo;ruang dan jendela waktu mana&rdquo;. Itulah sebabnya kode yang difoto dan dikirim ke teman di rumah tidak berguna: teman itu tetap butuh akun siswa yang benar-benar ditempatkan di ruang ini, dan akun seperti itu hanya satu.</p>
+        <p class="note gap">Tombol konfirmasi kedua ada karena laman ini bisa terbuka di ponsel yang dipinjam, atau tetap terbuka di tangan orang lain. Satu ketukan tambahan jauh lebih murah daripada satu baris presensi yang salah atas nama anak yang tidak ada di sana &mdash; dan baris seperti itu akan muncul lagi di laporan kehadiran, di berita acara, dan di nilai.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">05</span><h3>Tercatat, menunggu pengawas</h3><span class="path">/hadir/{kode} &middot; sesudah kirim</span></div>
+        <div class="wd lg">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Presensi ruang</span><span class="sp" style="margin-left:auto"></span><span class="chip warn">menunggu</span></div>
+            <div class="bd">
+              <div class="centang">
+                <span class="bulat">&#10003;</span>
+                <b>Pengakuan Anda terkirim</b>
+                <span class="sub">Dicatat pukul 07:41 &middot; kursi 03 &middot; R-01</span>
+              </div>
+
+              <div class="list">
+                <div class="lrow" style="grid-template-columns:minmax(0,1fr) auto"><span class="c">Dikirim</span><span class="chip ok">07:41</span></div>
+                <div class="lrow" style="grid-template-columns:minmax(0,1fr) auto"><span class="c">Dikonfirmasi pengawas</span><span class="chip mute">belum</span></div>
+                <div class="lrow" style="grid-template-columns:minmax(0,1fr) auto"><span class="c">Gerbang ujian</span><span class="chip mute">tertutup</span></div>
+              </div>
+
+              <div class="inbox">Gerbang ujian terbuka setelah Pengawas mengonfirmasi. Anda boleh menunggu di kursi; muat ulang laman ini untuk melihat perubahannya.</div>
+
+              <div class="box">
+                <div class="ph"><span class="lb">Kalau tidak dikonfirmasi</span></div>
+                <span class="sub">Sebutkan kursi 03 kepada Pengawas. Ia dapat mencatatnya dari daftar kursi seperti biasa &mdash; pindai hanyalah jalan pintas, dan jalan yang lama tetap terbuka.</span>
+              </div>
+
+              <span class="btn full">Muat ulang</span>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Kata di layar siswa adalah <b>&ldquo;pengakuan&rdquo;</b>, dan itu bukan pilihan kata yang lepas. Siswa menyatakan sesuatu; pengawas yang mencatat. Layar yang menulis &ldquo;Anda sudah hadir&rdquo; sebelum ada yang mengonfirmasi akan membuat siswa berjalan pergi dengan keyakinan yang tidak didukung satu baris data pun &mdash; dan keyakinan itu baru runtuh di laporan kehadiran, berhari-hari kemudian, ketika sudah tidak ada yang bisa diperbaiki.</p>
+        <p class="note gap">Baris <b>Gerbang ujian</b> ada di sini karena itulah yang sebenarnya ditunggu siswa. Tanpa baris itu, mereka akan menekan &ldquo;mulai&rdquo; berulang kali dan mengira tokennya yang salah.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">06</span><h3>Empat penolakan</h3><span class="path">/hadir/{kode} &middot; galat</span></div>
+        <div class="wd lg">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Presensi ruang</span><span class="sp" style="margin-left:auto"></span><span class="chip bad">ditolak</span></div>
+            <div class="bd">
+              <div class="box" style="border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:var(--bad-bg)">
+                <div class="ph"><span class="lb" style="color:var(--bad)">Kode sudah kedaluwarsa</span></div>
+                <span class="sub" style="color:var(--bad)">Kode itu berlaku sampai 07:41:00; pindai Anda terbaca 07:41:12. Pindai lagi kode yang <b>sekarang</b> tampil di layar Pengawas.</span>
+              </div>
+
+              <div class="box" style="border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:var(--bad-bg)">
+                <div class="ph"><span class="lb" style="color:var(--bad)">Bukan ruang Anda</span></div>
+                <span class="sub" style="color:var(--bad)">Penempatan Anda di <b>R-04</b> untuk sesi ini, bukan R-01. Kerjakan di ruang yang tertulis di kartu peserta Anda.</span>
+              </div>
+
+              <div class="box" style="border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:var(--bad-bg)">
+                <div class="ph"><span class="lb" style="color:var(--bad)">Sesi belum dibuka</span></div>
+                <span class="sub" style="color:var(--bad)">Sesi S-01 berstatus <b>siap</b>, belum <b>berjalan</b>. Pindai kembali setelah Pengawas membuka sesi.</span>
+              </div>
+
+              <div class="box" style="border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:var(--bad-bg)">
+                <div class="ph"><span class="lb" style="color:var(--bad)">Sudah tercatat hadir</span></div>
+                <span class="sub" style="color:var(--bad)">Anda sudah dicatat <b>hadir</b> pukul 07:32 oleh Pengawas. Tidak ada yang perlu dipindai lagi.</span>
+              </div>
+
+              <div class="inbox">Setiap penolakan menyebut <b>apa yang harus dilakukan berikutnya</b>. Penolakan yang hanya berbunyi &ldquo;kode tidak sah&rdquo; membuat siswa menebak, lalu menanyakan hal yang salah kepada pengawas di pintu.</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Urutan pemeriksaannya sengaja: <b>kode dulu, baru penempatan, baru status sesi, baru presensi</b> &mdash; sama seperti pintu ruang yang memeriksa tautan sebelum kodenya. Kalau penempatan diperiksa lebih dulu, seorang siswa yang memindai kode mati dari ruang yang salah akan diberi tahu bahwa ia salah ruang, padahal yang sebenarnya salah adalah kodenya &mdash; dan ia akan berjalan ke ruang yang benar hanya untuk ditolak lagi.</p>
+        <p class="note gap">Penolakan keempat bukan galat, melainkan <b>idempoten</b>: memindai dua kali karena tombolnya tersentuh dua kali tidak boleh menulis dua baris atau membalik status yang sudah diputuskan pengawas menjadi <i>belum</i>. Karena itu ia dijawab dengan kalimat yang menenangkan, bukan dengan galat merah.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       C. KEPUTUSAN
+       ============================================================ -->
+  <section class="group always">
+    <header>
+      <h2><em>C</em> Keputusan yang diambil, dan yang ditolak</h2>
+      <p>Bagian ini bukan laman; ia ditulis supaya pilihan di atas bisa diperiksa tanpa membongkar berkasnya. Setiap baris menyebut apa yang <b>tidak</b> dikerjakan, karena itulah yang paling mungkin dipertanyakan nanti.</p>
+    </header>
+
+    <div class="shots" style="grid-template-columns:1fr">
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">Tabel</span><h3>Enam batas</h3></div>
+        <table class="banding">
+          <thead>
+            <tr><th style="width:26%">Pilihan</th><th style="width:37%">Yang dikerjakan</th><th>Yang ditolak, dan alasannya</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Kode pindai terpisah dari tautan pintu</b></td>
+              <td>QR memuat <code>/hadir/{kode}</code> &mdash; kode sekali pakai berumur 60 detik, disimpan sebagai hash, terikat ke ruang dan sesi.</td>
+              <td>Tidak memakai <code>/p/{slug}</code>. Kalau QR memuat tautan pintu, siswa yang memindainya mendarat di laman kode pengawas &mdash; dan satu siswa yang menebak enam angka bisa membuka ruang orang lain.</td>
+            </tr>
+            <tr>
+              <td><b>Siswa tidak menulis presensi</b></td>
+              <td>Pindai menulis baris <i>pengakuan</i> bertanda waktu, terpisah dari <code>attendance_records</code>. Pengawas mengonfirmasi, dan konfirmasi itulah yang menulis presensi lewat <code>KehadiranService</code>.</td>
+              <td>Tidak ada jalur &ldquo;siswa mencatat dirinya hadir&rdquo;. Presensi adalah dasar gerbang ujian dan dasar berita acara; kalau siswa bisa menulisnya, satu ponsel di luar ruang bisa mengubah kehadiran seluruh kelas.</td>
+            </tr>
+            <tr>
+              <td><b>Konfirmasi massal, bukan per siswa</b></td>
+              <td>Satu lembar berisi semua yang memindai, dengan centang bawaan hanya untuk yang masih di dalam batas masuk.</td>
+              <td>Bukan demi kecepatan semata: yang membuat massal aman adalah <b>jenis barisnya sama</b>. Setiap baris tetap mencatat pelakunya (pengawas ruang itu), dan tiap baris tetap mendapat satu baris log sendiri.</td>
+            </tr>
+            <tr>
+              <td><b>Waktu dipakai dari pindai</b></td>
+              <td>Status <i>hadir</i> atau <i>terlambat</i> diturunkan dari jam pindai, bukan jam konfirmasi.</td>
+              <td>Bukan dari jam konfirmasi. Pengawas yang baru menekan tombol 20 menit kemudian tidak boleh membuat siswa yang datang tepat waktu tercatat terlambat &mdash; dan sebaliknya, pindai pukul 08:10 tidak menjadi tepat hanya karena dikonfirmasi pukul 08:12.</td>
+            </tr>
+            <tr>
+              <td><b>Sumber tercetak di baris kursi</b></td>
+              <td>Setiap baris menyebut <code>pindai 07:32</code> atau <code>pengawas 07:28</code>.</td>
+              <td>Bukan kolom tersembunyi. Pertanyaan &ldquo;anak saya hadir atas dasar apa?&rdquo; dijawab dari layar yang sama, dan baris yang sumbernya tidak bisa ditunjuk adalah baris yang tidak bisa dipertahankan.</td>
+            </tr>
+            <tr>
+              <td><b>Tanpa geolokasi</b></td>
+              <td>Kode yang berganti tiap 60 detik, konfirmasi pengawas, dan satu akun per siswa.</td>
+              <td>Bukan GPS atau IP. Geolokasi ponsel bisa ditolak izinnya, meleset di dalam gedung bertingkat, dan di ruang lab yang sinyalnya lemah justru gagal pada anak yang ada di sana. Yang jujur diklaim sistem adalah &ldquo;sebuah perangkat di sekitar layar ini memindai&rdquo; &mdash; bukan &ldquo;anak ini ada di kursi&rdquo;. Klaim kedua hanya bisa dibuat oleh pengawas, dan memang ia yang menekan tombolnya.</td>
+            </tr>
+          </tbody>
+        </table>
+      </figure>
+    </div>
+  </section>
+
+  <section class="group always">
+    <header>
+      <h2><em>D</em> Yang harus ditambahkan di kode, bila disetujui</h2>
+      <p>Daftar berikut bukan rencana kerja; ia hanya menyebut di mana perubahan akan menyentuh kode yang sudah ada, supaya besar pekerjaannya kelihatan sebelum diputuskan.</p>
+    </header>
+    <div class="shots" style="grid-template-columns:1fr">
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">Tabel</span><h3>Enam titik sentuh</h3></div>
+        <table class="banding">
+          <thead><tr><th style="width:34%">Berkas / jalur</th><th>Perubahan</th></tr></thead>
+          <tbody>
+            <tr><td><code>routes/web.php</code></td><td>Dua rute publik baru di luar grup <code>auth</code> untuk laman kode, dan satu rute di dalam grup siswa untuk pengakuannya. Dijaga <code>throttle</code> yang sama dengan pintu ruang.</td></tr>
+            <tr><td><code>app/Domain/Facility/Models/</code></td><td>Tabel kode pindai: hash, ruang-sesi, terbit, kedaluwarsa. Rotasi menulis baris baru dan membiarkan yang lama mati dengan sendirinya.</td></tr>
+            <tr><td><code>app/Domain/Attendance/Models/</code></td><td>Tabel pengakuan: peserta, waktu pindai, kode yang dipakai, keadaan (menunggu/dikonfirmasi/ditolak). Terpisah dari <code>attendance_records</code>, yang tetap satu-satunya sumber presensi.</td></tr>
+            <tr><td><code>PresensiController</code></td><td>Payload <code>pindai</code> (kode aktif, sisa waktu) dan <code>pengakuan</code> (daftar menunggu) pada plate 12; satu endpoint konfirmasi massal yang memanggil <code>KehadiranService::catat()</code> per baris &mdash; satu baris log per siswa, seperti verifikasi massal yang sudah ada.</td></tr>
+            <tr><td><code>resources/js/Pages/Pengawas/Presensi.tsx</code></td><td>Kotak pindai, lapisan layar penuh, lembar konfirmasi. Kolom sumber pada baris kursi.</td></tr>
+            <tr><td><code>resources/js/Pages/Siswa/</code></td><td>Tiga laman baru: pengakuan, menunggu, penolakan. Rangka ponsel yang sudah dipakai siswa.</td></tr>
+          </tbody>
+        </table>
+        <p class="note gap">Yang <b>tidak</b> berubah: <code>attendance_records</code>, <code>StatusPresensi</code>, <code>KelayakanUjian</code>, dan aturan gerbang ujian. Pindai berhenti tepat di depan pintu yang sudah ada, lalu menyerahkan sisanya kepada jalur yang memang satu-satunya boleh menulis presensi. Kalau perubahan ini suatu hari dibatalkan, yang hilang hanyalah jalan pintasnya &mdash; daftar kursi dan tombol per siswa tetap bekerja seperti sekarang.</p>
+      </figure>
+    </div>
+  </section>
+
+  <footer>
+    <span>School CBT · wireframe presensi pindai QR</span>
+    <span>6 laman · pengawas + siswa</span>
+    <span>lanjutan: prd.md v0.3 · wireframe-peran.html plate 12&ndash;13</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.fbtn'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.group[data-g]'));
+  // Bagian C dan D bukan laman; keduanya tetap terbaca di bawah saringan mana
+  // pun, karena yang dibacanya justru alasan di balik lamannya.
+  function apply(g) {
+    groups.forEach(function (s) {
+      var tetap = s.classList.contains('always');
+      var cocok = g === 'all' || s.getAttribute('data-g') === g;
+      s.hidden = !(tetap || cocok);
+    });
+    btns.forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-g') === g);
+    });
+  }
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () { apply(b.getAttribute('data-g')); });
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -149,9 +149,15 @@ export default function Pengaturan({ pengaturan, ai }: Props) {
             judul="Pengaturan sekolah"
             breadcrumb="/admin/pengaturan"
             aksi={
-                <Tombol type="button" nada="pri" disabled={sedangSimpan} onClick={simpan}>
-                    {sedangSimpan ? 'Menyimpan...' : 'Simpan'}
-                </Tombol>
+                // Tab Notifikasi tidak punya satu pun kolom yang bisa
+                // disimpan. Tombol Simpan di sana tidak akan mengubah apa
+                // pun, dan tombol yang ditekan tanpa hasil membuat Admin
+                // mengira pengaturannya tersimpan.
+                tab === 'Notifikasi' ? null : (
+                    <Tombol type="button" nada="pri" disabled={sedangSimpan} onClick={simpan}>
+                        {sedangSimpan ? 'Menyimpan...' : 'Simpan'}
+                    </Tombol>
+                )
             }
         >
             <Head title="Pengaturan" />
@@ -331,10 +337,10 @@ export default function Pengaturan({ pengaturan, ai }: Props) {
                         {tab === 'Notifikasi' && (
                             <Kotak judul="Notifikasi">
                                 <p className="text-sm text-ink-3">
-                                    Notifikasi ke pengawas dan kepala sekolah dibangun bersama laman
-                                    monitoring di Fase 6. Belum ada yang bisa diatur di sini, dan
-                                    menampilkan tombol yang belum tersambung hanya akan membuat
-                                    Admin menebak-nebak apakah pengaturannya tersimpan.
+                                    Belum ada notifikasi yang bisa diatur. Pemberitahuan ke
+                                    pengawas dibangun bersama laman monitoring, dan sampai itu
+                                    ada, tab ini hanya memberi tahu bahwa pengaturannya memang
+                                    belum tersedia &mdash; bukan belum tersimpan.
                                 </p>
                             </Kotak>
                         )}
