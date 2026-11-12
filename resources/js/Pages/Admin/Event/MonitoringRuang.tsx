@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { tanyaTeks } from '@/Components/dialog';
 import { Chip, Field, Inbox, Kotak, Modal, Tombol, kelasInput } from '@/Components/ui';
 
 /**
@@ -260,12 +261,23 @@ export default function EventMonitoringRuang({
      * `/siswa/pelanggaran`, dan baris "Dibuka dari papan monitoring Admin"
      * yang generik membuat anak membaca alasan yang tidak menerangkan apa
      * pun. Batal pada dialog berarti tidak ada permintaan sama sekali.
+     *
+     * `wajib: false` mengikuti aturan servernya (`nullable`): membuka kunci
+     * yang jelas alasannya tidak boleh tertahan hanya karena Admin memilih
+     * tidak menulis. Kosong tetap terkirim sebagai kosong, dan server yang
+     * mengisi kalimat bawaannya.
      */
-    const bukaKunci = (a: Anak) => {
-        const alasan = window.prompt(
-            `Buka kunci pengerjaan ${a.nama}?\n\nAlasan pembukaan akan tercatat di riwayat pelanggaran siswa.`,
-            '',
-        );
+    const bukaKunci = async (a: Anak) => {
+        const alasan = await tanyaTeks({
+            judul: `Buka kunci pengerjaan ${a.nama}?`,
+            pesan: 'Penghitung pelanggaran tidak direset. Alasan pembukaan dibaca siswa di riwayat pelanggarannya.',
+            label: 'Alasan pembukaan (boleh dikosongkan)',
+            petunjuk: 'Kosongkan bila alasannya sudah jelas - server mencatat "Dibuka dari papan monitoring Admin".',
+            wajib: false,
+            maksimal: 200,
+            labelYa: 'Buka kunci',
+            labelTidak: 'Jangan',
+        });
 
         if (alasan === null) {
             return;
@@ -282,10 +294,10 @@ export default function EventMonitoringRuang({
      * Dua tindakan yang menuntut kalimat dari Admin - lihat catatan
      * `TindakanPeserta` di bawah.
      *
-     * Keduanya lewat modal, BUKAN `window.prompt` seperti `bukaKunci`:
+     * Keduanya lewat modal, BUKAN dialog satu kolom seperti `bukaKunci`:
      * kalimat yang ditulis di sini dibaca siswa di layarnya sendiri, dan
-     * kotak prompt peramban tidak bisa menampilkan berapa karakter yang
-     * tersisa atau menjelaskan bahwa pesannya akan terlihat oleh anaknya.
+     * keduanya butuh ruang untuk menjelaskan akibatnya sebelum Admin
+     * menekan tombol.
      */
     const tindakanPeserta = (a: Anak, jenis: 'reset' | 'hentikan') => {
         setTindakan({ anak: a, jenis });
@@ -855,7 +867,9 @@ function DaftarAnak({
                             {a.terkunci && (
                                 <button
                                     type="button"
-                                    onClick={() => padaBukaKunci(a)}
+                                    onClick={() => {
+                                        void padaBukaKunci(a);
+                                    }}
                                     className="rounded-wf border border-accent bg-accent px-2 py-0.5 text-[11px] font-medium text-on-accent hover:bg-accent/90"
                                 >
                                     Buka kunci

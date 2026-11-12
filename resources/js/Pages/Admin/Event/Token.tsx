@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi } from '@/Components/dialog';
 import { Chip, Inbox, Kotak, Tombol, kelasInput } from '@/Components/ui';
 
 /**
@@ -295,18 +296,23 @@ function TabelToken({ jalur, baris }: { jalur: string; baris: Baris[] }) {
                                         {b.token_id !== null && b.status !== 'dicabut' && (
                                             <Tombol
                                                 nada="bahaya"
-                                                onClick={() => {
-                                                    if (
-                                                        confirm(
-                                                            `Cabut token ${b.sesi}? Siswa tidak akan bisa memakainya lagi.`,
-                                                        )
-                                                    ) {
-                                                        router.post(
-                                                            `${jalur}/token/${b.token_id}/cabut`,
-                                                            {},
-                                                            { preserveScroll: true },
-                                                        );
+                                                onClick={async () => {
+                                                    const setuju = await konfirmasi({
+                                                        judul: `Cabut token ${b.sesi}?`,
+                                                        pesan: 'Siswa tidak akan bisa memakainya lagi, dan sesi yang belum dibuka kehilangan tokennya.',
+                                                        labelYa: 'Cabut token',
+                                                        nada: 'bahaya',
+                                                    });
+
+                                                    if (!setuju) {
+                                                        return;
                                                     }
+
+                                                    router.post(
+                                                        `${jalur}/token/${b.token_id}/cabut`,
+                                                        {},
+                                                        { preserveScroll: true },
+                                                    );
                                                 }}
                                             >
                                                 Cabut

@@ -155,6 +155,217 @@
     color: var(--color-ink);
 }
 
+/*
+|--------------------------------------------------------------------------
+| Dialog perhatian - SweetAlert2
+|--------------------------------------------------------------------------
+| SweetAlert2 membawa paletnya sendiri, dan dialog yang lahir dengan palet
+| itu terbaca sebagai kotak asing yang menempel di atas aplikasi ini. Kelas
+| di bawah memetakan setiap variabel `--swal2-*` yang dipakai dialog kita
+| ke token yang sudah ada (lihat `@theme` di atas), sehingga dialognya ikut
+| tema yang sedang berlaku - termasuk `.rangka-ujian` yang gelap.
+|
+| Variabelnya dibaca dari ELEMEN, bukan dari `:root`, karena itulah cara
+| token tema bekerja di berkas ini: `.rangka-ujian` menimpa `--color-*` pada
+| subtree-nya, dan dialog yang dipanggil dari laman siswa harus mewarisi
+| palet gelap itu. Karena popupnya dipasang di `<body>` alih-alih di dalam
+| laman, `.swal-cbt--gelap` dipakai untuk kasus itu - lihat `dialog.tsx`.
+|
+| `buttonsStyling: false` di sisi JS mematikan kelas bawaan SweetAlert2,
+| sehingga tombolnya bergantung SEPENUHNYA pada aturan di bawah. Tombol yang
+| tidak bergaya di sini adalah tombol tanpa latar dan tanpa batas, jadi
+| keduanya harus berubah bersama.
+*/
+.swal-cbt {
+    --swal2-background: var(--color-surface);
+    --swal2-color: var(--color-ink);
+    --swal2-border: 1px solid var(--color-line);
+    --swal2-border-radius: var(--radius-wf);
+    --swal2-padding: 1.25em 1.25em 1.1em;
+    --swal2-width: 30em;
+    --swal2-title-padding: 0 0 0.5em;
+    --swal2-html-container-padding: 0;
+    --swal2-footer-border-color: transparent;
+    --swal2-footer-color: var(--color-ink-3);
+    --swal2-validation-message-background: var(--color-bad-bg);
+    --swal2-validation-message-color: var(--color-bad);
+    --swal2-input-background: var(--color-surface);
+    --swal2-input-border: 1px solid var(--color-line);
+    --swal2-input-border-radius: var(--radius-wf);
+    --swal2-input-focus-border: 1px solid var(--color-accent);
+    --swal2-input-focus-box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent);
+    --swal2-input-hover-box-shadow: none;
+    --swal2-input-box-shadow: none;
+    --swal2-outline: 2px solid var(--color-accent);
+
+    font-family: var(--font-sans);
+    box-shadow: var(--shadow-wf);
+}
+
+/*
+ * Tirai gelapnya tinggal di `.swal2-container`, BUKAN di popupnya - jadi
+ * variabelnya tidak bisa ditimpa dari `.swal-cbt`. Warisan `--swal2-backdrop`
+ * dari `:root` akan tetap memakai hitam 40% bawaan SweetAlert2, yang di atas
+ * `--color-paper` terbaca kebiruan dan bukan abu netral aplikasi ini.
+ */
+.swal2-container.swal2-backdrop-show {
+    --swal2-container-padding: 1rem;
+    --swal2-backdrop: color-mix(in srgb, var(--color-ink) 40%, transparent);
+}
+
+.swal-cbt .swal-cbt-judul {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-ink);
+    text-align: left;
+}
+
+.swal-cbt .swal-cbt-isi {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--color-ink-2);
+    text-align: left;
+    /* Pesan yang ditulis Admin dengan baris baru dibaca apa adanya - sama
+       dengan `lock_reason` di laman terkunci siswa. */
+    white-space: pre-line;
+}
+
+.swal-cbt .swal-cbt-aksi {
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1.1em;
+}
+
+/*
+ * Tombolnya disalin dari `Tombol` di `ui.tsx` - kelas Tailwind-nya tidak
+ * bisa dipakai di sini karena markup SweetAlert2 bukan JSX, dan menyalin
+ * lebih sedikit daripada memuat bundel Tailwind ke dalam `app.css`.
+ * Ukurannya sengaja sedikit lebih besar: dialog ini muncul di ponsel.
+ */
+.swal-cbt button.swal-cbt-ya,
+.swal-cbt button.swal-cbt-tidak {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.9rem;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.2;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-wf);
+    cursor: pointer;
+    transition: background-color 150ms, border-color 150ms;
+}
+
+.swal-cbt button.swal-cbt-tidak {
+    background: var(--color-surface);
+    color: var(--color-ink);
+}
+
+.swal-cbt button.swal-cbt-tidak:hover {
+    background: var(--color-surface-2);
+}
+
+.swal-cbt button.swal-cbt-ya {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+}
+
+.swal-cbt button.swal-cbt-ya:hover {
+    background: color-mix(in srgb, var(--color-accent) 90%, black);
+}
+
+/*
+ * Nada bahaya - dan ia satu-satunya tempat warna merah dipakai di sini.
+ * Tindakan yang menghapus dibedakan dari yang tidak, karena tombol biru
+ * pada "Hapus seluruh sesi" adalah tombol yang terbaca sebagai "simpan".
+ */
+.swal-cbt--bahaya button.swal-cbt-ya {
+    border-color: var(--color-bad);
+    background: var(--color-bad);
+}
+
+.swal-cbt--bahaya button.swal-cbt-ya:hover {
+    background: color-mix(in srgb, var(--color-bad) 90%, black);
+}
+
+/* Ikon peringatan bawaan SweetAlert2 berwarna kuning cerahnya sendiri. */
+.swal-cbt .swal2-icon.swal2-warning {
+    border-color: var(--color-warn);
+    color: var(--color-warn);
+}
+
+/*
+ * Palet gelap untuk dialog yang dipanggil dari laman ujian siswa.
+ *
+ * Popup SweetAlert2 dipasang di `<body>`, BUKAN di dalam `.rangka-ujian` -
+ * sehingga penimpaan token di laman itu tidak menjangkaunya. Kelas ini
+ * memetakannya ulang dari variabel `--gelap-*` yang sudah ada di `:root`,
+ * dan `dialog.tsx` yang menempelkannya bila laman yang memanggil memang
+ * memakai `.rangka-ujian`.
+ *
+ * Tanpa ini, pengawas yang menekan "Keluar" di ponselnya mendapat dialog
+ * putih menyala di atas halaman gelap - tepat pada laman yang seluruh
+ * warnanya dipilih supaya tidak menyilaukan mata di ruang ujian.
+ */
+.swal-cbt--gelap {
+    --color-paper: var(--gelap-paper);
+    --color-surface: var(--gelap-surface);
+    --color-surface-2: var(--gelap-surface-2);
+    --color-line: var(--gelap-line);
+    --color-ink: var(--gelap-ink);
+    --color-ink-2: var(--gelap-ink-2);
+    --color-ink-3: var(--gelap-ink-3);
+    --color-accent: var(--gelap-accent);
+    --color-on-accent: var(--gelap-on-accent);
+    --color-ok: var(--gelap-ok);
+    --color-warn: var(--gelap-warn);
+    --color-bad: var(--gelap-bad);
+    --color-bad-bg: var(--gelap-bad-bg);
+}
+
+.swal-cbt .swal-cbt-input {
+    /* 44px: kolomnya diketuk dengan ibu jari, dan dialognya sering muncul
+       pada ponsel pengawas di depan pintu ruang. */
+    min-height: 84px;
+    padding: 0.5rem 0.7rem;
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+    resize: vertical;
+}
+
+.swal-cbt label.swal2-input-label {
+    margin: 0.75em 0 0.35em;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--color-ink-2);
+    text-align: left;
+}
+
+.swal-cbt .swal-cbt-galat {
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--radius-wf);
+    font-size: 0.72rem;
+}
+
+/* Petunjuk di kaki dialog - keterangan yang tidak hilang saat mengetik. */
+.swal-cbt .swal2-footer {
+    margin-top: 0.9em;
+    padding-top: 0.7em;
+    font-size: 0.7rem;
+    line-height: 1.5;
+    text-align: left;
+}
+
 @layer base {
     body {
         background-color: var(--color-paper);

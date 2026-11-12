@@ -1,5 +1,6 @@
-import { Link, useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
+import { konfirmasi } from '@/Components/dialog';
 import { Field, kelasInput, Peringatan } from '@/Components/ui';
 
 /**
@@ -203,19 +204,30 @@ export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_
             </section>
 
             <section className="daftar">
-                <Link
-                    href="/logout"
-                    method="post"
-                    as="button"
-                    onClick={(e) => {
-                        if (!confirm('Keluar dari akun ini?')) {
-                            e.preventDefault();
+                {/* Tombol, bukan `<Link as="button">`: keluar ditanyakan lebih
+                    dulu, dan dialognya asinkron - sementara `onClick` pada
+                    `Link` harus memutuskan `preventDefault()` saat itu juga.
+                    Dengan `router.post` di sini, kunjungannya baru terjadi
+                    SETELAH siswa menjawab, jadi tidak ada tombol yang sudah
+                    berangkat sebelum pertanyaannya selesai. */}
+                <button
+                    type="button"
+                    onClick={async () => {
+                        const setuju = await konfirmasi({
+                            judul: 'Keluar dari akun ini?',
+                            pesan: 'Pengerjaan yang sedang berjalan tetap tersimpan di server. Masuk lagi dengan NIS dan sandi yang sama.',
+                            labelYa: 'Keluar',
+                            nada: 'bahaya',
+                        });
+
+                        if (setuju) {
+                            router.post('/logout');
                         }
                     }}
                     className="tombol tombol--bahaya w-full"
                 >
                     Keluar dari akun
-                </Link>
+                </button>
             </section>
         </KerangkaSiswa>
     );

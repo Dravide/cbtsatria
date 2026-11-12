@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi } from '@/Components/dialog';
 import { Chip, Inbox, Tombol, nadaStatus } from '@/Components/ui';
 
 /**
@@ -151,7 +152,12 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
         });
     };
 
-    const konfirmasi = () => {
+    /**
+     * Konfirmasi berkas yang pratinjaunya sedang terbuka, supaya akunnya
+     * benar-benar dibuat. Bedanya dengan `batalkan()` di bawah: yang itu
+     * MENGHAPUS berkas impornya, yang ini menyimpan akunnya.
+     */
+    const konfirmasiImpor = () => {
         if (kirim || aktif === null) {
             return;
         }
@@ -173,15 +179,18 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
      * sama tidak akan pernah bisa diunggah lagi setelah diperbaiki. Karena itu
      * konfirmasinya menyebut apa yang hilang, bukan sekadar "Batalkan?".
      */
-    const batalkan = (id: number, nama: string) => {
+    const batalkan = async (id: number, nama: string) => {
         if (kirim) {
             return;
         }
 
-        const setuju = window.confirm(
-            `Batalkan impor "${nama}"?\n\nSeluruh baris pratinjaunya dibuang dan berkasnya dihapus. ` +
-                'Tidak ada akun yang tersimpan dari berkas ini, dan berkas yang sama boleh diunggah lagi setelah diperbaiki.',
-        );
+        const setuju = await konfirmasi({
+            judul: `Batalkan impor "${nama}"?`,
+            pesan: 'Seluruh baris pratinjaunya dibuang dan berkasnya dihapus. Tidak ada akun yang tersimpan dari berkas ini, dan berkas yang sama boleh diunggah lagi setelah diperbaiki.',
+            labelYa: 'Batalkan impor',
+            labelTidak: 'Simpan',
+            nada: 'bahaya',
+        });
 
         if (!setuju) {
             return;
@@ -382,7 +391,7 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
                         {aktif.boleh_konfirmasi ? (
                             <Tombol
                                 nada="pri"
-                                onClick={konfirmasi}
+                                onClick={konfirmasiImpor}
                                 disabled={kirim || aktif.sah === 0}
                             >
                                 {kirim ? 'Menyimpan…' : 'Impor'}

@@ -1,6 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi } from '@/Components/dialog';
 import {
     Chip,
     Field,
@@ -116,18 +117,22 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                         dikatakan di konfirmasinya, karena nama "terbitkan
                         semua" mudah dibaca sebagai "ganti semua". */}
                     <Tombol
-                        onClick={() => {
-                            if (
-                                confirm(
-                                    'Terbitkan kode untuk semua pengawas yang belum punya? Kode yang sudah ada tidak diubah, sehingga kartu yang sudah dicetak tetap berlaku.',
-                                )
-                            ) {
-                                router.post(
-                                    `/admin/events/${event.id}/panitia/kode-massal`,
-                                    {},
-                                    { preserveScroll: true },
-                                );
+                        onClick={async () => {
+                            const setuju = await konfirmasi({
+                                judul: 'Terbitkan kode untuk pengawas yang belum punya?',
+                                pesan: 'Kode yang sudah ada TIDAK diubah, sehingga kartu yang sudah dicetak tetap berlaku.',
+                                labelYa: 'Terbitkan kode',
+                            });
+
+                            if (!setuju) {
+                                return;
                             }
+
+                            router.post(
+                                `/admin/events/${event.id}/panitia/kode-massal`,
+                                {},
+                                { preserveScroll: true },
+                            );
                         }}
                     >
                         Terbitkan kode massal
@@ -254,19 +259,23 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                                     )}
                                     <span className="flex flex-wrap items-center gap-1.5">
                                         <Tombol
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 // Menekan ini MENGGANTI kode,
                                                 // dan kartu yang sudah tercetak
                                                 // berhenti berlaku. Karena itu
                                                 // konfirmasinya hanya muncul
                                                 // bila kodenya memang sudah ada.
-                                                if (
-                                                    b.kode &&
-                                                    !confirm(
-                                                        `Ganti kode pengawas ${b.nama}? Kode lama langsung berhenti berlaku, dan kartu yang sudah tercetak harus dibuat ulang.`,
-                                                    )
-                                                ) {
-                                                    return;
+                                                if (b.kode) {
+                                                    const setuju = await konfirmasi({
+                                                        judul: `Ganti kode pengawas ${b.nama}?`,
+                                                        pesan: 'Kode lama langsung berhenti berlaku, dan kartu yang sudah tercetak harus dibuat ulang.',
+                                                        labelYa: 'Ganti kode',
+                                                        nada: 'bahaya',
+                                                    });
+
+                                                    if (!setuju) {
+                                                        return;
+                                                    }
                                                 }
 
                                                 router.post(
@@ -296,17 +305,21 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                                 <Tombol onClick={() => setPanel(b.id)}>Ubah</Tombol>
                                 <Tombol
                                     nada="bahaya"
-                                    onClick={() => {
-                                        if (
-                                            confirm(
-                                                `${b.nama} dikeluarkan dari kepanitiaan? Tugasnya di event ini hilang, dan bila ia pengawas, kesiapan event ikut turun.`,
-                                            )
-                                        ) {
-                                            router.delete(
-                                                `/admin/events/${event.id}/panitia/${b.id}`,
-                                                { preserveScroll: true },
-                                            );
+                                    onClick={async () => {
+                                        const setuju = await konfirmasi({
+                                            judul: `${b.nama} dikeluarkan dari kepanitiaan?`,
+                                            pesan: 'Tugasnya di event ini hilang, dan bila ia pengawas, kesiapan event ikut turun.',
+                                            labelYa: 'Keluarkan',
+                                            nada: 'bahaya',
+                                        });
+
+                                        if (!setuju) {
+                                            return;
                                         }
+
+                                        router.delete(`/admin/events/${event.id}/panitia/${b.id}`, {
+                                            preserveScroll: true,
+                                        });
                                     }}
                                 >
                                     Hapus

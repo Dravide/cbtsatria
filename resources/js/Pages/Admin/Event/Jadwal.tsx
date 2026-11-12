@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi, tanyaTeks } from '@/Components/dialog';
 import {
     Chip,
     Field,
@@ -473,16 +474,21 @@ export default function EventJadwal({
                                     <Tombol
                                         nada="bahaya"
                                         title="Hapus ujian beserta jadwalnya"
-                                        onClick={() => {
-                                            if (
-                                                confirm(
-                                                    `Hapus ${u.kode} ${u.judul}? Seluruh sesinya yang belum berjalan ikut terhapus.`,
-                                                )
-                                            ) {
-                                                router.delete(`${jalur}/ujian/${u.id}`, {
-                                                    preserveScroll: true,
-                                                });
+                                        onClick={async () => {
+                                            const setuju = await konfirmasi({
+                                                judul: `Hapus ${u.kode} ${u.judul}?`,
+                                                pesan: 'Seluruh sesinya yang belum berjalan ikut terhapus.',
+                                                labelYa: 'Hapus ujian',
+                                                nada: 'bahaya',
+                                            });
+
+                                            if (!setuju) {
+                                                return;
                                             }
+
+                                            router.delete(`${jalur}/ujian/${u.id}`, {
+                                                preserveScroll: true,
+                                            });
                                         }}
                                     >
                                         Hapus
@@ -1087,11 +1093,17 @@ function AksiSesi({
                 <Tombol
                     nada="bahaya"
                     title="Batalkan sesi: tokennya dicabut, dan sesi ini tidak dihitung lagi di jadwal."
-                    onClick={() => {
-                        const alasan = window.prompt(
-                            `Batalkan ${baris.label}?\n\nToken sesi ini akan dicabut. Tulis alasannya (boleh dikosongkan):`,
-                            '',
-                        );
+                    onClick={async () => {
+                        const alasan = await tanyaTeks({
+                            judul: `Batalkan ${baris.label}?`,
+                            pesan: 'Token sesi ini dicabut, dan sesi tidak dihitung lagi di jadwal.',
+                            label: 'Alasan pembatalan (boleh dikosongkan)',
+                            petunjuk: 'Alasan ini dibaca Admin berikutnya yang menyusun ulang jadwal.',
+                            wajib: false,
+                            maksimal: 200,
+                            labelYa: 'Batalkan sesi',
+                            labelTidak: 'Jangan',
+                        });
 
                         if (alasan === null) {
                             return;
@@ -1110,12 +1122,21 @@ function AksiSesi({
 
             <Tombol
                 nada="bahaya"
-                onClick={() => {
-                    if (confirm(`Hapus ${baris.label}? Pesertanya dilepas dari ruang.`)) {
-                        router.delete(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}`, {
-                            preserveScroll: true,
-                        });
+                onClick={async () => {
+                    const setuju = await konfirmasi({
+                        judul: `Hapus ${baris.label}?`,
+                        pesan: 'Pesertanya dilepas dari ruang ini dan harus ditempatkan ulang. Berita acara yang sudah dikirim atau insiden yang tercatat akan menolak penghapusan.',
+                        labelYa: 'Hapus sesi',
+                        nada: 'bahaya',
+                    });
+
+                    if (!setuju) {
+                        return;
                     }
+
+                    router.delete(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}`, {
+                        preserveScroll: true,
+                    });
                 }}
             >
                 Hapus

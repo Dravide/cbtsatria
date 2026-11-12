@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi } from '@/Components/dialog';
 import {
     BilahFilter,
     Chip,
@@ -108,18 +109,22 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                         kartu yang sudah ditempel bukan yang diminta siapa pun
                         yang menekannya. */}
                     <Tombol
-                        onClick={() => {
-                            if (
-                                confirm(
-                                    'Terbitkan tautan untuk semua ruang yang belum punya? Tautan yang sudah berlaku tidak dicabut, sehingga kartu pintu yang sudah ditempel tetap bisa dipakai.',
-                                )
-                            ) {
-                                router.post(
-                                    '/admin/ruang/terbitkan-massal',
-                                    {},
-                                    { preserveScroll: true },
-                                );
+                        onClick={async () => {
+                            const setuju = await konfirmasi({
+                                judul: 'Terbitkan tautan untuk ruang yang belum punya?',
+                                pesan: 'Tautan yang sudah berlaku TIDAK dicabut, sehingga kartu pintu yang sudah ditempel tetap bisa dipakai.',
+                                labelYa: 'Terbitkan tautan',
+                            });
+
+                            if (!setuju) {
+                                return;
                             }
+
+                            router.post(
+                                '/admin/ruang/terbitkan-massal',
+                                {},
+                                { preserveScroll: true },
+                            );
                         }}
                     >
                         Terbitkan tautan massal
