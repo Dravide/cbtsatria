@@ -147,7 +147,7 @@ class BeritaAcaraController
         }
 
         if ($sisi !== SisiFoto::Sesudah) {
-            return back()->with('galat', 'Berita acara ini hanya meminta satu foto: keadaan ruang sesudah ujian.');
+            return back()->with('galat', 'Berita acara ini hanya meminta satu foto: keadaan ruang saat ujian berlangsung.');
         }
 
         try {

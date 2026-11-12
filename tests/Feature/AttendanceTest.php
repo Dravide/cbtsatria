@@ -593,14 +593,16 @@ it('pengiriman final ditolak tanpa foto sesudah, dan tanpa tanda tangan pengawas
 
     expect($laporan->fresh()->final())->toBeFalse()
         ->and($laporan->fresh()->kekuranganFinal())->toContain(
-            'Foto sesudah ujian belum diunggah.',
+            'Foto keadaan ruang saat ujian belum diunggah.',
             'Tanda tangan pengawas belum ada.',
         );
 
-    // (2) Laman berita acara hanya menawarkan SATU foto - keadaan ruang
-    //     sesudah ujian. Sisi `sebelum` masih ada di enumnya (baris lama di
-    //     disk bisa memakainya) tetapi unggahannya ditolak dengan kalimat,
-    //     bukan dengan galat 500 dan bukan dengan menyimpannya diam-diam.
+    // (2) Laman berita acara hanya menawarkan SATU foto - keadaan ruang saat
+    //     ujian berlangsung, bukan sesudah peserta keluar: foto ruang kosong
+    //     tidak menjawab apa pun tentang ketertiban ujiannya. Sisi `sebelum`
+    //     masih ada di enumnya (baris lama di disk bisa memakainya) tetapi
+    //     unggahannya ditolak dengan kalimat, bukan dengan galat 500 dan
+    //     bukan dengan menyimpannya diam-diam.
     masukSebagai($this, $pengawas)
         ->post("/pengawas/ruang/{$ruang->id}/berita-acara/foto", [
             'sisi' => SisiFoto::Sebelum->value,
@@ -611,7 +613,7 @@ it('pengiriman final ditolak tanpa foto sesudah, dan tanpa tanda tangan pengawas
 
     expect($laporan->fresh()->berkas()->count())->toBe(0)
         ->and($laporan->fresh()->kekuranganFinal())->toContain(
-            'Foto sesudah ujian belum diunggah.',
+            'Foto keadaan ruang saat ujian belum diunggah.',
             'Tanda tangan pengawas belum ada.',
         );
 
@@ -631,7 +633,8 @@ it('pengiriman final ditolak tanpa foto sesudah, dan tanpa tanda tangan pengawas
     expect(SessionReportSignature::query()->count())->toBe(0)
         ->and($laporan->fresh()->kekuranganFinal())->toContain('Tanda tangan pengawas belum ada.');
 
-    // (4) Lengkap: foto sesudah, tanda tangan pengawas, dan kedua pernyataan.
+    // (4) Lengkap: foto keadaan ruang saat ujian, tanda tangan pengawas, dan
+    //     kedua pernyataan.
     $sisi->simpanFoto($laporan, SisiFoto::Sesudah, UploadedFile::fake()->image('sesudah.jpg'));
 
     masukSebagai($this, $pengawas)

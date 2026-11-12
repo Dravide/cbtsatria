@@ -122,10 +122,10 @@ class SessionReport extends Model
      * APA yang masih kurang. Tombol yang nonaktif tanpa alasan adalah tombol
      * yang membuat pengawas menekannya berulang kali lalu menelepon Admin.
      *
-     * Tiga syaratnya: foto sesudah ada (foto sebelum tidak dituntut di sini
-     * karena ruang yang fotonya lupa diambil sebelum peserta masuk tetap
-     * harus bisa dilaporkan), tanda tangan pengawas ada, dan kedua
-     * pernyataan sudah ditandai.
+     * Tiga syaratnya: foto keadaan ruang saat ujian ada (sisi `sebelum`
+     * tidak dituntut di sini karena ruang yang fotonya lupa diambil sebelum
+     * peserta masuk tetap harus bisa dilaporkan), tanda tangan pengawas ada,
+     * dan kedua pernyataan sudah ditandai.
      *
      * @return array<int, string>
      */
@@ -134,7 +134,7 @@ class SessionReport extends Model
         $kurang = [];
 
         if ($this->berkasSisi('sesudah') === null) {
-            $kurang[] = 'Foto sesudah ujian belum diunggah.';
+            $kurang[] = 'Foto keadaan ruang saat ujian belum diunggah.';
         }
 
         if ($this->tandaTanganPeran(PeranTandaTangan::Pengawas) === null) {

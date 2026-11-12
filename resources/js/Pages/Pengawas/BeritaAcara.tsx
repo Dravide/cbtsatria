@@ -202,6 +202,8 @@ export default function BeritaAcara({
                 </Chip>
             }
         >
+            {/* Empat angka plate 18, satu baris - lihat catatan di
+                `Presensi` tentang label yang membungkus. */}
             <div className="grid grid-cols-4 gap-1">
                 <KpiPonsel label="Hadir" nilai={angka.hadir} nada="ok" />
                 <KpiPonsel label="Telat" nilai={angka.terlambat} nada="info" />
@@ -285,7 +287,7 @@ export default function BeritaAcara({
                                     type="button"
                                     disabled={kirim}
                                     onClick={() => kamera.current[f.sisi]?.click()}
-                                    className="rounded-wf border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-on-accent disabled:opacity-50"
+                                    className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent disabled:opacity-50"
                                 >
                                     {f.ada ? 'Ganti foto' : 'Ambil foto'}
                                 </button>
@@ -293,7 +295,7 @@ export default function BeritaAcara({
                                     type="button"
                                     disabled={kirim}
                                     onClick={() => galeri.current[f.sisi]?.click()}
-                                    className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink disabled:opacity-50"
+                                    className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink disabled:opacity-50"
                                 >
                                     Pilih dari galeri
                                 </button>
@@ -303,6 +305,7 @@ export default function BeritaAcara({
                 ))}
 
                 <p className="text-[11px] text-ink-3">
+                    Ambil saat peserta sedang mengerjakan, bukan setelah ruang kosong.
                     Waktu pengambilan dan lokasi ruang ikut tersimpan bersama berkasnya,
                     bukan hanya gambarnya.
                 </p>
@@ -339,13 +342,13 @@ export default function BeritaAcara({
                         teks: 'Tidak ada peserta yang saya izinkan keluar ruang',
                     },
                 ].map((c) => (
-                    <label key={c.teks} className="flex items-start gap-2">
+                    <label key={c.teks} className="flex min-h-11 items-start gap-2 py-1">
                         <input
                             type="checkbox"
                             checked={c.nilai}
                             disabled={laporan.final}
                             onChange={(e) => c.ubah(e.target.checked)}
-                            className="mt-0.5 size-4 shrink-0 accent-[var(--color-accent)]"
+                            className="mt-0.5 size-5 shrink-0 accent-[var(--color-accent)]"
                         />
                         <span className="text-xs leading-relaxed text-ink-2">{c.teks}</span>
                     </label>
@@ -356,7 +359,7 @@ export default function BeritaAcara({
                         type="button"
                         onClick={simpanCatatan}
                         disabled={kirim}
-                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink disabled:opacity-50"
+                        className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink disabled:opacity-50"
                     >
                         Simpan catatan
                     </button>
@@ -415,7 +418,7 @@ export default function BeritaAcara({
                         type="button"
                         onClick={bukaKembali}
                         disabled={kirim}
-                        className="rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink disabled:opacity-50"
+                        className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink disabled:opacity-50"
                     >
                         Buka kembali sebagai draf
                     </button>
@@ -424,7 +427,7 @@ export default function BeritaAcara({
                         type="button"
                         onClick={kirimFinal}
                         disabled={kirim || !laporan.boleh_final}
-                        className="rounded-wf border border-accent bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:cursor-not-allowed disabled:border-ink-3/40 disabled:bg-ink-3/40"
+                        className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-4 text-sm font-medium text-on-accent disabled:cursor-not-allowed disabled:border-ink-3/40 disabled:bg-ink-3/40"
                     >
                         Kirim berita acara
                     </button>
