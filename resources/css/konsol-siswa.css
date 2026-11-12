@@ -557,6 +557,59 @@
 }
 
 /*
+ * Seleksi teks dimatikan di dalam ujian - dan ini yang menutup "Touch to
+ * Search" Chrome Android.
+ *
+ * =====================================================================
+ * Gejalanya
+ * =====================================================================
+ * "Soal bisa diblok, dan di bawah muncul pencarian Google." Yang terjadi
+ * bukan menu peramban, melainkan fitur bawaan Chrome Android: menekan lama
+ * satu kata MENYELEKSI kata itu, lalu Chrome menampilkan bilah bawah
+ * "Google · [kata itu] · Bagikan". Satu ketukan lanjutan membuka pencarian -
+ * di atas soal, di tengah ujian.
+ *
+ * `contextmenu` sudah dicegah `Kerjakan.tsx`, dan itu TIDAK menolong: menu
+ * konteks Chrome Android bukan satu-satunya jalur, dan Touch to Search
+ * muncul dari lapisan seleksi, bukan dari `contextmenu`. Yang memicu
+ * keduanya adalah hal yang sama - teks yang boleh dipilih.
+ *
+ * =====================================================================
+ * Mengapa `user-select` dan bukan `touch-action`
+ * =====================================================================
+ * `touch-action: none` mematikan GULIR, dan soal panjang harus tetap bisa
+ * digulir. `-webkit-touch-callout: none` hanya berlaku di iOS dan hanya
+ * menutup menu konteks tautan - bukan seleksi kata. Satu-satunya yang
+ * disaring peramban di lapisan seleksinya adalah `user-select`, dan
+ * `none` pada elemen membuat Chrome tidak punya kata untuk ditawarkan.
+ *
+ * =====================================================================
+ * `input`, `textarea`, dan `select` DIKECUALIKAN, dan itu wajib
+ * =====================================================================
+ * `user-select: none` pada kotak isian membuat sebagian peramban menolak
+ * menempatkan kursor dengan ketukan - anak tidak bisa mengoreksi jawaban
+ * uraiannya. Yang dilarang adalah MEMILIH soal, bukan menyunting jawaban.
+ *
+ * Nilainya ditulis huruf besar sebagai `--`: `user-select` tanpa awalan
+ * dipakai seluruh peramban modern, dan `-webkit-` dipertahankan karena
+ * Chrome Android versi sekolah lama hanya mengenal bentuk itu.
+ *
+ * Cakupannya `.rangka-ujian` SAJA, bukan `.konsol-siswa`: konsol terang
+ * memuat jadwal, nilai, dan akun - tidak satu pun soal ujian - dan di sana
+ * memilih teks adalah hal yang wajar dilakukan anak.
+ */
+.rangka-ujian {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.rangka-ujian :is(input, textarea, select, [contenteditable='true']) {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/*
  * Cetak - dan ini penutup jalur yang tidak memakai tombol tangkap layar.
  *
  * Ctrl+P di ponsel membuka dialog cetak tanpa mengirim `keydown`, sehingga
