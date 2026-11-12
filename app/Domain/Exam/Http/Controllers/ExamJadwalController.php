@@ -66,24 +66,6 @@ use Inertia\Response;
  */
 class ExamJadwalController
 {
-    /**
-     * Jenis ujian - sama dengan daftar jenis kegiatan di Form event.
-     *
-     * Disalin, bukan dirujuk: yang satu menjawab "kegiatan ini apa" dan yang
-     * satu "ujian ini apa", dan menyatukannya akan membuat menambah satu jenis
-     * ujian mengubah pilihan pembuatan event.
-     *
-     * @var array<int, string>
-     */
-    public const JENIS = [
-        'Ujian akhir semester',
-        'Ujian tengah semester',
-        'Ujian harian',
-        'Ujian praktik',
-        'Try out',
-        'Penilaian remedial',
-    ];
-
     public function index(SchoolEvent $event, KonflikJadwal $konflik, PenempatanService $penempatan): Response
     {
         Gate::authorize('view', $event);
@@ -288,8 +270,6 @@ class ExamJadwalController
                 'konflik' => count($semuaTemuan),
                 'belum_ditempatkan' => $penempatan->belumDitempatkan($event),
             ],
-
-            'jenis_ujian' => self::JENIS,
         ]);
     }
 
@@ -308,7 +288,14 @@ class ExamJadwalController
 
         $data = $request->validate([
             'subject_id' => ['required', 'integer'],
-            'title' => ['required', 'string', 'max:120'],
+
+            // Judul TIDAK wajib lagi. Laman Jadwal tidak menampilkan
+            // kolomnya, dan `ExamRegistrar::buat()` membangkitkannya dari
+            // jenis ujian dan nama mapel. Yang tetap diterima di sini adalah
+            // judul eksplisit - test, impor, dan panggilan service lain
+            // mengirimnya, dan menolaknya berarti memecahkan jalur yang tidak
+            // diminta berubah.
+            'title' => ['nullable', 'string', 'max:120'],
             'exam_type' => ['nullable', 'string', 'max:60'],
             'instructions' => ['nullable', 'string', 'max:2000'],
             'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'],
@@ -712,6 +699,11 @@ class ExamJadwalController
             'id' => $event->id,
             'kode' => $event->code,
             'nama' => $event->name,
+            // Jenis kegiatan event - satu-satunya sumber "jenis ujian" sejak
+            // 2026-11-12. Form ujian tidak lagi memilihnya per ujian; ia
+            // tampil sebagai teks saja di panel, dan judul ujian dibangkitkan
+            // dari nilai ini (`ExamRegistrar::judulOtomatis()`).
+            'jenis' => $event->event_type,
             'status' => $event->status->value,
             'status_label' => $event->status->label(),
         ];

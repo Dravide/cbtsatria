@@ -83,7 +83,15 @@ type Ujian = {
 };
 
 type Props = {
-    event: { id: number; kode: string; nama: string; status: string; status_label: string };
+    event: {
+        id: number;
+        kode: string;
+        nama: string;
+        /** Jenis kegiatan event - sumber "jenis ujian" sejak 2026-11-12. */
+        jenis: string | null;
+        status: string;
+        status_label: string;
+    };
     baris: Baris[];
     temuan: { jenis: string; pesan: string; sesi_id: number | null }[];
     validasi: { kunci: string; label: string; lulus: boolean; jumlah: number }[];
@@ -92,7 +100,6 @@ type Props = {
     kelas: { id: number; nama: string }[];
     mapel: { id: number; kode: string | null; nama: string | null }[];
     angka: { ujian: number; sesi: number; konflik: number; belum_ditempatkan: number };
-    jenis_ujian: string[];
 };
 
 export default function EventJadwal({
@@ -105,7 +112,6 @@ export default function EventJadwal({
     kelas,
     mapel,
     angka,
-    jenis_ujian,
 }: Props) {
     const [panelUjian, setPanelUjian] = useState(false);
     const [panelSesi, setPanelSesi] = useState(false);
@@ -199,7 +205,7 @@ export default function EventJadwal({
                         jalur={jalur}
                         mapel={mapel}
                         kelas={kelas}
-                        jenis={jenis_ujian}
+                        jenisEvent={event.jenis}
                         padaTutup={() => setPanelUjian(false)}
                         padaGalat={setPesanUjian}
                     />
@@ -221,7 +227,7 @@ export default function EventJadwal({
                         ujianAwal={ujianDiubah}
                         mapel={mapel}
                         kelas={kelas}
-                        jenis={jenis_ujian}
+                        jenisEvent={event.jenis}
                         padaTutup={() => setUjianDiubah(null)}
                         padaGalat={setPesanUjian}
                     />
@@ -496,7 +502,7 @@ function FormUjian({
     ujianAwal,
     mapel,
     kelas,
-    jenis,
+    jenisEvent,
     padaTutup,
     padaGalat,
 }: {
@@ -509,7 +515,8 @@ function FormUjian({
     ujianAwal?: Ujian;
     mapel: Props['mapel'];
     kelas: Props['kelas'];
-    jenis: string[];
+    /** Jenis kegiatan event - dipakai untuk judul, bukan dipilih per ujian. */
+    jenisEvent: string | null;
     padaTutup: () => void;
     padaGalat: (pesan: string | null) => void;
 }) {
@@ -517,12 +524,17 @@ function FormUjian({
 
     const [isi, setIsi] = useState(() => ({
         subject_id: ujianAwal?.mapel_id ?? mapel[0]?.id ?? 0,
+        // `title` TIDAK dikirim saat menambah: judulnya dibangkitkan server
+        // dari jenis event + mapel (`ExamRegistrar::judulOtomatis()`). Saat
+        // mengubah, nilai yang ada tetap dikirim balik apa adanya - judul
+        // ujian lama boleh berbentuk apa pun, dan menghitungnya ulang di sini
+        // berarti menimpa nama yang sudah dipakai di jadwal tercetak.
         title: ujianAwal?.judul ?? '',
-        // `exam_type` di basis data nullable, dan `jenis[0]` adalah bawaan
-        // untuk ujian BARU. Ujian lama yang tidak punya jenis harus tetap
-        // terbuka tanpa jenis - menebaknya berarti menyimpan nilai yang tidak
-        // pernah diketik Admin.
-        exam_type: mengubah ? (ujianAwal.jenis ?? '') : (jenis[0] ?? ''),
+        // `exam_type` TIDAK ada di sini sejak 2026-11-12. Jenisnya milik
+        // event (`school_events.event_type`, disunting di laman Ubah event),
+        // jadi memilihnya lagi per ujian hanya menciptakan dua tempat yang
+        // bisa berselisih. Ujian lama yang sudah punya nilai tidak diubah:
+        // `perbarui()` hanya menulis kunci yang dikirim.
         duration_minutes: ujianAwal?.durasi ?? 60,
         max_attempts: ujianAwal?.percobaan ?? 1,
         instructions: ujianAwal?.instruksi ?? '',
@@ -533,6 +545,11 @@ function FormUjian({
     }));
 
     const [pilihKelas, setPilihKelas] = useState<number[]>(ujianAwal?.kelas_id ?? []);
+
+    // Nama mapel yang sedang dipilih - untuk pratinjau judul. `mapel[0]`
+    // adalah nilai awalnya, sama dengan `subject_id` di atas.
+    const namaMapelTerpilih =
+        mapel.find((m) => m.id === isi.subject_id)?.nama ?? mapel[0]?.nama ?? '';
 
     const simpan = () => {
         padaGalat(null);
@@ -550,7 +567,13 @@ function FormUjian({
             return;
         }
 
-        router.post(`${jalur}/ujian`, { ...isi, class_id: pilihKelas }, opsi);
+        // Tanpa `title`: server yang membangkitkannya. Mengirim string kosong
+        // akan melewati `filled()` di `buat()` dan tetap jatuh ke jalur yang
+        // sama - tetapi mengirimnya berarti laman ini mengaku tahu judulnya,
+        // dan bentuk judul itu hidup di satu tempat saja.
+        const { title: _judulLama, ...tanpaJudul } = isi;
+
+        router.post(`${jalur}/ujian`, { ...tanpaJudul, class_id: pilihKelas }, opsi);
     };
 
     if (mapel.length === 0) {
@@ -605,27 +628,35 @@ function FormUjian({
                     </select>
                 </Field>
 
-                <Field label="Judul ujian" petunjuk="Mis. UAS Matematika Kelas X">
-                    <input
-                        value={isi.title}
-                        onChange={(e) => setIsi({ ...isi, title: e.target.value })}
-                        className={kelasInput}
-                        placeholder="UAS Matematika"
-                    />
+                <Field
+                    label="Jenis"
+                    petunjuk="Mengikuti jenis kegiatan event. Ubah di laman Ubah event bila perlu."
+                >
+                    <p className="rounded-wf border border-line bg-surface-2/60 px-2.5 py-1.5 text-sm text-ink">
+                        {jenisEvent || '—'}
+                    </p>
                 </Field>
 
-                <Field label="Jenis">
-                    <select
-                        value={isi.exam_type}
-                        onChange={(e) => setIsi({ ...isi, exam_type: e.target.value })}
-                        className={kelasInput}
-                    >
-                        {jenis.map((j) => (
-                            <option key={j} value={j}>
-                                {j}
-                            </option>
-                        ))}
-                    </select>
+                {/* Judul dibangkitkan server, tetapi Admin tetap melihat
+                    bentuknya SEBELUM menyimpan - dan bentuk yang dilihatnya
+                    dihitung dengan aturan yang sama: jenis, lalu mapel.
+                    Tanpa ini, "Tambah ujian" menyimpan baris yang namanya
+                    tidak ditampilkan di mana pun di panel ini. */}
+                <Field
+                    label="Judul ujian"
+                    petunjuk={
+                        mengubah
+                            ? 'Judul ujian lama tidak dihitung ulang - ia sudah dipakai di jadwal dan berita acara.'
+                            : 'Dibuat otomatis dari jenis dan mata pelajaran.'
+                    }
+                >
+                    <p className="rounded-wf border border-line bg-surface-2/60 px-2.5 py-1.5 text-sm text-ink">
+                        {mengubah
+                            ? (ujianAwal.judul || '—')
+                            : [(jenisEvent ?? '').trim(), namaMapelTerpilih.trim()]
+                                  .filter(Boolean)
+                                  .join(' ') || 'Ujian'}
+                    </p>
                 </Field>
 
                 <Field label="Durasi (menit)">

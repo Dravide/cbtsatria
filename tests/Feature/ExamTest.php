@@ -965,6 +965,57 @@ it('mewarisi paket yang sudah terpasang di mapel saat ujian dibuat', function ()
         );
 });
 
+it('membangkitkan judul ujian dari jenis event dan nama mapel', function () {
+    // Kolom "Judul ujian" tidak lagi tampil di panel Tambah ujian. Yang
+    // dibangkitkan server harus memakai jenis dari EVENT, bukan jenis
+    // per-ujian yang sudah tidak dipilih di mana pun: memakai pilihan lokal
+    // berarti satu event bisa berisi dua jenis ujian yang berbeda, dan judul
+    // yang dibaca di jadwal serta berita acara ikut berselisih.
+    $this->event->forceFill(['event_type' => 'Ujian tengah semester'])->save();
+
+    masukSebagai($this, $this->admin)->post("/admin/events/{$this->event->id}/ujian", [
+        'subject_id' => $this->mapel->id,
+        'duration_minutes' => 60,
+        'class_id' => [],
+    ])->assertSessionHasNoErrors();
+
+    $ujian = Exam::query()->orderByDesc('id')->firstOrFail();
+
+    expect($ujian->title)->toBe('Ujian tengah semester '.$this->mapel->name)
+        // `exam_type` ikut menyalin jenis event - kolomnya masih dibaca
+        // laporan lama, dan nilai kosong di sana berarti laporan yang tidak
+        // menyebut jenis ujiannya sama sekali.
+        ->and($ujian->exam_type)->toBe('Ujian tengah semester');
+});
+
+it('tetap memakai judul eksplisit yang dikirim pemanggil', function () {
+    // Test, impor, dan service lain mengirim judul sendiri. Membangkitkan
+    // ulang di atas nilai yang sudah diberikan berarti menimpa judul yang
+    // memang disengaja.
+    $ujian = app(ExamRegistrar::class)->buat($this->event, [
+        'subject_id' => $this->mapel->id,
+        'title' => 'Susulan '.$this->mapel->name,
+        'duration_minutes' => 60,
+        'class_id' => [],
+    ], $this->admin->id);
+
+    expect($ujian->title)->toBe('Susulan '.$this->mapel->name);
+});
+
+it('mengirim jenis event ke panel jadwal untuk pratinjau judul', function () {
+    // Pratinjau judul di panel Tambah ujian dihitung di peramban dari jenis
+    // event dan mapel terpilih. Tanpa `event.jenis`, pratinjaunya berbunyi
+    // hanya nama mapel - dan Admin melihat bentuk yang berbeda dari yang
+    // benar-benar tersimpan.
+    masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->where('event.jenis', 'Ujian akhir semester')
+            ->missing('jenis_ujian')
+        );
+});
+
 it('membekukan paket yang dipasang sesudah ujiannya lahir, saat sesinya disiapkan', function () {
     // Urutan kerja yang docblock `ExamRegistrar::bekukanPaket()` janjikan
     // sendiri: "Admin menyusun jadwal lebih dulu, dan paketnya dipasang
