@@ -108,6 +108,15 @@ export default function KoreksiJawaban({
     const maksimal = kriteria.reduce((n, k) => n + (Number(k.maks) || 0), 0);
     const total = poin.reduce((n, p) => n + p, 0);
 
+    // Rubrik yang totalnya berbeda dari bobot butir adalah soal yang salah
+    // susun, dan server menolak SETIAP kriteria yang melebihi bobotnya -
+    // artinya jawaban ini tidak akan pernah bisa dikoreksi. Yang bisa
+    // dilakukan Guru di sini bukan memperbaikinya (rubriknya snapshot yang
+    // dibekukan), melainkan melaporkannya; karena itu yang ditampilkan adalah
+    // penjelasan, bukan tombol mati tanpa kalimat.
+    const rubrikTidakCocok =
+        kriteria.length > 0 && Math.abs(maksimal - Number(soal.bobot || 0)) > 0.01;
+
     const simpan = () => {
         if (kirim || terkunci) {
             return;
@@ -188,6 +197,20 @@ export default function KoreksiJawaban({
                         per kriteria - nilai uraiannya akan tetap dihitung sebagai belum
                         dikoreksi sampai rubriknya ditambahkan.
                     </Inbox>
+                </div>
+            )}
+
+            {rubrikTidakCocok && (
+                <div className="mb-3">
+                    <Peringatan>
+                        Rubrik soal ini berjumlah <strong>{formatPoin(maksimal)}</strong>,
+                        sedangkan bobot butirnya <strong>{formatPoin(soal.bobot)}</strong>.
+                        Nilai uraian tidak boleh melebihi bobotnya, sehingga poin di atas
+                        bobot tidak akan diterima - butir ini hanya bisa diberi 0 sampai
+                        bobotnya diperbaiki di bank soal. Rubrik yang dipakai di sini
+                        adalah salinan yang dibekukan saat ujian dibuat, jadi mengubahnya
+                        setelah ujian berjalan tidak mengubah laman ini.
+                    </Peringatan>
                 </div>
             )}
 
