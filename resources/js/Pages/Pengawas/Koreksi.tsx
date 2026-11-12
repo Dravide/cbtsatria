@@ -135,7 +135,7 @@ export default function Koreksi({ ruang, sesi_berakhir, kursi, opsi }: Props) {
                                 <>
                                     <Chip nada={k.status_nada as 'mute'}>{k.status_label}</Chip>
                                     {k.perubahan > 0 && (
-                                        <span className="text-[10px] text-ink-3">
+                                        <span className="text-[11px] text-ink-3">
                                             {k.perubahan} perubahan
                                         </span>
                                     )}
@@ -145,7 +145,7 @@ export default function Koreksi({ ruang, sesi_berakhir, kursi, opsi }: Props) {
                                 <button
                                     type="button"
                                     onClick={() => buka(k)}
-                                    className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink-2"
+                                    className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink-2"
                                 >
                                     Ubah
                                 </button>
@@ -165,7 +165,7 @@ export default function Koreksi({ ruang, sesi_berakhir, kursi, opsi }: Props) {
 
                         <div className="grid grid-cols-2 gap-1.5">
                             <div>
-                                <span className="mb-1 block text-[10px] tracking-wide text-ink-3 uppercase">
+                                <span className="mb-1 block text-xs font-medium text-ink-2">
                                     Status presensi
                                 </span>
                                 <div className="rounded-wf border border-line bg-surface-2 px-2 py-1.5 text-xs text-ink-2">
@@ -174,13 +174,13 @@ export default function Koreksi({ ruang, sesi_berakhir, kursi, opsi }: Props) {
                             </div>
 
                             <label>
-                                <span className="mb-1 block text-[10px] tracking-wide text-ink-3 uppercase">
+                                <span className="mb-1 block text-xs font-medium text-ink-2">
                                     Ubah menjadi
                                 </span>
                                 <select
                                     value={status}
                                     onChange={(e) => setStatus(e.target.value)}
-                                    className="w-full rounded-wf border border-line bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
+                                    className="min-h-11 w-full rounded-wf border border-line bg-surface px-2 text-xs text-ink outline-none focus:border-accent"
                                 >
                                     {Object.entries(opsi).map(([nilai, label]) => (
                                         <option key={nilai} value={nilai}>
@@ -192,7 +192,7 @@ export default function Koreksi({ ruang, sesi_berakhir, kursi, opsi }: Props) {
                         </div>
 
                         <label className="block">
-                            <span className="mb-1 block text-[10px] tracking-wide text-ink-3 uppercase">
+                            <span className="mb-1 block text-xs font-medium text-ink-2">
                                 Alasan koreksi (wajib)
                             </span>
                             <textarea
@@ -217,14 +217,14 @@ export default function Koreksi({ ruang, sesi_berakhir, kursi, opsi }: Props) {
                                     alasan.trim().length < 4 ||
                                     status === pilih.status
                                 }
-                                className="rounded-wf border border-accent bg-accent px-3 py-2 text-xs font-medium text-on-accent disabled:cursor-not-allowed disabled:border-ink-3/40 disabled:bg-ink-3/40"
+                                className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent disabled:cursor-not-allowed disabled:border-ink-3/40 disabled:bg-ink-3/40"
                             >
                                 Simpan koreksi
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setPilih(null)}
-                                className="rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink-2"
+                                className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink-2"
                             >
                                 Batal
                             </button>

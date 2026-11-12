@@ -114,7 +114,7 @@ export default function Token({ ruang, token, pemakaian, riwayat }: Props) {
                 <>
                     <KotakPonsel solid padat>
                         <div className="py-3 text-center">
-                            <span className="text-[10px] tracking-wide text-ink-3 uppercase">
+                            <span className="text-[11px] text-ink-3">
                                 Token ujian
                             </span>
 
@@ -144,7 +144,7 @@ export default function Token({ ruang, token, pemakaian, riwayat }: Props) {
                                     <button
                                         type="button"
                                         onClick={baca}
-                                        className="rounded-wf border border-accent bg-accent px-4 py-2 text-sm font-medium text-on-accent"
+                                        className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-4 text-sm font-medium text-on-accent"
                                     >
                                         Tampilkan
                                     </button>
@@ -153,14 +153,14 @@ export default function Token({ ruang, token, pemakaian, riwayat }: Props) {
                                         <button
                                             type="button"
                                             onClick={() => setBesar((b) => !b)}
-                                            className="rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                            className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink"
                                         >
                                             {besar ? 'Perkecil' : 'Tampilkan besar'}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={baca}
-                                            className="rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                            className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink"
                                             title="Menerbitkan ulang tampilan dan mencatat pembacaan baru"
                                         >
                                             Segarkan

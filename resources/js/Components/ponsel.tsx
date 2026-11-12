@@ -91,7 +91,11 @@ export function TabbarPonsel({ ruangId, aktif }: { ruangId: number; aktif: strin
                         key={t.segmen}
                         href={`/pengawas/ruang/${ruangId}/${t.segmen}`}
                         className={
-                            'py-2.5 text-center text-[11px] font-medium transition-colors ' +
+                            // `min-h-11` = 44px: tabbar adalah navigasi utama
+                            // yang ditekan dengan jempol sambil berdiri, dan
+                            // `py-2.5` saja memberinya 34px. Empat tab
+                            // bersebelahan tanpa 44px berarti salah tab.
+                            'grid min-h-11 place-items-center px-1 text-center text-[11px] font-medium transition-colors ' +
                             (on
                                 ? 'border-t-2 border-accent text-accent'
                                 : 'border-t-2 border-transparent text-ink-2 hover:text-ink')
@@ -196,8 +200,12 @@ export function KpiPonsel({
         : 'text-ink';
 
     return (
-        <div className="daftar rounded-wf border border-line bg-surface px-2 py-1.5">
-            <span className="block text-[11px] text-ink-2">{label}</span>
+        <div className="daftar min-w-0 rounded-wf border border-line bg-surface px-2 py-1.5">
+            {/* `break-words` + `leading-tight`: lima ubin sebaris pada ponsel
+                320px hanya menyisakan ~40px isi, dan label seperti
+                "Izin/alpa" harus MEMBUNGKUS di sana - bukan meluber keluar
+                ubinnya dan bukan memaksa ubinnya melebar. */}
+            <span className="block text-[11px] leading-tight break-words text-ink-2">{label}</span>
             <b className={'angka block font-display text-base leading-tight ' + warna}>{nilai}</b>
         </div>
     );
@@ -322,8 +330,10 @@ export function PhotoPonsel({
                 </div>
             )}
 
+            {/* 11px, bukan 10px: meta foto paling sering dibaca justru saat
+                pengawas meragukan berkasnya. Lihat lantai di `KotakPonsel`. */}
             {ada && (meta || namaBerkas) && (
-                <p className="font-mono text-[10px] text-ink-3">
+                <p className="font-mono text-[11px] text-ink-3">
                     {meta}
                     {namaBerkas ? ` · ${namaBerkas}` : ''}
                 </p>
@@ -514,7 +524,7 @@ export function TtdPonsel({
                         value={namaTtd}
                         onChange={(e) => setNamaTtd(e.target.value)}
                         placeholder="Nama penanda tangan"
-                        className="w-full rounded-wf border border-line bg-surface px-2.5 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                        className="w-full rounded-wf border border-line bg-surface px-2.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
                     />
                     <canvas
                         ref={kanvas}
@@ -534,14 +544,14 @@ export function TtdPonsel({
                             type="button"
                             onClick={simpan}
                             disabled={!adaGoresan || namaTtd.trim().length < 3 || sedangKirim}
-                            className="rounded-wf border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-on-accent disabled:cursor-not-allowed disabled:border-ink-3/40 disabled:bg-ink-3/40"
+                            className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent disabled:cursor-not-allowed disabled:border-ink-3/40 disabled:bg-ink-3/40"
                         >
                             Simpan tanda tangan
                         </button>
                         <button
                             type="button"
                             onClick={bersihkan}
-                            className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink-2"
+                            className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink-2"
                         >
                             Bersihkan
                         </button>

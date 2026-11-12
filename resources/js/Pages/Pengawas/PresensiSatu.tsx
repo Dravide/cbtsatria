@@ -122,7 +122,7 @@ export default function PresensiSatu({
                 </span>
                 <Link
                     href={`/pengawas/ruang/${ruang.id}/presensi`}
-                    className="ml-auto shrink-0 rounded-wf border border-line bg-surface px-2 py-1 text-[11px] text-ink-2"
+                    className="ml-auto inline-grid min-h-11 -my-2 shrink-0 place-items-center rounded-wf border border-line bg-surface px-2.5 text-[11px] text-ink-2"
                 >
                     Tutup
                 </Link>
@@ -137,7 +137,11 @@ export default function PresensiSatu({
                             onClick={() => ubah(s)}
                             disabled={kirim}
                             className={
-                                'rounded-wf border px-3 py-2.5 text-xs font-medium disabled:opacity-50 ' +
+                                // `min-h-11` - empat tombol status ini
+                                // ditekan satu per satu di depan pintu, dan
+                                // salah satu di antaranya membuka gerbang
+                                // ujian. `py-2.5` memberinya 38px.
+                                'inline-grid min-h-11 place-items-center rounded-wf border px-3 text-xs font-medium disabled:opacity-50 ' +
                                 (s === status
                                     ? 'border-accent bg-accent text-on-accent'
                                     : 'border-line bg-surface text-ink hover:bg-surface-2')
@@ -180,7 +184,7 @@ export default function PresensiSatu({
 
                 <Link
                     href={`/pengawas/ruang/${ruang.id}/siswa/${peserta_id}`}
-                    className="inline-block rounded-wf border border-line bg-surface px-2.5 py-1.5 text-[11px] text-ink-2"
+                    className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-[11px] text-ink-2"
                 >
                     Riwayat pelanggaran lengkap
                 </Link>

@@ -123,19 +123,19 @@ export default function RuangTugas({
                             <>
                                 <Link
                                     href={`/pengawas/ruang/${r.ruang_id}/presensi`}
-                                    className="rounded-wf border border-accent bg-accent px-3 py-2 text-xs font-medium text-on-accent"
+                                    className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent"
                                 >
                                     Presensi
                                 </Link>
                                 <Link
                                     href={`/pengawas/ruang/${r.ruang_id}/token`}
-                                    className="rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink hover:bg-surface-2"
+                                    className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink hover:bg-surface-2"
                                 >
                                     Lihat token
                                 </Link>
                                 <Link
                                     href={`/pengawas/ruang/${r.ruang_id}/monitoring`}
-                                    className="rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink hover:bg-surface-2"
+                                    className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink hover:bg-surface-2"
                                 >
                                     Monitoring
                                 </Link>
@@ -145,7 +145,7 @@ export default function RuangTugas({
                                 {['Presensi', 'Lihat token', 'Monitoring'].map((t) => (
                                     <span
                                         key={t}
-                                        className="rounded-wf border border-line bg-surface-2 px-3 py-2 text-xs text-ink-3/60"
+                                        className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface-2 px-3 text-xs text-ink-3/60"
                                     >
                                         {t}
                                     </span>

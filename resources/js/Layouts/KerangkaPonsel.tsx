@@ -127,7 +127,14 @@ export default function KerangkaPonsel({
                                         href={`/p/${pengawasRuang.slug}/keluar`}
                                         method="post"
                                         as="button"
-                                        className="rounded-wf px-1.5 py-1 text-[11px] text-ink-3 hover:text-bad"
+                                        // `min-h-11` = 44px sasaran, tetapi
+                                        // `-my-2` menariknya kembali ke dalam
+                                        // padding kepala (8px atas + 8px
+                                        // bawah). Tanpa itu kepala yang
+                                        // lengket tumbuh 34px -> 60px dan
+                                        // memakan sepersepuluh layar ponsel
+                                        // hanya untuk satu tautan teks.
+                                        className="inline-grid min-h-11 -my-2 place-items-center rounded-wf px-2 text-[11px] text-ink-3 hover:text-bad"
                                         title="Lepaskan sesi ruang ini dari ponsel"
                                     >
                                         Keluar
@@ -145,7 +152,12 @@ export default function KerangkaPonsel({
                     {aksiBawah && (
                         // Melayang dengan alasan yang sama seperti tabbar di
                         // bawah - lihat catatannya.
-                        <div className="sticky bottom-0 z-20 px-3 pb-3 pt-1">
+                        // `pb-[max(0.75rem,env(safe-area-inset-bottom))]`:
+                        // 12px biasa, atau tinggi bilah gestur ponsel bertepi
+                        // lengkung - mana yang lebih besar. Tanpa itu tombol
+                        // paling bawah duduk tepat di bawah garis geser dan
+                        // tersentuh saat pengguna ingin pulang.
+                        <div className="sticky bottom-0 z-20 px-3 pt-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                             <div className="space-y-1.5 overflow-hidden rounded-wf border border-line bg-surface/95 p-2 shadow-lg backdrop-blur">
                                 {aksiBawah}
                             </div>
@@ -164,7 +176,7 @@ export default function KerangkaPonsel({
                         //
                         // `pb-3` + `px-3` bukan kemewahan: tanpa jarak bawah,
                         // ponsel bertepi lengkung memotong sudut bilahnya.
-                        <div className="sticky bottom-0 z-20 px-3 pb-3 pt-1">
+                        <div className="sticky bottom-0 z-20 px-3 pt-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                             <div className="overflow-hidden rounded-wf border border-line bg-surface/95 shadow-lg backdrop-blur">
                                 <TabbarPonsel ruangId={tabbar.ruangId} aktif={tabbar.aktif} />
                             </div>
@@ -172,13 +184,13 @@ export default function KerangkaPonsel({
                     )}
 
                     {!tabbar && !lewatTautan && (
-                        <div className="sticky bottom-0 z-20 px-3 pb-3 pt-1">
+                        <div className="sticky bottom-0 z-20 px-3 pt-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                             <div className="overflow-hidden rounded-wf border border-line bg-surface p-2 text-center shadow-lg">
                                 <Link
                                     href="/logout"
                                     method="post"
                                     as="button"
-                                    className="text-[11px] text-ink-3 hover:text-bad"
+                                    className="inline-grid min-h-11 w-full place-items-center text-[11px] text-ink-3 hover:text-bad"
                                 >
                                     Keluar dari akun
                                 </Link>

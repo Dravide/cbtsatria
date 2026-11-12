@@ -634,7 +634,10 @@ export function Modal({
                     <button
                         type="button"
                         onClick={padaTutup}
-                        className="ml-auto rounded-wf p-1 text-ink-3 hover:bg-surface-2 hover:text-ink"
+                        // 44x44: silang penutup adalah satu-satunya jalan
+                        // keluar dari lapisan ini selain Escape, dan `p-1`
+                        // memberinya 24px. Di ponsel tidak ada Escape.
+                        className="ml-auto grid size-11 place-items-center rounded-wf text-ink-3 hover:bg-surface-2 hover:text-ink"
                         aria-label="Tutup"
                     >
                         &#10005;

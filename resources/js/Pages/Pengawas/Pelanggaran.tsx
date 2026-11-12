@@ -117,7 +117,7 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
             aksiBawah={
                 <Link
                     href={`/pengawas/ruang/${ruang.id}/monitoring`}
-                    className="flex items-center justify-center gap-1.5 rounded-wf border border-line bg-surface px-3 py-2 text-xs font-medium text-ink"
+                    className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-wf border border-line bg-surface px-3 text-xs font-medium text-ink"
                 >
                     <span aria-hidden="true">‹</span> Kembali ke monitoring
                 </Link>
@@ -155,11 +155,15 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
             )}
 
             <KotakPonsel padat>
-                <div className="flex items-center gap-2 border-b border-line/70 px-3 py-1.5 text-[10px] tracking-wide text-ink-3 uppercase">
-                    <span className="w-11 shrink-0">Jam</span>
+                {/* Dua tingkat, bukan empat kolom tetap. `w-11 + w-14 + w-16`
+                    berjumlah 212px sebelum satu huruf pun masuk ke kolom
+                    "Kejadian" - dan pada ponsel 320px sisa untuk nama kejadian
+                    tinggal ~36px. Kolom kanan sekarang menumpuk (tingkat di
+                    atas, sumber di bawahnya), jadi yang tetap hanya jam. */}
+                <div className="flex items-center gap-2 border-b border-line/70 px-3 py-1.5 text-[11px] text-ink-3">
+                    <span className="w-9 shrink-0">Jam</span>
                     <span className="min-w-0 flex-1">Kejadian</span>
-                    <span className="w-14 shrink-0">Tingkat</span>
-                    <span className="w-16 shrink-0 text-right">Sumber</span>
+                    <span className="shrink-0">Tingkat &middot; sumber</span>
                 </div>
 
                 {riwayat.length === 0 && (
@@ -175,7 +179,7 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
                         key={r.id}
                         className="flex items-start gap-2 border-b border-line/60 px-3 py-2 last:border-0"
                     >
-                        <span className="w-11 shrink-0 font-mono text-[11px] text-ink-3">
+                        <span className="w-9 shrink-0 pt-0.5 font-mono text-[11px] text-ink-3">
                             {r.jam ?? '—'}
                         </span>
 
@@ -188,12 +192,10 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
                             </p>
                         </div>
 
-                        <span className="w-14 shrink-0">
+                        <div className="flex shrink-0 flex-col items-end gap-0.5">
                             <Chip nada={r.nada as 'mute'}>{r.tingkat}</Chip>
-                        </span>
-                        <span className="w-16 shrink-0 text-right text-[11px] text-ink-3">
-                            {r.sumber}
-                        </span>
+                            <span className="text-[11px] text-ink-3">{r.sumber}</span>
+                        </div>
                     </div>
                 ))}
             </KotakPonsel>
@@ -203,14 +205,14 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
                     type="button"
                     onClick={bukaKunci}
                     disabled={kirim || !pengerjaan.terkunci}
-                    className="rounded-wf border border-accent bg-accent px-3 py-2 text-xs font-medium text-on-accent disabled:cursor-not-allowed disabled:border-ink-3/40 disabled:bg-ink-3/40"
+                    className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent disabled:cursor-not-allowed disabled:border-ink-3/40 disabled:bg-ink-3/40"
                 >
                     Buka kunci
                 </button>
                 <button
                     type="button"
                     onClick={() => setCatatan((c) => !c)}
-                    className="rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                    className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink"
                 >
                     Tandai sudah dibina
                 </button>
@@ -236,19 +238,19 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
                         placeholder={`Pembinaan kepada ${peserta.nama}…`}
                         className="w-full rounded-wf border border-line bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
                     />
-                    <div className="flex gap-1.5">
+                    <div className="flex flex-wrap gap-1.5">
                         <button
                             type="button"
                             onClick={tandaiDibina}
                             disabled={kirim}
-                            className="rounded-wf border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-on-accent disabled:opacity-50"
+                            className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent disabled:opacity-50"
                         >
                             Simpan catatan
                         </button>
                         <button
                             type="button"
                             onClick={() => setCatatan(false)}
-                            className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink-2"
+                            className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink-2"
                         >
                             Batal
                         </button>

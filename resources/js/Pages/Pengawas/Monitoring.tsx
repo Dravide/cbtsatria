@@ -159,10 +159,17 @@ export default function Monitoring({
             </div>
 
             <KotakPonsel padat>
-                <div className="flex items-center gap-2 border-b border-line/70 px-3 py-1.5 text-[10px] tracking-wide text-ink-3 uppercase">
-                    <span className="min-w-0 flex-1">Nama &middot; kursi</span>
+                {/* Kepala daftar menyebut kolom yang BENAR-BENAR ada di
+                    barisnya. Sebelumnya ia punya kolom "Flag" selebar
+                    `shrink-0` yang tidak berpasangan dengan apa pun -
+                    penanda (terputus, pelanggaran, dikunci) dirender sebagai
+                    chip di bawah nama, bukan sebagai kolom. Ruang `w-6` di
+                    kiri memakai lebar kolom nomor kursi supaya kepalanya
+                    sejajar dengan barisnya, bukan menggeser satu kolom. */}
+                <div className="flex items-center gap-2.5 border-b border-line/70 px-3 py-1.5 text-[11px] text-ink-3">
+                    <span className="w-6 shrink-0">No</span>
+                    <span className="min-w-0 flex-1">Nama</span>
                     <span className="w-12 shrink-0 text-right">Progres</span>
-                    <span className="shrink-0">Flag</span>
                 </div>
 
                 {kursi.length === 0 && (
@@ -175,7 +182,14 @@ export default function Monitoring({
                     <div
                         key={k.peserta_id}
                         className={
-                            'flex items-start gap-2.5 border-b border-line/60 px-3 py-2 last:border-0 ' +
+                            // `relative` + tautan yang melapisi SELURUH baris:
+                            // nama siswa adalah satu-satunya jalan ke lamannya,
+                            // dan nama selebar ~20px di ponsel adalah sasaran
+                            // yang harus dibidik. Barisnya sendiri sudah 52px,
+                            // jadi yang diperluas adalah area tekannya, bukan
+                            // tata letaknya - kolom progres tetap di atasnya
+                            // lewat `relative z-10`.
+                            'relative flex items-start gap-2.5 border-b border-line/60 px-3 py-2 last:border-0 ' +
                             (k.terkunci ? 'bg-bad-bg/40' : '')
                         }
                     >
@@ -186,7 +200,7 @@ export default function Monitoring({
                         <div className="min-w-0 flex-1">
                             <Link
                                 href={`/pengawas/ruang/${ruang.id}/siswa/${k.peserta_id}`}
-                                className="block truncate text-sm font-medium text-ink hover:text-accent"
+                                className="block truncate text-sm font-medium text-ink after:absolute after:inset-0 after:content-[''] hover:text-accent active:text-accent"
                             >
                                 {k.nama}
                             </Link>
@@ -258,7 +272,7 @@ export default function Monitoring({
                         <select
                             value={jenis}
                             onChange={(e) => setJenis(e.target.value)}
-                            className="w-full rounded-wf border border-line bg-surface px-2 py-1.5 text-xs text-ink"
+                            className="min-h-11 w-full rounded-wf border border-line bg-surface px-2 text-xs text-ink"
                         >
                             {Object.entries(jenis_insiden).map(([nilai, label]) => (
                                 <option key={nilai} value={nilai}>
@@ -270,7 +284,7 @@ export default function Monitoring({
                         <select
                             value={pesertaId}
                             onChange={(e) => setPesertaId(e.target.value)}
-                            className="w-full rounded-wf border border-line bg-surface px-2 py-1.5 text-xs text-ink"
+                            className="min-h-11 w-full rounded-wf border border-line bg-surface px-2 text-xs text-ink"
                         >
                             <option value="">Seluruh ruang (bukan satu peserta)</option>
                             {kursi.map((k) => (
@@ -288,18 +302,18 @@ export default function Monitoring({
                             className="w-full rounded-wf border border-line bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
                         />
 
-                        <div className="flex gap-1.5">
+                        <div className="flex flex-wrap gap-1.5">
                             <button
                                 type="submit"
                                 disabled={kirim || keterangan.trim().length < 4}
-                                className="rounded-wf border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-on-accent disabled:opacity-50"
+                                className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent disabled:opacity-50"
                             >
                                 Catat insiden
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setBukaInsiden(false)}
-                                className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink-2"
+                                className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink-2"
                             >
                                 Batal
                             </button>
@@ -309,7 +323,7 @@ export default function Monitoring({
                     <button
                         type="button"
                         onClick={() => setBukaInsiden(true)}
-                        className="w-full rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink-2"
+                        className="inline-grid min-h-11 w-full place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink-2"
                     >
                         Catat insiden
                     </button>
