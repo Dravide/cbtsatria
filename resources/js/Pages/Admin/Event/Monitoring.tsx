@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import DaftarMapel, { MapelEvent } from '@/Components/DaftarMapelEvent';
 import { Chip, Inbox, Kotak } from '@/Components/ui';
 
 /**
@@ -85,6 +86,12 @@ type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     ruang_url: string;
     baris: Baris[];
+
+    /**
+     * Seluruh mapel event, termasuk yang belum dijadwalkan - lihat catatan
+     * `DaftarMapelEvent`. `baris` hanya memuat mapel yang sudah punya sesi.
+     */
+    mapel: MapelEvent[];
     angka: {
         ruang: number;
         peserta: number;
@@ -96,7 +103,7 @@ type Props = {
     };
 };
 
-export default function EventMonitoring({ event, ruang_url, baris, angka }: Props) {
+export default function EventMonitoring({ event, ruang_url, baris, mapel, angka }: Props) {
     const terkunci = baris.filter((b) => b.terkunci > 0);
     const terisi = baris.filter((b) => b.peserta > 0);
     const adaAttempt = angka.mengerjakan > 0 || angka.selesai > 0;
@@ -113,6 +120,15 @@ export default function EventMonitoring({ event, ruang_url, baris, angka }: Prop
             }
         >
             <Head title={`Monitoring · ${event.nama}`} />
+
+            {/* Mapel lebih dulu, dan alasannya sama dengan laman Presensi:
+                papan di bawah disusun dari ruang-sesi, sehingga mapel yang
+                jadwalnya belum dibuat tidak muncul satu kali pun. Daftar ini
+                yang membuat "belum ada yang mengerjakan" bisa dibedakan dari
+                "belum ada yang dijadwalkan". */}
+            <div className="mb-3">
+                <DaftarMapel mapel={mapel} denganPresensi={false} />
+            </div>
 
             <div className="mb-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
                 <KPI label="Ruang-sesi" nilai={angka.ruang} />

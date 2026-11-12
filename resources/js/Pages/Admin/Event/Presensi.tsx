@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import DaftarMapel, { MapelEvent } from '@/Components/DaftarMapelEvent';
 import { Chip, Inbox, Kotak, Tombol, TombolTautan, kelasInput } from '@/Components/ui';
 
 /**
@@ -142,9 +143,18 @@ type Props = {
     };
     opsi: Record<string, string>;
     tanpa_pengawas: string[];
+
+    /**
+     * Seluruh mapel event, termasuk yang belum dijadwalkan.
+     *
+     * `baris` di atas hanya memuat mapel yang punya ruang-sesi; daftar ini
+     * yang membuat mapel tanpa jadwal tetap terlihat - lihat catatan
+     * `DaftarMapelEvent`.
+     */
+    mapel: MapelEvent[];
 };
 
-export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawas }: Props) {
+export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawas, mapel }: Props) {
     // Ruang yang sedang dibuka daftar anaknya. Satu saja pada satu waktu:
     // laman ini dibuka untuk mencari ruangan yang tertinggal, dan membuka
     // dua daftar sekaligus membuat daftar yang dicari tergeser ke bawah.
@@ -162,6 +172,15 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
             }
         >
             <Head title={`Presensi · ${event.nama}`} />
+
+            {/* Daftar mapel ditaruh SEBELUM rekap ruang, dan urutannya
+                disengaja: pertanyaan pertama Admin saat membuka laman ini
+                adalah "mapel apa saja yang diujikan di event ini", bukan
+                "ruang mana yang tertinggal". Papan rekap menjawab yang
+                kedua, dan ia hanya berguna sesudah yang pertama terjawab. */}
+            <div className="mb-3">
+                <DaftarMapel mapel={mapel} denganPresensi />
+            </div>
 
             <div className="mb-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {/* "Ruang", bukan "Ruang-sesi": jalur per-ruang-event menghitung

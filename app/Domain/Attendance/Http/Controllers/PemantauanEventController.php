@@ -16,6 +16,7 @@ use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Attendance\Services\PencatatPelanggaran;
 use App\Domain\Event\Models\EventRoom;
 use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
@@ -504,6 +505,12 @@ class PemantauanEventController
 
             'opsi' => StatusPresensi::options(),
 
+            // Seluruh mapel event, termasuk yang belum dijadwalkan - lihat
+            // catatan `mapelEvent()`. Baris `baris` di atas hanya memuat yang
+            // sudah punya sesi, dan tanpa daftar ini Admin tidak punya cara
+            // mengetahui mapel mana yang tertinggal.
+            'mapel' => $this->mapelEvent($event),
+
             'tanpa_pengawas' => $baris
                 ->filter(fn (array $b) => $b['pengawas'] === [])
                 ->pluck('ruang')
@@ -609,6 +616,14 @@ class PemantauanEventController
             // yang suatu hari berbeda di salah satunya.
             'ruang_url' => "/admin/events/{$event->id}/monitoring/ruang",
             'baris' => $baris->all(),
+
+            // Daftar mapel yang AKAN diujikan - termasuk yang belum punya
+            // sesi. Papan ini disusun dari ruang-sesi, sehingga mapel yang
+            // jadwalnya belum dibuat tidak muncul satu kali pun di `baris`.
+            // Tanpa daftar ini, papan yang kosong pada event yang belum
+            // dijadwalkan terbaca sebagai "event tanpa mapel", padahal
+            // mapelnya ada - hanya belum dijadwalkan.
+            'mapel' => $this->mapelEvent($event),
             'angka' => [
                 'ruang' => $baris->count(),
                 'peserta' => $peserta->count(),
@@ -1494,5 +1509,136 @@ class PemantauanEventController
             'status' => $event->status->value,
             'status_label' => $event->status->label(),
         ];
+    }
+
+    /**
+     * Seluruh mata pelajaran event ini - yang sudah dijadwalkan MAUPUN belum.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa daftarnya tidak boleh diturunkan dari sesi
+     * ---------------------------------------------------------------------
+     * Kedua laman ini menyusun barisnya dari `exam_session_rooms`. Mapel yang
+     * ujiannya belum punya sesi karena itu tidak muncul sama sekali - dan
+     * akibatnya laman terlihat "lengkap" padahal baru sebagian mapel yang
+     * dijadwalkan. Admin yang membuka dua laman ini untuk memeriksa kesiapan
+     * justru kehilangan satu-satunya informasi yang ia cari: mapel mana yang
+     * BELUM dijadwalkan.
+     *
+     * Sumbernya karena itu `event_subjects` - daftar mapel yang menjadi
+     * tanggung jawab event ini - dan ujian/sesi/presensi digantung pada
+     * barisnya. Mapel tanpa ujian tetap punya baris, dengan status
+     * "belum dijadwalkan".
+     *
+     * ---------------------------------------------------------------------
+     * Empat kueri, berapa pun jumlah mapelnya
+     * ---------------------------------------------------------------------
+     * Mapel, ujian, sesi, dan presensi masing-masing satu kueri. Menanyakan
+     * presensi per ujian berarti satu kueri per mapel - persis yang dijaga
+     * `PemantauanQueryTest` untuk laman-laman ini.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function mapelEvent(SchoolEvent $event): array
+    {
+        $mapel = $event->subjects()
+            ->with('subject:id,code,name')
+            ->get()
+            ->sortBy(fn ($baris) => $baris->subject?->code)
+            ->values();
+
+        if ($mapel->isEmpty()) {
+            return [];
+        }
+
+        $ujian = Exam::query()
+            ->where('event_id', $event->id)
+            ->get(['id', 'subject_id', 'title']);
+
+        // Sesi dikelompokkan menurut ujiannya, dan urutannya nomor sesi -
+        // bukan id: jadwal yang dibaca Admin berjalan menurut nomornya.
+        $sesi = ExamSession::query()
+            ->whereIn('exam_id', $ujian->pluck('id'))
+            ->orderBy('session_number')
+            ->get(['id', 'exam_id', 'session_number', 'status', 'access_opens_at', 'hard_end_at'])
+            // `toBase()` wajib sebelum `only()`: `only()` milik Eloquent
+            // Collection menuntut kuncinya adalah KUNCI MODEL, dan di sini
+            // kuncinya adalah id ujian.
+            ->toBase()
+            ->groupBy('exam_id');
+
+        $ruangPerSesi = ExamSessionRoom::query()
+            ->whereIn('exam_session_id', $sesi->collapse()->pluck('id'))
+            ->selectRaw('exam_session_id, count(*) as jumlah')
+            ->groupBy('exam_session_id')
+            ->pluck('jumlah', 'exam_session_id');
+
+        // Peserta dan presensinya dihitung per UJIAN, bukan per mapel: satu
+        // mapel bisa punya lebih dari satu ujian, dan menjumlahkan presensinya
+        // sendiri berarti menghitung anak yang sama dua kali.
+        $pesertaPerUjian = ExamParticipant::query()
+            ->whereIn('exam_id', $ujian->pluck('id'))
+            ->where('status', ExamParticipant::STATUS_TERDAFTAR)
+            ->selectRaw('exam_id, count(*) as jumlah')
+            ->groupBy('exam_id')
+            ->pluck('jumlah', 'exam_id');
+
+        $presensiPerUjian = AttendanceRecord::query()
+            ->join('exam_participants', 'exam_participants.id', '=', 'attendance_records.exam_participant_id')
+            ->whereIn('exam_participants.exam_id', $ujian->pluck('id'))
+            ->selectRaw('exam_participants.exam_id as exam_id, attendance_records.attendance_status as status, count(*) as jumlah')
+            ->groupBy('exam_participants.exam_id', 'attendance_records.attendance_status')
+            ->get()
+            ->toBase()
+            ->groupBy('exam_id');
+
+        // `toBase()` pada ketiganya bukan kehati-hatian: `only()` milik
+        // Eloquent Collection memanggil `getKey()` pada kuncinya, dan kunci
+        // di sini adalah Collection id ujian - yang membuatnya melempar
+        // "Method getKey does not exist". Collection dasarnya hanya memakai
+        // kuncinya sebagai array.
+        $ujianPerMapel = $ujian->toBase()->groupBy('subject_id');
+
+        return $mapel->map(function ($baris) use ($ujianPerMapel, $sesi, $ruangPerSesi, $pesertaPerUjian, $presensiPerUjian) {
+            $daftarUjian = $ujianPerMapel->get($baris->subject_id, collect());
+            $idUjian = $daftarUjian->pluck('id');
+
+            // `collapse()`, bukan `flatten()`: nilai di sini adalah Collection
+            // sesi per ujian, dan `flatten()` hanya meratakan ARRAY - Collection
+            // lolos sebagai satu item utuh sehingga hitungannya selalu 0 atau 1.
+            $jumlahSesi = $sesi->only($idUjian->all())->collapse()->count();
+
+            // Presensi dijumlahkan lintas ujian mapel ini - lihat catatan
+            // `$pesertaPerUjian`.
+            $presensi = $presensiPerUjian->only($idUjian->all())->collapse();
+
+            $hitung = fn (StatusPresensi $status) => (int) $presensi
+                ->where('status', $status->value)
+                ->sum('jumlah');
+
+            return [
+                'subject_id' => $baris->subject_id,
+                'kode' => $baris->subject?->code,
+                'nama' => $baris->subject?->name,
+                'ujian' => $daftarUjian->pluck('title')->values()->all(),
+                'sesi' => $daftarUjian->flatMap(fn ($u) => $sesi->get($u->id, collect())->map(fn ($s) => [
+                    'id' => $s->id,
+                    'label' => $s->label(),
+                    'status' => $s->status->value,
+                    'status_label' => $s->status->label(),
+                    'jam' => $s->access_opens_at->format('H:i').'–'.$s->hard_end_at->format('H:i'),
+                    'ruang' => (int) ($ruangPerSesi[$s->id] ?? 0),
+                ]))->values()->all(),
+                'jumlah_sesi' => $jumlahSesi,
+                // Mapel dengan ujian tetapi tanpa sesi BELUM terjadwal; mapel
+                // tanpa ujian sama sekali belum punya apa pun. Keduanya
+                // dilaporkan berbeda supaya Admin tahu langkah berikutnya.
+                'keadaan' => $jumlahSesi > 0 ? 'terjadwal' : ($daftarUjian->isEmpty() ? 'belum_ujian' : 'belum_sesi'),
+                'peserta' => (int) $idUjian->sum(fn ($id) => (int) ($pesertaPerUjian[$id] ?? 0)),
+                'hadir' => $hitung(StatusPresensi::Hadir) + $hitung(StatusPresensi::Terlambat),
+                'tidak_hadir' => $hitung(StatusPresensi::TidakHadir),
+                'izin' => $hitung(StatusPresensi::Izin),
+                'belum_diverifikasi' => $hitung(StatusPresensi::Pending),
+            ];
+        })->values()->all();
     }
 }
