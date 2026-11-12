@@ -65,7 +65,7 @@ class GerbangSiswaController extends SiswaDasar
             'exam.subject:id,name',
             // `enforce_fullscreen` milik EVENT - lihat `aturan()` di bawah,
             // dan `KerjakanSiswaController` yang memakai prop yang sama.
-            'exam.event:id,enforce_fullscreen',
+            'exam.event:id,enforce_fullscreen,detect_split_screen,detect_float_window,show_watermark',
             'session',
             'room.eventRoom.room:id,code,name',
         ]);
@@ -143,6 +143,30 @@ class GerbangSiswaController extends SiswaDasar
     private function wajibLayarPenuh(ExamParticipant $peserta): bool
     {
         return (bool) ($peserta->exam?->event?->enforce_fullscreen ?? false);
+    }
+
+    /**
+     * Penjaga layar yang dinyalakan event, atau semuanya mati bila rantainya
+     * putus.
+     *
+     * Dua yang pertama tunduk pada layar penuh: tanpa layar penuh, larangan
+     * membelah layar tidak punya dasar. Tanda air TIDAK - tangkapan layar
+     * bisa diambil dari ujian yang membiarkan jendela dibuka, dan tanda air
+     * yang hanya muncul pada sebagian ujian adalah tanda air yang bisa
+     * dipakai untuk membuktikan ujian mana yang "aman".
+     *
+     * @return array{terbagi: bool, mengambang: bool, tanda_air: bool}
+     */
+    private function penjaga(ExamParticipant $peserta): array
+    {
+        $layarPenuh = $this->wajibLayarPenuh($peserta);
+        $event = $peserta->exam?->event;
+
+        return [
+            'terbagi' => $layarPenuh && (bool) ($event?->detect_split_screen ?? false),
+            'mengambang' => $layarPenuh && (bool) ($event?->detect_float_window ?? false),
+            'tanda_air' => (bool) ($event?->show_watermark ?? false),
+        ];
     }
 
     /**
@@ -228,6 +252,26 @@ class GerbangSiswaController extends SiswaDasar
         if ($this->wajibLayarPenuh($peserta)) {
             $aturan[] = 'Ujian ini berjalan dalam layar penuh. Jangan keluar dari layar penuh '
                 .'dan jangan membuka jendela lain di atas soal.';
+        }
+
+        // Penjaga yang dinyalakan event disebut satu per satu, dan yang mati
+        // TIDAK disebut. Kalimat "layar terbagi dipantau" pada ujian yang
+        // memaafkannya adalah ancaman kosong - dan ancaman kosong adalah
+        // alasan yang paling mudah dipakai membantah sanksi yang sungguh
+        // dijatuhkan.
+        $penjaga = $this->penjaga($peserta);
+
+        if ($penjaga['terbagi']) {
+            $aturan[] = 'Layar yang terbagi (split screen) dipantau dan dicatat.';
+        }
+
+        if ($penjaga['mengambang']) {
+            $aturan[] = 'Jendela yang mengambang di atas soal dipantau dan dicatat.';
+        }
+
+        if ($penjaga['tanda_air']) {
+            $aturan[] = 'Nama dan nomor induk Anda tercetak samar di atas soal, sebagai penanda '
+                .'bila jawaban atau soal ini berpindah tangan.';
         }
 
         return $aturan;

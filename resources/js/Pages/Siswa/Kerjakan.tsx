@@ -166,6 +166,19 @@ type Props = {
      * pemiliknya.
      */
     tanda_air: { nama: string; nomor_induk: string };
+    /**
+     * Tiga penjaga layar milik event - `SchoolEvent::detect_split_screen`,
+     * `detect_float_window`, `show_watermark`.
+     *
+     * Dipisahkan dari `tanda_air` karena keduanya menjawab pertanyaan
+     * berbeda: `tanda_air` adalah BAHAN yang dicetak, ketiganya adalah
+     * apakah penjaganya dinyalakan. Ujian di ponsel pribadi butuh penjaga
+     * layar terbagi mati - rotasi dan papan tik menghasilkan viewport sempit
+     * tanpa siapa pun membelah layar - sementara tanda airnya tetap berguna.
+     */
+    deteksi_layar_terbagi: boolean;
+    deteksi_jendela_mengambang: boolean;
+    tanda_air_aktif: boolean;
 };
 
 /** Selang denyut - PRD §12.2, dan tidak dibaca dari pengaturan. */
@@ -191,6 +204,9 @@ export default function Kerjakan({
     simpan_tiap_detik,
     wajib_layar_penuh,
     tanda_air,
+    deteksi_layar_terbagi,
+    deteksi_jendela_mengambang,
+    tanda_air_aktif,
 }: Props) {
     const [indeks, setIndeks] = useState(0);
     const [sisa, setSisa] = useState(attempt.sisa_detik);
@@ -464,9 +480,17 @@ export default function Kerjakan({
     /* --------------------------------------------------- Penjaga layar terbagi */
 
     useEffect(() => {
-        // Hanya untuk event yang menuntut layar penuh. Bila event membiarkan
-        // layar dibagi, layar yang terbagi BUKAN pelanggaran - ia keadaan
-        // yang memang diizinkan.
+        // Dua syarat, dan keduanya harus benar.
+        //
+        //   `wajib_layar_penuh`  - event menuntut layar penuh. Bila ia
+        //                          membiarkan layar dibagi, layar yang
+        //                          terbagi BUKAN pelanggaran: ia keadaan
+        //                          yang memang diizinkan.
+        //   dua centang event    - `detect_split_screen` dan
+        //                          `detect_float_window`, bawaan Pengaturan
+        //                          sekolah. Ujian di ponsel pribadi bisa
+        //                          mematikan salah satunya tanpa mematikan
+        //                          penjaga layar penuhnya.
         //
         // `layar.dukung()` sengaja TIDAK ikut diperiksa di sini, berbeda dari
         // penjaga layar penuh di atas. Dukungan `requestFullscreen()` dan
@@ -474,9 +498,17 @@ export default function Kerjakan({
         // peramban tanpa API layar penuh tetap bisa membuka jendela kecil,
         // dan mematikan deteksinya di sana berarti membuka jalan yang justru
         // dipakai perangkat itu.
-        if (!wajib_layar_penuh) {
+        if (!wajib_layar_penuh || (!deteksi_layar_terbagi && !deteksi_jendela_mengambang)) {
             return;
         }
+
+        // Dua sisi diukur terpisah, dan hanya sisi yang dicentang yang
+        // diukur. Mengukur keduanya lalu menyaring hasilnya berarti sekolah
+        // yang memaafkan jendela mengambang tetap dilaporkan atas tinggi
+        // yang menyempit - persis yang ingin ia maafkan.
+        const menyempit = () =>
+            (deteksi_layar_terbagi && layar.lebar()) ||
+            (deteksi_jendela_mengambang && layar.tinggi());
 
         // Penahan 4 detik, dan ia menyaring dua hal sekaligus: animasi
         // putaran layar yang membuat viewport sempit sepersekian detik, dan
@@ -498,7 +530,7 @@ export default function Kerjakan({
                 jam = null;
             }
 
-            if (! layar.sempit()) {
+            if (! menyempit()) {
                 // Kembali ke layar utuh - kejadian berikutnya boleh dilaporkan
                 // lagi. Yang dihitung adalah kejadian, bukan keadaan.
                 dilaporkan = false;
@@ -515,7 +547,7 @@ export default function Kerjakan({
             jam = window.setTimeout(() => {
                 jam = null;
 
-                if (! layar.sempit()) {
+                if (! menyempit()) {
                     return;
                 }
 
@@ -545,7 +577,7 @@ export default function Kerjakan({
             window.removeEventListener('resize', periksa);
             window.removeEventListener('orientationchange', periksa);
         };
-    }, [wajib_layar_penuh, lapor]);
+    }, [wajib_layar_penuh, deteksi_layar_terbagi, deteksi_jendela_mengambang, lapor]);
 
     /* --------------------------------------------------------- Hitung waktu */
 
@@ -888,18 +920,21 @@ export default function Kerjakan({
                 <IsiButir butir={aktif} jawaban={jawaban[aktif.id] ?? {}} set={setJawabanButir} />
             )}
 
-            {/* Tanda air - lihat catatan di `Props.tanda_air`.
-                Selalu ada, tidak bergantung pada `wajib_layar_penuh`:
-                tangkapan layar bisa diambil dari ujian mana pun, dan tanda
-                air yang hanya muncul pada sebagian ujian adalah tanda air
-                yang bisa dipakai untuk membuktikan ujian mana yang "aman". */}
-            <TandaAir
-                nama={tanda_air.nama}
-                nomorInduk={tanda_air.nomor_induk}
-                ruang={peserta.ruang}
-                kursi={peserta.kursi}
-                nomor={aktif?.nomor ?? 1}
-            />
+            {/* Tanda air - lihat catatan di `Props.tanda_air` dan
+                `tanda_air_aktif`.
+                Matanya bisa dimatikan event, bukan karena tangkapan layar
+                tidak lagi mungkin, melainkan karena ia MENUTUPI soal: pada
+                layar 5 inci, teks yang diulang delapan kali memakan ruang
+                baca. Sekolah yang ujiannya di ponsel pribadi boleh memilih. */}
+            {tanda_air_aktif && (
+                <TandaAir
+                    nama={tanda_air.nama}
+                    nomorInduk={tanda_air.nomor_induk}
+                    ruang={peserta.ruang}
+                    kursi={peserta.kursi}
+                    nomor={aktif?.nomor ?? 1}
+                />
+            )}
         </KerangkaSiswa>
     );
 }

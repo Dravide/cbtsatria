@@ -218,11 +218,11 @@ class PenulisSoalAi
             $this->skema->validasi(
                 $jenis,
                 $peta['kunci_mentah'],
-                1.0,
+                $peta['bobot'],
                 $peta['opsi_mentah'],
                 $peta['butir_mentah'],
                 $peta['rubrik_mentah'],
-                ['bobot' => 1],
+                ['bobot' => $peta['bobot']],
                 // Rumpang membutuhkan teks soalnya: jumlah penanda `{{n}}` di
                 // dalamnya harus sama dengan jumlah kuncinya. Tanpa teks ini
                 // pemeriksaan itu dilewati, dan soal dengan empat penanda dan
@@ -283,11 +283,11 @@ class PenulisSoalAi
         $this->skema->validasi(
             $jenis,
             $peta['kunci_mentah'],
-            1.0,
+            $peta['bobot'],
             $peta['opsi_mentah'],
             $peta['butir_mentah'],
             $peta['rubrik_mentah'],
-            ['bobot' => 1],
+            ['bobot' => $peta['bobot']],
             $peta['kiriman']['pertanyaan'],
         );
 
@@ -303,7 +303,10 @@ class PenulisSoalAi
             'prompt_json' => ['teks' => $k['pertanyaan']],
             'explanation_json' => $k['pembahasan'] === null ? null : ['teks' => $k['pembahasan']],
             'answer_key_json' => $peta['kunci_mentah'],
-            'scoring_config_json' => ['bobot' => 1],
+            // Bobot dari `petakan()`, bukan 1 tetap: uraian berbobot jumlah
+            // rubriknya, dan `SkemaJenisSoal` menolak rubrik yang totalnya
+            // berbeda dari bobotnya.
+            'scoring_config_json' => ['bobot' => $peta['bobot']],
             'opsi' => $peta['opsi_mentah'],
             'butir' => $peta['butir_mentah'],
             'rubrik' => array_map(fn (array $r) => [
@@ -624,8 +627,19 @@ class PenulisSoalAi
      * `rubrik_mentah` (untuk `SkemaJenisSoal`, yang bentuknya mengikuti
      * `BankSoalService`), dan `kunci_mentah`.
      *
+     * ---------------------------------------------------------------------
+     * `bobot` uraian diambil dari RUBRIKNYA, bukan ditulis 1
+     * ---------------------------------------------------------------------
+     * `SkemaJenisSoal` menuntut jumlah skor rubrik sama dengan bobot butir -
+     * rubrik 2+3 pada butir berbobot 1 adalah butir yang tidak akan pernah
+     * bisa dikoreksi. Instruksi ke model sudah menyebut bahwa jumlah
+     * `skor_maks` adalah nilai penuh soal, jadi angka itulah bobotnya. Menulis
+     * `1` di sini berarti setiap soal uraian hasil AI ditolak validasinya
+     * sendiri, dan Guru melihat "AI mengembalikan soal yang bentuknya tidak
+     * sah" untuk keluaran yang sebenarnya benar.
+     *
      * @param  array<string, mixed>  $mentah
-     * @return array{kiriman: array<string, mixed>, opsi_mentah: array<int, array<string, mixed>>, butir_mentah: array<int, array<string, mixed>>, rubrik_mentah: array<int, array<string, mixed>>, kunci_mentah: array<string, mixed>|null}
+     * @return array{bobot: float, kiriman: array<string, mixed>, opsi_mentah: array<int, array<string, mixed>>, butir_mentah: array<int, array<string, mixed>>, rubrik_mentah: array<int, array<string, mixed>>, kunci_mentah: array<string, mixed>|null}
      */
     private function petakan(JenisSoal $jenis, array $mentah): array
     {
@@ -663,6 +677,10 @@ class PenulisSoalAi
         $butirMentah = [];
         $rubrikMentah = [];
         $kunciMentah = null;
+
+        // Bobot butir. Satu untuk semua jenis kecuali uraian, yang bobotnya
+        // adalah jumlah rubriknya - lihat catatan docblock method ini.
+        $bobot = 1.0;
 
         switch ($jenis) {
             case JenisSoal::PilihanGanda:
@@ -790,6 +808,12 @@ class PenulisSoalAi
                     'skor_maks' => $r['max_score'],
                 ], $rubrikMentah);
 
+                // Bobot = jumlah rubrik. Rubrik kosong tetap bernilai 1 supaya
+                // yang ditolak adalah "uraian butuh rubrik", bukan "bobot nol".
+                $bobot = $rubrikMentah === []
+                    ? 1.0
+                    : array_sum(array_column($rubrikMentah, 'max_score'));
+
                 // Kunci uraian WAJIB null: `SkemaJenisSoal` menolak kunci
                 // berisi untuk jenis ini, karena soal uraian dinilai manual.
                 $kunciMentah = null;
@@ -800,6 +824,7 @@ class PenulisSoalAi
         }
 
         return [
+            'bobot' => (float) $bobot,
             'kiriman' => $kiriman,
             'opsi_mentah' => $opsiMentah,
             'butir_mentah' => $butirMentah,

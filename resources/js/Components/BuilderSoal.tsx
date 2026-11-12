@@ -815,10 +815,13 @@ export function RubrikBuilder({
     rubrik,
     padaUbah,
     galat,
+    bobot,
 }: {
     rubrik: BarisRubrik[];
     padaUbah: (rubrik: BarisRubrik[]) => void;
     galat?: string;
+    /** Bobot butir, dibandingkan dengan total rubrik. */
+    bobot?: number;
 }) {
     const tambah = () =>
         padaUbah([...rubrik, { criterion: '', description: '', max_score: '1' }]);
@@ -828,19 +831,34 @@ export function RubrikBuilder({
 
     const total = rubrik.reduce((n, r) => n + (parseFloat(r.max_score) || 0), 0);
 
+    // Server menolak rubrik yang jumlahnya berbeda dari bobot butir, dan
+    // tanpa penanda di sini Guru baru tahu setelah menekan Simpan. Diperiksa
+    // hanya bila bobotnya memang dikirim - pemanggil lain boleh melewatkannya.
+    const selisih = bobot !== undefined && rubrik.length > 0 && Math.abs(total - bobot) > 0.01;
+
     return (
         <Kotak
             judul="Rubrik penilaian"
             aksi={
                 <>
-                    <Chip nada={total > 0 ? 'info' : 'warn'}>
+                    <Chip nada={rubrik.length === 0 ? 'warn' : selisih ? 'bad' : 'info'}>
                         total maks {total.toLocaleString('id-ID')}
+                        {selisih ? ` · bobot ${bobot.toLocaleString('id-ID')}` : ''}
                     </Chip>
                     <Tombol onClick={tambah}>Tambah kriteria</Tombol>
                 </>
             }
         >
             {galat && <p className="mb-2 text-[11px] text-bad">{galat}</p>}
+
+            {selisih && (
+                <p className="mb-2 text-[11px] text-bad">
+                    Jumlah skor rubrik ({total.toLocaleString('id-ID')}) harus sama dengan bobot
+                    butir ({bobot.toLocaleString('id-ID')}). Rubrik adalah definisi nilai soal
+                    uraian: bila jumlahnya berbeda, ada poin yang tidak bisa diberikan atau poin
+                    yang tidak bisa diraih.
+                </p>
+            )}
 
             <div className="space-y-3">
                 {rubrik.map((r, i) => (

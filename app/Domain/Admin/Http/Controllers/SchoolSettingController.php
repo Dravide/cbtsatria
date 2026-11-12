@@ -86,6 +86,14 @@ class SchoolSettingController
             'peringatkan_keluar_tab' => ['required', 'boolean'],
             'kunci_setelah_ambang' => ['required', 'boolean'],
             'izinkan_tempel_uraian' => ['required', 'boolean'],
+
+            // Tiga penjaga layar. Ada di sini DAN di `PengaturanBawaan::NILAI`
+            // karena `settings` ditulis UTUH - kunci yang tidak divalidasi
+            // tidak ikut ke `$data`, lalu terhapus dari kolomnya pada
+            // penyimpanan berikutnya.
+            'deteksi_layar_terbagi' => ['required', 'boolean'],
+            'deteksi_jendela_mengambang' => ['required', 'boolean'],
+            'tanda_air_ujian' => ['required', 'boolean'],
         ]);
 
         $sekolah->forceFill(['settings' => $data])->save();

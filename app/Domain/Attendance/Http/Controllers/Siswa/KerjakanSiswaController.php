@@ -104,7 +104,7 @@ class KerjakanSiswaController extends SiswaDasar
             'exam.subject:id,name',
             // `wajib_layar_penuh` membacanya lewat rantai yang sama dengan
             // `ExamAttempt::ambang()`.
-            'exam.event:id,enforce_fullscreen',
+            'exam.event:id,enforce_fullscreen,detect_split_screen,detect_float_window,show_watermark',
             'room.eventRoom.room:id,code,name',
         ]);
 
@@ -131,6 +131,19 @@ class KerjakanSiswaController extends SiswaDasar
             // juga karena laman ini bisa dibuka langsung dari bilah alamat
             // atau dari riwayat, tanpa melewati gerbang sama sekali.
             'wajib_layar_penuh' => $this->wajibLayarPenuh($peserta),
+
+            // Tiga penjaga layar milik EVENT - lihat `SchoolEvent`. Dikirim
+            // sebagai keadaan, bukan aturan main: yang dilakukan laman
+            // pengerjaan atasnya hanyalah menyalakan atau mematikan penjaga
+            // di peramban. Ambang pelanggaran tetap tidak pernah sampai ke
+            // sini.
+            //
+            // Rantai yang putus jatuh ke `false`, alasan yang sama dengan
+            // `wajibLayarPenuh()`: menyalakan penjaga dari data yang hilang
+            // berarti melaporkan anak atas kelalaian data.
+            'deteksi_layar_terbagi' => (bool) ($peserta->exam?->event?->detect_split_screen ?? false),
+            'deteksi_jendela_mengambang' => (bool) ($peserta->exam?->event?->detect_float_window ?? false),
+            'tanda_air_aktif' => (bool) ($peserta->exam?->event?->show_watermark ?? false),
 
             // Identitas untuk tanda air - lihat `TandaAir` di
             // `Kerjakan.tsx`.

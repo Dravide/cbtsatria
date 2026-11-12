@@ -722,6 +722,11 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                             rubrik={rubrik}
                             padaUbah={setRubrik}
                             galat={galat('rubrik') ?? galat('answer_key_json')}
+                            // Server menolak rubrik yang jumlahnya berbeda dari
+                            // bobot butir (lihat `SkemaJenisSoal`). Angka bobot
+                            // yang belum diisi berarti 1 - nilai yang sama yang
+                            // dikirim ke server.
+                            bobot={parseFloat(bobot) || 1}
                         />
                         <Inbox>
                             Soal uraian dinilai manual, dan kuncinya <b>adalah rubriknya</b> —

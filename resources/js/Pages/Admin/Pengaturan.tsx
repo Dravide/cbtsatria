@@ -22,7 +22,7 @@ import { Field, Inbox, Kotak, Peringatan, Tombol, kelasInput } from '@/Component
  * ---------------------------------------------------------------------
  * Tab AI punya form dan endpoint SENDIRI
  * ---------------------------------------------------------------------
- * Dan itu bukan kerapian. Form Pengaturan mengirim delapan kunci `required`
+ * Dan itu bukan kerapian. Form Pengaturan mengirim sebelas kunci `required`
  * dan menulis kolom `settings` secara UTUH. Menyatukan AI ke sana berarti:
  * setiap penyimpanan tab Ujian ikut mengirim `api_key` - padahal kolom itu
  * selalu kosong di peramban (kuncinya memang tidak pernah dikirim ke sini) -
@@ -39,6 +39,9 @@ type Props = {
         peringatkan_keluar_tab: boolean;
         kunci_setelah_ambang: boolean;
         izinkan_tempel_uraian: boolean;
+        deteksi_layar_terbagi: boolean;
+        deteksi_jendela_mengambang: boolean;
+        tanda_air_ujian: boolean;
     };
     ai: {
         base_url: string;
@@ -232,36 +235,78 @@ export default function Pengaturan({ pengaturan, ai }: Props) {
                         )}
 
                         {tab === 'Keamanan' && (
-                            <Kotak judul="Kebijakan proteksi ujian">
-                                <div className="space-y-2.5">
-                                    <Centang
-                                        label="Kunci klik kanan dan salin"
-                                        nilai={data.kunci_klik_kanan}
-                                        padaUbah={(v) => setData('kunci_klik_kanan', v)}
-                                    />
-                                    <Centang
-                                        label="Peringatkan saat keluar tab"
-                                        nilai={data.peringatkan_keluar_tab}
-                                        padaUbah={(v) => setData('peringatkan_keluar_tab', v)}
-                                    />
-                                    <Centang
-                                        label="Kunci ujian setelah ambang terlampaui"
-                                        nilai={data.kunci_setelah_ambang}
-                                        padaUbah={(v) => setData('kunci_setelah_ambang', v)}
-                                    />
-                                    <Centang
-                                        label="Izinkan tempel teks pada soal uraian"
-                                        nilai={data.izinkan_tempel_uraian}
-                                        padaUbah={(v) => setData('izinkan_tempel_uraian', v)}
-                                    />
-                                </div>
+                            <>
+                                <Kotak judul="Kebijakan proteksi ujian">
+                                    <div className="space-y-2.5">
+                                        <Centang
+                                            label="Kunci klik kanan dan salin"
+                                            nilai={data.kunci_klik_kanan}
+                                            padaUbah={(v) => setData('kunci_klik_kanan', v)}
+                                        />
+                                        <Centang
+                                            label="Peringatkan saat keluar tab"
+                                            nilai={data.peringatkan_keluar_tab}
+                                            padaUbah={(v) => setData('peringatkan_keluar_tab', v)}
+                                        />
+                                        <Centang
+                                            label="Kunci ujian setelah ambang terlampaui"
+                                            nilai={data.kunci_setelah_ambang}
+                                            padaUbah={(v) => setData('kunci_setelah_ambang', v)}
+                                        />
+                                        <Centang
+                                            label="Izinkan tempel teks pada soal uraian"
+                                            nilai={data.izinkan_tempel_uraian}
+                                            padaUbah={(v) => setData('izinkan_tempel_uraian', v)}
+                                        />
+                                    </div>
 
-                                <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
-                                    Menyalakan proteksi berlebih pada soal uraian menyulitkan siswa
-                                    menjawab, dan yang paling sering terjadi adalah siswa mengetik
-                                    ulang kalimat panjang dari buku - bukan menyalin jawaban.
-                                </p>
-                            </Kotak>
+                                    <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
+                                        Menyalakan proteksi berlebih pada soal uraian menyulitkan
+                                        siswa menjawab, dan yang paling sering terjadi adalah siswa
+                                        mengetik ulang kalimat panjang dari buku - bukan menyalin
+                                        jawaban.
+                                    </p>
+                                </Kotak>
+
+                                <Kotak judul="Layar dan tangkapan layar">
+                                    <div className="space-y-2.5">
+                                        <Centang
+                                            label="Deteksi layar terbagi (split screen)"
+                                            nilai={data.deteksi_layar_terbagi}
+                                            padaUbah={(v) => setData('deteksi_layar_terbagi', v)}
+                                        />
+                                        <Centang
+                                            label="Deteksi jendela mengambang (floating window)"
+                                            nilai={data.deteksi_jendela_mengambang}
+                                            padaUbah={(v) => setData('deteksi_jendela_mengambang', v)}
+                                        />
+                                        <Centang
+                                            label="Tanda air nama dan nomor induk di atas soal"
+                                            nilai={data.tanda_air_ujian}
+                                            padaUbah={(v) => setData('tanda_air_ujian', v)}
+                                        />
+                                    </div>
+
+                                    <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
+                                        Dua yang pertama hanya berlaku pada ujian yang menuntut layar
+                                        penuh - tanpa layar penuh, larangan membelah layar tidak punya
+                                        dasar. Layar terbagi diukur dari <b>lebar</b> yang menyusut,
+                                        jendela mengambang dari <b>tinggi</b>: dua sisi berbeda, jadi
+                                        keduanya dipisah. Ponsel lipat dan papan tik bisa menyempitkan
+                                        tinggi tanpa siapa pun membelah layar, dan memaafkannya tidak
+                                        boleh ikut memaafkan layar yang benar-benar terbagi.
+                                    </p>
+
+                                    <p className="mt-2 text-[11px] leading-relaxed text-ink-3">
+                                        Tangkapan layar <b>tidak bisa diblokir peramban</b> - tidak ada
+                                        API yang memberitahu tombolnya ditekan. Yang bisa dikerjakan
+                                        hanyalah membuat hasilnya menyebut pemiliknya, dan itulah tanda
+                                        air. Mematikannya berarti tangkapan layar yang beredar tidak
+                                        menunjuk siapa pun. Tanda air <b>tidak</b> menunggu layar
+                                        penuh: tangkapan layar bisa diambil dari ujian mana pun.
+                                    </p>
+                                </Kotak>
+                            </>
                         )}
 
                         {tab === 'Nilai' && (

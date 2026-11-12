@@ -241,11 +241,36 @@ it('menyimpan pengaturan sebagai nilai bawaan, bukan sebagai nilai event', funct
             'peringatkan_keluar_tab' => true,
             'kunci_setelah_ambang' => false,
             'izinkan_tempel_uraian' => true,
+            'deteksi_layar_terbagi' => true,
+            'deteksi_jendela_mengambang' => false,
+            'tanda_air_ujian' => false,
         ])
         ->assertRedirect();
 
     expect($this->sekolah->fresh()->settings['kkm'])->toBe(75)
-        ->and($this->sekolah->fresh()->settings['ambang_pelanggaran'])->toBe(3);
+        ->and($this->sekolah->fresh()->settings['ambang_pelanggaran'])->toBe(3)
+        // Tiga penjaga layar tersimpan apa adanya. Kunci yang lupa
+        // didaftarkan di `update()` tidak akan sampai ke `$data`, lalu
+        // terhapus pada penyimpanan berikutnya - karena `settings` ditulis
+        // UTUH, bukan di-merge.
+        ->and($this->sekolah->fresh()->settings['deteksi_layar_terbagi'])->toBeTrue()
+        ->and($this->sekolah->fresh()->settings['deteksi_jendela_mengambang'])->toBeFalse()
+        ->and($this->sekolah->fresh()->settings['tanda_air_ujian'])->toBeFalse();
+});
+
+it('mengirim tiga penjaga layar ke laman pengaturan dengan nilai bawaan', function () {
+    // Bawaannya TRUE, dan itu bukan selera: itulah perilaku sebelum
+    // tombolnya ada. Bawaan yang mematikan akan memadamkan tiga penjagaan
+    // di seluruh sekolah pada satu kali penyimpanan.
+    $this->actingAs($this->admin)
+        ->get('/admin/pengaturan')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Pengaturan')
+            ->where('pengaturan.deteksi_layar_terbagi', true)
+            ->where('pengaturan.deteksi_jendela_mengambang', true)
+            ->where('pengaturan.tanda_air_ujian', true)
+        );
 });
 
 it('membuka log aktivitas', function () {

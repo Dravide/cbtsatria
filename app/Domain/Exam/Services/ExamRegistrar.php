@@ -78,8 +78,25 @@ class ExamRegistrar
                     ?? $this->paketMapelEvent((int) $event->id, (int) $data['subject_id']),
                 'created_by' => $userId,
                 'code' => $data['code'] ?? $this->kodeBerikutnya($event),
-                'title' => $data['title'],
-                'exam_type' => $data['exam_type'] ?? null,
+
+                // Judul dibangkitkan saat Admin tidak mengetiknya - dan
+                // sejak laman Jadwal berhenti menampilkan kolomnya, itulah
+                // jalur yang dipakai setiap ujian baru. Lihat
+                // `judulOtomatis()` di bawah.
+                'title' => filled($data['title'] ?? null)
+                    ? $data['title']
+                    : $this->judulOtomatis(
+                        $event,
+                        (int) $data['subject_id'],
+                        $data['exam_type'] ?? $event->event_type,
+                    ),
+
+                // Jenis ujian kini milik EVENT (`school_events.event_type`,
+                // disunting di laman Ubah event), bukan pilihan per ujian.
+                // Ujian baru menyalinnya supaya kolom `exam_type` tetap terisi
+                // untuk laporan lama yang sudah membacanya; yang MENENTUKAN
+                // jenis adalah eventnya.
+                'exam_type' => $data['exam_type'] ?? $event->event_type,
                 'instructions' => $data['instructions'] ?? null,
                 'duration_minutes' => (int) ($data['duration_minutes'] ?? 60),
                 'max_attempts' => (int) ($data['max_attempts'] ?? 1),
@@ -158,6 +175,61 @@ class ExamRegistrar
         }
 
         return $ujian;
+    }
+
+    /**
+     * Judul ujian yang dibangkitkan dari jenis event dan mapelnya.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa dibangkitkan, bukan diketik
+     * ---------------------------------------------------------------------
+     * "Judul ujian" adalah kolom yang isinya bisa diturunkan dari dua hal
+     * yang SUDAH ditentukan Admin di tempat lain - jenis event dan mata
+     * pelajaran. Yang terjadi saat ia diketik: 40 ujian dalam satu event
+     * berjudul "ujian", "Ujian 2", "FISIKA FIX", dan "ujian fisika beneran" -
+     * lalu laman koreksi, laporan, dan kartu peserta menampilkan keempatnya
+     * apa adanya. Judul yang konsisten lebih berharga daripada judul yang
+     * boleh apa saja.
+     *
+     * ---------------------------------------------------------------------
+     * Jenisnya milik EVENT
+     * ---------------------------------------------------------------------
+     * Sejak 2026-11-12 jenis ujian tidak dipilih per ujian di laman Jadwal:
+     * `school_events.event_type` sudah menyimpannya, dan satu event berisi
+     * satu jenis kegiatan. Memilihnya lagi di tiap ujian hanya menciptakan
+     * dua tempat yang bisa berselisih. `$jenis` tetap diterima sebagai
+     * parameter supaya pemanggil lama yang mengirim `exam_type` eksplisit
+     * (test, impor) tidak berubah perilakunya.
+     *
+     * Bentuknya: `{jenis} {mapel}`, dan jenis yang kosong jatuh ke nama
+     * mapelnya saja. `exams.title` NOT NULL, jadi hasilnya tidak pernah
+     * string kosong: mapel yang tidak ditemukan pun menghasilkan "Ujian",
+     * bukan pelanggaran constraint dengan pesan yang tidak menjelaskan apa
+     * pun.
+     *
+     * ---------------------------------------------------------------------
+     * Judul lama TIDAK ditimpa
+     * ---------------------------------------------------------------------
+     * Yang dibangkitkan hanya nilai saat ujian LAHIR. Nama mapel yang berubah
+     * sesudahnya tidak menarik judul ujian yang sudah dipakai di jadwal
+     * tercetak dan di berita acara - alasan yang sama dengan `code`.
+     */
+    public function judulOtomatis(SchoolEvent $event, int $subjectId, ?string $jenis = null): string
+    {
+        $jenis ??= $event->event_type;
+
+        $mapel = DB::table('event_subjects')
+            ->join('subjects', 'subjects.id', '=', 'event_subjects.subject_id')
+            ->where('event_subjects.event_id', $event->id)
+            ->where('event_subjects.subject_id', $subjectId)
+            ->value('subjects.name');
+
+        $bagian = array_filter([
+            trim((string) $jenis),
+            trim((string) $mapel),
+        ], fn (string $s) => $s !== '');
+
+        return $bagian === [] ? 'Ujian' : implode(' ', $bagian);
     }
 
     /**

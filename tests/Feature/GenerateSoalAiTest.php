@@ -902,10 +902,15 @@ it('menyimpan campuran jenis dalam satu kiriman', function () {
     $angka = Question::query()->where('question_type', 'angka')->first();
     expect($angka->answer_key_json)->toMatchArray(['nilai' => 12.0]);
 
-    // Uraian: kunci WAJIB null, dan rubriknya tersimpan.
+    // Uraian: kunci WAJIB null, rubriknya tersimpan, dan bobotnya adalah
+    // JUMLAH rubriknya (2 + 3) - bukan 1. Instruksi ke model memang menyebut
+    // jumlah `skor_maks` sebagai nilai penuh soal, dan `SkemaJenisSoal`
+    // menolak rubrik yang totalnya berbeda dari bobotnya; menulis 1 di sini
+    // berarti setiap soal uraian hasil AI ditolak validasinya sendiri.
     $uraian = Question::query()->where('question_type', 'uraian')->first();
     expect($uraian->answer_key_json)->toBeNull()
-        ->and($uraian->rubrik)->toHaveCount(2);
+        ->and($uraian->rubrik)->toHaveCount(2)
+        ->and((float) $uraian->scoring_config_json['bobot'])->toBe(5.0);
 });
 
 it('tidak menulis satu baris pun bila satu soal dalam kiriman cacat', function () {

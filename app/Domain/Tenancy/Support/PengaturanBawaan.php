@@ -59,6 +59,18 @@ final class PengaturanBawaan
         'peringatkan_keluar_tab' => true,
         'kunci_setelah_ambang' => true,
         'izinkan_tempel_uraian' => false,
+
+        // Tiga penjaga layar - lihat `SchoolEvent` dan
+        // `Siswa/Kerjakan.tsx`. Nilainya disalin ke event saat event DIBUAT,
+        // sama seperti semua kunci di atas: mengubahnya di tengah ujian yang
+        // sedang berjalan tidak boleh mengubah aturan main peserta.
+        //
+        // Ketiganya TRUE karena itulah perilaku sebelum tombolnya ada.
+        // Bawaan yang mematikan akan memadamkan tiga penjagaan di seluruh
+        // sekolah pada satu kali penyimpanan, tanpa seorang pun memintanya.
+        'deteksi_layar_terbagi' => true,
+        'deteksi_jendela_mengambang' => true,
+        'tanda_air_ujian' => true,
     ];
 
     /**

@@ -313,6 +313,45 @@ it('menolak soal uraian tanpa rubrik', function () {
     $respons->assertSessionHasErrors('rubrik');
 });
 
+it('menolak rubrik uraian yang jumlahnya tidak sama dengan bobotnya', function () {
+    // Kejadian nyata: rubrik 3+4+3 pada butir berbobot 1 tersimpan rapi, lalu
+    // di laman koreksi SETIAP kriteria ditolak `PenilaiUraian` - sehingga
+    // jawabannya tidak pernah bisa dikoreksi dan hasil event-nya tidak
+    // pernah bisa diterbitkan. Yang salah bukan koreksinya, melainkan
+    // soalnya, dan tempat memperbaikinya adalah di sini.
+    $respons = masukBank($this, $this->guruA)->post('/guru/bank-soal', payloadSoal([
+        'subject_id' => $this->mapel->id,
+        'question_type' => 'uraian',
+        'answer_key_json' => null,
+        'scoring_config_json' => ['bobot' => 1],
+        'opsi' => [],
+        'rubrik' => [
+            ['criterion' => 'Bobot nilai tempat', 'description' => null, 'max_score' => 3, 'position' => 0],
+            ['criterion' => 'Menghitung hasil', 'description' => null, 'max_score' => 4, 'position' => 1],
+            ['criterion' => 'Kesimpulan', 'description' => null, 'max_score' => 3, 'position' => 2],
+        ],
+    ]));
+
+    $respons->assertSessionHasErrors('rubrik');
+
+    // Dan soal yang jumlahnya COCOK tetap tersimpan - aturannya menolak
+    // ketidakcocokan, bukan uraian.
+    masukBank($this, $this->guruA)->post('/guru/bank-soal', payloadSoal([
+        'subject_id' => $this->mapel->id,
+        'question_type' => 'uraian',
+        'answer_key_json' => null,
+        'scoring_config_json' => ['bobot' => 10],
+        'opsi' => [],
+        'rubrik' => [
+            ['criterion' => 'Bobot nilai tempat', 'description' => null, 'max_score' => 3, 'position' => 0],
+            ['criterion' => 'Menghitung hasil', 'description' => null, 'max_score' => 4, 'position' => 1],
+            ['criterion' => 'Kesimpulan', 'description' => null, 'max_score' => 3, 'position' => 2],
+        ],
+    ]))->assertSessionHasNoErrors();
+
+    expect(Question::query()->where('question_type', 'uraian')->count())->toBe(1);
+});
+
 it('menolak bobot nol', function () {
     $respons = masukBank($this, $this->guruA)->post('/guru/bank-soal', payloadSoal([
         'subject_id' => $this->mapel->id,

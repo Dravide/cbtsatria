@@ -90,7 +90,7 @@ class SkemaJenisSoal
         }
 
         if ($jenis->perluRubrik()) {
-            $this->wajibkanRubrik($rubrik);
+            $this->wajibkanRubrik($rubrik, $bobot);
         }
 
         switch ($jenis) {
@@ -382,12 +382,43 @@ class SkemaJenisSoal
         };
     }
 
-    /** @param array<int, array<string, mixed>> $rubrik */
-    private function wajibkanRubrik(array $rubrik): void
+    /**
+     * Rubrik wajib - dan jumlah maksimumnya harus SAMA dengan bobot butir.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa jumlahnya diperiksa di sini, bukan hanya saat mengoreksi
+     * ---------------------------------------------------------------------
+     * `PenilaiUraian` menolak poin satu kriteria yang melebihi bobot butir,
+     * dan penolakan itu BENAR: nilai uraian tidak boleh melewati bobot yang
+     * disusun Gurunya. Tetapi rubrik 3+4+3 pada butir berbobot 1 lolos semua
+     * pemeriksaan lama, tersimpan rapi, dan baru ketahuan saat Guru membuka
+     * laman koreksi - di situ SETIAP kriteria ditolak, sehingga jawabannya
+     * tidak akan pernah bisa dikoreksi dan `pending_essays` tidak akan pernah
+     * mencapai nol. Ujiannya berakhir sebagai ujian yang hasilnya tidak bisa
+     * diterbitkan, dan tidak ada satu pun pesan yang menyebut sebabnya.
+     *
+     * Karena itu pemeriksaannya di sini: pada saat Guru menyusun soalnya,
+     * ketika ia masih bisa memperbaikinya - menaikkan bobot butirnya, atau
+     * menurunkan skor kriterianya.
+     *
+     * ---------------------------------------------------------------------
+     * SAMA, bukan "tidak melebihi"
+     * ---------------------------------------------------------------------
+     * Rubrik yang totalnya KURANG dari bobotnya sama rusaknya, hanya lebih
+     * senyap: butir 10 poin yang rubriknya berjumlah 5 tidak akan pernah bisa
+     * memberi 10, sementara `maximum_score` tetap menghitung 10 - sehingga
+     * seluruh siswa kehilangan separuh nilai butir itu tanpa satu pun poin
+     * yang bisa ia raih. Rubriknya ADALAH definisi nilai butir uraian.
+     *
+     * @param  array<int, array<string, mixed>>  $rubrik
+     */
+    private function wajibkanRubrik(array $rubrik, float $bobot): void
     {
         if ($rubrik === []) {
             $this->tolak('rubrik', 'Soal uraian butuh rubrik - tanpa itu dua pengoreksi akan memberi nilai berbeda untuk jawaban yang sama.');
         }
+
+        $total = 0.0;
 
         foreach ($rubrik as $i => $baris) {
             $maks = $baris['max_score'] ?? null;
@@ -399,6 +430,15 @@ class SkemaJenisSoal
             if (trim((string) ($baris['criterion'] ?? '')) === '') {
                 $this->tolak('rubrik', 'Setiap kriteria rubrik butuh nama (kriteria ke-'.($i + 1).').');
             }
+
+            $total += (float) $maks;
+        }
+
+        // Toleransi 0,01 seperti di `PenilaiUraian`: kolomnya decimal, dan
+        // 0,1 + 0,2 yang tersimpan sebagai 0,30000000000000004 tidak boleh
+        // menjadi alasan menolak rubrik yang sebenarnya benar.
+        if (abs($total - $bobot) > 0.01) {
+            $this->tolak('rubrik', "Jumlah skor rubrik ({$total}) harus sama dengan bobot butir ({$bobot}). Rubrik adalah definisi nilai soal uraian: bila jumlahnya berbeda, ada poin yang tidak bisa diberikan atau poin yang tidak bisa diraih.");
         }
     }
 

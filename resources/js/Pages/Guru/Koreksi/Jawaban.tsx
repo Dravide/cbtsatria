@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import GuruLayout from '@/Layouts/GuruLayout';
 import { Chip, Field, Inbox, Peringatan, Tombol, kelasInput } from '@/Components/ui';
+import { Html } from '@/Components/PratinjauButir';
 import { formatPoin } from '@/Components/angka';
 
 /**
@@ -107,6 +108,15 @@ export default function KoreksiJawaban({
     const maksimal = kriteria.reduce((n, k) => n + (Number(k.maks) || 0), 0);
     const total = poin.reduce((n, p) => n + p, 0);
 
+    // Rubrik yang totalnya berbeda dari bobot butir adalah soal yang salah
+    // susun, dan server menolak SETIAP kriteria yang melebihi bobotnya -
+    // artinya jawaban ini tidak akan pernah bisa dikoreksi. Yang bisa
+    // dilakukan Guru di sini bukan memperbaikinya (rubriknya snapshot yang
+    // dibekukan), melainkan melaporkannya; karena itu yang ditampilkan adalah
+    // penjelasan, bukan tombol mati tanpa kalimat.
+    const rubrikTidakCocok =
+        kriteria.length > 0 && Math.abs(maksimal - Number(soal.bobot || 0)) > 0.01;
+
     const simpan = () => {
         if (kirim || terkunci) {
             return;
@@ -190,6 +200,20 @@ export default function KoreksiJawaban({
                 </div>
             )}
 
+            {rubrikTidakCocok && (
+                <div className="mb-3">
+                    <Peringatan>
+                        Rubrik soal ini berjumlah <strong>{formatPoin(maksimal)}</strong>,
+                        sedangkan bobot butirnya <strong>{formatPoin(soal.bobot)}</strong>.
+                        Nilai uraian tidak boleh melebihi bobotnya, sehingga poin di atas
+                        bobot tidak akan diterima - butir ini hanya bisa diberi 0 sampai
+                        bobotnya diperbaiki di bank soal. Rubrik yang dipakai di sini
+                        adalah salinan yang dibekukan saat ujian dibuat, jadi mengubahnya
+                        setelah ujian berjalan tidak mengubah laman ini.
+                    </Peringatan>
+                </div>
+            )}
+
             <div className="grid gap-3 lg:grid-cols-2">
                 {/* ------------------------------------------ Jawaban siswa */}
                 <section className="rounded-wf border border-line bg-surface">
@@ -203,12 +227,13 @@ export default function KoreksiJawaban({
                     <div className="p-4">
                         <p className="mb-3 text-xs text-ink-3">{soal.judul}</p>
 
-                        {/* Teks soal dirender sebagai teks, BUKAN HTML. Soal
-                            bisa memuat HTML dan laman ini bukan tempatnya;
-                            yang perlu dibaca Guru di sini adalah jawaban. */}
+                        {/* Teks soal adalah HTML berformat dari snapshot, jadi
+                            dirender lewat `Html` - pola yang sama dengan
+                            `Siswa/Riwayat`. Jawaban siswa di bawahnya tetap
+                            teks biasa: yang ia ketik tidak pernah HTML. */}
                         {soal.teks && (
-                            <div className="mb-3 rounded-wf border border-line bg-surface-2/50 px-3 py-2 text-xs leading-relaxed text-ink-2 whitespace-pre-line">
-                                {soal.teks}
+                            <div className="mb-3 rounded-wf border border-line bg-surface-2/50 px-3 py-2">
+                                <Html nilai={soal.teks} />
                             </div>
                         )}
 

@@ -422,6 +422,9 @@ it('menerima rubrik yang setiap kriterianya punya nama dan skor lebih dari nol',
     $galat = galatKunci(
         JenisSoal::Uraian,
         null,
+        // Bobot 5 = jumlah rubriknya. Rubrik uraian ADALAH definisi nilai
+        // butirnya, dan `SkemaJenisSoal` menolak jumlah yang berbeda.
+        5,
         rubrik: [
             ['criterion' => 'Menuliskan rumus', 'max_score' => 2],
             ['criterion' => 'Menghitung hasil', 'max_score' => 3],
@@ -429,6 +432,52 @@ it('menerima rubrik yang setiap kriterianya punya nama dan skor lebih dari nol',
     );
 
     expect($galat)->toBeNull();
+});
+
+it('menolak rubrik yang jumlahnya berbeda dari bobot butir', function () {
+    // Kasus yang memaksa aturan ini ada: rubrik 3+4+3 pada butir berbobot 1
+    // lolos semua pemeriksaan lama, tersimpan, lalu SETIAP kriteria ditolak
+    // `PenilaiUraian` saat mengoreksi - sehingga ujiannya tidak akan pernah
+    // bisa menerbitkan hasil, tanpa satu pun pesan yang menyebut sebabnya.
+    $lebih = galatKunci(
+        JenisSoal::Uraian,
+        null,
+        bobot: 1,
+        rubrik: [
+            ['criterion' => 'Bobot nilai tempat', 'max_score' => 3],
+            ['criterion' => 'Menghitung hasil', 'max_score' => 4],
+            ['criterion' => 'Kesimpulan', 'max_score' => 3],
+        ],
+    );
+
+    expect($lebih)->toHaveKey('rubrik')
+        ->and($lebih['rubrik'][0])->toContain('harus sama dengan bobot butir');
+
+    // Kurang juga ditolak, dan itu bukan kerapian: butir 10 poin yang
+    // rubriknya berjumlah 5 tidak akan pernah bisa memberi 10, sementara
+    // `maximum_score` tetap menghitung 10 - seluruh siswa kehilangan separuh
+    // nilai butir itu tanpa poin yang bisa mereka raih.
+    $kurang = galatKunci(
+        JenisSoal::Uraian,
+        null,
+        bobot: 10,
+        rubrik: [['criterion' => 'Menuliskan rumus', 'max_score' => 5]],
+    );
+
+    expect($kurang)->toHaveKey('rubrik');
+
+    // Selisih seperseratus ditoleransi: kolomnya decimal, dan 0,1 + 0,2 yang
+    // tersimpan sebagai 0,30000000000000004 tidak boleh menolak rubrik yang
+    // sebenarnya benar.
+    expect(galatKunci(
+        JenisSoal::Uraian,
+        null,
+        bobot: 0.3,
+        rubrik: [
+            ['criterion' => 'Satu', 'max_score' => 0.1],
+            ['criterion' => 'Dua', 'max_score' => 0.2],
+        ],
+    ))->toBeNull();
 });
 
 it('menolak kriteria rubrik tanpa nama atau berskor nol', function () {

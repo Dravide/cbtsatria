@@ -167,7 +167,12 @@ class KoreksiController
             ],
             'soal' => [
                 'judul' => $butir->soal?->judul,
-                'teks' => $butir->soal?->soal_json,
+                // `soal_json` berbentuk `['teks' => '<p>…</p>']`, BUKAN string
+                // - lihat catatan yang sama di `RingkasJawaban::teksButir()`.
+                // Mengirim array itu apa adanya membuat React melempar
+                // "Objects are not valid as a React child" dan SELURUH laman
+                // koreksi kosong tanpa satu pun galat di server.
+                'teks' => $this->teks($butir->soal?->soal_json),
                 'bobot' => $butir->soal?->bobotBerlaku(),
                 // Rubrik dari SNAPSHOT - lihat catatan kepala kelas.
                 'rubrik' => $butir->soal?->rubrik_json ?? [],
@@ -305,6 +310,24 @@ class KoreksiController
         $teks = trim((string) ($jawaban->answer_json['teks'] ?? ''));
 
         return mb_strlen($teks) > 120 ? mb_substr($teks, 0, 120, 'UTF-8').'…' : $teks;
+    }
+
+    /**
+     * Teks soal dari snapshotnya, sebagai string.
+     *
+     * `soal_json` disalin dari `Question::prompt_json`, yang berbentuk
+     * `['teks' => '...']`. Kolomnya JSON dan bukan teks karena isi soal
+     * memang HTML berformat; yang dikembalikan di sini teks HTML-nya saja,
+     * dan laman koreksi merendernya sebagai teks - Guru perlu membaca
+     * jawaban, bukan markup-nya.
+     *
+     * @param  array<string, mixed>|null  $isi
+     */
+    private function teks(?array $isi): ?string
+    {
+        $teks = $isi['teks'] ?? null;
+
+        return is_string($teks) && trim($teks) !== '' ? trim($teks) : null;
     }
 
     /** Ringkasan satu ujian untuk kepala plate 06. */
