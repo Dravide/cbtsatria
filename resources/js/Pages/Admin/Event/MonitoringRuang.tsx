@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import type { FormEvent } from 'react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Chip, Inbox, Kotak, Modal } from '@/Components/ui';
+import { Chip, Field, Inbox, Kotak, Modal, Tombol, kelasInput } from '@/Components/ui';
 
 /**
  * Laman 20b - keadaan per peserta SATU ruang-sesi.
@@ -98,13 +99,22 @@ import { Chip, Inbox, Kotak, Modal } from '@/Components/ui';
  * `butir[].soal_id` - bukan lewat nomor, yang justru berbeda antar anak.
  *
  * =====================================================================
- * Yang TIDAK ada di laman ini: koreksi
+ * Yang TIDAK ada di laman ini: koreksi presensi
  * =====================================================================
  * Admin mengoreksi PRESENSI, dan itu ada di laman Presensi. Laman ini tidak
- * mengubah apa pun - ia hanya menjawab "bagaimana keadaan anak-anak di ruang
- * ini sekarang". Menaruh tombol yang mengubah data di laman yang sedang
- * dibaca sambil memantau berarti mengambil keputusan dari ringkasan, bukan
- * dari orangnya.
+ * mengubah kehadiran siapa pun.
+ *
+ * =====================================================================
+ * Yang ADA sejak 2026-11-12: reset dan penghentian pengerjaan
+ * =====================================================================
+ * Dua tombol di baris anak - `Reset` dan `Hentikan` - dan keduanya
+ * mengubah pengerjaan anaknya, bukan presensinya. Alasannya ada di sini
+ * dan bukan di laman lain: Admin yang menemukan anak yang terputus di menit
+ * pertama sedang berdiri di papan ini, dan mengirimnya ke laman lain berarti
+ * ia harus mencari anak yang sama untuk kedua kalinya.
+ *
+ * Keduanya menuntut kalimat tertulis, dan `Hentikan` justru MENGIRIM
+ * kalimat itu ke layar siswanya. Lihat catatan `TindakanPeserta`.
  */
 /**
  * Satu butir seperti yang dilihat SATU anak.
@@ -237,6 +247,11 @@ export default function EventMonitoringRuang({
     // Anak yang rincian soalnya sedang dibuka. `null` berarti modalnya tutup.
     const [rincian, setRincian] = useState<Anak | null>(null);
 
+    // Reset atau hentikan, beserta anaknya. `null` berarti modalnya tutup.
+    const [tindakan, setTindakan] = useState<{ anak: Anak; jenis: 'reset' | 'hentikan' } | null>(
+        null,
+    );
+
     /**
      * Buka kunci satu peserta, dengan alasan yang diminta lebih dulu.
      *
@@ -261,6 +276,19 @@ export default function EventMonitoringRuang({
             { alasan },
             { preserveScroll: true },
         );
+    };
+
+    /**
+     * Dua tindakan yang menuntut kalimat dari Admin - lihat catatan
+     * `TindakanPeserta` di bawah.
+     *
+     * Keduanya lewat modal, BUKAN `window.prompt` seperti `bukaKunci`:
+     * kalimat yang ditulis di sini dibaca siswa di layarnya sendiri, dan
+     * kotak prompt peramban tidak bisa menampilkan berapa karakter yang
+     * tersisa atau menjelaskan bahwa pesannya akan terlihat oleh anaknya.
+     */
+    const tindakanPeserta = (a: Anak, jenis: 'reset' | 'hentikan') => {
+        setTindakan({ anak: a, jenis });
     };
 
     return (
@@ -359,6 +387,7 @@ export default function EventMonitoringRuang({
                 ruang={ruang.kode}
                 padaRincian={setRincian}
                 padaBukaKunci={bukaKunci}
+                padaTindakan={tindakanPeserta}
             />
 
             <Modal
@@ -368,6 +397,31 @@ export default function EventMonitoringRuang({
             >
                 {rincian !== null && (
                     <DetailButir anak={rincian} soal={soal} angka={angka_soal} />
+                )}
+            </Modal>
+
+            <Modal
+                judul={
+                    tindakan?.jenis === 'reset'
+                        ? `Reset pengerjaan · ${tindakan.anak.nama}`
+                        : tindakan
+                          ? `Hentikan pengerjaan · ${tindakan.anak.nama}`
+                          : 'Pengerjaan'
+                }
+                terbuka={tindakan !== null}
+                padaTutup={() => setTindakan(null)}
+            >
+                {/* `key` berisi id barisnya: lihat catatan `TindakanPeserta`.
+                    Tanpa itu, membuka modal untuk anak kedua menampilkan
+                    kalimat yang diketik untuk anak pertama. */}
+                {tindakan !== null && (
+                    <TindakanPeserta
+                        key={`${tindakan.jenis}-${tindakan.anak.peserta_id}`}
+                        anak={tindakan.anak}
+                        jenis={tindakan.jenis}
+                        eventId={event.id}
+                        padaSelesai={() => setTindakan(null)}
+                    />
                 )}
             </Modal>
 
@@ -720,11 +774,13 @@ function DaftarAnak({
     ruang,
     padaRincian,
     padaBukaKunci,
+    padaTindakan,
 }: {
     anak: Anak[];
     ruang: string;
     padaRincian: (a: Anak) => void;
     padaBukaKunci: (a: Anak) => void;
+    padaTindakan: (a: Anak, jenis: 'reset' | 'hentikan') => void;
 }) {
     if (anak.length === 0) {
         return (
@@ -806,6 +862,43 @@ function DaftarAnak({
                                 </button>
                             )}
 
+                            {/* Dua tindakan yang mengubah nasib pengerjaan
+                                anak - lihat `TindakanPeserta`.
+
+                                Ketersediaannya mengikuti keadaan barisnya,
+                                dan itu bukan kenyamanan: `PengendaliPengerjaan`
+                                MENOLAK reset atas attempt yang sudah batal
+                                dan penghentian atas apa pun yang tidak
+                                sedang berjalan. Tombol yang selalu ada dan
+                                selalu ditolak mengajari Admin untuk tidak
+                                memercayai papannya - alasan yang sama
+                                dengan `Buka kunci` di atas.
+
+                                `Hentikan` sengaja tidak muncul pada anak yang
+                                sudah terkunci: pesannya akan menimpa
+                                penghentian sebelumnya, dan Admin yang
+                                menulis pesan kedua biasanya bermaksud
+                                membukanya. */}
+                            {a.status !== null && a.status !== 'batal' && (
+                                <button
+                                    type="button"
+                                    onClick={() => padaTindakan(a, 'reset')}
+                                    className="rounded-wf border border-line bg-surface px-2 py-0.5 text-[11px] text-ink hover:bg-surface-2"
+                                >
+                                    Reset
+                                </button>
+                            )}
+
+                            {a.status === 'berjalan' && (
+                                <button
+                                    type="button"
+                                    onClick={() => padaTindakan(a, 'hentikan')}
+                                    className="rounded-wf border border-bad bg-surface px-2 py-0.5 text-[11px] text-bad hover:bg-bad/10"
+                                >
+                                    Hentikan
+                                </button>
+                            )}
+
                             {/* Rincian butirnya dibuka di modal, bukan
                                 dituliskan di baris ini: satu anak bisa
                                 membawa empat puluh nomor, dan sepuluh baris
@@ -852,6 +945,139 @@ function DaftarAnak({
                 </div>
             ))}
         </div>
+    );
+}
+
+/**
+ * Reset atau hentikan SATU peserta - isi modal, dibuka dari barisnya.
+ *
+ * =====================================================================
+ * Dua tindakan, dan keduanya menuntut kalimat
+ * =====================================================================
+ * `Reset` membatalkan attempt terakhir lalu mengembalikan anaknya ke gerbang:
+ * kerjanya mengulang dari soal pertama, dengan urutan dan deadline baru, dan
+ * NILAI atas pengerjaan lamanya hilang. `Hentikan` mengunci pengerjaannya di
+ * tempat, dan kalimat yang ditulis di sini adalah yang dibaca anak di
+ * layarnya sendiri (`lock_reason` -> `/siswa/ujian/{id}/terkunci`).
+ *
+ * Karena itu keduanya lewat modal, bukan `window.prompt`: yang kedua butuh
+ * keterangan bahwa pesannya TAMPIL DI LAYAR SISWA - sebuah kotak prompt
+ * peramban tidak bisa menampilkan itu, dan Admin yang tidak tahu akan
+ * menulis "cek" pada kolom yang dibaca seorang anak.
+ *
+ * =====================================================================
+ * `key` wajib berisi id barisnya
+ * =====================================================================
+ * `Modal` mengembalikan `null` dari dalam dan tidak melepas anaknya, jadi
+ * komponen ini HIDUP TERUS saat modalnya ditutup. Tanpa `key`, membuka modal
+ * untuk anak kedua menampilkan kalimat yang tadi diketik untuk anak pertama -
+ * dan Admin yang tidak menyadarinya akan mengirim pesan itu ke anak yang
+ * salah. `key` di laman atas memaksa komponennya lahir ulang tiap baris.
+ */
+function TindakanPeserta({
+    anak,
+    jenis,
+    eventId,
+    padaSelesai,
+}: {
+    anak: Anak;
+    jenis: 'reset' | 'hentikan';
+    eventId: number;
+    padaSelesai: () => void;
+}) {
+    const reset = jenis === 'reset';
+
+    // Kedua kolom dikirim sekaligus; pengendalinya memvalidasi kolom yang
+    // ia pakai dan mengabaikan yang lain - jadi satu form bisa melayani dua
+    // endpoint tanpa dua komponen yang isinya hampir sama.
+    const { data, setData, post, processing, errors, reset: kosongkan } = useForm({
+        alasan: '',
+        pesan: '',
+    });
+
+    const isi = data[jenis === 'reset' ? 'alasan' : 'pesan'];
+    const galat = errors[jenis === 'reset' ? 'alasan' : 'pesan'];
+    const cukup = isi.trim().length >= 4;
+
+    const kirim = (e: FormEvent) => {
+        e.preventDefault();
+
+        post(
+            `/admin/events/${eventId}/monitoring/peserta/${anak.peserta_id}/${reset ? 'reset' : 'hentikan'}`,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Formulirnya dikosongkan SEBELUM ditutup, bukan sesudah:
+                    // modal ini tidak dilepas saat ditutup (lihat catatan
+                    // `key` di atas), sehingga kalimat lama akan muncul lagi
+                    // bila Admin membuka anak berikutnya tanpa `key`.
+                    kosongkan();
+                    padaSelesai();
+                },
+            },
+        );
+    };
+
+    return (
+        <form onSubmit={kirim} className="space-y-3">
+            {reset ? (
+                <p className="text-xs leading-relaxed text-ink-2">
+                    Pengerjaan <strong>{anak.nama}</strong> akan dibatalkan, dan ia
+                    mengulang dari soal pertama saat membuka gerbang lagi. Urutan soal
+                    dan sisa waktunya baru.
+                </p>
+            ) : (
+                <p className="text-xs leading-relaxed text-ink-2">
+                    Pengerjaan <strong>{anak.nama}</strong> dihentikan sekarang, dan
+                    kalimat di bawah tampil di layar siswanya. Jawabannya tidak hilang,
+                    dan pengerjaannya bisa dihidupkan lagi lewat tombol{' '}
+                    <span className="text-ink">Buka kunci</span>.
+                </p>
+            )}
+
+            {reset && (
+                <p className="rounded-wf border border-warn/40 bg-warn-bg px-2.5 py-2 text-[11px] leading-relaxed text-ink-2">
+                    <strong className="text-warn">Nilai atas pengerjaan ini dihapus.</strong>{' '}
+                    Soal yang sudah dikerjakan tetap tercatat sebagai riwayat, tetapi tidak
+                    lagi dihitung sebagai nilai peserta. Isi ini hanya untuk keadaan yang
+                    memang membatalkan pengerjaannya - misalnya anaknya terputus di menit
+                    pertama, atau ia membuka akun yang salah.
+                </p>
+            )}
+
+            <Field
+                label={reset ? 'Alasan reset' : 'Pesan untuk siswa'}
+                galat={galat}
+                petunjuk={
+                    reset
+                        ? 'Tercatat di riwayat dan di jejak aktivitas - tiga bulan lagi pertanyaan "mengapa nilai anak ini hilang" dijawab dari sini.'
+                        : 'Kalimat ini yang dibaca siswanya. Sebutkan apa yang harus ia lakukan.'
+                }
+            >
+                <textarea
+                    value={isi}
+                    onChange={(e) => setData(jenis === 'reset' ? 'alasan' : 'pesan', e.target.value)}
+                    rows={3}
+                    maxLength={reset ? 200 : 300}
+                    className={kelasInput + ' min-h-[84px] resize-y'}
+                    placeholder={
+                        reset
+                            ? 'Contoh: perangkat mati di menit pertama, pengerjaan diulang.'
+                            : 'Contoh: hentikan dulu, panggil pengawas ke kursi 12.'
+                    }
+                />
+            </Field>
+
+            <div className="flex items-center gap-2">
+                <Tombol type="submit" nada={reset ? 'pri' : 'bahaya'} disabled={processing || !cukup}>
+                    {reset ? 'Reset pengerjaan' : 'Hentikan sekarang'}
+                </Tombol>
+                <Tombol onClick={padaSelesai}>Batal</Tombol>
+                <span className="ml-auto font-mono text-[10px] text-ink-3">
+                    {isi.trim().length}/{reset ? 200 : 300}
+                </span>
+            </div>
+        </form>
     );
 }
 

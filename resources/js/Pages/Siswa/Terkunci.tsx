@@ -67,6 +67,14 @@ type Props = {
         alasan: string | null;
         terkunci_pada: string | null;
         jumlah: number;
+        /**
+         * Penguncian datang dari ADMIN, bukan dari tangga pelanggaran.
+         *
+         * Kalimat di laman ini berbeda untuk keduanya, dan perbedaannya bukan
+         * kosmetik: anak yang dihentikan karena pesannya menyebut "terdeteksi
+         * 2 pelanggaran" membaca tuduhan atas perbuatan yang tidak ia lakukan.
+         */
+        oleh_admin: boolean;
         sisa_detik: number;
         deadline: string | null;
     };
@@ -121,7 +129,9 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
                 // yang sedang menghitung berapa lama ia boleh menunggu.
                 <div className="flex items-center gap-2">
                     <span className="min-w-0 flex-1 text-[11px] leading-tight text-ink-3">
-                        Menunggu Pengawas membuka kunci
+                        {attempt.oleh_admin
+                            ? 'Menunggu Admin membuka penghentian'
+                            : 'Menunggu Pengawas membuka kunci'}
                     </span>
                     <span className="shrink-0 font-mono text-[12px] tabular-nums text-warn">
                         {sisa > 0 ? formatSisa(sisa) : 'habis'}
@@ -130,13 +140,25 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
             }
         >
             <div className="grid justify-items-center gap-2 py-4 text-center">
-                <b className="font-display text-[14px] text-bad">Ujian Anda dikunci</b>
+                <b className="font-display text-[14px] text-bad">
+                    {attempt.oleh_admin ? 'Ujian Anda dihentikan' : 'Ujian Anda dikunci'}
+                </b>
 
-                <p className="max-w-[22rem] text-[12px] leading-relaxed text-ink-2">
-                    {attempt.alasan ??
-                        `Terdeteksi ${attempt.jumlah} pelanggaran selama ujian berlangsung.`}{' '}
-                    Pengerjaan dihentikan sementara. Jawaban yang sudah tersimpan tidak hilang.
-                </p>
+                {/* Pesan Admin ditampilkan APA ADANYA, dan kalimat pelanggaran
+                    tidak ditambahkan sesudahnya. Anak yang dihentikan karena
+                    pesan gurunya membaca kalimat itu; angka pelanggaran di
+                    sebelahnya hanya akan terbaca sebagai tuduhan kedua. */}
+                {attempt.oleh_admin ? (
+                    <p className="max-w-[22rem] whitespace-pre-line text-[12px] leading-relaxed text-ink-2">
+                        {attempt.alasan ?? 'Pengerjaan Anda dihentikan oleh Admin.'}
+                    </p>
+                ) : (
+                    <p className="max-w-[22rem] text-[12px] leading-relaxed text-ink-2">
+                        {attempt.alasan ??
+                            `Terdeteksi ${attempt.jumlah} pelanggaran selama ujian berlangsung.`}{' '}
+                        Pengerjaan dihentikan sementara. Jawaban yang sudah tersimpan tidak hilang.
+                    </p>
+                )}
 
                 {/* Sisa waktu DITAMPILKAN, bukan disembunyikan - lihat catatan
                     berkas ini. `sisa` nol berarti waktunya sudah habis, dan
@@ -209,8 +231,9 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
             )}
 
             <p className="keterangan">
-                Hubungi Pengawas ruang untuk membuka kunci. Waktu ujian tetap berjalan selama
-                terkunci.
+                {attempt.oleh_admin
+                    ? 'Hubungi Admin sekolah untuk membuka penghentian ini. Waktu ujian tetap berjalan selama penghentian.'
+                    : 'Hubungi Pengawas ruang untuk membuka kunci. Waktu ujian tetap berjalan selama terkunci.'}
             </p>
         </KerangkaSiswa>
     );
