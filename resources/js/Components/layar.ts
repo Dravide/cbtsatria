@@ -119,16 +119,48 @@ export function minta(): void {
  * sistem yang tidak pernah menjadi bagian halaman.
  */
 export function sempit(): boolean {
+    return lebarAtauTinggi(true, true);
+}
+
+/**
+ * Layar menyempit dari sisi LEBAR - layar terbagi.
+ *
+ * Dipisahkan dari `tinggi()` karena kebijakannya dipisah: `SchoolEvent::
+ * detect_split_screen` dan `detect_float_window` adalah dua centang berbeda di
+ * Pengaturan sekolah. Membedakannya di sini adalah satu-satunya cara centang
+ * itu berarti sesuatu.
+ */
+export function lebar(): boolean {
+    return lebarAtauTinggi(true, false);
+}
+
+/**
+ * Layar menyempit dari sisi TINGGI - jendela mengambang.
+ *
+ * Ambangnya 0,55 dan bukan 0,72: lihat catatan panjang di `sempit()`. Bilah
+ * alamat Safari iOS memakan sekitar 180px dari 844px, sehingga ponsel yang
+ * TIDAK membelah layar pun hanya sampai 0,78 - dan 0,72 di sini akan menandai
+ * hampir seluruh iPhone sebagai jendela mengambang.
+ */
+export function tinggi(): boolean {
+    return lebarAtauTinggi(false, true);
+}
+
+function lebarAtauTinggi(periksaLebar: boolean, periksaTinggi: boolean): boolean {
     if (typeof window === 'undefined' || typeof screen === 'undefined') {
         return false;
     }
 
-    const lebar = screen.width > 0 && window.innerWidth < screen.width * 0.72;
+    const kenaLebar =
+        periksaLebar && screen.width > 0 && window.innerWidth < screen.width * 0.72;
 
-    const tinggi = screen.availHeight > 0 && window.innerHeight < screen.availHeight * 0.55;
+    const kenaTinggi =
+        periksaTinggi &&
+        screen.availHeight > 0 &&
+        window.innerHeight < screen.availHeight * 0.55;
 
     // Salah satu cukup. Jendela mengambang bisa memakan lebar tanpa
     // menyentuh tinggi, dan jendela yang ditumpuk di atas bisa memakan
     // tinggi tanpa menyentuh lebar.
-    return Boolean(lebar || tinggi);
+    return Boolean(kenaLebar || kenaTinggi);
 }

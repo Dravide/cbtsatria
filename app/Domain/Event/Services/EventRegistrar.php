@@ -73,7 +73,22 @@ class EventRegistrar
                 // EventStatusService menjadi hiasan.
                 'status' => EventStatus::Draft,
                 'violation_thresholds' => $ambang->toArray(),
-                'enforce_fullscreen' => $data['enforce_fullscreen'] ?? true,
+
+                // Empat kebijakan layar, disalin SEKALI di sini dari nilai
+                // pengaturan sekolah - alasan yang sama dengan ambang di
+                // atas: event yang sudah dibuat tidak ikut berubah ketika
+                // Admin mengubah bawaannya.
+                'enforce_fullscreen' => (bool) ($data['enforce_fullscreen'] ?? true),
+                'detect_split_screen' => (bool) ($data['detect_split_screen']
+                    ?? $pengaturan['deteksi_layar_terbagi']
+                    ?? true),
+                'detect_float_window' => (bool) ($data['detect_float_window']
+                    ?? $pengaturan['deteksi_jendela_mengambang']
+                    ?? true),
+                'show_watermark' => (bool) ($data['show_watermark']
+                    ?? $pengaturan['tanda_air_ujian']
+                    ?? true),
+
                 'created_by' => $userId,
             ]);
 
@@ -104,8 +119,13 @@ class EventRegistrar
             }
         }
 
-        if (array_key_exists('enforce_fullscreen', $data)) {
-            $kolom['enforce_fullscreen'] = (bool) $data['enforce_fullscreen'];
+        // Empat kebijakan layar, ditulis hanya bila fieldnya dikirim - alasan
+        // yang sama dengan ambang di bawah: form ubah boleh menampilkan
+        // keempatnya tanpa setiap penyimpanan menyentuh kolomnya.
+        foreach (['enforce_fullscreen', 'detect_split_screen', 'detect_float_window', 'show_watermark'] as $kunci) {
+            if (array_key_exists($kunci, $data)) {
+                $kolom[$kunci] = (bool) $data[$kunci];
+            }
         }
 
         // Ambang hanya ditulis ulang bila salah satu fieldnya dikirim. Ini

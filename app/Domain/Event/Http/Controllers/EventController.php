@@ -135,6 +135,14 @@ class EventController
                 'ambang_tandai_pengawas' => (int) $pengaturan['ambang_pelanggaran'],
                 'ambang_kunci_ujian' => (int) $pengaturan['ambang_pelanggaran'],
                 'enforce_fullscreen' => (bool) $pengaturan['kunci_klik_kanan'],
+
+                // Tiga penjaga layar, diteruskan sebagai centang awal di
+                // plate 11 - alasan yang sama dengan ambang: yang disimpan
+                // sekolah adalah bawaannya, dan event menyempitkannya sendiri.
+                'detect_split_screen' => (bool) $pengaturan['deteksi_layar_terbagi'],
+                'detect_float_window' => (bool) $pengaturan['deteksi_jendela_mengambang'],
+                'show_watermark' => (bool) $pengaturan['tanda_air_ujian'],
+
                 'timezone' => $sekolah->timezone,
             ],
             'tahun' => $this->daftarTahun(),
@@ -209,6 +217,9 @@ class EventController
                 'ambang_tandai_pengawas' => $ambang->tandaiPengawas,
                 'ambang_kunci_ujian' => $ambang->kunciUjian,
                 'enforce_fullscreen' => $event->enforce_fullscreen,
+                'detect_split_screen' => $event->detect_split_screen,
+                'detect_float_window' => $event->detect_float_window,
+                'show_watermark' => $event->show_watermark,
                 'mulai' => $event->start_at?->format('Y-m-d\TH:i'),
                 'selesai' => $event->end_at?->format('Y-m-d\TH:i'),
             ],
@@ -296,6 +307,9 @@ class EventController
             'ambang_kunci_ujian' => ['nullable', 'integer', 'min:1', 'max:50'],
 
             'enforce_fullscreen' => ['nullable', 'boolean'],
+            'detect_split_screen' => ['nullable', 'boolean'],
+            'detect_float_window' => ['nullable', 'boolean'],
+            'show_watermark' => ['nullable', 'boolean'],
         ]);
 
         $p = (int) ($data['ambang_peringatkan'] ?? 0);

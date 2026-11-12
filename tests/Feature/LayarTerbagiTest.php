@@ -176,3 +176,54 @@ it('menampilkan keadaan layar di papan monitoring ruang tanpa kueri tambahan', f
     expect($anak[$lain->id]['layar_penuh'])->toBeNull()
         ->and($anak[$lain->id]['layar_terbagi'])->toBe(0);
 });
+
+it('mengirim dua centang layar ke laman pengerjaan, terpisah satu sama lain', function () {
+    // `detect_split_screen` dan `detect_float_window` adalah dua centang
+    // berbeda di Pengaturan sekolah. Dikirim sebagai dua prop, bukan satu,
+    // karena di peramban keduanya mengukur sisi yang berbeda: lebar untuk
+    // layar terbagi, tinggi untuk jendela mengambang.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $data['event']->forceFill([
+        'enforce_fullscreen' => true,
+        'detect_split_screen' => true,
+        'detect_float_window' => false,
+    ])->save();
+
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/kerjakan")
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($props['deteksi_layar_terbagi'])->toBeTrue()
+        ->and($props['deteksi_jendela_mengambang'])->toBeFalse();
+});
+
+it('menyebut layar terbagi di aturan main hanya bila event memantaunya', function () {
+    // Kalimat aturan adalah janji, dan janji yang tidak ditegakkan adalah
+    // alasan paling mudah dipakai membantah sanksi yang sungguh dijatuhkan.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $data['event']->forceFill([
+        'enforce_fullscreen' => true,
+        'detect_split_screen' => false,
+        'detect_float_window' => false,
+    ])->save();
+
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+
+    $aturan = masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/gerbang")
+        ->assertOk()
+        ->viewData('page')['props']['aturan'];
+
+    expect(collect($aturan)->contains(fn (string $a) => str_contains($a, 'terbagi')))->toBeFalse()
+        ->and(collect($aturan)->contains(fn (string $a) => str_contains($a, 'mengambang')))->toBeFalse();
+});

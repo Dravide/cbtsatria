@@ -55,6 +55,9 @@ type EventRingkas = {
     ambang_tandai_pengawas: number;
     ambang_kunci_ujian: number;
     enforce_fullscreen: boolean;
+    detect_split_screen: boolean;
+    detect_float_window: boolean;
+    show_watermark: boolean;
     mulai: string | null;
     selesai: string | null;
 };
@@ -66,6 +69,9 @@ type Props = {
         ambang_tandai_pengawas: number;
         ambang_kunci_ujian: number;
         enforce_fullscreen: boolean;
+        detect_split_screen: boolean;
+        detect_float_window: boolean;
+        show_watermark: boolean;
         timezone: string;
     } | null;
     tahun: OpsiTahun[];
@@ -92,6 +98,12 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
         ambang_kunci_ujian: event?.ambang_kunci_ujian ?? bawaan?.ambang_kunci_ujian ?? 5,
 
         enforce_fullscreen: event?.enforce_fullscreen ?? bawaan?.enforce_fullscreen ?? true,
+
+        // Tiga penjaga layar: bawaan dari Pengaturan sekolah, disimpan
+        // sendiri oleh event ini.
+        detect_split_screen: event?.detect_split_screen ?? bawaan?.detect_split_screen ?? true,
+        detect_float_window: event?.detect_float_window ?? bawaan?.detect_float_window ?? true,
+        show_watermark: event?.show_watermark ?? bawaan?.show_watermark ?? true,
         start_at: event?.mulai ?? '',
         end_at: event?.selesai ?? '',
     });
@@ -371,6 +383,74 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
                             </span>
                         </span>
                     </label>
+
+                    {/* Tiga penjaga layar. Sengaja di dalam kotak yang SAMA
+                        dengan layar penuh: ketiganya hanya berlaku bila layar
+                        penuh dituntut, dan kotak terpisah akan membuatnya
+                        terbaca sebagai tiga aturan yang berdiri sendiri. */}
+                    <div className="mt-3 border-t border-line pt-3">
+                        <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-2 uppercase">
+                            Penjaga layar
+                        </p>
+
+                        <div className="space-y-2">
+                            <label className="flex items-start gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={data.detect_split_screen}
+                                    onChange={(e) =>
+                                        setData('detect_split_screen', e.target.checked)
+                                    }
+                                    className="mt-0.5"
+                                />
+                                <span className="text-xs text-ink-2">
+                                    Deteksi layar terbagi
+                                    <span className="mt-0.5 block text-[11px] text-ink-3">
+                                        Lebar yang menyusut sampai di bawah 72% layar dilaporkan
+                                        sebagai <code>layar_terbagi</code>, tingkat 3 &mdash;
+                                        dicatat, tidak mengunci.
+                                    </span>
+                                </span>
+                            </label>
+
+                            <label className="flex items-start gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={data.detect_float_window}
+                                    onChange={(e) =>
+                                        setData('detect_float_window', e.target.checked)
+                                    }
+                                    className="mt-0.5"
+                                />
+                                <span className="text-xs text-ink-2">
+                                    Deteksi jendela mengambang
+                                    <span className="mt-0.5 block text-[11px] text-ink-3">
+                                        Tinggi yang menyusut sampai di bawah 55% layar. Ambangnya
+                                        lebih longgar dari lebar dengan sengaja: bilah alamat
+                                        peramban ponsel memakan tinggi tanpa siapa pun membelah
+                                        layar.
+                                    </span>
+                                </span>
+                            </label>
+
+                            <label className="flex items-start gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={data.show_watermark}
+                                    onChange={(e) => setData('show_watermark', e.target.checked)}
+                                    className="mt-0.5"
+                                />
+                                <span className="text-xs text-ink-2">
+                                    Tanda air nama dan nomor induk
+                                    <span className="mt-0.5 block text-[11px] text-ink-3">
+                                        Tangkapan layar tidak bisa diblokir peramban; tanda air
+                                        membuat hasilnya menyebut pemiliknya. Mematikannya pada
+                                        layar kecil masuk akal &mdash; ia menutupi sebagian soal.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
                 </Kotak>
 
                 {!ubah && (

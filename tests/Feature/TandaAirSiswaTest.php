@@ -98,3 +98,51 @@ it('memakai identitas pengguna yang sedang masuk, bukan identitas peserta', func
 
     expect($props['tanda_air']['nama'])->toBe('Nama Diperbarui');
 });
+
+it('mengirim tanda_air_aktif apa adanya dari event ke laman pengerjaan', function () {
+    // Tanda air bisa dimatikan per event sejak tombolnya ada di Pengaturan
+    // sekolah. Yang diuji di sini KABEL-nya: flag yang disimpan event harus
+    // sampai ke laman pengerjaan, karena laman itulah satu-satunya yang
+    // mencetaknya.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $data['event']->forceFill(['show_watermark' => false])->save();
+
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/kerjakan")
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($props['tanda_air_aktif'])->toBeFalse()
+        // Bahannya TETAP dikirim. Laman yang memutuskan mencetak atau
+        // tidak, dan mematikan pengiriman identitasnya berarti mengubah
+        // satu centang menjadi perubahan bentuk payload - perubahan yang
+        // tidak diminta siapa pun.
+        ->and($props['tanda_air'])->toBe([
+            'nama' => $data['siswa'][0]->name,
+            'nomor_induk' => $data['siswa'][0]->username,
+        ]);
+});
+
+it('menyebut tanda air di aturan main hanya bila event menyalakannya', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $data['event']->forceFill(['show_watermark' => false])->save();
+
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/gerbang")
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect(collect($props['aturan'])->contains(fn (string $a) => str_contains($a, 'nomor induk')))
+        ->toBeFalse();
+});
