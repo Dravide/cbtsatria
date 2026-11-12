@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { ReactNode } from 'react';
 import Ikon, { NamaIkon } from '@/Components/Ikon';
 import { UmpanBalik } from '@/Components/ui';
+import { MEREK } from '@/merek';
 
 /**
  * Badan konsol bersidebar - dipakai Admin dan Guru.
@@ -125,7 +126,7 @@ export default function KonsolLayout({
                         {marka.inisial}
                     </span>
                     <span className="font-display text-sm font-semibold text-ink">
-                        School CBT
+                        {MEREK}
                     </span>
                 </div>
 

@@ -3,8 +3,7 @@ import '../css/app.css';
 import { ResolvedComponent, createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-
-const appName = import.meta.env.VITE_APP_NAME ?? 'School CBT';
+import { MEREK } from './merek';
 
 // Glob-nya dianotasi sebagai komponen, bukan sebagai modul. Tanpa itu
 // resolvePageComponent menyimpulkan T dari bentuk modulnya dan resolver
@@ -12,7 +11,7 @@ const appName = import.meta.env.VITE_APP_NAME ?? 'School CBT';
 const halaman = import.meta.glob<ResolvedComponent>('./Pages/**/*.tsx');
 
 createInertiaApp({
-    title: (title) => (title ? `${title} · ${appName}` : appName),
+    title: (title) => (title ? `${title} · ${MEREK}` : MEREK),
 
     resolve: (name) => resolvePageComponent(`./Pages/${name}.tsx`, halaman),
 

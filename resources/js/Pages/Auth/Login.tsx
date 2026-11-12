@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEvent } from 'react';
+import { MEREK } from '@/merek';
 
 /**
  * Laman 01 - Login. Wireframe plate 01.
@@ -34,7 +35,7 @@ export default function Login({ errors }: { errors: Record<string, string> }) {
                     className="w-full max-w-sm rounded-wf border border-line bg-surface p-6 shadow-wf"
                 >
                     <p className="font-display text-lg font-semibold text-accent">
-                        School CBT
+                        {MEREK}
                     </p>
                     <p className="mt-1 text-xs text-ink-3">
                         Masuk dengan akun sekolah Anda.

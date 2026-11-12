@@ -1,2 +1,11 @@
+# SATRIA CBT - aplikasi ujian sekolah, bukan situs publik.
+#
+# Seluruh halaman di balik login adalah data siswa: nilai, presensi,
+# jawaban ujian, dan rekaman pelanggaran. Tidak satu pun boleh masuk indeks
+# mesin pencari, dan tidak ada halaman yang diuntungkan olehnya.
+#
+# Larangan ini berlaku juga untuk halaman login: alamat masuk yang terindeks
+# mengundang percobaan kata sandi dari luar sekolah.
+
 User-agent: *
-Disallow:
+Disallow: /

@@ -11,15 +11,14 @@ import '../css/app.css';
 import { ResolvedComponent, createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-
-const appName = import.meta.env.VITE_APP_NAME ?? 'School CBT';
+import { MEREK } from './merek';
 
 // Halaman ujian belum ada di Fase 1. Glob-nya tetap ditulis supaya
 // penambahan berkas pertama di Fase 7 tidak menabrak galat tipe di sini.
 const halaman = import.meta.glob<ResolvedComponent>('./Pages/Exam/**/*.tsx');
 
 createInertiaApp({
-    title: (title) => (title ? `${title} · ${appName}` : appName),
+    title: (title) => (title ? `${title} · ${MEREK}` : MEREK),
 
     resolve: (name) => resolvePageComponent(`./Pages/Exam/${name}.tsx`, halaman),
 
