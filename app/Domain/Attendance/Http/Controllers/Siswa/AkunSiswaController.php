@@ -25,12 +25,25 @@ use Inertia\Response;
  * pemilik produk, bukan diterka dari wireframe:
  *
  *   1. identitas (nama, username, kelas, NIS, NISN, sekolah);
- *   2. ganti sandi mandiri;
+ *   2. ganti sandi mandiri - di laman TERPISAH sejak 2026-11-14;
  *   3. keluar.
  *
  * PRD §4.3 hanya menyebut "Sistem menyediakan logout dan reset password" -
  * dan sampai laman ini ada, "reset password" berarti ADMIN, lewat laman
  * Pengguna. Tidak ada satu pun jalur self-service di seluruh aplikasi ini.
+ *
+ * =====================================================================
+ * Ganti sandi dipisah ke `/siswa/akun/sandi` - permintaan 2026-11-14
+ * =====================================================================
+ * Sampai saat itu laman Akun memuat identitas DAN formulir tiga kolom di
+ * bawahnya. Bentuk itu membuat laman yang dibuka untuk "nomor induk saya
+ * berapa" berisi tiga kolom sandi di setengah bawahnya, dan formulir yang
+ * selalu terlihat adalah formulir yang sesekali tersentuh tanpa niat -
+ * sementara yang tersentuh tanpa niat di sini adalah sandi.
+ *
+ * Sekarang Akun hanya memuat identitas dan satu tautan ke laman sandi. Yang
+ * DIPINDAH hanya formulirnya; perilaku, validasi, pembatas laju, dan urutan
+ * empat langkah di `gantiSandi()` tidak berubah satu baris pun.
  *
  * =====================================================================
  * Sandi bawaan: PERINGATAN, bukan penegakan
@@ -72,7 +85,7 @@ use Inertia\Response;
  */
 class AkunSiswaController extends SiswaDasar
 {
-    public function index(Request $request, PenempatanKelas $penempatan): Response
+    public function index(Request $request): Response
     {
         $user = $request->user();
         $profil = $user->studentProfile;
@@ -86,7 +99,28 @@ class AkunSiswaController extends SiswaDasar
             // Kelas dibaca dari keanggotaan kelas, BUKAN dari penempatan ujian:
             // laman ini tidak terikat event, dan siswa yang belum ditempatkan
             // di ujian mana pun tetap punya kelas.
-            'kelas' => $penempatan->kelasSekarang((int) $user->id)?->name,
+            'kelas' => app(PenempatanKelas::class)->kelasSekarang((int) $user->id)?->name,
+            'sandi_bawaan' => Hash::check(User::SANDI_BAWAAN, (string) $user->password),
+        ]);
+    }
+
+    /**
+     * Laman ganti sandi - dipisah dari Akun sejak 2026-11-14.
+     *
+     * ---------------------------------------------------------------------
+     * `sandi_bawaan` tetap dikirim, dan itu bukan pengulangan yang lupa dibuang
+     * ---------------------------------------------------------------------
+     * Laman sandi memakainya untuk kalimat yang berbeda dari laman Akun: yang
+     * pertama menjelaskan mengapa sebaiknya diganti sekarang, yang kedua
+     * memberi satu kalimat pengingat sesudah sandinya diganti. Kalimat itu
+     * hanya jujur bila ia tahu keadaan sandi yang sedang berlaku.
+     */
+    public function sandi(Request $request): Response
+    {
+        $user = $request->user();
+
+        return Inertia::render('Siswa/Sandi', [
+            'nama' => $user->name,
             'sandi_bawaan' => Hash::check(User::SANDI_BAWAAN, (string) $user->password),
         ]);
     }
@@ -127,6 +161,12 @@ class AkunSiswaController extends SiswaDasar
 
         $logger->log('Mengganti sandi sendiri', $user);
 
-        return back()->with('sukses', 'Sandi berhasil diganti.');
+        // Kembali ke LAMAN AKUN, bukan ke laman sandi: sesudah sandinya
+        // berganti, laman sandi tidak punya apa pun lagi untuk dikerjakan -
+        // dan `back()` akan mengembalikan anak ke formulir kosong tepat
+        // sesudah ia menekan Simpan.
+        return redirect()
+            ->route('siswa.akun')
+            ->with('sukses', 'Sandi berhasil diganti.');
     }
 }

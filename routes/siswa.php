@@ -104,10 +104,15 @@ Route::middleware(['auth', 'siswa'])->prefix('siswa')->name('siswa.')->group(fun
     // penegakan). Lihat AkunSiswaController.
     Route::get('/akun', [AkunSiswaController::class, 'index'])->name('akun');
 
+    // Ganti sandi punya LAMAN sendiri sejak 2026-11-14 - permintaan pemilik
+    // produk, supaya Akun fokus ke informasi akun saja. Yang dipindah hanya
+    // formulirnya; rute tulisnya tidak berubah alamat maupun pembatasnya.
+    Route::get('/akun/sandi', [AkunSiswaController::class, 'sandi'])->name('akun.sandi');
+
     // `throttle:ganti-sandi` - pembatas laju ketiga. Yang dijaga bukan tebakan
     // enam angka melainkan biaya `Hash::check` bcrypt: sesi yang dicuri dipakai
     // mempelajari sandi korban. Per AKUN, tanpa pasangan per-IP. Lihat
     // App\Support\PembatasLaju.
     Route::put('/akun/sandi', [AkunSiswaController::class, 'gantiSandi'])
-        ->middleware('throttle:ganti-sandi')->name('akun.sandi');
+        ->middleware('throttle:ganti-sandi')->name('akun.sandi.simpan');
 });

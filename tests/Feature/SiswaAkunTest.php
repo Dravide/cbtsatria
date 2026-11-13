@@ -261,7 +261,10 @@ it('menolak percobaan keenam walau sandi lamanya BENAR', function () {
             'password_confirmation' => 'sandi-baru-2026',
         ]);
 
-    $keenam->assertRedirect(route('siswa.akun'));
+    // Diarahkan ke LAMAN SANDI, bukan ke Akun: formulirnya pindah ke sana
+    // sejak 2026-11-14, dan pesan "terlalu banyak percobaan" yang mendarat
+    // di laman tanpa formulir terbaca sebagai keterangan yang menggantung.
+    $keenam->assertRedirect(route('siswa.akun.sandi'));
     $keenam->assertSessionHas('galat', PembatasLaju::PESAN_SANDI);
 
     // Dan buktinya bukan sekadar pesannya: sandinya memang tidak berganti.
@@ -411,4 +414,61 @@ it('mengubah sandi siswa yang bersangkutan saja', function () {
 
     expect(Hash::check('sandi-baru-2026', $lain->fresh()->password))->toBeTrue()
         ->and(Hash::check('password', $this->siswa->fresh()->password))->toBeTrue();
+});
+
+/* =====================================================================
+ | Laman ganti sandi terpisah - ditambahkan 2026-11-14
+ |===================================================================== */
+
+it('membuka laman ganti sandi sendiri', function () {
+    masukUji($this, $this->siswa)
+        ->get('/siswa/akun/sandi')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Siswa/Sandi')
+            ->where('nama', 'Ani Lestari')
+            // Peringatan sandi bawaan ikut, karena laman sandi yang
+            // menjelaskan MENGAPA sebaiknya diganti - laman Akun hanya
+            // memberi tautan ke sini.
+            ->where('sandi_bawaan', true)
+        );
+});
+
+it('laman akun tidak lagi memuat formulir ganti sandi', function () {
+    // Permintaan pemilik produk 2026-11-14: "agar /siswa/akun fokus ke
+    // informasi akun saja". Yang diuji di sini adalah prop-nya - nama field
+    // sandi TIDAK dikirim ke laman Akun, sehingga formulir di sana mustahil
+    // dirender tanpa server mengirimnya lagi.
+    $props = masukUji($this, $this->siswa)
+        ->get('/siswa/akun')
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($props)->not->toHaveKey('current_password')
+        ->and($props)->not->toHaveKey('password')
+        // `sandi_bawaan` TETAP ada: laman Akun memakainya untuk kalimat
+        // pengantar di blok Keamanan, bukan untuk formulir.
+        ->and($props)->toHaveKey('sandi_bawaan');
+});
+
+it('mengembalikan siswa ke laman akun sesudah sandinya berganti', function () {
+    // Bukan `back()`: `back()` akan mengembalikan anak ke formulir sandi yang
+    // sudah kosong, tepat sesudah ia menekan Simpan - dan formulir kosong
+    // terbaca sebagai "tidak tersimpan".
+    masukUji($this, $this->siswa)
+        ->from('/siswa/akun/sandi')
+        ->put('/siswa/akun/sandi', [
+            'current_password' => 'password',
+            'password' => 'sandi-baru-2026',
+            'password_confirmation' => 'sandi-baru-2026',
+        ])
+        ->assertRedirect(route('siswa.akun'));
+});
+
+it('menolak peran lain membuka laman ganti sandi siswa', function () {
+    // Middleware `siswa` menutupnya dengan 403 - keberadaan laman ini bukan
+    // rahasia, yang dijaga perannya.
+    masukUji($this, $this->admin)
+        ->get('/siswa/akun/sandi')
+        ->assertForbidden();
 });

@@ -1,7 +1,7 @@
-import { router, useForm } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import { konfirmasi } from '@/Components/dialog';
-import { Field, kelasInput, Peringatan } from '@/Components/ui';
+import { Peringatan } from '@/Components/ui';
 
 /**
  * Akun saya - tab keempat konsol siswa. `/siswa/akun`.
@@ -12,7 +12,13 @@ import { Field, kelasInput, Peringatan } from '@/Components/ui';
  * `wireframe-peran.html` menggambar TAB "Akun" di tabbar siswa tiga kali
  * (`:999`, `:1215`, `:1243`) tetapi tidak pernah menggambar lamannya. Isinya
  * karena itu dikunci pemilik produk 2026-11-07: identitas + ganti sandi +
- * keluar - dan itulah seluruh laman ini.
+ * keluar.
+ *
+ * Sejak 2026-11-14 formulir ganti sandi PINDAH ke `/siswa/akun/sandi`
+ * (permintaan pemilik produk: "agar laman /siswa/akun fokus ke informasi
+ * akun saja"). Yang tinggal di sini identitas, satu tautan ke laman sandi,
+ * dan tombol keluar. Alasan pemisahannya ada di blok "Keamanan" di bawah,
+ * dekat dengan tempat akibatnya terbaca.
  *
  * =====================================================================
  * Redesign: identitas sebagai PAPAN, bukan daftar label-nilai abu
@@ -70,23 +76,6 @@ type Props = {
 };
 
 export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_bawaan }: Props) {
-    const form = useForm({
-        current_password: '',
-        password: '',
-        password_confirmation: '',
-    });
-
-    function simpan(e: React.FormEvent) {
-        e.preventDefault();
-
-        form.put('/siswa/akun/sandi', {
-            // Gulir tidak dikembalikan ke atas: pesan galat muncul persis di
-            // bawah field yang salah, dan melompat ke atas menyembunyikannya.
-            preserveScroll: true,
-            onSuccess: () => form.reset(),
-        });
-    }
-
     return (
         <KerangkaSiswa
             judul="Akun saya"
@@ -139,68 +128,39 @@ export default function Akun({ nama, username, nis, nisn, sekolah, kelas, sandi_
                 </dl>
             </section>
 
+            {/*
+             * Ganti sandi PINDAH ke laman sendiri sejak 2026-11-14.
+             *
+             * Sampai saat itu formulir tiga kolom berdiri di setengah bawah
+             * laman ini, dan akibatnya laman yang dibuka untuk "nomor induk
+             * saya berapa" memuat tiga kolom sandi yang selalu terlihat -
+             * dan formulir yang selalu terlihat adalah formulir yang
+             * sesekali tersentuh tanpa niat. Yang tersentuh tanpa niat di
+             * sini adalah sandi.
+             *
+             * Yang tersisa di sini adalah TAUTAN, dan kalimatnya menyebut
+             * apa yang menunggu di sana - bukan hanya "Ganti sandi", yang
+             * pada tabbar tiga item lain terbaca sebagai label menu keempat.
+             */}
             <section className="daftar overflow-hidden">
                 <header className="daftar-kepala">
-                    <h2>Ganti sandi</h2>
+                    <h2>Keamanan</h2>
                 </header>
 
-                <form onSubmit={simpan} className="space-y-3 p-3">
-                    <Field label="Sandi lama" galat={form.errors.current_password}>
-                        <input
-                            type="password"
-                            autoComplete="current-password"
-                            value={form.data.current_password}
-                            onChange={(e) => form.setData('current_password', e.target.value)}
-                            className={kelasInput}
-                        />
-                    </Field>
-
-                    <Field
-                        label="Sandi baru"
-                        galat={form.errors.password}
-                        petunjuk="Minimal 6 karakter."
-                    >
-                        <input
-                            type="password"
-                            autoComplete="new-password"
-                            value={form.data.password}
-                            onChange={(e) => form.setData('password', e.target.value)}
-                            className={kelasInput}
-                        />
-                    </Field>
-
-                    <Field label="Ulangi sandi baru" galat={form.errors.password_confirmation}>
-                        <input
-                            type="password"
-                            autoComplete="new-password"
-                            value={form.data.password_confirmation}
-                            onChange={(e) => form.setData('password_confirmation', e.target.value)}
-                            className={kelasInput}
-                        />
-                    </Field>
-
-                    {/*
-                     * Kalimat ini yang membedakan laman ini dari laman Admin:
-                     * siswa perlu tahu bahwa mengganti sandi di ponselnya
-                     * memutus sesi di perangkat lain - termasuk kalau
-                     * sandinya memang dipakai orang lain.
-                     *
-                     * 12px dan leading 1,6 - teks yang mengalir beberapa baris
-                     * di lantai REFLEX 75.
-                     */}
+                <div className="px-3 py-3">
+                    {/* Kalimatnya TIDAK mengulang peringatan di atas laman.
+                        Peringatan itu sudah menjelaskan mengapa sandi bawaan
+                        berbahaya; yang dibutuhkan di sini hanya apa yang
+                        menunggu di laman sebelah. */}
                     <p className="text-[12px] leading-relaxed text-ink-2">
-                        Mengganti sandi akan mengeluarkan akun Anda dari perangkat lain. Ponsel ini
-                        tetap masuk.
+                        Sandi akun diganti di laman tersendiri, bukan di sini. Menggantinya
+                        akan mengeluarkan akun Anda dari perangkat lain.
                     </p>
 
-                    <button
-                        type="submit"
-                        disabled={form.processing}
-                        className="tombol tombol--pri w-full"
-                    >
-                        {form.processing ? 'Menyimpan…' : 'Simpan sandi'}
-                    </button>
-                </form>
+                    <Link href="/siswa/akun/sandi" className="tombol mt-2.5 w-full">
+                        Ganti sandi
+                    </Link>
+                </div>
             </section>
 
             <section className="daftar">

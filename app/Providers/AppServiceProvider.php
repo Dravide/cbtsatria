@@ -141,11 +141,15 @@ class AppServiceProvider extends ServiceProvider
         // Satu limit, per AKUN, tanpa pasangan per-IP. Pelakunya sudah
         // tersahihkan, dan justru itu skenarionya: sesi yang dicuri dipakai
         // mempelajari sandi korban. Lihat `PembatasLaju::SANDI_PER_SISWA`.
+        //
+        // Diarahkan ke LAMAN SANDI sejak 2026-11-14: formulirnya pindah ke
+        // sana, dan pesan "terlalu banyak percobaan" yang mendarat di laman
+        // Akun akan terbaca sebagai keterangan tanpa formulir di sebelahnya.
         RateLimiter::for(PembatasLaju::SANDI, fn (Request $request) => [
             Limit::perMinute(PembatasLaju::SANDI_PER_SISWA)
                 ->by(PembatasLaju::kunciSandi((int) $request->user()?->id))
                 ->response(fn () => redirect()
-                    ->route('siswa.akun')
+                    ->route('siswa.akun.sandi')
                     ->with('galat', PembatasLaju::PESAN_SANDI)),
         ]);
 
