@@ -1,17 +1,25 @@
 import { Link } from '@inertiajs/react';
 import KerangkaPonsel from '@/Layouts/KerangkaPonsel';
 import { Chip, Inbox } from '@/Components/ui';
-import { KotakPonsel } from '@/Components/ponsel';
 
 /**
  * Plate 11 - ruang tugas hari ini. `/pengawas`.
  *
  * =====================================================================
- * Tidak ada tabel, tidak ada filter, tidak ada sidebar
+ * Redesign 2026-11-13 - pelat gelap, ruang berjalan memimpin
  * =====================================================================
- * Satu laman, tugas hari ini, tiga tombol besar. Pengawas tidak pernah
- * memilih ruang dari daftar panjang - ruangnya sudah ditetapkan Admin, dan
- * hanya yang ditetapkan itu yang muncul.
+ * Tiga temuan dari pembacaan before yang direparasi di sini:
+ *
+ *   1. Ruang tunggal mengapung di halaman kosong tanpa penekanan apa pun.
+ *      Kini kartu ruang yang sesinya BERJALAN memimpin daftar dan membawa
+ *      angka pesertanya DISET BESAR - sebelumnya "38 peserta" tersembunyi
+ *      di dalam kalimat kecil.
+ *   2. Dua Inbox di bawah daftar berbunyi hampir sama. Kini pengumuman
+ *      digabung jadi satu blok dengan satu suara.
+ *   3. Tidak ada sinyal "sesi sedang berjalan" pada kartu yang aktif. Kini
+ *      kartu itu diberi bilah hidup (baris aksen di tepi kartu) - dan hanya
+ *      satu di halaman, karena dua sesi ruang berbeda bisa berjalan serentak
+ *      tapi milik pengawas ini yang ditandai, bukan milik sistem.
  *
  * Daftar itu datang dari `KonteksRuang::ruangTersedia()`, dan BENTUK
  * datanya yang membedakan dua pintu masuk: pemegang tautan melihat tepat
@@ -56,64 +64,79 @@ export default function RuangTugas({
     pelaku: string;
     pengawas: string | null;
 }) {
+    // Ruang yang sesinya sudah BERJALAN memimpin; sisanya mengikuti urutan
+    // Admin. Daftar yang terurut status, bukan abjad, menjawab pertanyaan
+    // pertama pengawas yang baru membuka ponselnya: "yang mana yang harus
+    // kupunggu sekarang."
+    const berjalan = ruang.filter((r) => r.status_sesi === 'berjalan');
+    const lainnya = ruang.filter((r) => r.status_sesi !== 'berjalan');
+
     // Lubang paling mahal di laman ini: ruang yang sesinya sudah berjalan
     // tapi belum punya satu pengawas pun. Ia bukan keadaan yang bisa
     // ditangani pengawas dari laman ini, jadi yang benar adalah
     // MENYEBUTNYA - daftar yang tampak lengkap padahal satu ruangnya tidak
     // akan pernah bisa dibuka adalah daftar yang menipu.
-    const tanpaPengawas = ruang.filter((r) => r.boleh_buka && r.peserta > 0);
+    const siapDibuka = lainnya.filter((r) => r.boleh_buka && r.peserta > 0);
 
-    return (
-        <KerangkaPonsel
-            judul="Ruang tugas hari ini"
-            kanan={
-                <Chip nada={pelaku === 'tautan' ? 'info' : 'mute'}>
-                    {pelaku === 'tautan' ? 'tautan ruang' : 'akun'}
-                </Chip>
-            }
-        >
-            {ruang.length === 0 && (
-                <Inbox>
-                    Tidak ada ruang yang ditugaskan kepada Anda hari ini. Penugasan
-                    pengawas ditetapkan Admin di laman ruang masing-masing.
-                </Inbox>
-            )}
+    const kartu = (r: Baris) => {
+        const hidup = r.status_sesi === 'berjalan';
 
-            {/* Nama pengawas yang membuka pintunya, sejak 2026-11-07 - kodenya
-                menempel pada orang, sehingga "data pengawasnya langsung ada"
-                bukan lagi sesuatu yang harus dikarang dari nama ruang. Di atas
-                daftar, bukan di dalam kartu: yang dijawabnya adalah "siapa saya
-                di sini", dan pertanyaan itu tidak bergantung pada ruang mana
-                yang sedang dilihat. */}
-            {pengawas && (
-                <Inbox>
-                    Anda masuk sebagai <strong>{pengawas}</strong>.
-                </Inbox>
-            )}
+        return (
+            <section
+                key={r.ruang_id}
+                className={
+                    'relative overflow-hidden rounded-wf border ' +
+                    (hidup ? 'border-accent-soft bg-surface-2' : 'border-line bg-surface')
+                }
+            >
+                {/* Bilah hidup: hanya pada kartu sesi berjalan. Ia bukan hiasan -
+                    satu-satunya sinyal status yang terbaca dari jarak satu lengan
+                    tanpa membaca satu kata pun. */}
+                {hidup && <span className="absolute inset-y-0 left-0 w-1 bg-accent" />}
 
-            {ruang.map((r) => (
-                <KotakPonsel key={r.ruang_id} solid padat>
-                    <div className="flex items-center gap-2">
-                        <b className="font-display text-sm text-ink">
-                            {r.ruang} &middot; {r.ruang_nama ?? 'Ruang'}
-                        </b>
-                        <span className="ml-auto">
-                            <Chip nada={r.boleh_buka ? 'info' : 'mute'}>
-                                {r.sesi ? `sesi ${r.sesi}` : 'tanpa sesi'}
-                            </Chip>
+                <div className={hidup ? 'space-y-2 p-3 pl-4' : 'space-y-2 p-3'}>
+                    <div className="flex items-baseline gap-2">
+                        <b className="font-display text-base text-ink">{r.ruang}</b>
+                        {r.ruang_nama && (
+                            <span className="min-w-0 truncate text-xs text-ink-2">
+                                {r.ruang_nama}
+                            </span>
+                        )}
+                        <span className="ml-auto shrink-0">
+                            {r.sesi ? (
+                                <Chip nada={hidup ? 'ok' : 'info'}>{r.sesi}</Chip>
+                            ) : (
+                                <Chip nada="mute">tanpa sesi</Chip>
+                            )}
                         </span>
                     </div>
 
-                    <p className="text-[11px] text-ink-2">
-                        {[r.ujian, `${r.peserta} peserta`, r.jam]
-                            .filter(Boolean)
-                            .join(' · ')}
-                    </p>
+                    {r.ujian && <p className="text-sm text-ink">{r.ujian}</p>}
+                    {r.jam && <p className="text-xs text-ink-2">{r.jam}</p>}
+                    {r.lokasi && <p className="text-xs text-ink-3">{r.lokasi}</p>}
 
-                    {r.lokasi && <p className="text-[11px] text-ink-3">{r.lokasi}</p>}
+                    {/* Angka peserta diset besar pada kartu hidup: inilah satu
+                        angka yang pengawas disebut paling sering - saat berita
+                        acara, saat menghitung kehadiran. Tabular nums menjaga
+                        angkanya tidak bergeser saat berubah. */}
+                    {hidup && (
+                        <p
+                            className="font-display text-3xl leading-none text-ink"
+                            style={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
+                            {r.peserta}
+                            <span className="text-base text-ink-3"> / {r.kapasitas} kursi</span>
+                        </p>
+                    )}
+
+                    {!hidup && r.peserta > 0 && (
+                        <p className="text-xs text-ink-2">
+                            {r.peserta} peserta, {r.kapasitas} kursi.
+                        </p>
+                    )}
 
                     {r.insiden_terbuka > 0 && (
-                        <p className="text-[11px] text-warn">
+                        <p className="text-xs text-warn">
                             {r.insiden_terbuka} insiden belum ditangani di ruang ini.
                         </p>
                     )}
@@ -145,7 +168,13 @@ export default function RuangTugas({
                                 {['Presensi', 'Lihat token', 'Monitoring'].map((t) => (
                                     <span
                                         key={t}
-                                        className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface-2 px-3 text-xs text-ink-3/60"
+                                        // aria-disabled, bukan sekadar warna: tanpa
+                                        // itu pembaca layar mengumumkan tiga label
+                                        // yang tampak bisa ditekan tanpa keadaan
+                                        // apa pun. Warnanya ink-3 penuh - ink-3/60
+                                        // di atas surface-2 jatuh di bawah 3:1.
+                                        aria-disabled="true"
+                                        className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface-2 px-3 text-xs text-ink-3"
                                     >
                                         {t}
                                     </span>
@@ -155,10 +184,51 @@ export default function RuangTugas({
                     </div>
 
                     {!r.boleh_buka && r.alasan_tolak && (
-                        <p className="text-[11px] text-ink-3">{r.alasan_tolak}</p>
+                        <p className="text-xs text-ink-3">{r.alasan_tolak}</p>
                     )}
-                </KotakPonsel>
-            ))}
+                </div>
+            </section>
+        );
+    };
+
+    return (
+        <KerangkaPonsel
+            judul="Ruang tugas hari ini"
+            gelap
+            kanan={
+                <Chip nada={pelaku === 'tautan' ? 'info' : 'mute'}>
+                    {pelaku === 'tautan' ? 'tautan ruang' : 'akun'}
+                </Chip>
+            }
+        >
+            {ruang.length === 0 && (
+                <Inbox>
+                    Tidak ada ruang yang ditugaskan kepada Anda hari ini. Penugasan
+                    pengawas ditetapkan Admin di laman ruang masing-masing.
+                </Inbox>
+            )}
+
+            {/* Nama pengawas yang membuka pintunya, sejak 2026-11-07 - kodenya
+                menempel pada orang, sehingga "data pengawasnya langsung ada"
+                bukan lagi sesuatu yang harus dikarang dari nama ruang. Di atas
+                daftar, bukan di dalam kartu: yang dijawabnya adalah "siapa saya
+                di sini", dan pertanyaan itu tidak bergantung pada ruang mana
+                yang sedang dilihat. */}
+            {pengawas && (
+                <Inbox>
+                    Anda masuk sebagai <strong>{pengawas}</strong>.
+                </Inbox>
+            )}
+
+            {berjalan.map(kartu)}
+
+            {/* Pemisah antar kelompok hanya dibutuhkan bila keduanya ada:
+                satu jenis kartu tidak perlu pengumuman tentang dirinya. */}
+            {berjalan.length > 0 && lainnya.length > 0 && (
+                <p className="pt-2 text-xs text-ink-3">Ruang lain hari ini</p>
+            )}
+
+            {lainnya.map(kartu)}
 
             {pelaku === 'tautan' && (
                 <Inbox>
@@ -167,9 +237,9 @@ export default function RuangTugas({
                 </Inbox>
             )}
 
-            {pelaku !== 'tautan' && tanpaPengawas.length > 0 && (
+            {pelaku !== 'tautan' && siapDibuka.length > 0 && (
                 <Inbox>
-                    {tanpaPengawas.length} ruang sudah bisa dibuka. Token dan berita acara
+                    {siapDibuka.length} ruang sudah bisa dibuka. Token dan berita acara
                     ada di dalam masing-masing ruang.
                 </Inbox>
             )}

@@ -4,6 +4,30 @@
   "depth": "full",
   "scope": "app",
   "shape": "app screen",
+  "theme": "pelat gelap proyek (--gelap-*)",
+  "axes": "dark/geometric-sans/cool in archivo",
+  "signature": "ruang yang sesinya berjalan memimpin dengan bilah hidup dan angka peserta diset besar",
+  "sections": [
+   "bilah-hidup",
+   "kartu-ruang",
+   "inbox"
+  ],
+  "nav": "kept (kerangka ponsel)",
+  "waived": [
+   "63 (join titik tengah di kepala KerangkaPonsel - dipakai 8 laman pengawas lain yang redesign-nya ditunda; menyusul di pass laman dalam)"
+  ],
+  "dismissed": [
+   "41"
+  ],
+  "entry": "http://127.0.0.1:8781/pengawas",
+  "prompt": "redesign the supervisor home of a school computer-based-test app - one card per assigned room, status-first - dark plate",
+  "date": "2026-11-13"
+ },
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "app",
+  "shape": "app screen",
   "theme": "terrazzo",
   "axes": "light/terrazzo/warm",
   "signature": "the exam you have to sit now, raised onto the ink band",

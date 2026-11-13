@@ -239,6 +239,30 @@ it('permintaan lewat tautan ruang tidak pernah melihat baris sekolah lain', func
  | Presensi append-only
  |===================================================================== */
 
+it('beranda pengawas mengirim kapasitas ruang, bukan nol', function () {
+    // Kolom selektif `room:id,code,name,location` pernah menjatuhkan
+    // `capacity`, dan `kapasitasEfektif()` mengkoersinya diam-diam jadi 0 -
+    // kartu beranda terbaca "38 / 0 kursi" tanpa satu pun galat. Test ini
+    // mengikat angka yang DITERIMA laman, bukan angka yang dihitung model:
+    // pemanggilan tinker pada model yang belum kehilangan kolomnya justru
+    // yang menyembunyikan bug semacam ini.
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 4);
+    $ruang = $data['ruang'][0];
+
+    masukSebagai($this, pengawasRuang($ruang))
+        ->get('/pengawas')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Pengawas/RuangTugas')
+            ->where('ruang.0.kapasitas', $ruang->kapasitasEfektif())
+            ->where('ruang.0.peserta', 4)
+        );
+});
+
+/* =====================================================================
+ | Presensi append-only
+ |===================================================================== */
+
 it('setiap perubahan presensi menulis satu baris attendance_logs', function () {
     $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin);
 

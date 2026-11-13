@@ -57,6 +57,12 @@ type Props = {
     tabbar?: { ruangId: number; aktif: string };
     /** Bilah atas disembunyikan pada laman yang menggambar kepalanya sendiri. */
     bilah?: boolean;
+    /**
+     * Pelat gelap (`.konsol-pengawas`). Sengaja per-laman, bukan per-peran:
+     * beranda pengawas sudah di-redesign ke pelat gelap, laman-laman lainnya
+     * menyusul satu per satu - prop inilah saklarnya.
+     */
+    gelap?: boolean;
     children: ReactNode;
     aksiBawah?: ReactNode;
 };
@@ -67,6 +73,7 @@ export default function KerangkaPonsel({
     kanan,
     tabbar,
     bilah = true,
+    gelap = false,
     children,
     aksiBawah,
 }: Props) {
@@ -90,7 +97,7 @@ export default function KerangkaPonsel({
         <>
             <Head title={judul} />
 
-            <div className="min-h-screen bg-paper">
+            <div className={'min-h-screen bg-paper' + (gelap ? ' konsol-pengawas' : '')}>
                 <div className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col border-line bg-paper sm:border-x">
                     {bilah && (
                         <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur">

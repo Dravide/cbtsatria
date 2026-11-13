@@ -158,8 +158,9 @@ class KonteksRuang
         // dari fakta bahwa tautan ruang menunjuk satu ruang, dan tidak ada
         // bentuk data yang membuatnya menunjuk dua.
         if (self::tautanSesi() !== null) {
+            // capacity ikut dimuat - lihat catatan di `ruangTersedia()`.
             $ruang = ExamSessionRoom::query()
-                ->with(['session.exam.event', 'eventRoom.room:id,code,name,location'])
+                ->with(['session.exam.event', 'eventRoom.room:id,code,name,location,capacity'])
                 ->find($data['exam_session_room_id'] ?? null);
 
             return $ruang === null ? new Collection : new Collection([$ruang]);
@@ -171,9 +172,13 @@ class KonteksRuang
             return new Collection;
         }
 
+        // `capacity` ikut dimuat meski hanya dipakai lewat
+        // `kapasitasEfektif()`: kolom selektif yang kelewatan capacity membuat
+        // beranda pengawas membaca kapasitas nol - "38 / 0 kursi" - tanpa
+        // satu pun pemeriksaan yang melonot, karena null dikoers diam-diam.
         $query = ExamSessionRoom::query()->with([
             'session.exam.event',
-            'eventRoom.room:id,code,name,location',
+            'eventRoom.room:id,code,name,location,capacity',
         ]);
 
         if (! $pengguna->role->isAdmin()) {

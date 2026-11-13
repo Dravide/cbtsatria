@@ -131,6 +131,43 @@
 | membuatnya berubah sendiri mengikuti setelan ponsel anak, sehingga
 | separuh peserta melihat rangka yang berbeda dari separuh lainnya.
 */
+/*
+ * Konsol pengawas - pelat gelap, redesign 2026-11-13.
+ *
+ * Tema: pelat gelap proyek (--gelap-*, material sama dengan konsol siswa
+ * `.konsol-siswa`) - pengawas berdiri di ruang ujian memegang ponsel, dan
+ * pelat gelap tidak menyilaukan di bawah lampu ruang kelas.
+ * Ide: ruang yang sesinya BERJALAN memimpin halaman dengan bilah hidup dan
+ * angka peserta yang diset besar; ruang yang belum bisa dibuka menyebut
+ * alasannya sebagai kalimat.
+ *
+ * Berbeda dengan `.rangka-ujian` yang membungkus seluruh rute siswa, kelas
+ * ini hanya dipasang pada beranda pengawas lewat prop `gelap` di
+ * `KerangkaPonsel` - laman-laman pengawas lain (presensi, token, monitoring,
+ * berita acara) masih menyusul redesign masing-masing, dan memaksa semuanya
+ * gelap hari ini berarti meredesain yang belum diundang.
+ */
+.konsol-pengawas {
+    --color-paper: var(--gelap-paper);
+    --color-surface: var(--gelap-surface);
+    --color-surface-2: var(--gelap-surface-2);
+    --color-line: var(--gelap-line);
+    --color-ink: var(--gelap-ink);
+    --color-ink-2: var(--gelap-ink-2);
+    --color-ink-3: var(--gelap-ink-3);
+    --color-accent: var(--gelap-accent);
+    --color-accent-soft: var(--gelap-accent-soft);
+    --color-on-accent: var(--gelap-on-accent);
+    --color-ok: var(--gelap-ok);
+    --color-ok-bg: var(--gelap-ok-bg);
+    --color-warn: var(--gelap-warn);
+    --color-warn-bg: var(--gelap-warn-bg);
+    --color-bad: var(--gelap-bad);
+    --color-bad-bg: var(--gelap-bad-bg);
+    --color-info: var(--gelap-info);
+    --color-info-bg: var(--gelap-info-bg);
+}
+
 .rangka-ujian {
     --color-paper: var(--gelap-paper);
     --color-surface: var(--gelap-surface);
