@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import PemindaiQr, { bukaPengakuan } from '@/Components/PemindaiQr';
@@ -197,20 +197,43 @@ export default function Gerbang({
                 //
                 // Tombol MATI tetap ditampilkan saat belum boleh - plate 20 -
                 // jadi bilah ini selalu punya isi, tidak pernah kosong.
-                layak.boleh ? (
-                    <button
-                        type="submit"
-                        form="gerbang-mulai"
-                        disabled={form.processing || !ber_token}
-                        className="tombol tombol--pri w-full"
-                    >
-                        {labelTombol}
-                    </button>
-                ) : (
-                    <span className="tombol w-full" aria-disabled="true">
-                        Mulai ujian
-                    </span>
-                )
+                //
+                // -----------------------------------------------------------------
+                // Tautan kembali, dan mengapa ia WAJIB ada
+                // -----------------------------------------------------------------
+                // Sampai 2026-11-14 laman ini memakai `tanpaKeluar` tanpa
+                // tabbar, sehingga TIDAK ADA satu pun jalan pulang: bukan
+                // tautan keluar, bukan tab, bukan tombol kembali. Pada
+                // keadaan menunggu presensi itu masih bisa diterima - anaknya
+                // memang harus menunggu. Pada penolakan yang FINAL ia menjadi
+                // jebakan: sesi yang sudah berakhir meninggalkan seorang anak
+                // di depan tombol mati, di halaman tanpa jalan keluar, dan
+                // satu-satunya yang bisa ia lakukan adalah menutup peramban.
+                //
+                // Karena itu tautannya SELALU ada, apa pun keadaannya. Ia
+                // `w-full` di bawah tombol utama, bukan di sampingnya: pada
+                // ponsel 26rem dua kendali bersebelahan menyisakan 12rem
+                // untuk masing-masing, dan "Kembali ke jadwal" terpotong.
+                <div className="space-y-1.5">
+                    {layak.boleh ? (
+                        <button
+                            type="submit"
+                            form="gerbang-mulai"
+                            disabled={form.processing || !ber_token}
+                            className="tombol tombol--pri w-full"
+                        >
+                            {labelTombol}
+                        </button>
+                    ) : (
+                        <span className="tombol w-full" aria-disabled="true">
+                            Mulai ujian
+                        </span>
+                    )}
+
+                    <Link href="/siswa" className="tombol w-full">
+                        Kembali ke jadwal
+                    </Link>
+                </div>
             }
         >
             {layak.boleh ? (

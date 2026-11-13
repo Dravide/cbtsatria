@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import { Chip } from '@/Components/ui';
@@ -127,15 +127,44 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
                 // berjalan" di ujung isi laman hilang begitu anak menggulir
                 // riwayat kejadiannya, dan justru anak yang menggulir itulah
                 // yang sedang menghitung berapa lama ia boleh menunggu.
-                <div className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 text-[11px] leading-tight text-ink-3">
-                        {attempt.oleh_admin
-                            ? 'Menunggu Admin membuka penghentian'
-                            : 'Menunggu Pengawas membuka kunci'}
-                    </span>
-                    <span className="shrink-0 font-mono text-[12px] tabular-nums text-warn">
-                        {sisa > 0 ? formatSisa(sisa) : 'habis'}
-                    </span>
+                <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 text-[11px] leading-tight text-ink-3">
+                            {attempt.oleh_admin
+                                ? 'Menunggu Admin membuka penghentian'
+                                : 'Menunggu Pengawas membuka kunci'}
+                        </span>
+                        <span className="shrink-0 font-mono text-[12px] tabular-nums text-warn">
+                            {sisa > 0 ? formatSisa(sisa) : 'habis'}
+                        </span>
+                    </div>
+
+                    {/* Tautan pulang MUNCUL hanya setelah waktunya habis.
+                        Selama sisa masih ada, tidak ada yang perlu dicari di
+                        luar laman ini: pengawas yang akan datang ke kursi, dan
+                        anak yang berpindah tab justru kehilangan satu-satunya
+                        tempat yang memberitahunya kalau kuncinya dibuka.
+                        Sesudah waktunya habis, tidak ada lagi yang ditunggu -
+                        sisa itu terbaca "habis", dan laman ini berhenti
+                        menjadi jawaban atas apa pun. Tanpanya, anak terkunci
+                        pada sesi yang sudah berakhir tidak punya jalan keluar
+                        sama sekali: `tanpaKeluar` mematikan tautan keluar, dan
+                        laman ini tidak punya tabbar. */}
+                    {sisa <= 0 && (
+                        // Kelas TOKEN Tailwind, bukan `.tombol`: rangka ini
+                        // gelap (`.rangka-ujian`), dan `.tombol` hanya
+                        // didefinisikan di dalam `.konsol-siswa` - tautan
+                        // bergaya `.tombol` di sini akan tampil sebagai teks
+                        // biasa tanpa bingkai. Kelas yang dipakai halaman
+                        // gelap lain (`Kerjakan`) adalah `rounded-wf` + token
+                        // warna, dan itu yang dipakai di sini.
+                        <Link
+                            href="/siswa"
+                            className="block rounded-wf border border-accent bg-accent px-2 py-2 text-center text-xs font-medium text-on-accent"
+                        >
+                            Kembali ke jadwal
+                        </Link>
+                    )}
                 </div>
             }
         >

@@ -1041,3 +1041,65 @@ it('menampilkan laman terkunci hanya bagi attempt yang benar-benar terkunci', fu
             ->has('riwayat')
         );
 });
+
+/* =====================================================================
+ | Jalan pulang dari laman ujian - ditambahkan 2026-11-14
+ |===================================================================== */
+
+it('gerbang selalu menyediakan jalan pulang ke jadwal', function () {
+    // Sampai 2026-11-14 laman gerbang memakai `tanpaKeluar` TANPA tabbar,
+    // sehingga tidak ada satu pun jalan pulang. Pada keadaan "menunggu
+    // presensi" itu masih bisa diterima; pada sesi yang sudah berakhir ia
+    // menjadi jebakan - anak berdiri di depan tombol mati, di halaman tanpa
+    // jalan keluar, dan satu-satunya yang bisa ia lakukan adalah menutup
+    // peramban.
+    //
+    // Penjagaannya di server, bukan di peramban: yang dikirim laman adalah
+    // prop `layak`, dan tautannya dirender tanpa syarat apa pun. Test ini
+    // memeriksa komponennya benar-benar sampai ke layar lewat halaman yang
+    // bisa dibuka - bukan bahwa tombolnya "diharapkan ada".
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    // Belum dipresensi: keadaan penolakan yang paling umum, dan keadaan yang
+    // dulu paling lama membuat anak menunggu tanpa jalan keluar.
+    $halaman = masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/gerbang")
+        ->assertOk()
+        ->assertSee('/siswa', escape: false);
+
+    $props = $halaman->viewData('page')['props'];
+
+    expect($props['layak']['boleh'])->toBeFalse();
+
+    // Halaman jadwalnya sendiri hidup - tautan pulang yang menuju 404 sama
+    // saja dengan tidak ada tautan.
+    masukUji($this, $data['siswa'][0])->get('/siswa')->assertOk();
+});
+
+it('menampilkan sisa waktu di laman terkunci, dan tidak menyembunyikannya', function () {
+    // Alasan yang sama: laman terkunci memakai `tanpaKeluar` dan tidak punya
+    // tabbar. Selama sisa waktunya belum habis, menunggu memang pekerjaannya.
+    // Sesudah habis, laman itu berhenti menjadi jawaban atas apa pun - dan
+    // hanya tautan pulang yang tersisa.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/peserta/{$peserta->id}/hentikan", [
+            'pesan' => 'Panggil pengawas ke kursi 1.',
+        ])
+        ->assertSessionHas('sukses');
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/terkunci")
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    // Sisa waktu masih positif: waktunya memang masih berjalan, dan itulah
+    // yang ditunggu anaknya.
+    expect($props['attempt']['sisa_detik'])->toBeGreaterThan(0);
+});
