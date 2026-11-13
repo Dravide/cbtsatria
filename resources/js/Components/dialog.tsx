@@ -202,3 +202,43 @@ export async function tanyaTeks({
 
     return hasil.isConfirmed ? ((hasil.value as string | undefined) ?? '').trim() : null;
 }
+
+/**
+ * Pesan status sesudah aksi - pengganti kotak `UmpanBalik` yang menempel di
+ * dalam `<main>`.
+ *
+ * =====================================================================
+ * Mengapa toast, dan mengapa galatnya TIDAK menutup sendiri
+ * =====================================================================
+ * Kotak inline menempel di ATAS isi laman, sehingga setiap pesan menggeser
+ * seluruh baris kursi ke bawah - pada ponsel pengawas itu berarti daftar
+ * yang sedang ia kerjakan melompat tepat setelah ia menandai satu anak.
+ * Toast tidak menggeser apa pun.
+ *
+ * Yang harus tetap dipertahankan dari kotak lama: pesan SUKSES boleh memudar,
+ * pesan GALAT tidak. Pengawas berdiri di depan 32 siswa, teralihkan satu
+ * menit, lalu kembali ke layar bersih tanpa pernah tahu penandaannya gagal.
+ * Karena itu galatnya mendapat tombol tutup, bukan `timer`.
+ */
+export async function pesan(teks: string, jenis: 'sukses' | 'galat'): Promise<void> {
+    const sukses = jenis === 'sukses';
+
+    await Swal.fire({
+        toast: true,
+        position: 'top',
+        icon: sukses ? 'success' : 'error',
+        title: teks,
+        showConfirmButton: false,
+        showCloseButton: !sukses,
+        timer: sukses ? 4000 : undefined,
+        timerProgressBar: sukses,
+        // Toast tidak mengambil fokus dan tidak mengunci latar: pengawas
+        // harus tetap bisa menekan baris berikutnya selama pesannya tampil.
+        focusConfirm: false,
+        returnFocus: false,
+        customClass: {
+            ...kelasPopup('tanya'),
+            popup: `${KELAS.popup} swal-cbt--toast${sedangGelap() ? ' swal-cbt--gelap' : ''}`,
+        },
+    });
+}

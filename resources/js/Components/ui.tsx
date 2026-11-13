@@ -1,5 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { ReactNode, useEffect, useState } from 'react';
+import { pesan } from '@/Components/dialog';
 
 /**
  * Komponen bersama untuk delapan laman master data.
@@ -271,82 +272,63 @@ export function Peringatan({ children }: { children: ReactNode }) {
 /* ------------------------------------------------------------ UmpanBalik */
 
 /**
+ * Objek `flash` terakhir yang sudah ditampilkan, disimpan di LEVEL MODUL.
+ *
+ * Bukan `useRef` di dalam komponen: `UmpanBalik` ikut terpasang ulang setiap
+ * kali tata letak berpindah, dan ref yang lahir kembali dari `null` akan
+ * menampilkan ulang pesan yang sama pada setiap pemasangan - toast kembar
+ * untuk satu penyimpanan.
+ *
+ * Identitas objeknya yang dibandingkan, bukan teksnya. Dua penyimpanan
+ * berturut-turut boleh berbunyi sama persis ("Presensi tersimpan." dua kali)
+ * dan keduanya harus tampil; sementara SATU respons Inertia selalu membawa
+ * objek `flash` yang baru, sehingga identitasnya cukup untuk membedakan
+ * "pesan ini baru" dari "efek ini berjalan dua kali".
+ */
+let flashTerakhir: object | null = null;
+
+/**
  * Status singkat setelah aksi yang mengubah data - anatomi wireframe butir 7.
  *
- * Ia hilang sendiri setelah beberapa detik. Tidak ada lagi pengecualian untuk
- * kode pengawas: kode itu kini tersimpan terenkripsi dan SELALU tampil di
- * tabel laman Kepanitiaan, jadi pesan suksesnya boleh memudar seperti pesan
- * lain tanpa membuat Admin kehilangan kodenya.
+ * Tampil sebagai toast SweetAlert2 di atas layar, bukan kotak di dalam
+ * `<main>`. Alasannya menyangkut laman yang paling banyak memakainya: kotak
+ * inline menggeser seluruh isi ke bawah setiap kali muncul, sehingga daftar
+ * kursi yang sedang ditandai pengawas melompat tepat setelah ia menekan satu
+ * baris. Toast tidak menggeser apa pun - lihat `pesan()` di `dialog.tsx`.
+ *
+ * Sukses memudar sendiri, galat tidak: galat menjelaskan sesuatu yang TIDAK
+ * terjadi, dan pengawas yang teralihkan satu menit harus tetap bisa
+ * menemukannya saat kembali.
  */
 export function UmpanBalik() {
     const { flash } = usePage().props as unknown as {
-        flash: {
+        flash?: {
             sukses?: string;
             galat?: string;
         };
     };
 
-    const [tampil, setTampil] = useState(true);
-    const [tampilGalat, setTampilGalat] = useState(true);
-
     useEffect(() => {
-        setTampil(true);
-    }, [flash?.sukses]);
-
-    useEffect(() => {
-        if (!flash?.sukses) {
+        if (flash === undefined || flash === null || flashTerakhir === flash) {
             return;
         }
 
-        const t = setTimeout(() => setTampil(false), 6000);
+        const galat = flash.galat ?? null;
+        const sukses = flash.sukses ?? null;
 
-        return () => clearTimeout(t);
-    }, [flash?.sukses]);
+        if (galat === null && sukses === null) {
+            return;
+        }
 
-    // Galat TIDAK pernah hilang sendiri.
-    //
-    // Pesan sukses boleh memudar karena yang membacanya sudah tahu apa yang
-    // baru saja ia lakukan. Galat tidak: ia menjelaskan sesuatu yang TIDAK
-    // terjadi, dan pengawas yang sedang berdiri di depan 32 siswa bisa
-    // teralihkan satu menit lalu kembali ke layar yang sudah bersih tanpa
-    // pernah tahu bahwa penandaannya gagal.
-    useEffect(() => {
-        setTampilGalat(true);
-    }, [flash?.galat]);
+        flashTerakhir = flash;
 
-    return (
-        <>
-            {flash?.galat && tampilGalat && (
-                <div className="mb-4">
-                    <div className="flex items-start gap-2 rounded-wf border border-bad/25 bg-bad-bg px-3 py-2.5 text-xs leading-relaxed text-bad">
-                        <span>{flash.galat}</span>
-                        <button
-                            onClick={() => setTampilGalat(false)}
-                            className="ml-auto shrink-0 px-1 text-bad/60 hover:text-bad"
-                            aria-label="Tutup"
-                        >
-                            &#10005;
-                        </button>
-                    </div>
-                </div>
-            )}
+        // Galat didahulukan: bila keduanya datang, yang menjelaskan kegagalan
+        // adalah yang harus dibaca, dan dua toast bertumpuk membuat yang atas
+        // menutupi yang bawah.
+        void (galat === null ? pesan(sukses as string, 'sukses') : pesan(galat, 'galat'));
+    }, [flash]);
 
-            {flash?.sukses && tampil && (
-                <div className="mb-4">
-                    <div className="flex items-start gap-2 rounded-wf border border-ok/25 bg-ok-bg px-3 py-2.5 text-xs text-ok">
-                        <span>{flash.sukses}</span>
-                        <button
-                            onClick={() => setTampil(false)}
-                            className="ml-auto shrink-0 px-1 text-ok/60 hover:text-ok"
-                            aria-label="Tutup"
-                        >
-                            &#10005;
-                        </button>
-                    </div>
-                </div>
-            )}
-        </>
-    );
+    return null;
 }
 
 /**

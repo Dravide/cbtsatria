@@ -330,6 +330,96 @@
     --color-bad-bg: var(--gelap-bad-bg);
 }
 
+/*
+ * Toast - pesan status, bukan pertanyaan.
+ *
+ * SELURUH aturan di bawah memakai `.swal-cbt.swal-cbt--toast` (tiga kelas),
+ * bukan `.swal-cbt--toast` (dua). Itu bukan kerapian: SweetAlert2 menyuntik
+ * CSS-nya sendiri ke `<head>` saat modulnya dimuat - SESUDAH `app.css` - dan
+ * pada spesifisitas yang sama yang menang adalah yang belakangan. Aturan
+ * pustakanya untuk toast juga berkelas dua (`.swal2-toast .swal2-icon`),
+ * sehingga toast dengan dua kelas ini akan memakai ikon 2em bawaannya
+ * sekalipun baris kami ditulis sesudahnya di berkas sumber.
+ */
+body.swal2-shown.swal2-toast-shown .swal2-container {
+    /* Pustakanya mengunci `width: 360px`; pada ponsel 360px itu berarti
+       selebar layar tanpa tepi sama sekali. */
+    width: min(26rem, calc(100% - 1.5rem));
+    padding: 0.75rem;
+}
+
+.swal-cbt.swal-cbt--toast {
+    --swal2-toast-border: 1px solid var(--color-line);
+    --swal2-toast-box-shadow: var(--shadow-wf);
+    /* Batang sisa waktunya memakai warna status, bukan hitam tembus. */
+    --swal2-timer-progress-bar-background: color-mix(in srgb, var(--color-ok) 55%, transparent);
+
+    padding: 0.6rem 0.85rem;
+    font-family: var(--font-sans);
+}
+
+.swal-cbt.swal-cbt--toast .swal2-icon {
+    width: 1.25em;
+    min-width: 1.25em;
+    height: 1.25em;
+    margin: 0 0.5em 0 0;
+    border-width: 0.14em;
+    align-self: flex-start;
+}
+
+.swal-cbt.swal-cbt--toast .swal2-icon .swal2-icon-content {
+    font-size: 1.1em;
+    line-height: 1;
+}
+
+.swal-cbt.swal-cbt--toast .swal-cbt-judul {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 0.76rem;
+    font-weight: 400;
+    line-height: 1.45;
+    /* Pesan galat kadang membawa nama berkas atau kode yang panjang dan
+       tidak boleh dipotong menjadi elipsis. */
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.swal-cbt.swal-cbt--toast .swal2-close {
+    font-size: 1.4em;
+    color: var(--color-ink-3);
+}
+
+.swal-cbt.swal-cbt--toast .swal2-close:hover {
+    color: var(--color-ink);
+}
+
+/* Ikon status memakai warna status aplikasi, bukan hijau/merah bawaan. */
+.swal-cbt.swal-cbt--toast .swal2-icon.swal2-success {
+    border-color: var(--color-ok);
+    color: var(--color-ok);
+}
+
+.swal-cbt.swal-cbt--toast .swal2-icon.swal2-error {
+    border-color: var(--color-bad);
+    color: var(--color-bad);
+}
+
+.swal-cbt.swal-cbt--toast .swal2-icon.swal2-success .swal2-success-ring {
+    border-color: color-mix(in srgb, var(--color-ok) 30%, transparent);
+}
+
+.swal-cbt.swal-cbt--toast .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+    background-color: var(--color-bad);
+}
+
+.swal-cbt--toast .swal2-icon.swal2-success .swal2-success-ring {
+    border-color: color-mix(in srgb, var(--color-ok) 30%, transparent);
+}
+
+.swal-cbt--toast .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+    background-color: var(--color-bad);
+}
+
 .swal-cbt .swal-cbt-input {
     /* 44px: kolomnya diketuk dengan ibu jari, dan dialognya sering muncul
        pada ponsel pengawas di depan pintu ruang. */
