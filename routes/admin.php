@@ -3,6 +3,8 @@
 use App\Domain\Admin\Http\Controllers\AcademicYearController;
 use App\Domain\Admin\Http\Controllers\ActivityLogController;
 use App\Domain\Admin\Http\Controllers\DashboardController;
+use App\Domain\Admin\Http\Controllers\IdentitasAplikasiController;
+use App\Domain\Admin\Http\Controllers\KartuAkunController;
 use App\Domain\Admin\Http\Controllers\MasterImportController;
 use App\Domain\Admin\Http\Controllers\PengaturanAiController;
 use App\Domain\Admin\Http\Controllers\RoomController;
@@ -88,6 +90,27 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // 24 - log aktivitas. Hanya baca; tidak ada route hapus, selamanya.
     Route::get('/log', [ActivityLogController::class, 'index'])->name('log');
 
+    /*
+    |----------------------------------------------------------------------
+    | 04b - identitas aplikasi: nama, deskripsi, warna, ikon
+    |----------------------------------------------------------------------
+    | Dua rute ikon didaftarkan SEBELUM `{jenis}`, dengan alasan yang sama
+    | seperti blok ruang: segmen statis yang didaftarkan belakangan akan
+    | dicoba sebagai `{jenis}` lebih dulu dan menerima 404 dari `abort_unless`
+    | di controller - bukan halaman yang dimaksud.
+    |
+    | `PUT /sekolah` di atas tidak membayangi apa pun di sini: metodenya
+    | berbeda, dan `/sekolah/identitas` hanya punya GET dan PUT.
+    */
+    Route::get('/sekolah/identitas', [IdentitasAplikasiController::class, 'edit'])->name('sekolah.identitas');
+    Route::put('/sekolah/identitas', [IdentitasAplikasiController::class, 'update']);
+    Route::post('/sekolah/identitas/ikon/{jenis}', [IdentitasAplikasiController::class, 'unggahIkon'])
+        ->whereIn('jenis', ['favicon', 'ikon', 'apple'])
+        ->name('sekolah.identitas.ikon');
+    Route::delete('/sekolah/identitas/ikon/{jenis}', [IdentitasAplikasiController::class, 'hapusIkon'])
+        ->whereIn('jenis', ['favicon', 'ikon', 'apple'])
+        ->name('sekolah.identitas.ikon.hapus');
+
     // 05 - pengguna
     Route::get('/pengguna', [UserController::class, 'index'])->name('pengguna');
     Route::post('/pengguna', [UserController::class, 'store']);
@@ -97,6 +120,15 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // langsung mengunci siswa pada hari ujian. Lihat docblock methodnya.
     Route::put('/pengguna/{pengguna}/username', [UserController::class, 'gantiUsername'])
         ->name('pengguna.username');
+    // Kartu akun guru. Segmen statis, jadi ia tidak membayangi
+    // `PUT /pengguna/{pengguna}` di atas (metodenya `GET`, dan tidak ada
+    // `GET /pengguna/{pengguna}` sama sekali).
+    //
+    // Satu id menghasilkan satu PDF, banyak id menghasilkan ZIP - lihat
+    // docblock `KartuAkunController`. Idnya lewat query, bukan segmen,
+    // karena jumlahnya bisa ratusan dan URL yang memuat ratusan id tidak
+    // bisa dipakai ulang untuk daftar yang lain.
+    Route::get('/pengguna/kartu', [KartuAkunController::class, 'unduh'])->name('pengguna.kartu');
     Route::post('/pengguna/massal', [UserController::class, 'massal'])->name('pengguna.massal');
     Route::post('/pengguna/reset-password', [UserController::class, 'resetPassword'])
         ->name('pengguna.reset');

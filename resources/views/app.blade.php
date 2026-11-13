@@ -1,9 +1,23 @@
+@php
+    /*
+     | Identitas milik SEKOLAH, bukan nama produk.
+     |
+     | Dibaca dari `schools.branding` lewat `IdentitasAplikasi` - kelas yang
+     | sama juga dipakai endpoint manifest. Bawaannya berkas statis di
+     | `public/`, sehingga sekolah yang belum pernah membuka tab Identitas
+     | mendapat ikon yang sah, bukan tag yang menunjuk null.
+     |
+     | `noindex` TIDAK ikut diatur di sini dan tidak bisa diubah dari Admin:
+     | halaman ini memuat nilai, presensi, dan jawaban ujian siswa.
+     */
+    $identitas = \App\Domain\Tenancy\Support\IdentitasAplikasi::nilai();
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title inertia>{{ config('app.name') }}</title>
+    <title inertia>{{ $identitas['nama'] }}</title>
 
     {{-- Identitas untuk mesin pencari dan untuk layar beranda.
          `noindex` dipasang di SETIAP halaman, bukan hanya lewat
@@ -13,26 +27,20 @@
          yang dibuka lewat tautan ruang - dan itu yang membuat halaman di
          balik login tidak pernah masuk indeks meski tautannya tersebar. --}}
     <meta name="robots" content="noindex, nofollow, noarchive">
-    <meta
-        name="description"
-        content="{{ config('app.name') }} - computer based test untuk ujian sekolah: Admin, Guru, Pengawas, dan Siswa dalam satu aplikasi."
-    >
-    <meta name="theme-color" content="#1e4fa3">
+    <meta name="description" content="{{ $identitas['deskripsi'] }}">
+    <meta name="theme-color" content="{{ $identitas['warna'] }}">
     <meta name="color-scheme" content="light dark">
-    <meta name="application-name" content="{{ config('app.name') }}">
+    <meta name="application-name" content="{{ $identitas['nama'] }}">
 
     {{-- Pratinjau tautan - WhatsApp dan grup sekolah adalah jalur berbagi
          tautan yang sebenarnya dipakai, dan tautan tanpa pratinjau terbaca
          sebagai tautan mencurigakan. Judulnya TIDAK diisi per halaman:
          `@inertiaHead` di bawah yang menimpanya dengan judul halaman, dan
          dua tag og:title akan membuat perayap memilih yang salah. --}}
-    <meta property="og:site_name" content="{{ config('app.name') }}">
+    <meta property="og:site_name" content="{{ $identitas['nama'] }}">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="{{ config('app.name') }}">
-    <meta
-        property="og:description"
-        content="Computer based test untuk ujian sekolah: Admin, Guru, Pengawas, dan Siswa dalam satu aplikasi."
-    >
+    <meta property="og:title" content="{{ $identitas['nama'] }}">
+    <meta property="og:description" content="{{ $identitas['deskripsi'] }}">
     <meta property="og:image" content="{{ asset('icon-512.png') }}">
     <meta name="twitter:card" content="summary">
 
@@ -41,11 +49,23 @@
          yang TIDAK membaca manifest), dan Android/desktop (manifest 192/512).
          Tanpa berkas ini peramban meminta /favicon.ico dan menerima 404,
          lalu menampilkan ikon kosong di tab - satu-satunya penanda sekolah
-         yang terlihat saat Admin membuka dua puluh tab. --}}
-    <link rel="icon" href="/favicon.ico" sizes="32x32">
+         yang terlihat saat Admin membuka dua puluh tab.
+
+         Tiga baris pertama bisa diganti Admin lewat tab Identitas; dua
+         terakhir tetap menunjuk berkas statis, karena peramban memilih
+         ukuran sendiri dari daftar `icon` dan ikon 16px yang dipaksa dari
+         unggahan 512px tampil buram. --}}
+    @if ($identitas['favicon'] !== null)
+        <link rel="icon" href="{{ $identitas['favicon'] }}">
+    @else
+        <link rel="icon" href="/favicon.ico" sizes="32x32">
+    @endif
+    @if ($identitas['favicon_png'] !== null)
+        <link rel="icon" href="{{ $identitas['favicon_png'] }}" type="image/png" sizes="32x32">
+    @endif
     <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16">
     <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+    <link rel="apple-touch-icon" href="{{ $identitas['apple'] }}">
     <link rel="manifest" href="/site.webmanifest">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">

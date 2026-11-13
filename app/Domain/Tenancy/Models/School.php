@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Model;
     'name',
     'npsn',
     'logo_path',
+    'branding',
     'address',
     'email',
     'phone',
@@ -43,6 +44,7 @@ class School extends Model
     {
         return [
             'settings' => 'array',
+            'branding' => 'array',
         ];
     }
 

@@ -4,6 +4,7 @@ use App\Domain\Attendance\Http\Controllers\PintuRuangController;
 use App\Domain\Attendance\Http\Controllers\Siswa\HadirSiswaController;
 use App\Domain\Identity\Http\Controllers\Auth\LoginController;
 use App\Domain\Identity\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\IdentitasController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,6 +35,21 @@ use Illuminate\Support\Facades\Route;
 | `php artisan route:list` tetap membacanya sebagai satu daftar: pemecahan
 | berkas tidak mengubah alamat mana pun.
 */
+
+/*
+|--------------------------------------------------------------------------
+| Manifest aplikasi
+|--------------------------------------------------------------------------
+| Alamatnya SAMA dengan berkas statis yang dulu ada di `public/`, sehingga
+| tag `<link rel="manifest">` tidak berubah dan peramban yang sudah memasang
+| versi lama tetap menemukan berkasnya.
+|
+| Tanpa `auth`, dan itu wajib: manifest dibaca peramban SEBELUM siapa pun
+| masuk, dan permintaan yang dialihkan ke `/login` diterima sebagai manifest
+| yang rusak - lalu ikon layar beranda tidak pernah terpasang.
+*/
+Route::get('/site.webmanifest', [IdentitasController::class, 'manifest'])
+    ->name('manifest');
 
 /*
 |--------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { router, useForm } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
+import PemindaiQr, { bukaPengakuan } from '@/Components/PemindaiQr';
 import { Field, kelasInput } from '@/Components/ui';
 import * as layar from '@/Components/layar';
 
@@ -297,6 +298,24 @@ function BelumBoleh({
                         ditekan. */}
 
                     {petunjuk && <p className="text-[12px] leading-relaxed text-ink-2">{petunjuk}</p>}
+
+                    {/* Pemindai berdiri DI SINI, di bawah kalimat yang
+                        menyuruh menghubungi pengawas - dan hanya saat yang
+                        kurang memang presensi.
+
+                        Tanpa ini siswa yang belum dipresensi hanya punya dua
+                        jalan: berjalan ke pengawas, atau memindai QR dengan
+                        kamera bawaan ponsel - yang membuka `/hadir/{kode}` di
+                        peramban LAIN, dan di ponsel yang belum punya sesi
+                        hasilnya adalah layar login yang terbaca sebagai
+                        "akun saya rusak".
+
+                        Tombolnya tetap ADA walau perambannya tidak punya
+                        pembaca QR: di dalamnya ada kolom untuk mengetik kode
+                        yang tertulis di layar pengawas. */}
+                    {menungguPresensi && (
+                        <PemindaiQr padaKode={bukaPengakuan} />
+                    )}
 
                     {menungguPresensi && (
                         <p className="catatan">Halaman ini menyegar sendiri setiap 15 detik</p>

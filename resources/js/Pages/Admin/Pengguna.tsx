@@ -147,6 +147,44 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
         setPilih([]);
     };
 
+    /*
+     * Kartu akun hanya untuk GURU - tab ini juga menampilkan siswa dan
+     * pengawas, dan kartu akun siswa dicetak per kelas dari laman lain.
+     * Server menyaring rolenya juga; tombol ini menyembunyikannya supaya
+     * Admin tidak menekan tombol yang pasti ditolak.
+     */
+    const adaKartu = tab === 'teacher';
+
+    /**
+     * Cetak kartu satu guru, atau semua yang dicentang.
+     *
+     * Unduhan lewat `<a>`/navigasi, bukan `router.get`: berkasnya bukan
+     * laman Inertia, dan respons PDF/ZIP tidak bisa diurai sebagai props.
+     * Karena itu alamatnya disusun lalu dibuka di tab baru - pola yang sama
+     * dengan tombol ekspor berkas di laman lain.
+     */
+    const cetakKartu = (id?: number[]) => {
+        const parameter = new URLSearchParams();
+
+        if (id && id.length > 0) {
+            id.forEach((satu) => parameter.append('guru[]', String(satu)));
+        } else {
+            // Seluruh hasil saringan, bukan satu halaman: Admin yang mencari
+            // "budi" lalu menekan "Semua kartu" mengharapkan semua yang
+            // cocok, bukan lima puluh baris pertama.
+            parameter.set('semua', '1');
+
+            if (filter.cari) {
+                parameter.set('cari', filter.cari);
+            }
+            if (filter.status) {
+                parameter.set('status', filter.status);
+            }
+        }
+
+        window.open(`/admin/pengguna/kartu?${parameter.toString()}`, '_blank', 'noopener');
+    };
+
     return (
         <AdminLayout
             judul="Pengguna"
@@ -155,6 +193,14 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                 <>
                     <Tombol onClick={() => router.visit('/admin/pengguna/impor')}>Impor</Tombol>
                     <Tombol onClick={() => setEksporTerbuka(true)}>Ekspor</Tombol>
+                    {adaKartu && (
+                        <Tombol
+                            onClick={() => cetakKartu()}
+                            title="Kartu akun seluruh guru pada penyaring ini - satu PDF per guru, dibungkus ZIP"
+                        >
+                            Kartu akun
+                        </Tombol>
+                    )}
                     <Tombol nada="pri" onClick={() => setTambah(true)}>
                         Tambah
                     </Tombol>
@@ -206,8 +252,16 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                     <Tombol onClick={f.reset}>Reset</Tombol>
 
                     {pilih.length > 0 && (
-                        <span className="ml-auto flex items-center gap-2">
+                        <span className="ml-auto flex flex-wrap items-center gap-2">
                             <span className="text-xs text-ink-3">{pilih.length} terpilih</span>
+                            {adaKartu && (
+                                <Tombol
+                                    onClick={() => cetakKartu(pilih)}
+                                    title="Cetak kartu akun untuk baris yang dicentang"
+                                >
+                                    Kartu terpilih
+                                </Tombol>
+                            )}
                             <Tombol onClick={() => aksiMassal('nonaktifkan')}>
                                 Nonaktifkan terpilih
                             </Tombol>
@@ -282,9 +336,22 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                     },
                     {
                         judul: '',
-                        kelas: 'w-32 text-right',
+                        // Lebar kolom aksi mengikuti jumlah tautannya: tab
+                        // Guru punya tiga (Kartu, Username, Ubah), tab lain
+                        // dua. `w-32` membuat tiga tautan berdesakan di tab
+                        // Guru dan terlipat menjadi dua baris.
+                        kelas: adaKartu ? 'w-40 text-right' : 'w-32 text-right',
                         render: (b) => (
                             <span className="flex justify-end gap-3">
+                                {adaKartu && (
+                                    <button
+                                        onClick={() => cetakKartu([b.id])}
+                                        className="text-xs text-accent hover:underline"
+                                        title={`Cetak kartu akun ${b.nama}`}
+                                    >
+                                        Kartu
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => setGantiUsername(b)}
                                     className="text-xs text-accent hover:underline"

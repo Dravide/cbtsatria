@@ -39,6 +39,11 @@ type Props = {
 const MASTER: ItemNav[] = [
     { label: 'Dashboard', href: '/admin', awalan: false, ikon: 'dashboard' },
     { label: 'Profil sekolah', href: '/admin/sekolah', awalan: false, ikon: 'sekolah' },
+    // Identitas aplikasi - nama situs, deskripsi, warna tema, dan ikon.
+    // Laman tersendiri, bukan tab di Profil sekolah: nilai di sini dipakai
+    // manifest dan `<head>` SETIAP halaman, sementara profil sekolah dibaca
+    // kop berita acara dan laporan. Dua pembaca berbeda, dua laman.
+    { label: 'Identitas aplikasi', href: '/admin/sekolah/identitas', awalan: false, ikon: 'pengaturan' },
     { label: 'Tahun ajaran', href: '/admin/tahun-ajaran', awalan: false, ikon: 'kalender' },
     { label: 'Kelas', href: '/admin/kelas', awalan: false, ikon: 'kelas' },
     { label: 'Mata pelajaran', href: '/admin/mapel', awalan: false, ikon: 'buku' },
