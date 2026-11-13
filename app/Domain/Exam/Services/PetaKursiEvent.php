@@ -635,15 +635,19 @@ final class PetaKursiEvent
             return $this->susunan[$event->id];
         }
 
-        $benih = ExamEventShuffle::query()
+        $tersimpan = ExamEventShuffle::query()
             ->where('event_id', $event->id)
-            ->value('seed');
+            ->first(['seed', 'mode']);
 
         $peta = null;
 
-        if ($benih !== null && $benih !== '') {
+        if ($tersimpan !== null && $tersimpan->seed !== '') {
             try {
-                $peta = $this->kocok->susun($event, $benih)['per_ruang'];
+                // MODE ikut dikirim, bukan dibiarkan memakai bawaan. Denah
+                // yang menghitung ulang dengan mode berbeda dari yang
+                // disebar menaruh anak di kursi orang lain - dan itu baru
+                // ketahuan setelah kertasnya ditempel di pintu.
+                $peta = $this->kocok->susun($event, $tersimpan->seed, $tersimpan->mode)['per_ruang'];
             } catch (\DomainException) {
                 // Event tanpa ruang aktif tidak punya peta untuk dihitung.
                 // Melemparnya dari sini akan merusak denah event yang baru

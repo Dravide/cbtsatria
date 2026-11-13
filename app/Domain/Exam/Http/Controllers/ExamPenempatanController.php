@@ -6,6 +6,7 @@ use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Event\Models\EventParticipant;
 use App\Domain\Event\Models\EventRoom;
 use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Exam\Enums\ModePenempatan;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Services\DenahRuang;
 use App\Domain\Exam\Services\PapanKursi;
@@ -86,7 +87,17 @@ class ExamPenempatanController
         // dilihatnya barusan.
         $benih = $tersimpan?->seed ?? $kocok->benihBaru();
 
-        $susunan = $this->cobaSusun($kocok, $event, $benih);
+        // Mode mengikuti aturan yang sama dengan benih: kocokan yang sudah
+        // tersimpan memakai modenya sendiri, dan kocokan baru memakai yang
+        // dipilih di layar (`?mode=`). Tanpa ini, membuka laman ini pada event
+        // yang sudah disebar dengan mode `kelas` akan menampilkan pratinjau
+        // `campur` - dan Admin melihat susunan yang tidak akan pernah
+        // disebar.
+        $mode = $tersimpan?->mode
+            ?? ModePenempatan::tryFrom((string) $request->query('mode', ''))
+            ?? ModePenempatan::Campur;
+
+        $susunan = $this->cobaSusun($kocok, $event, $benih, $mode);
         $perRuang = $susunan['per_ruang'] ?? [];
 
         // Tidak ada `?sesi=` di laman ini, dan itu yang berubah 2026-11-09.
@@ -115,6 +126,9 @@ class ExamPenempatanController
             ],
             'laman' => [
                 'benih' => $benih,
+                'mode' => $mode->value,
+                'mode_label' => $mode->label(),
+                'mode_pilihan' => ModePenempatan::options(),
                 'terkunci' => $tersimpan !== null,
                 'dikocok_pada' => $tersimpan?->shuffled_at?->format('d M Y H:i'),
                 'dikocok_oleh' => $tersimpan?->oleh?->name,
@@ -123,6 +137,12 @@ class ExamPenempatanController
                 'kurang' => $susunan['kurang'] ?? 0,
                 'ruang' => count($perRuang),
                 'seisi_satu_kelas' => count($susunan['seisi_satu_kelas'] ?? []),
+                // Hanya mode `kelas` yang punya temuan ini: di mode `campur`
+                // kelas yang terbagi ke beberapa ruang adalah KEADAAN YANG
+                // DIINGINKAN, dan melaporkannya sebagai temuan akan membalik
+                // arti seluruh laman.
+                'kelas_terbelah' => $susunan['kelas_terbelah'] ?? [],
+                'rincian_kelas' => $susunan['rincian_kelas'] ?? [],
                 'pesan' => $susunan['pesan'] ?? null,
                 'bisa_sebar' => $this->bisaSebar($susunan, $baris),
             ],
@@ -162,6 +182,7 @@ class ExamPenempatanController
 
         $data = $request->validate([
             'benih' => ['nullable', 'string', 'max:32'],
+            'mode' => ['nullable', 'string', 'in:'.implode(',', array_column(ModePenempatan::cases(), 'value'))],
         ]);
 
         try {
@@ -172,6 +193,10 @@ class ExamPenempatanController
                 // bukan supaya ia membuat benih baru.
                 $data['benih'] ?? null,
                 (int) $request->user()->id,
+                // Sama untuk mode: `null` berarti "pakai mode kocokan yang
+                // sudah tersimpan". Mengirim bawaan di sini akan mengubah
+                // susunan diam-diam setiap kali Admin menekan Sebar ulang.
+                isset($data['mode']) ? ModePenempatan::from($data['mode']) : null,
             );
         } catch (DomainException $e) {
             return back()->with('galat', $e->getMessage());
@@ -181,12 +206,13 @@ class ExamPenempatanController
             'peserta' => $hasil['peserta'],
             'sesi' => $hasil['sesi'],
             'benih' => $hasil['benih'],
+            'mode' => $hasil['mode']->value,
         ]);
 
         return back()->with(
             'sukses',
             "{$hasil['peserta']} peserta disebar ke ruang seluruh event, berlaku untuk ".
-            "{$hasil['sesi']} sesi (kocokan #{$hasil['benih']}).",
+            "{$hasil['sesi']} sesi (kocokan #{$hasil['benih']}, mode {$hasil['mode']->label()}).",
         );
     }
 
@@ -206,15 +232,25 @@ class ExamPenempatanController
     ): RedirectResponse {
         Gate::authorize('update', $event);
 
+        $data = $request->validate([
+            'mode' => ['nullable', 'string', 'in:'.implode(',', array_column(ModePenempatan::cases(), 'value'))],
+        ]);
+
         try {
             // Benih BARU dikirim eksplisit. Tanpa itu, methodnya akan memakai
             // benih yang sudah tersimpan - dan "kocok ulang" yang memakai benih
             // lama adalah tombol yang tidak melakukan apa pun sambil
             // menjanjikan sebaliknya.
+            //
+            // Mode IKUT dikirim: kocok ulang adalah satu-satunya jalan berpindah
+            // mode pada event yang sudah disebar, dan tanpa ini Admin harus
+            // menghapus kocokannya lebih dulu - operasi yang tidak ada di layar
+            // mana pun.
             $hasil = $kocok->sebarEvent(
                 $event,
                 $kocok->benihBaru(),
                 (int) $request->user()->id,
+                isset($data['mode']) ? ModePenempatan::from($data['mode']) : null,
             );
         } catch (DomainException $e) {
             return back()->with('galat', $e->getMessage());
@@ -223,12 +259,13 @@ class ExamPenempatanController
         $logger->log('Mengocok ulang penempatan', $event, [
             'peserta' => $hasil['peserta'],
             'benih' => $hasil['benih'],
+            'mode' => $hasil['mode']->value,
         ]);
 
         return back()->with(
             'sukses',
-            "Penempatan seluruh event dikocok ulang (kocokan #{$hasil['benih']}). ".
-            'Daftar ruang yang sudah dicetak tidak berlaku lagi.',
+            "Penempatan seluruh event dikocok ulang dengan mode {$hasil['mode']->label()} ".
+            "(kocokan #{$hasil['benih']}). Daftar ruang yang sudah dicetak tidak berlaku lagi.",
         );
     }
 
@@ -280,7 +317,11 @@ class ExamPenempatanController
         $penempatan->tarikPeserta($ujian);
 
         try {
-            $susunan = $kocok->susun($event, $data['benih'] ?? null);
+            $susunan = $kocok->susun(
+                $event,
+                $data['benih'] ?? null,
+                $tersimpanMode = ($kocok->benihTersimpan($event)?->mode ?? ModePenempatan::Campur),
+            );
         } catch (DomainException $e) {
             return back()->with('galat', $e->getMessage());
         }
@@ -580,10 +621,10 @@ class ExamPenempatanController
      *
      * @return array<string, mixed>
      */
-    private function cobaSusun(PenempatanKocok $kocok, SchoolEvent $event, string $benih): array
+    private function cobaSusun(PenempatanKocok $kocok, SchoolEvent $event, string $benih, ModePenempatan $mode): array
     {
         try {
-            return $kocok->susun($event, $benih);
+            return $kocok->susun($event, $benih, $mode);
         } catch (DomainException $e) {
             return ['pesan' => $e->getMessage()];
         }

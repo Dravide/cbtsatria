@@ -91,6 +91,9 @@ type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     laman: {
         benih: string;
+        mode: string;
+        mode_label: string;
+        mode_pilihan: Record<string, string>;
         terkunci: boolean;
         dikocok_pada: string | null;
         dikocok_oleh: string | null;
@@ -99,6 +102,9 @@ type Props = {
         kurang: number;
         ruang: number;
         seisi_satu_kelas: number;
+        /** Hanya diisi mode `kelas` - kelas yang terbagi ke beberapa ruang. */
+        kelas_terbelah: string[];
+        rincian_kelas: { nama: string; jumlah: number; ruang: string[] }[];
         /** Ada bila eventnya belum punya ruang sama sekali. */
         pesan: string | null;
         bisa_sebar: boolean;
@@ -122,6 +128,26 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
     // yang sudah dicetak untuk SETIAP mapel, dan yang membatalkannya harus
     // berupa keputusan yang terlihat.
     const [konfirmasi, setKonfirmasi] = useState(false);
+
+    // Mode yang sedang dipilih di layar. Bisa berbeda dari `laman.mode` pada
+    // event yang BELUM disebar: itulah pratinjaunya. Sesudah disebar, mode
+    // terkunci bersama benihnya - mengubahnya di sini hanya akan menampilkan
+    // susunan yang tidak akan pernah tersimpan.
+    const [mode, setMode] = useState(laman.mode);
+
+    const gantiMode = (nilai: string) => {
+        setMode(nilai);
+
+        // Pratinjau dihitung SERVER dari benih dan mode - React tidak
+        // menghitungnya sendiri. Kalau ia menghitung sendiri, layar dan hasil
+        // sebar bisa berbeda dari masukan yang sama, dan yang salah baru
+        // ketahuan saat siswa berdiri di depan pintu.
+        router.get(
+            jalur + '/penempatan',
+            { mode: nilai },
+            { preserveScroll: true, preserveState: false, replace: true, only: ['laman', 'pratinjau', 'baris', 'angka'] },
+        );
+    };
 
     const bermasalah = baris.filter((b) => !b.bisa);
 
@@ -174,12 +200,25 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                     nada={laman.kurang > 0 ? 'bad' : undefined}
                     catatan={laman.kurang > 0 ? `kurang ${laman.kurang} kursi` : `${laman.ruang} ruang`}
                 />
-                <KPI
-                    label="Seisi satu kelas"
-                    nilai={laman.seisi_satu_kelas}
-                    nada={laman.seisi_satu_kelas > 0 ? 'warn' : 'ok'}
-                    catatan="ruang yang seluruh pesertanya sekelas"
-                />
+                {mode === 'kelas' ? (
+                    <KPI
+                        label="Kelas terbelah"
+                        nilai={laman.kelas_terbelah.length}
+                        nada={laman.kelas_terbelah.length > 0 ? 'warn' : 'ok'}
+                        catatan={
+                            laman.kelas_terbelah.length > 0
+                                ? 'kelas yang terbagi ke dua ruang atau lebih'
+                                : 'setiap kelas utuh di satu ruang'
+                        }
+                    />
+                ) : (
+                    <KPI
+                        label="Seisi satu kelas"
+                        nilai={laman.seisi_satu_kelas}
+                        nada={laman.seisi_satu_kelas > 0 ? 'warn' : 'ok'}
+                        catatan="ruang yang seluruh pesertanya sekelas"
+                    />
+                )}
                 <KPI
                     label="Belum ketempatan"
                     nilai={angka.belum_ditempatkan}
@@ -239,13 +278,57 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                                 ? 'Sebar kocokan ini ke seluruh sesi'
                                                 : 'Belum bisa disebar - lihat daftar sesi di bawah'
                                         }
-                                        onClick={() => sebar(jalur, laman.benih)}
+                                        onClick={() => sebar(jalur, laman.benih, mode)}
                                     >
                                         {laman.terkunci ? 'Sebar ulang' : 'Sebar peserta'}
                                     </Tombol>
                                 </>
                             }
                         >
+                            {/* Pemilih mode berdiri DI DALAM kotak pratinjau,
+                                bukan di bar atas: yang ia ubah adalah susunan
+                                yang sedang digambar tepat di bawahnya, dan
+                                pilihan yang terpisah dari akibatnya adalah
+                                pilihan yang ditekan tanpa dilihat.
+
+                                Terkunci bersama benihnya: mengubah mode pada
+                                kocokan yang sudah disebar berarti memindahkan
+                                seluruh siswa, dan itu pekerjaan tombol "Kocok
+                                ulang" - satu tombol, satu niat. */}
+                            <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-line pb-3">
+                                <span className="text-[11px] text-ink-3">Susunan</span>
+
+                                <div className="flex overflow-hidden rounded-wf border border-line">
+                                    {Object.entries(laman.mode_pilihan).map(([nilai, label]) => (
+                                        <button
+                                            key={nilai}
+                                            type="button"
+                                            disabled={laman.terkunci}
+                                            title={
+                                                laman.terkunci
+                                                    ? 'Kocokan sudah disebar - pakai "Kocok ulang" untuk mengganti susunannya'
+                                                    : undefined
+                                            }
+                                            onClick={() => gantiMode(nilai)}
+                                            className={
+                                                'px-2.5 py-1 text-[11px] font-medium transition-colors ' +
+                                                (mode === nilai
+                                                    ? 'bg-accent text-on-accent'
+                                                    : 'bg-surface text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:text-ink-3/50')
+                                            }
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <span className="text-[11px] leading-snug text-ink-3">
+                                    {mode === 'kelas'
+                                        ? 'Kelas berurutan ke ruang berurutan - kelas terbesar mendapat ruang pertama.'
+                                        : 'Satu dari tiap kelas bergiliran, sehingga setiap ruang berisi campuran.'}
+                                </span>
+                            </div>
+
                             <div className="mb-3 flex flex-wrap gap-2">
                                 {pratinjau.ruang.map((r) => (
                                     <span
@@ -259,6 +342,44 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                             </div>
 
                             <RincianRuang ruang={pratinjau.ruang} />
+
+                            {/* Rincian kelas hanya berguna di mode `kelas`:
+                                di mode `campur` setiap kelas memang tersebar,
+                                dan daftar "9K: R-01, R-02, R-03" hanya
+                                mengulang apa yang sudah terbaca dari daftar
+                                ruang di atas. */}
+                            {mode === 'kelas' && laman.rincian_kelas.length > 0 && (
+                                <div className="mt-3 rounded-wf border border-line">
+                                    <header className="border-b border-line px-2.5 py-1.5">
+                                        <h3 className="text-[11px] font-medium text-ink">
+                                            Kelas dan ruangnya
+                                        </h3>
+                                    </header>
+                                    <div className="divide-y divide-line/60">
+                                        {laman.rincian_kelas.map((k) => (
+                                            <div
+                                                key={k.nama}
+                                                className="flex flex-wrap items-baseline gap-2 px-2.5 py-1.5 text-[11px]"
+                                            >
+                                                <b className="font-mono text-ink">{k.nama}</b>
+                                                <span className="text-ink-3">{k.jumlah} siswa</span>
+                                                <span className="ml-auto font-mono text-ink-2">
+                                                    {k.ruang.join(' · ')}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {mode === 'kelas' && laman.kelas_terbelah.length > 0 && (
+                                <p className="mt-2 text-[11px] leading-relaxed text-warn">
+                                    {laman.kelas_terbelah.join('; ')}. Kelas yang lebih besar
+                                    daripada satu ruang memang harus memakai dua ruang - bukan
+                                    kesalahan, tetapi pengawas ruang kedua perlu lembar absen yang
+                                    memuat dua kelas.
+                                </p>
+                            )}
 
                             <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
                                 Angka tiap ruang di atas adalah penghuninya &mdash; jumlah yang sama
@@ -405,7 +526,7 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                     <Tombol
                         nada="pri"
                         onClick={() => {
-                            kocokUlang(jalur);
+                            kocokUlang(jalur, mode);
                             setKonfirmasi(false);
                         }}
                     >
@@ -508,12 +629,12 @@ function KPI({
 
 /* --------------------------------------------------------------- Aksi */
 
-function sebar(jalur: string, benih: string) {
-    router.post(`${jalur}/penempatan`, { benih }, { preserveScroll: true });
+function sebar(jalur: string, benih: string, mode: string) {
+    router.post(`${jalur}/penempatan`, { benih, mode }, { preserveScroll: true });
 }
 
-function kocokUlang(jalur: string) {
-    router.post(`${jalur}/penempatan/kocok-ulang`, {}, { preserveScroll: true });
+function kocokUlang(jalur: string, mode: string) {
+    router.post(`${jalur}/penempatan/kocok-ulang`, { mode }, { preserveScroll: true });
 }
 
 /** Terapkan peta ruang event ke SATU sesi - tombol "Pakai penempatan". */

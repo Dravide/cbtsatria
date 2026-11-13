@@ -3,6 +3,7 @@
 namespace App\Domain\Exam\Models;
 
 use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Exam\Enums\ModePenempatan;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Concerns\BelongsToSchool;
 use App\Domain\Tenancy\Scopes\SchoolScope;
@@ -51,6 +52,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'school_id',
     'event_id',
     'seed',
+    'mode',
     'shuffled_at',
     'shuffled_by',
     'peserta',
@@ -64,6 +66,7 @@ class ExamEventShuffle extends Model
     protected function casts(): array
     {
         return [
+            'mode' => ModePenempatan::class,
             'shuffled_at' => 'datetime',
             'peserta' => 'integer',
         ];
