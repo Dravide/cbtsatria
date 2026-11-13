@@ -82,6 +82,11 @@ const EVENT: MenuEvent[] = [
     { label: 'Daftar event', href: '', segmen: '', ikon: 'bendera' },
     { label: 'Ringkasan', segmen: '', ikon: 'ringkasan' },
     { label: 'Kepanitiaan', segmen: 'panitia', ikon: 'panitia' },
+    // Pengumuman duduk tepat setelah kepanitiaan: keduanya soal ORANG, dan
+    // pengumuman adalah satu-satunya tulisan event yang dibaca siswa. Ia
+    // sengaja BUKAN di kelompok Sistem - isinya berlaku untuk satu event,
+    // bukan untuk sekolah.
+    { label: 'Pengumuman', segmen: 'pengumuman', ikon: 'daftar' },
     { label: 'Kelas & peserta', segmen: 'peserta', ikon: 'peserta' },
     { label: 'Paket soal', segmen: 'mapel', ikon: 'paket' },
     { label: 'Jadwal & sesi', segmen: 'jadwal', ikon: 'jam' },

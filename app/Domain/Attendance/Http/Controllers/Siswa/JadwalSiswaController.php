@@ -4,10 +4,12 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
+use App\Domain\Event\Models\EventAnnouncement;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -85,7 +87,57 @@ class JadwalSiswaController extends SiswaDasar
             'utama' => $utama,
             'jadwal' => $baris->all(),
             'nilai_keluar' => $this->adaNilaiKeluar($request->user()->id),
+            'pengumuman' => $this->pengumumanBerlaku($penempatan),
         ]);
+    }
+
+    /**
+     * Pengumuman yang sedang tayang di event-event milik anak ini.
+     *
+     * ---------------------------------------------------------------------
+     * Dieja dari event PENEMPATANNYA, bukan dari seluruh event sekolah
+     * ---------------------------------------------------------------------
+     * `EventAnnouncement` adalah tabel Event, dan scope tenant-nya hanya
+     * menyaring sekolah. Tanpa penyaringan tambahan, setiap siswa membaca
+     * pengumuman seluruh event sekolah - termasuk kelas yang bukan
+     * kelasnya, dan itu kebocoran informasi yang tidak tampak sebagai galat.
+     *
+     * ---------------------------------------------------------------------
+     * Dibatasi lima, terbaru dulu
+     * ---------------------------------------------------------------------
+     * Beranda ini menjawab "apa yang harus kukerjakan sekarang". Pengumuman
+     * keenam dan seterusnya tidak menambah apa pun selain panjang gulir -
+     * dan yang paling penting pada hari-H biasanya yang terakhir ditulis.
+     *
+     * @param  Collection<int, ExamParticipant>  $penempatan
+     * @return array<int, array<string, mixed>>
+     */
+    private function pengumumanBerlaku(Collection $penempatan): array
+    {
+        $idEvent = $penempatan
+            ->map(fn (ExamParticipant $p) => $p->exam?->event_id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($idEvent->isEmpty()) {
+            return [];
+        }
+
+        return EventAnnouncement::query()
+            ->whereIn('event_id', $idEvent)
+            ->berlaku()
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get()
+            ->map(fn (EventAnnouncement $p) => [
+                'id' => $p->id,
+                'judul' => $p->title,
+                'isi' => $p->body,
+                'nada' => $p->nada,
+                'berlaku_sampai' => $p->expires_at?->format('d M H:i'),
+            ])
+            ->all();
     }
 
     /**

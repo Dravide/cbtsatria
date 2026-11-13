@@ -16,6 +16,7 @@ use App\Domain\Admin\Http\Controllers\UserController;
 use App\Domain\Admin\Http\Controllers\UserExportController;
 use App\Domain\Admin\Http\Controllers\UserImportController;
 use App\Domain\Attendance\Http\Controllers\PemantauanEventController;
+use App\Domain\Event\Http\Controllers\EventAnnouncementController;
 use App\Domain\Event\Http\Controllers\EventCommitteeController;
 use App\Domain\Event\Http\Controllers\EventController;
 use App\Domain\Event\Http\Controllers\EventParticipantController;
@@ -273,7 +274,31 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
     Route::get('/events/{event}/ubah', [EventController::class, 'edit'])->name('events.edit');
     Route::put('/events/{event}', [EventController::class, 'update']);
+    // Hapus hanya untuk event draft yang belum punya ujian - lihat docblock
+    // `EventController::destroy()`. Rutenya tetap ada untuk seluruh event dan
+    // penolakannya berupa kalimat, bukan 404: Admin yang membacanya di daftar
+    // harus tahu APA yang harus dilakukan, dan tombol yang hilang tanpa
+    // keterangan hanya membuatnya menebak.
+    Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.hapus');
     Route::post('/events/{event}/status', [EventController::class, 'ubahStatus'])->name('events.status');
+
+    /*
+    |----------------------------------------------------------------------
+    | Papan pengumuman event - ditambahkan 2026-11-14
+    |----------------------------------------------------------------------
+    | Satu-satunya tulisan di konsol Admin yang dibaca SISWA, bukan tentang
+    | siswa. Rutenya di bawah event karena pengumuman tidak bermakna di luar
+    | eventnya, dan tidak ada rute daftar lintas event: pertanyaan "apa yang
+    | perlu dibaca siswa" selalu tentang satu kegiatan.
+    */
+    Route::get('/events/{event}/pengumuman', [EventAnnouncementController::class, 'index'])
+        ->name('events.pengumuman');
+    Route::post('/events/{event}/pengumuman', [EventAnnouncementController::class, 'store'])
+        ->name('events.pengumuman.store');
+    Route::put('/events/{event}/pengumuman/{pengumuman}', [EventAnnouncementController::class, 'update'])
+        ->name('events.pengumuman.update');
+    Route::delete('/events/{event}/pengumuman/{pengumuman}', [EventAnnouncementController::class, 'destroy'])
+        ->name('events.pengumuman.hapus');
 
     // 13 - kepanitiaan
     Route::get('/events/{event}/panitia', [EventCommitteeController::class, 'index'])->name('events.panitia');
@@ -478,6 +503,13 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('events.monitoring.reset');
     Route::post('/events/{event}/monitoring/peserta/{peserta}/hentikan', [PemantauanEventController::class, 'blokirPeserta'])
         ->name('events.monitoring.hentikan');
+
+    // Reset SELURUH peserta satu ruang - ditambahkan 2026-11-14. Alamatnya
+    // memakai `ruang` sebagai segmen statis sesudah `peserta/...`, bukan
+    // `peserta/massal`: `{peserta}` adalah model binding, dan segmen statis
+    // yang didaftarkan sesudahnya tidak akan pernah tercapai.
+    Route::post('/events/{event}/monitoring/ruang/{ruang}/reset-massal', [PemantauanEventController::class, 'resetMassal'])
+        ->name('events.monitoring.reset-massal');
 
     /*
     |----------------------------------------------------------------------

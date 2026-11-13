@@ -50,6 +50,14 @@ type Baris = {
     nada: string;
 };
 
+type Pengumuman = {
+    id: number;
+    judul: string;
+    isi: string;
+    nada: string;
+    berlaku_sampai: string | null;
+};
+
 type Props = {
     nama: string;
     kelas: string | null;
@@ -57,6 +65,7 @@ type Props = {
     utama: Baris | null;
     jadwal: Baris[];
     nilai_keluar: boolean;
+    pengumuman: Pengumuman[];
 };
 
 /**
@@ -88,7 +97,7 @@ function SelStatus({ nada, children }: { nada: string; children: string }) {
     );
 }
 
-export default function Jadwal({ nama, kelas, utama, jadwal, nilai_keluar }: Props) {
+export default function Jadwal({ nama, kelas, utama, jadwal, nilai_keluar, pengumuman }: Props) {
     // Baris yang sudah tampil sebagai pita TIDAK diulang di daftar di
     // bawahnya. Dua kali menyebut ujian yang sama membuat anak menghitungnya
     // dua kali saat ia bertanya "berapa ujian saya hari ini".
@@ -107,6 +116,35 @@ export default function Jadwal({ nama, kelas, utama, jadwal, nilai_keluar }: Pro
                 ) : undefined
             }
         >
+            {/*
+             * Pengumuman DULU, sebelum pita. Pita menjawab "kapan saya
+             * mengerjakan"; pengumuman menjawab "apakah rencana itu masih
+             * berlaku" - dan "sesi 2 mundur 15 menit" membuat seluruh isi
+             * pita itu salah. Yang bisa membatalkan jadwal harus dibaca
+             * sebelum jadwalnya.
+             */}
+            {pengumuman.length > 0 && (
+                <section className="pengumuman" aria-label="Pengumuman">
+                    {pengumuman.map((p) => (
+                        <article
+                            key={p.id}
+                            className={
+                                'pengumuman-butir ' +
+                                (p.nada === 'penting' ? 'pengumuman-butir--penting' : '')
+                            }
+                        >
+                            <p className="pengumuman-judul">{p.judul}</p>
+                            <p className="pengumuman-isi">{p.isi}</p>
+                            {p.berlaku_sampai && (
+                                <p className="pengumuman-waktu">
+                                    berlaku sampai {p.berlaku_sampai}
+                                </p>
+                            )}
+                        </article>
+                    ))}
+                </section>
+            )}
+
             {utama && <PitaUtama baris={utama} />}
 
             {/*

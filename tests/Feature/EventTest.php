@@ -5,6 +5,7 @@ use App\Domain\Academic\Models\ClassEnrollment;
 use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Academic\Models\Semester;
 use App\Domain\Academic\Models\Subject;
+use App\Domain\Audit\Models\ActivityLog;
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventClass;
 use App\Domain\Event\Models\EventCommitteeMember;
@@ -980,4 +981,204 @@ it('mengatakan tidak ada yang diterbitkan bila semua kode sudah ada', function (
     // sudah punya kode bukan hambatan, dan menyebutnya sebagai hambatan akan
     // membuat Admin mencari-cari masalah yang tidak ada.
     expect(session('sukses'))->toContain('Tidak ada yang diterbitkan');
+});
+
+/* =====================================================================
+ | Hapus event - ditambahkan 2026-11-13
+ |===================================================================== */
+
+it('menghapus event draft yang belum punya ujian', function () {
+    $id = $this->event->id;
+
+    $this->actingAs($this->admin)
+        ->delete("/admin/events/{$id}")
+        ->assertRedirect('/admin/events')
+        ->assertSessionHas('sukses');
+
+    expect(SchoolEvent::query()->find($id))->toBeNull()
+        // Jejaknya TETAP ADA sesudah barisnya hilang: itulah satu-satunya
+        // jawaban yang tersisa atas "event ini pernah ada".
+        ->and(ActivityLog::query()->where('action', 'Menghapus event')->count())->toBe(1);
+});
+
+it('menghapus komponen event bersama eventnya, bukan menyisakannya', function () {
+    // Peserta dan kelas adalah anak langsung event, dan keduanya CASCADE.
+    EventParticipant::factory()->untukEvent($this->event)->create();
+    EventClass::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'class_id' => SchoolClass::factory()->create([
+            'school_id' => $this->sekolah->id,
+            'academic_year_id' => $this->tahun->id,
+            'name' => 'X-9',
+        ])->id,
+    ]);
+
+    expect($this->event->participants()->count())->toBe(1);
+
+    $this->actingAs($this->admin)->delete("/admin/events/{$this->event->id}");
+
+    expect(EventParticipant::query()->where('event_id', $this->event->id)->count())->toBe(0)
+        ->and(EventClass::query()->where('event_id', $this->event->id)->count())->toBe(0);
+});
+
+it('menolak menghapus event yang sudah berjalan', function () {
+    $this->event->forceFill(['status' => EventStatus::Ongoing])->save();
+
+    $this->actingAs($this->admin)
+        ->delete("/admin/events/{$this->event->id}")
+        ->assertSessionHas('galat');
+
+    expect(SchoolEvent::query()->find($this->event->id))->not->toBeNull();
+});
+
+it('menolak menghapus event draft yang sudah punya ujian', function () {
+    // Satu ujian saja sudah cukup: ujian adalah satu-satunya anak yang
+    // membawa riwayat pengerjaan, dan menyisakan attempt tanpa event adalah
+    // keadaan yang tidak bisa dijelaskan siapa pun.
+    app(ExamRegistrar::class)->buat($this->event, [
+        'subject_id' => Subject::factory()->create(['school_id' => $this->sekolah->id])->id,
+        'title' => 'UH 1',
+        'exam_type' => 'Ujian harian',
+        'duration_minutes' => 60,
+        'class_id' => [],
+    ], $this->admin->id);
+
+    $this->actingAs($this->admin)
+        ->delete("/admin/events/{$this->event->id}")
+        ->assertSessionHas('galat');
+
+    expect(SchoolEvent::query()->find($this->event->id))->not->toBeNull();
+});
+
+it('tidak menemukan event sekolah lain untuk dihapus', function () {
+    $lain = SchoolEvent::factory()->untukTahun(
+        AcademicYear::factory()->untukSekolah($this->lain)->create(),
+    )->create();
+
+    // 404, bukan 403 - alasan yang sama dengan seluruh rute admin: 403
+    // membuktikan barisnya ada.
+    $this->actingAs($this->admin)->delete("/admin/events/{$lain->id}")->assertNotFound();
+
+    // `withoutGlobalScopes()`: yang diperiksa adalah barisnya MASIH ADA di
+    // basis data, bukan apakah Admin sekolah ini bisa melihatnya - dan scope
+    // tenant menyembunyikannya dari kueri biasa justru karena isolasinya
+    // bekerja.
+    expect(SchoolEvent::query()->withoutGlobalScopes()->find($lain->id))->not->toBeNull();
+});
+
+it('mengirim dua syarat hapus di daftar event', function () {
+    $draft = SchoolEvent::factory()->untukTahun($this->tahun)
+        ->create(['school_id' => $this->sekolah->id, 'code' => 'EV-DRAFT']);
+
+    $berjalan = SchoolEvent::factory()->untukTahun($this->tahun)->status(EventStatus::Ongoing)
+        ->create(['school_id' => $this->sekolah->id, 'code' => 'EV-JALAN']);
+
+    $props = $this->actingAs($this->admin)
+        ->get('/admin/events?tab=berjalan')
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    $baris = collect($props['baris']['data'])->keyBy('id');
+
+    expect($baris[$draft->id]['boleh_hapus'])->toBeTrue()
+        ->and($baris[$draft->id]['alasan_tolak_hapus'])->toBeNull()
+        // Syaratnya dinilai SERVER: laman yang menghitungnya sendiri dari
+        // status akan benar sampai syaratnya berubah, lalu menampilkan tombol
+        // yang server tolak.
+        ->and($baris[$berjalan->id]['boleh_hapus'])->toBeFalse()
+        ->and($baris[$berjalan->id]['alasan_tolak_hapus'])->not->toBeNull();
+});
+
+it('menghapus event draft yang lengkap komponennya tetapi belum berujian', function () {
+    // Keadaan yang paling mungkin di produksi: Admin menyusun event, lupa satu
+    // mapel, lalu ingin mengulang dari nol. Yang harus ikut hilang adalah
+    // SELURUH komponennya - peserta, kelas, mapel, paket terpasang, ruang, dan
+    // panitia - dan tidak satu pun dari tabel itu boleh tertinggal sebagai
+    // baris yatim.
+    $event = SchoolEvent::factory()->untukTahun($this->tahun)->create([
+        'school_id' => $this->sekolah->id,
+        'code' => 'EV-HAPUS',
+    ]);
+
+    $kelas = SchoolClass::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'academic_year_id' => $this->tahun->id,
+        'name' => 'XI-HAPUS',
+    ]);
+
+    EventClass::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $event->id,
+        'class_id' => $kelas->id,
+    ]);
+
+    EventSubject::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $event->id,
+        'subject_id' => Subject::factory()->create(['school_id' => $this->sekolah->id])->id,
+    ]);
+
+    EventRoom::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $event->id,
+        'room_id' => Room::factory()->create(['school_id' => $this->sekolah->id])->id,
+        'status' => 'aktif',
+    ]);
+
+    EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $event->id,
+        'name' => 'Panitia Hapus',
+        'position' => 'pengawas',
+        'scope' => 'event',
+        'status' => 'aktif',
+    ]);
+
+    $siswa = User::factory()->siswa()->untukSekolah($this->sekolah)->create();
+
+    ClassEnrollment::create([
+        'school_id' => $this->sekolah->id,
+        'class_id' => $kelas->id,
+        'student_id' => $siswa->id,
+        'academic_year_id' => $this->tahun->id,
+        'status' => 'aktif',
+    ]);
+
+    app(EventParticipantService::class)->tarikDariKelas($event);
+
+    expect($event->participants()->count())->toBe(1)
+        ->and($event->subjects()->count())->toBe(1)
+        ->and($event->rooms()->count())->toBe(1)
+        ->and($event->committee()->count())->toBe(1);
+
+    $this->actingAs($this->admin)
+        ->delete("/admin/events/{$event->id}")
+        ->assertRedirect('/admin/events')
+        ->assertSessionHas('sukses');
+
+    expect(SchoolEvent::query()->find($event->id))->toBeNull()
+        ->and(EventParticipant::query()->where('event_id', $event->id)->count())->toBe(0)
+        ->and(EventClass::query()->where('event_id', $event->id)->count())->toBe(0)
+        ->and(EventSubject::query()->where('event_id', $event->id)->count())->toBe(0)
+        ->and(EventRoom::query()->where('event_id', $event->id)->count())->toBe(0)
+        ->and(EventCommitteeMember::query()->where('event_id', $event->id)->count())->toBe(0);
+
+    // Master data TIDAK ikut terhapus: kelas, mapel, dan ruang milik sekolah,
+    // bukan milik event, dan dipakai ulang lintas event sepanjang tahun.
+    expect(SchoolClass::query()->find($kelas->id))->not->toBeNull()
+        ->and($siswa->refresh()->is_active)->toBeTrue();
+});
+
+it('membersihkan context event aktif di sesi saat eventnya dihapus', function () {
+    // Tanpa ini, setiap permintaan berikutnya mencari event yang sudah tidak
+    // ada - dan Admin melihat sidebar event hilang satu ketukan lebih lambat
+    // daripada yang seharusnya.
+    $this->actingAs($this->admin)->get("/admin/events/{$this->event->id}");
+
+    expect(session('event_aktif'))->toBe($this->event->id);
+
+    $this->delete("/admin/events/{$this->event->id}");
+
+    expect(session('event_aktif'))->toBeNull();
 });

@@ -644,3 +644,61 @@
         color: var(--color-ink);
     }
 }
+
+/* ----------------------------------------------------------- Pengumuman */
+
+/*
+ * Papan pengumuman di beranda siswa - ditambahkan 2026-11-14.
+ *
+ * =====================================================================
+ * Mengapa ia GARIS, bukan kotak berwarna
+ * =====================================================================
+ * Terrazzo menolak bingkai di setiap sisi, dan nada warna lebih dari satu.
+ * Pengumuman adalah benda yang dibaca paling awal, jadi yang menandainya
+ * adalah SATU garis tinta 2px di sisi kiri - bukan latar, bukan bayangan.
+ * Yang `penting` mendapat warna rust dari token `--color-accent`; sisanya
+ * tetap tinta. Dua nada, bukan tiga, karena chip yang semuanya berwarna
+ * berhenti dibaca sebagai sinyal.
+ *
+ * Leher dan isi dibedakan oleh UKURAN dan berat, bukan oleh warna - yang
+ * sama dengan seluruh konsol ini.
+ */
+.konsol-siswa .pengumuman {
+    display: grid;
+    gap: var(--space-2xs);
+}
+
+.konsol-siswa .pengumuman-butir {
+    border-left: var(--rule-bar) solid var(--color-line-2);
+    background-color: var(--color-surface);
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.konsol-siswa .pengumuman-butir--penting {
+    border-left-color: var(--color-accent);
+    background-color: var(--color-accent-soft);
+}
+
+.konsol-siswa .pengumuman-judul {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: var(--display-weight);
+    letter-spacing: var(--tracking-display);
+    line-height: 1.15;
+    color: var(--color-ink);
+}
+
+.konsol-siswa .pengumuman-isi {
+    margin-top: var(--space-3xs);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--color-ink-2);
+    white-space: pre-wrap;
+}
+
+.konsol-siswa .pengumuman-waktu {
+    margin-top: var(--space-3xs);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-ink-3);
+}

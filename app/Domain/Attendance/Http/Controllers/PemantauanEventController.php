@@ -1048,6 +1048,135 @@ class PemantauanEventController
     }
 
     /**
+     * Reset pengerjaan SELURUH peserta satu ruang-sesi - ditambahkan 2026-11-14.
+     *
+     * ---------------------------------------------------------------------
+     * Yang dijawabnya: laboratorium yang mati listrik
+     * ---------------------------------------------------------------------
+     * Reset per peserta sudah ada sejak 2026-11-12, dan bentuknya tepat untuk
+     * satu anak yang perangkatnya rusak. Kejadian yang benar-benar mahal di
+     * hari-H berbeda: satu ruang berisi 32 anak kehilangan listrik di menit
+     * kelima, dan Admin yang harus meresetnya satu per satu akan menghabiskan
+     * lebih banyak waktu daripada sisa ujiannya.
+     *
+     * ---------------------------------------------------------------------
+     * Alasan SATU, ditulis ke SETIAP anak
+     * ---------------------------------------------------------------------
+     * Tidak ada "alasan grup": `PengendaliPengerjaan::reset()` menulis satu
+     * baris `exam_violations` per attempt, dan baris itulah yang dibaca siswa
+     * di `/siswa/pelanggaran`. Alasan yang sama disalin ke 32 baris - dan itu
+     * memang benar: kejadiannya satu, dan setiap anak berhak membaca kalimat
+     * yang menjelaskan mengapa nilainya hilang.
+     *
+     * ---------------------------------------------------------------------
+     * Anak yang tidak punya attempt DILEWATI, bukan digagalkan
+     * ---------------------------------------------------------------------
+     * Di ruang yang sama selalu ada anak yang belum membuka gerbangnya atau
+     * sudah selesai mengumpulkan. Attempt yang sudah `batal` juga dilewati -
+     * `reset()` menolaknya, dan satu penolakan tidak boleh membatalkan 31
+     * reset yang sah. Karena itu transaksinya per anak, bukan satu transaksi
+     * besar: kegagalan satu baris tidak me-rollback sisanya.
+     *
+     * Hasilnya dilaporkan sebagai angka, bukan hanya "berhasil": Admin yang
+     * mereset 32 anak perlu tahu bahwa 3 di antaranya tidak tersentuh, dan
+     * mengapa.
+     */
+    public function resetMassal(
+        SchoolEvent $event,
+        Request $request,
+        ExamSessionRoom $ruang,
+        PengendaliPengerjaan $kendali,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('view', $event);
+
+        $ruang = $this->ruangDiEvent($event, (int) $ruang->id);
+
+        $valid = $request->validate([
+            'alasan' => ['required', 'string', 'min:8', 'max:200'],
+        ], [
+            // Ambang 8, bukan 4 seperti reset perorangan: satu kalimat yang
+            // akan disalin ke 32 riwayat anak menanggung lebih banyak, dan
+            // "mati lampu" adalah enam huruf yang tidak menerangkan apa pun
+            // tiga bulan kemudian.
+            'alasan.min' => 'Alasan reset massal harus cukup panjang untuk menjelaskan kejadiannya ke seluruh ruang.',
+        ], ['alasan' => 'alasan reset massal']);
+
+        $alasan = trim($valid['alasan']);
+        $pelaku = 'Admin '.($request->user()?->name ?? '');
+
+        $direset = 0;
+        $dilewati = 0;
+        $gagal = [];
+
+        foreach ($ruang->participants as $peserta) {
+            /** @var ExamParticipant $peserta */
+            $attempt = ExamAttempt::query()
+                ->where('exam_participant_id', $peserta->id)
+                ->orderByDesc('attempt_number')
+                ->first();
+
+            if ($attempt === null) {
+                $dilewati++;
+
+                continue;
+            }
+
+            try {
+                $kendali->reset($attempt, $pelaku, $alasan);
+                $direset++;
+            } catch (RuntimeException $e) {
+                // Attempt yang sudah batal jatuh ke sini, dan itu bukan
+                // kegagalan: ia memang sudah direset sebelumnya.
+                $gagal[$peserta->student?->name ?? "peserta {$peserta->id}"] = $e->getMessage();
+            }
+        }
+
+        $logger->log('Meriset pengerjaan satu ruang', $ruang, [
+            'ruang' => $ruang->eventRoom?->room?->code,
+            'direset' => $direset,
+            'dilewati' => $dilewati,
+            'alasan' => $alasan,
+        ]);
+
+        if ($direset === 0) {
+            return back()->with('galat', $this->kalimatKosong($dilewati, $gagal));
+        }
+
+        $pesan = "{$direset} pengerjaan di ruang ".($ruang->eventRoom?->room?->code ?? 'ini').' dibatalkan.';
+
+        if ($dilewati > 0) {
+            $pesan .= " {$dilewati} peserta belum mulai mengerjakan, jadi tidak ada yang direset.";
+        }
+
+        if ($gagal !== []) {
+            $pesan .= ' '.count($gagal).' dilewati karena pengerjaannya sudah dibatalkan sebelumnya.';
+        }
+
+        return back()->with('sukses', $pesan);
+    }
+
+    /**
+     * Kalimat saat tidak satu pun berhasil - dan ia dibedakan menurut sebabnya.
+     *
+     * "Tidak ada yang direset" pada ruang yang seluruh anaknya belum mulai
+     * adalah jawaban yang benar; pada ruang yang seluruh attemptnya sudah
+     * dibatalkan ia menyesatkan, dan Admin akan menekan tombolnya lagi.
+     */
+    private function kalimatKosong(int $dilewati, array $gagal): string
+    {
+        if ($dilewati > 0 && $gagal === []) {
+            return 'Tidak ada yang bisa direset: seluruh peserta ruang ini belum mulai mengerjakan.';
+        }
+
+        if ($gagal !== []) {
+            return 'Tidak ada yang bisa direset: seluruh pengerjaan di ruang ini sudah dibatalkan sebelumnya.';
+        }
+
+        return 'Ruang ini tidak punya peserta yang bisa direset.';
+    }
+
+    /**
      * Hentikan satu peserta secara manual, dengan pesan dari Admin.
      *
      * ---------------------------------------------------------------------

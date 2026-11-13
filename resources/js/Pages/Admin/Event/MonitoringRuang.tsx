@@ -303,6 +303,32 @@ export default function EventMonitoringRuang({
         setTindakan({ anak: a, jenis });
     };
 
+    // Reset seluruh ruang - modal terpisah, dan alasannya WAJIB. Lihat
+    // `reset-masuk` di controller: satu kalimat disalin ke riwayat setiap
+    // anak di ruang ini.
+    const [resetRuang, setResetRuang] = useState(false);
+    const [alasanRuang, setAlasanRuang] = useState('');
+
+    const kirimResetRuang = () => {
+        router.post(
+            `/admin/events/${event.id}/monitoring/ruang/${ruang.id}/reset-massal`,
+            { alasan: alasanRuang },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setAlasanRuang('');
+                    setResetRuang(false);
+                },
+            },
+        );
+    };
+
+    // Jumlah anak yang MEMANG punya pengerjaan - itu yang akan direset, dan
+    // angka itulah yang ditulis di tombolnya. Anak yang belum mulai tidak
+    // ikut; menyebut "32 peserta" akan membuat Admin mengira seluruh ruang
+    // tersentuh.
+    const bisaDireset = anak.filter((a) => a.status !== null && a.status !== 'batal').length;
+
     return (
         <AdminLayout
             judul={`${ruang.kode} · ${ruang.nama ?? 'Ruang'}`}
@@ -326,6 +352,19 @@ export default function EventMonitoringRuang({
                         </span>
                         Kembali ke monitoring
                     </Link>
+
+                    {/* Hanya muncul bila ADA yang bisa direset. Tombol yang
+                        selalu tampil dan selalu ditolak mengajari Admin untuk
+                        tidak memercayai papannya - alasan yang sama dengan
+                        tombol per baris di `DaftarAnak`. */}
+                    {bisaDireset > 0 && (
+                        <Tombol
+                            onClick={() => setResetRuang(true)}
+                            title="Batalkan pengerjaan seluruh peserta yang masih punya pengerjaan aktif"
+                        >
+                            Reset seluruh ruang ({bisaDireset})
+                        </Tombol>
+                    )}
                 </>
             }
         >
@@ -437,6 +476,52 @@ export default function EventMonitoringRuang({
                 )}
             </Modal>
 
+            <Modal
+                judul={`Reset seluruh ruang ${ruang.kode}`}
+                terbuka={resetRuang}
+                padaTutup={() => setResetRuang(false)}
+            >
+                <div className="space-y-3">
+                    <p className="text-xs leading-relaxed text-ink-2">
+                        <strong className="text-ink">{bisaDireset} pengerjaan</strong> di
+                        ruang ini akan dibatalkan, dan setiap peserta mengulang dari soal
+                        pertama saat membuka gerbang lagi. Urutan soal dan sisa waktunya
+                        baru; <strong className="text-ink">nilai atas pengerjaan lama hilang</strong>.
+                    </p>
+
+                    <p className="rounded-wf border border-warn/40 bg-warn-bg px-2.5 py-2 text-[11px] leading-relaxed text-ink-2">
+                        Peserta yang belum mulai mengerjakan tidak tersentuh. Kejadiannya
+                        tercatat di riwayat pelanggaran <em>setiap</em> anak yang direset, dengan
+                        alasan yang Anda tulis di bawah &mdash; tulis kalimat yang sudah cukup
+                        tiga bulan dari sekarang.
+                    </p>
+
+                    <Field
+                        label="Alasan reset massal"
+                        petunjuk="Dibaca siswa di halaman pelanggaran mereka. Sebutkan kejadiannya, bukan hanya tindakannya."
+                    >
+                        <textarea
+                            value={alasanRuang}
+                            onChange={(e) => setAlasanRuang(e.target.value)}
+                            rows={3}
+                            maxLength={200}
+                            placeholder="Contoh: listrik ruang R-03 padam di menit kelima; ujian diulang dari awal."
+                            className={kelasInput + ' min-h-[84px] resize-y'}
+                        />
+                    </Field>
+
+                    <div className="flex justify-end gap-2">
+                        <Tombol onClick={() => setResetRuang(false)}>Batal</Tombol>
+                        <Tombol
+                            nada="bahaya"
+                            onClick={kirimResetRuang}
+                            disabled={alasanRuang.trim().length < 8}
+                        >
+                            Reset {bisaDireset} pengerjaan
+                        </Tombol>
+                    </div>
+                </div>
+            </Modal>
             <div className="mt-3">
                 <Kotak judul="Catatan pembacaan laman ini">
                     <div className="space-y-2 text-xs leading-relaxed text-ink-2">

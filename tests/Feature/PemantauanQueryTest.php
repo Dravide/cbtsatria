@@ -889,3 +889,114 @@ it('menolak reset dan penghentian peserta dari event lain', function () {
     expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_BERJALAN)
         ->and(ExamViolation::query()->where('violation_type', 'diblokir_admin')->count())->toBe(0);
 });
+
+/* =====================================================================
+ | Reset massal satu ruang - ditambahkan 2026-11-14
+ |===================================================================== */
+
+it('mereset seluruh pengerjaan satu ruang dengan satu alasan', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $peserta = $data['peserta'];
+    expect($peserta)->toHaveCount(2);
+
+    foreach ($peserta as $i => $p) {
+        verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $p);
+        mulaiAttempt($this, $data['siswa'][$i], $p, $data['token']);
+    }
+
+    $alasan = 'Listrik ruang padam di menit kelima; ujian diulang dari awal.';
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/ruang/{$data['ruang'][0]->id}/reset-massal", [
+            'alasan' => $alasan,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    // KEDUA attempt dibatalkan, dan alasannya sama di KEDUA riwayat: yang
+    // dibaca siswa adalah kalimat yang menjelaskan mengapa nilainya hilang,
+    // dan kejadiannya satu.
+    foreach ($peserta as $p) {
+        $batal = attemptBerjalan($p);
+
+        expect($batal->status)->toBe(ExamAttempt::STATUS_BATAL)
+            ->and($batal->lock_reason)->toBeNull()
+            ->and($batal->violation_count)->toBe(0);
+    }
+
+    $baris = ExamViolation::query()->where('violation_type', 'diblokir_admin')->get();
+
+    expect($baris)->toHaveCount(2)
+        ->and($baris->pluck('metadata_json'))->each(
+            fn ($meta) => $meta->toMatchArray(['tindakan' => 'reset', 'alasan' => $alasan]),
+        );
+});
+
+it('melewati peserta yang belum mulai, bukan menggagalkan seluruh ruang', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    [$mulai, $belum] = [$data['peserta'][0], $data['peserta'][1]];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $mulai);
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $belum);
+    mulaiAttempt($this, $data['siswa'][0], $mulai, $data['token']);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/ruang/{$data['ruang'][0]->id}/reset-massal", [
+            'alasan' => 'Perangkat laboratorium mati serentak pada menit kelima.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    // Yang sudah mulai dibatalkan; yang belum mulai TIDAK dibuatkan attempt
+    // batal - ia memang tidak punya pengerjaan untuk dibatalkan.
+    expect(attemptBerjalan($mulai)->status)->toBe(ExamAttempt::STATUS_BATAL)
+        ->and(ExamAttempt::query()->where('exam_participant_id', $belum->id)->exists())->toBeFalse();
+
+    expect(session('sukses'))->toContain('1 peserta belum mulai mengerjakan');
+});
+
+it('menolak alasan reset massal yang terlalu pendek', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    // Ambang 8, bukan 4: satu kalimat ini disalin ke riwayat setiap anak di
+    // ruang, dan "mati" tidak menerangkan apa pun tiga bulan kemudian.
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/ruang/{$data['ruang'][0]->id}/reset-massal", [
+            'alasan' => 'mati',
+        ])
+        ->assertSessionHasErrors('alasan');
+
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_BERJALAN);
+});
+
+it('memberi kabar jujur saat tidak ada satu pun yang bisa direset', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    // Tidak ada yang membuka gerbang.
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/ruang/{$data['ruang'][0]->id}/reset-massal", [
+            'alasan' => 'Listrik ruang padam sebelum ujian dimulai sama sekali.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('galat');
+
+    expect(ExamViolation::query()->where('violation_type', 'diblokir_admin')->count())->toBe(0);
+});
+
+it('menolak reset massal pada ruang milik event lain', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $lain = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    // 404, bukan 403 - alasan yang sama dengan seluruh rute bersarang.
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/ruang/{$lain['ruang'][0]->id}/reset-massal", [
+            'alasan' => 'Ruang ini bukan milik event yang sedang dibuka.',
+        ])
+        ->assertNotFound();
+});

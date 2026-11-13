@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi } from '@/Components/dialog';
 import {
     BilahFilter,
     Chip,
@@ -44,6 +45,8 @@ type Baris = {
     status_label: string;
     tahun: string | null;
     semester: string | null;
+    boleh_hapus: boolean;
+    alasan_tolak_hapus: string | null;
 };
 
 type Props = {
@@ -62,6 +65,39 @@ const TAB = [
 
 export default function EventIndex({ tab, tab_angka, baris, filter }: Props) {
     const f = pakaiFilter('/admin/events', { cari: filter.cari, tab });
+
+    /**
+     * Hapus satu event - dan kalimatnya menyebut APA yang ikut hilang.
+     *
+     * `konfirmasi()` dipakai lebih dulu, bukan langsung `router.delete`:
+     * event yang salah dibuat adalah pekerjaan sepuluh detik untuk dibuat
+     * ulang, tetapi tombol yang tidak bertanya akan dipakai pada baris yang
+     * salah baca - dan yang hilang saat itu adalah susunan komponen yang
+     * sudah disiapkan. Server tetap menolak event yang bukan draft atau yang
+     * sudah punya ujian; dialog ini tidak menggantikan penolakan itu, ia
+     * hanya memberi Admin satu kesempatan berhenti sebelum memintanya.
+     */
+    const hapus = async (b: Baris) => {
+        if (!b.boleh_hapus) {
+            return;
+        }
+
+        const ya = await konfirmasi({
+            judul: `Hapus event ${b.nama}?`,
+            pesan:
+                'Event beserta peserta, ruang, dan kepanitiaannya dihapus permanen. ' +
+                'Event yang sudah punya ujian tidak bisa dihapus - gunakan Batal untuk itu.',
+            labelYa: 'Hapus event',
+            labelTidak: 'Jangan',
+            nada: 'bahaya',
+        });
+
+        if (!ya) {
+            return;
+        }
+
+        router.delete(`/admin/events/${b.id}`, { preserveScroll: true });
+    };
 
     return (
         <AdminLayout
@@ -184,6 +220,34 @@ export default function EventIndex({ tab, tab_angka, baris, filter }: Props) {
                         render: (b) => (
                             <Chip nada={nadaStatus(b.status)}>{b.status_label}</Chip>
                         ),
+                    },
+                    {
+                        judul: '',
+                        kelas: 'w-20 text-right',
+                        render: (b) =>
+                            b.boleh_hapus ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        void hapus(b);
+                                    }}
+                                    className="rounded-wf border border-line bg-surface px-2 py-1 text-[11px] text-bad hover:border-bad/40 hover:bg-bad-bg"
+                                >
+                                    Hapus
+                                </button>
+                            ) : (
+                                /* Bukan tombol mati tanpa keterangan: yang
+                                   dijawabnya adalah "mengapa saya tidak bisa
+                                   menghapus yang ini" - dan jawabannya
+                                   berbeda untuk draft ber-ujian dan untuk
+                                   event yang sudah berjalan. */
+                                <span
+                                    className="text-[11px] text-ink-3"
+                                    title={b.alasan_tolak_hapus ?? undefined}
+                                >
+                                    &mdash;
+                                </span>
+                            ),
                     },
                 ]}
             />

@@ -3,6 +3,7 @@
 namespace App\Domain\Event\Providers;
 
 use App\Domain\Event\Models\EventActivity;
+use App\Domain\Event\Models\EventAnnouncement;
 use App\Domain\Event\Models\EventClass;
 use App\Domain\Event\Models\EventCommitteeMember;
 use App\Domain\Event\Models\EventParticipant;
@@ -54,6 +55,7 @@ class EventServiceProvider extends ServiceProvider
         foreach ([
             SchoolEvent::class,
             EventActivity::class,
+            EventAnnouncement::class,
             EventCommitteeMember::class,
             EventClass::class,
             EventSubject::class,

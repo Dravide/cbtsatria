@@ -72,6 +72,7 @@ class EventController
             ->with(['academicYear:id,name', 'semester:id,name'])
             ->withCount([
                 'participants as peserta_count' => fn ($q) => $q->where('status', EventParticipant::STATUS_TERDAFTAR),
+                'exams as ujian_count',
             ]);
 
         // Tab bukan penyaring status yang sama: "Berjalan" mencakup seluruh
@@ -112,6 +113,17 @@ class EventController
                 'status_label' => $e->status->label(),
                 'tahun' => $e->academicYear?->name,
                 'semester' => $e->semester?->name,
+                // Dua syarat tombol Hapus, dan keduanya dikirim sebagai data:
+                // laman yang menghitungnya sendiri dari `status` akan terus
+                // benar sampai syaratnya berubah, lalu menampilkan tombol yang
+                // server tolak - dan tombol itu lebih buruk daripada tombol
+                // yang tidak ada.
+                'boleh_hapus' => $e->status === EventStatus::Draft && (int) $e->ujian_count === 0,
+                'alasan_tolak_hapus' => match (true) {
+                    $e->status !== EventStatus::Draft => 'Hanya event draft yang bisa dihapus.',
+                    (int) $e->ujian_count > 0 => "Event ini sudah punya {$e->ujian_count} ujian.",
+                    default => null,
+                },
             ]),
             'filter' => ['cari' => $request->query('cari', '')],
         ]);
@@ -239,6 +251,95 @@ class EventController
         $logger->log('Memperbarui event', $event, ['kode' => $event->code]);
 
         return back()->with('sukses', 'Event tersimpan.');
+    }
+
+    /**
+     * Hapus event - hanya yang masih draft dan belum punya ujian.
+     *
+     * ---------------------------------------------------------------------
+     * Dua syarat, dan keduanya menjaga satu hal yang sama: jejak
+     * ---------------------------------------------------------------------
+     * `EventPolicy::delete()` sudah membukanya untuk Admin sejak Fase 3,
+     * dengan catatan bahwa UI-nya sengaja belum ada - "event yang salah
+     * dibuat sudah punya jawabannya: Batal". Permintaan pemilik produk
+     * 2026-11-13 membuka UI itu, dan yang harus dijaga karena itu bukan
+     * izinnya melainkan BUKTINYA.
+     *
+     *   status draft     Event yang pernah disusun - apalagi yang sesinya
+     *                    sudah berjalan - punya peserta, jadwal, dan
+     *                    pengawas. Komponen itu tidak boleh hilang tanpa
+     *                    satu kalimat pun; untuk keadaan itu jalannya Batal.
+     *   tanpa ujian      `exams` adalah satu-satunya anak yang membawa
+     *                    riwayat pengerjaan (attempt, jawaban, nilai,
+     *                    berita acara, insiden). Tanpanya, yang ikut
+     *                    terhapus hanyalah baris komponen event itu sendiri,
+     *                    dan seluruh FK-nya CASCADE - tidak ada satu pun
+     *                    RESTRICT yang menghalangi.
+     *
+     * Syarat kedua juga yang membuat penghapusan ini tidak perlu menyentuh
+     * tabel modul lain sama sekali. Menghapus event ber-ujian berarti
+     * menghapus attempt dan berita acara lintas modul dengan urutan yang
+     * harus benar - dan itu pekerjaan `Batal`, bukan pekerjaan tombol di
+     * daftar event.
+     *
+     * Diarahkan kembali ke daftar, bukan `back()`: barisnya sudah tidak ada,
+     * dan halaman yang menyebut event yang baru saja dihapus adalah halaman
+     * yang akan 404 pada penyegaran berikutnya.
+     */
+    public function destroy(Request $request, SchoolEvent $event, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('delete', $event);
+
+        if ($event->status !== EventStatus::Draft) {
+            return back()->with(
+                'galat',
+                "Event berstatus {$event->status->label()} tidak bisa dihapus. ".
+                'Gunakan Batal supaya jejak penyusunannya tetap tersimpan.',
+            );
+        }
+
+        $jumlahUjian = $event->exams()->count();
+
+        if ($jumlahUjian > 0) {
+            return back()->with(
+                'galat',
+                "Event ini sudah punya {$jumlahUjian} ujian. Hapus ujiannya lebih dulu di laman ".
+                'Jadwal & sesi, atau gunakan Batal bila eventnya memang tidak jadi dilaksanakan.',
+            );
+        }
+
+        // Jejak ditulis SEBELUM barisnya hilang: `entity_id` yang menunjuk
+        // baris yang tidak ada lagi tetap menjawab "event ini pernah dihapus,
+        // oleh siapa, dan kapan" - dan itulah satu-satunya jawaban yang
+        // tersisa sesudah penghapusan.
+        $logger->log('Menghapus event', $event, [
+            'kode' => $event->code,
+            'nama' => $event->name,
+            'status' => $event->status->value,
+        ]);
+
+        // Dibaca SEBELUM barisnya hilang, bukan sesudah: seluruh atribut
+        // model tetap ada di memori sesudah `delete()`, tetapi membaca apa
+        // pun dari model yang sudah dihapus adalah kebiasaan yang cepat atau
+        // lambat bertemu model yang memuat ulang dirinya sendiri.
+        $nama = $event->name;
+        $id = (int) $event->id;
+
+        $event->delete();
+
+        // Sesi yang menunjuk event ini akan 404 pada setiap permintaan
+        // berikutnya. `HandleInertiaRequests` membersihkannya sendiri, tetapi
+        // baru SETELAH satu permintaan penuh berjalan dengan konteks kosong -
+        // dan Admin yang baru menghapus event melihat sidebar event hilang
+        // satu ketukan sebelum ia kembali ke daftar. Membersihkannya di sini
+        // membuat keadaannya benar sejak respons ini.
+        if ((int) $request->session()->get('event_aktif') === $id) {
+            $request->session()->forget('event_aktif');
+        }
+
+        return redirect()
+            ->route('admin.events.index')
+            ->with('sukses', "Event {$nama} dihapus.");
     }
 
     /**
