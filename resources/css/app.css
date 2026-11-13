@@ -112,6 +112,39 @@
     --gelap-bad-bg: #331a1d;
     --gelap-info: #79c0da;
     --gelap-info-bg: #12252d;
+
+    /*
+     * Palet konsol pengawas - tema Refract (katalog hallmark), nilai disalin
+     * dari references/themes/refract.md tanpa diubah. Ditaruh di :root seperti
+     * --gelap-* karena aturan gate 48 sama untuk keduanya: nilai di luar blok
+     * token tidak bisa dibaca ulang, dan tidak ikut berganti bila paletnya
+     * berganti. Dua dial tema: light `water` DITANAM (tanpa caustics bergerak),
+     * colourway `pool`.
+     */
+    --refract-paper: oklch(98.2% 0.006 95);
+    /* surface: panel "clear" di atas plaster - dicampur penuh karena tanpa
+       caustics tidak ada cahaya di bawah panel yang perlu tembus. */
+    --refract-surface: oklch(99.3% 0.004 95);
+    --refract-surface-2: oklch(96.4% 0.006 95); /* paper-2 */
+    --refract-line: oklch(89.5% 0.008 230); /* rule */
+    --refract-ink: oklch(23% 0.035 245);
+    --refract-ink-2: oklch(36% 0.035 245);
+    --refract-ink-3: oklch(50% 0.025 240);
+    --refract-accent: oklch(50% 0.12 234);
+    --refract-accent-soft: oklch(94% 0.025 220);
+    --refract-on-accent: oklch(99% 0.003 95);
+    --refract-ok: oklch(45% 0.09 165);
+    --refract-ok-bg: oklch(95% 0.03 170);
+    --refract-warn: oklch(48% 0.10 75);
+    --refract-warn-bg: oklch(95% 0.04 85);
+    --refract-bad: oklch(45% 0.13 20);
+    --refract-bad-bg: oklch(95% 0.03 20);
+    --refract-info: oklch(48% 0.08 210);
+    --refract-info-bg: oklch(94% 0.025 220);
+    /* Bayangan Refract: jatuh dari satu matahari, warnanya membawa air -
+       tidak pernah abu-abu netral. */
+    --refract-shadow: 18px 28px 48px -26px oklch(52% 0.09 220 / 0.38),
+        2px 3px 6px -2px oklch(40% 0.05 230 / 0.12);
 }
 
 /*
@@ -132,40 +165,87 @@
 | separuh peserta melihat rangka yang berbeda dari separuh lainnya.
 */
 /*
- * Konsol pengawas - pelat gelap, redesign 2026-11-13.
+ * Konsol pengawas - tema Refract, redesign 2026-11-13.
  *
- * Tema: pelat gelap proyek (--gelap-*, material sama dengan konsol siswa
- * `.konsol-siswa`) - pengawas berdiri di ruang ujian memegang ponsel, dan
- * pelat gelap tidak menyilaukan di bawah lampu ruang kelas.
- * Ide: ruang yang sesinya BERJALAN memimpin halaman dengan bilah hidup dan
- * angka peserta yang diset besar; ruang yang belum bisa dibuka menyebut
- * alasannya sebagai kalimat.
+ * Tema: Refract (katalog hallmark) atas permintaan eksplisit - "jangan gelap
+ * ke Refract". Plaster putih di bawah matahari, tinta biru-kolam dalam,
+ * bayangan yang membawa warna cahayanya, Funnel Display berat ringan di atas
+ * Funnel Sans. Tanpa caustics bergerak: aplikasi ujian dipakai berjam-jam di
+ * hari-H, dan satu-satunya bagian yang bergerak adalah kode pindai yang
+ * memang harus berganti.
+ * Ide: ruang yang sesinya BERJALAN memimpin halaman dengan angka peserta
+ * diset besar; ruang yang belum bisa dibuka menyebut alasannya sebagai
+ * kalimat.
+ *
+ * Dua dial tema, keduanya bawaan: light `water` DITANAM (tanpa canvas - lihat
+ * atas), colourway `pool`. Dicatat di log hallmark.
+ *
+ * Nilai oklch disalin dari references/themes/refract.md tanpa diubah, lalu
+ * dipetakan ke NAMA token aplikasi (`--color-*`) seperti pola
+ * `.rangka-ujian`/`.konsol-siswa`: seluruh utility Tailwind di subtree ini
+ * ikut tema tanpa satu kelas `dark:` pun. `paper-2/3`, `rule`, `shade` dan
+ * bayangan Refract yang tidak punya padanan token aplikasi dideklarasikan
+ * lokal di sini dan hanya dipakai di blok berikut.
  *
  * Berbeda dengan `.rangka-ujian` yang membungkus seluruh rute siswa, kelas
- * ini hanya dipasang pada beranda pengawas lewat prop `gelap` di
- * `KerangkaPonsel` - laman-laman pengawas lain (presensi, token, monitoring,
- * berita acara) masih menyusul redesign masing-masing, dan memaksa semuanya
- * gelap hari ini berarti meredesain yang belum diundang.
+ * ini dipasang per-laman lewat prop `gelap` di `KerangkaPonsel` (namanya
+ * sekarang bersejarah: semua pemanggilnya Refract terang, dan mengganti nama
+ * prop berarti menyentuh delapan laman sekaligus - ditunda sampai pass
+ * berikutnya).
  */
 .konsol-pengawas {
-    --color-paper: var(--gelap-paper);
-    --color-surface: var(--gelap-surface);
-    --color-surface-2: var(--gelap-surface-2);
-    --color-line: var(--gelap-line);
-    --color-ink: var(--gelap-ink);
-    --color-ink-2: var(--gelap-ink-2);
-    --color-ink-3: var(--gelap-ink-3);
-    --color-accent: var(--gelap-accent);
-    --color-accent-soft: var(--gelap-accent-soft);
-    --color-on-accent: var(--gelap-on-accent);
-    --color-ok: var(--gelap-ok);
-    --color-ok-bg: var(--gelap-ok-bg);
-    --color-warn: var(--gelap-warn);
-    --color-warn-bg: var(--gelap-warn-bg);
-    --color-bad: var(--gelap-bad);
-    --color-bad-bg: var(--gelap-bad-bg);
-    --color-info: var(--gelap-info);
-    --color-info-bg: var(--gelap-info-bg);
+    --color-paper: var(--refract-paper);
+    --color-surface: var(--refract-surface);
+    --color-surface-2: var(--refract-surface-2);
+    --color-line: var(--refract-line);
+    --color-ink: var(--refract-ink);
+    --color-ink-2: var(--refract-ink-2);
+    --color-ink-3: var(--refract-ink-3);
+    --color-accent: var(--refract-accent);
+    --color-accent-soft: var(--refract-accent-soft);
+    --color-on-accent: var(--refract-on-accent);
+    --color-ok: var(--refract-ok);
+    --color-ok-bg: var(--refract-ok-bg);
+    --color-warn: var(--refract-warn);
+    --color-warn-bg: var(--refract-warn-bg);
+    --color-bad: var(--refract-bad);
+    --color-bad-bg: var(--refract-bad-bg);
+    --color-info: var(--refract-info);
+    --color-info-bg: var(--refract-info-bg);
+
+    /* Huruf tema: Funnel Display (display-weight 400, tracking tema) di atas
+       Funnel Sans. Mono tetap IBM Plex Mono - Refract melarang mono untuk
+       label, bukan untuk kode. */
+    --font-display: 'Funnel Display', 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Funnel Sans', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    --display-weight-pengawas: 400;
+    --tracking-display-pengawas: -0.032em;
+
+    /* Radius tema: kartu 22px, di dalamnya 12px. `rounded-wf` (8px) milik
+       wireframe tidak dipakai di subtree ini. */
+    --radius-pengawas: 22px;
+    --radius-pengawas-dalam: 12px;
+
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+}
+
+/* Kontrol tema: pill utama 48px beraksen penuh dengan tepi atas inset putih;
+   sekunder panel putih dengan tepi cahaya. `rounded-wf` di dalam subtree
+   dipetakan ke radius tema lewat override utilitasnya - satu tempat, bukan
+   menyunting setiap kelas pemanggil. */
+.konsol-pengawas .rounded-wf {
+    border-radius: var(--radius-pengawas-dalam);
+}
+
+.konsol-pengawas .font-display {
+    font-weight: var(--display-weight-pengawas);
+    letter-spacing: var(--tracking-display-pengawas);
+}
+
+.konsol-pengawas .shadow-wf {
+    box-shadow: var(--refract-shadow);
 }
 
 .rangka-ujian {

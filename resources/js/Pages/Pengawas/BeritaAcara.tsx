@@ -187,6 +187,7 @@ export default function BeritaAcara({
     return (
         <KerangkaPonsel
             judul="Berita acara"
+            gelap
             tabbar={{ ruangId: ruang.id, aktif: 'berita-acara' }}
             kiri={
                 <>
@@ -418,7 +419,7 @@ export default function BeritaAcara({
                         type="button"
                         onClick={bukaKembali}
                         disabled={kirim}
-                        className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink disabled:opacity-50"
+                        className="inline-grid min-h-11 place-items-center whitespace-nowrap rounded-wf border border-line bg-surface px-3 text-xs text-ink disabled:opacity-50"
                     >
                         Buka kembali sebagai draf
                     </button>

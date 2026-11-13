@@ -107,23 +107,35 @@ export default function KerangkaPonsel({
                                         {pengawasRuang?.ruang ?? auth.pengguna?.peran_label ?? 'Pengawas'}
                                     </Chip>
                                 )}
-                                <span className="min-w-0 truncate text-[11px] text-ink-3">
-                                    {pengawasRuang
-                                        ? [
-                                              // Nama pengawas yang membuka pintu ini,
-                                              // sejak 2026-11-07. Chip di sebelah kiri
-                                              // tetap menyebut KODE ruangnya, jadi
-                                              // kepalanya menjawab dua pertanyaan
-                                              // sekaligus: ruang mana, dan siapa.
-                                              pengawasRuang.pengawas
-                                                  ? `Pengawas: ${pengawasRuang.pengawas}`
-                                                  : null,
-                                              pengawasRuang.ruang_nama,
-                                              pengawasRuang.sesi,
-                                          ]
-                                              .filter(Boolean)
-                                              .join(' · ')
-                                        : judul}
+                                <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-[11px] text-ink-3">
+                                    {pengawasRuang ? (
+                                        // Pemisahnya GARIS TEGAK kecil, bukan titik
+                                        // tengah: gate 63 menyebut rangkaian titik
+                                        // sebagai tanda baca halaman generator, dan
+                                        // kepala ini bisa memuat tiga segmen. Nama
+                                        // pengawas yang membuka pintu ini disebut
+                                        // sejak 2026-11-07 - kodenya menempel pada
+                                        // orang. Chip di kiri tetap menyebut KODE
+                                        // ruangnya, jadi kepalanya menjawab dua
+                                        // pertanyaan sekaligus: ruang mana, dan siapa.
+                                        <>
+                                            {pengawasRuang.pengawas && (
+                                                <>
+                                                    <span className="shrink-0">
+                                                        {pengawasRuang.pengawas}
+                                                    </span>
+                                                    <i className="h-3 w-px shrink-0 bg-line" />
+                                                </>
+                                            )}
+                                            <span className="min-w-0 truncate">
+                                                {[pengawasRuang.ruang_nama, pengawasRuang.sesi]
+                                                    .filter(Boolean)
+                                                    .join(' · ')}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        judul
+                                    )}
                                 </span>
                             </div>
 

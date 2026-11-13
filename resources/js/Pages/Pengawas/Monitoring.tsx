@@ -133,6 +133,7 @@ export default function Monitoring({
     return (
         <KerangkaPonsel
             judul="Monitoring ruang"
+            gelap
             tabbar={{ ruangId: ruang.id, aktif: 'monitoring' }}
             kiri={
                 <>

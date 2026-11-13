@@ -4,23 +4,31 @@
   "depth": "full",
   "scope": "app",
   "shape": "app screen",
-  "theme": "pelat gelap proyek (--gelap-*)",
-  "axes": "dark/geometric-sans/cool in archivo",
-  "signature": "ruang yang sesinya berjalan memimpin dengan bilah hidup dan angka peserta diset besar",
+  "theme": "refract",
+  "axes": "light/grotesk-sans/cool",
+  "dials": "water-planted/pool",
+  "signature": "konsol pengawas pada plester putih sinar matahari, tinta biru kolam, Funnel Display 400 di atas Funnel Sans",
   "sections": [
    "bilah-hidup",
    "kartu-ruang",
-   "inbox"
+   "inbox",
+   "token",
+   "presensi",
+   "monitoring",
+   "berita-acara",
+   "koreksi",
+   "pelanggaran"
   ],
   "nav": "kept (kerangka ponsel)",
   "waived": [
-   "63 (join titik tengah di kepala KerangkaPonsel - dipakai 8 laman pengawas lain yang redesign-nya ditunda; menyusul di pass laman dalam)"
+   "display collision: user named the theme Refract explicitly, Funnel Display replaces Archivo on the 8 pengawas pages only"
   ],
+  "caustics": "tanpa caustics - user answer; shade/water dials planted but no canvas",
   "dismissed": [
    "41"
   ],
   "entry": "http://127.0.0.1:8781/pengawas",
-  "prompt": "redesign the supervisor home of a school computer-based-test app - one card per assigned room, status-first - dark plate",
+  "prompt": "redesign semua laman pengawas ke tema Refract (bukan gelap) - konsol ruang pengawas aplikasi CBT sekolah",
   "date": "2026-11-13"
  },
  {

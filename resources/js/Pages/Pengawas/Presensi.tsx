@@ -289,6 +289,7 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
     return (
         <KerangkaPonsel
             judul="Presensi ruang"
+            gelap
             tabbar={{ ruangId: ruang.id, aktif: 'presensi' }}
             kiri={
                 <>
@@ -558,7 +559,7 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
              * daftar nama tidak ikut ke sini, karena layar ini diarahkan ke
              * siswa.
              */}
-            <Modal judul="Kode pindai presensi" terbuka={layar} padaTutup={() => setLayar(false)}>
+            <Modal judul="Kode pindai presensi" terbuka={layar} padaTutup={() => setLayar(false)} gelap>
                 <div className="grid justify-items-center gap-2 text-center">
                     <b className="font-display text-[15px] text-ink">
                         {[ruang.ujian, ruang.sesi].filter(Boolean).join(' · ')}
@@ -620,6 +621,7 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
                 judul={`${pengakuan.length} siswa memindai`}
                 terbuka={lembar}
                 padaTutup={() => setLembar(false)}
+                gelap
             >
                 <div className="space-y-2">
                     <Inbox>

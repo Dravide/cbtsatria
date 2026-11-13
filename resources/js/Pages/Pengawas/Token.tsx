@@ -90,6 +90,7 @@ export default function Token({ ruang, token, pemakaian, riwayat }: Props) {
     return (
         <KerangkaPonsel
             judul="Token sesi"
+            gelap
             tabbar={{ ruangId: ruang.id, aktif: 'token' }}
             kiri={
                 <>
@@ -121,10 +122,13 @@ export default function Token({ ruang, token, pemakaian, riwayat }: Props) {
                             {/* Kotak ini yang menahan kodenya. Sebelum tombol
                                 ditekan ia berisi titik-titik, dan TIDAK ada
                                 teks kode di dalam DOM - bukan disembunyikan
-                                dengan CSS, melainkan tidak dirender. */}
+                                dengan CSS, melainkan tidak dirender.
+                                Monokrom tabular: enam digit yang dibaca
+                                diserap siswa satu per satu, dan nol bergaris
+                                tidak pernah tertukar dengan huruf O. */}
                             <div
                                 className={
-                                    'mx-auto mt-1.5 rounded-wf border border-line bg-surface-2 font-mono tracking-[0.3em] text-ink ' +
+                                    'mx-auto mt-1.5 rounded-wf border border-accent-soft bg-surface-2 font-mono tabular-nums tracking-[0.3em] text-accent ' +
                                     (besar
                                         ? 'py-4 text-4xl'
                                         : 'w-full max-w-[12rem] py-3 text-2xl')

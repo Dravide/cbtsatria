@@ -111,6 +111,7 @@ export default function PresensiSatu({
     return (
         <KerangkaPonsel
             judul={`Presensi ${nama}`}
+            gelap
             bilah={false}
         >
             <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur">

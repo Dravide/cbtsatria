@@ -72,13 +72,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     {{-- Syne, Onest dan JetBrains Mono adalah material konsol siswa (tema
          Terrazzo): kepala geometris yang lebar, badan sans yang tenang, dan
-         mono untuk waktu serta kode saja. Ketiganya dimuat di sini, bukan
-         lewat @import di CSS, karena berkas ini sudah punya preconnect ke
-         fonts.gstatic.com dan satu permintaan koneksi untuk enam keluarga
-         lebih murah daripada dua. Archivo dan IBM Plex tetap dipakai empat
-         peran lain. --}}
+         mono untuk waktu serta kode saja. Funnel Display + Funnel Sans adalah
+         material konsol pengawas (tema Refract, 2026-11-13): display grotesk
+         berat ringan di atas badan sans yang hangat. Semuanya dimuat di sini,
+         bukan lewat @import di CSS, karena berkas ini sudah punya preconnect
+         ke fonts.gstatic.com dan satu permintaan koneksi untuk delapan
+         keluarga lebih murah daripada dua. Archivo dan IBM Plex tetap dipakai
+         Guru dan Admin. --}}
     <link
-        href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Onest:wght@400;500&family=Syne:wght@700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Funnel+Display:wght@300;400&family=Funnel+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&family=Onest:wght@400;500&family=Syne:wght@700&display=swap"
         rel="stylesheet"
     >
 

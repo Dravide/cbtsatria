@@ -105,6 +105,7 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
     return (
         <KerangkaPonsel
             judul={`Pelanggaran ${peserta.nama}`}
+            gelap
             bilah={false}
             // Bilah bawah dengan jalan pulang. Laman ini dibuka dari baris
             // nama di papan monitoring, dan sebelumnya satu-satunya cara
