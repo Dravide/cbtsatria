@@ -179,6 +179,76 @@ it('menampilkan halaman per pengawas, dan 404 untuk yang tidak bertugas', functi
     $this->get("/papan/{$slug}/pengawas/{$lain->id}")->assertNotFound();
 });
 
+/* =====================================================================
+ | Sesi yang tidak lagi aktif - ditambahkan 2026-11-14
+ |===================================================================== */
+
+it('menyembunyikan sesi dari event yang sudah selesai, arsip, atau batal', function () {
+    // Gejala 2026-11-14: papan publik di lorong masih menyebut "Bu Ani di
+    // R-02" untuk ujian yang sudah diarsipkan. Versi pertama hanya
+    // menyaring `school_id`, sehingga status event tidak pernah dibaca.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $this->actingAs($this->admin)->patch('/admin/papan', ['aktif' => true]);
+    $slug = $this->sekolah->fresh()->papan_slug;
+
+    app(SesiService::class)->mulai($data['sesi']);
+
+    expect($this->get("/papan/{$slug}")->assertOk()->viewData('page')['props']['sesi'])
+        ->toHaveCount(1);
+
+    foreach (['selesai', 'arsip', 'batal'] as $status) {
+        $data['event']->forceFill(['status' => $status])->save();
+
+        $props = $this->get("/papan/{$slug}")->assertOk()->viewData('page')['props'];
+
+        expect($props['sesi'])->toBeEmpty()
+            ->and($props['tanpa_pengawas'])->toBeEmpty();
+    }
+});
+
+it('menyembunyikan sesi yang jendelanya sudah lewat walau statusnya masih berjalan', function () {
+    // `ujian:tutup-sesi` berjalan tiap menit, sehingga ada jendela singkat
+    // sesudah `hard_end_at` lewat dan sebelum statusnya dipindahkan. Papan
+    // yang tayang tanpa login tidak boleh menjawab dengan keadaan yang sudah
+    // tidak benar - orang di lorong sudah membaca "R-02" sebelum barisnya
+    // tertutup.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $this->actingAs($this->admin)->patch('/admin/papan', ['aktif' => true]);
+    $slug = $this->sekolah->fresh()->papan_slug;
+
+    app(SesiService::class)->mulai($data['sesi']);
+
+    $this->travel(4)->hours();
+
+    // Status SESI sengaja belum disentuh - itulah keadaan yang diuji.
+    expect($data['sesi']->refresh()->status->value)->toBe('berjalan')
+        ->and(now()->greaterThan($data['sesi']->hard_end_at))->toBeTrue();
+
+    expect($this->get("/papan/{$slug}")->assertOk()->viewData('page')['props']['sesi'])
+        ->toBeEmpty();
+});
+
+it('tetap menampilkan sesi milik event yang belum dibuka', function () {
+    // Kebalikannya harus dijaga juga: penyaring yang terlalu ketat membuat
+    // papan kosong pada pagi hari ujian, dan itu justru satu-satunya saat
+    // papan ini berguna.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $this->actingAs($this->admin)->patch('/admin/papan', ['aktif' => true]);
+    $slug = $this->sekolah->fresh()->papan_slug;
+
+    // `siapkanUjianSiswa` berhenti di tahap sesi "siap" tanpa memindahkan
+    // status EVENT-nya - jadi eventnya masih `draft`. Yang diuji di sini
+    // adalah bahwa tahap itu MASIH TAMPIL: papan dipakai justru sebelum
+    // sesinya dibuka, untuk memastikan pengawasnya sudah di ruangnya.
+    expect($data['event']->refresh()->status->value)->toBe('draft');
+
+    expect($this->get("/papan/{$slug}")->assertOk()->viewData('page')['props']['sesi'])
+        ->toHaveCount(1);
+});
+
 it('tidak membocorkan papan sekolah lain lewat slug', function () {
     $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
     app(SesiService::class)->mulai($data['sesi'], $this->admin->id);

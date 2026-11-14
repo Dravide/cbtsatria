@@ -2,6 +2,7 @@
 
 namespace App\Domain\Attendance\Services;
 
+use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Models\SupervisionAssignment;
@@ -150,14 +151,52 @@ class PapanPengawas
     /**
      * Sesi yang dijawab papan ini: berjalan lebih dulu, lalu yang terdekat.
      *
+     * =====================================================================
+     * Event yang sudah SELESAI/ARSIP/BATAL tidak ikut - perbaikan 2026-11-14
+     * =====================================================================
+     * Versi pertama hanya menyaring `school_id`, dan akibatnya papan publik
+     * ini tetap menampilkan ruang dan pengawas dari event yang sudah
+     * diarsipkan - atau, lebih menyesatkan lagi, sesi yang jendelanya sudah
+     * lewat dan baru ditutup beberapa menit lalu. Di lorong, papan yang
+     * menyebut "Bu Ani di R-02" untuk ujian kemarin membuat orang mencarinya
+     * di ruang yang sudah dikosongkan.
+     *
+     * Dua penyaringnya berbeda dan keduanya perlu:
+     *
+     *   status event   Arsip/Batal bukan "sedang berlangsung" dalam arti apa
+     *                  pun. `Selesai` juga tidak - event yang seluruh
+     *                  sesinya tuntas tidak punya pengawas yang sedang
+     *                  berdiri di mana pun.
+     *   hard_end_at    Sesi yang jendelanya lewat tetapi statusnya masih
+     *                  `berjalan` - keadaan yang bisa bertahan sampai
+     *                  `ujian:tutup-sesi` berjalan satu menit kemudian -
+     *                  tidak boleh tampil sebagai sesi yang sedang aktif.
+     * Aturan statusnya dari `EventStatus::belumSelesai()`, bukan daftar
+     * sendiri di sini: papan yang menyaring berbeda dari layar lain adalah
+     * papan yang menjawab pertanyaan tentang dunia yang berbeda. Yang
+     * tersisa karena itu Draft, Persiapan, Siap, dan Berjalan - dan dua
+     * yang terakhir itulah yang benar-benar punya sesi.
+     *
      * @return Collection<int, ExamSession>
      */
     private function sesiAktif(School $sekolah): Collection
     {
         $sekarang = now();
 
+        $statusAktif = array_map(
+            fn (EventStatus $s) => $s->value,
+            EventStatus::belumSelesai(),
+        );
+
+        $layak = fn ($q) => $q
+            ->where('school_id', $sekolah->id)
+            ->whereIn('status', $statusAktif)
+            // Jendelanya sudah lewat = tidak ada yang sedang mengawas, apa
+            // pun status barisnya.
+            ->where('hard_end_at', '>=', $sekarang);
+
         $berjalan = ExamSession::query()
-            ->whereHas('exam.event', fn ($q) => $q->where('school_id', $sekolah->id))
+            ->whereHas('exam.event', $layak)
             ->where('status', 'berjalan')
             ->with($this->muatan())
             ->orderBy('access_opens_at')
@@ -172,8 +211,7 @@ class PapanPengawas
         // Papan yang menampilkan sesi kemarin akan menjawab pertanyaan yang
         // tidak ditanyakan siapa pun pada pagi hari ujian.
         return ExamSession::query()
-            ->whereHas('exam.event', fn ($q) => $q->where('school_id', $sekolah->id))
-            ->where('hard_end_at', '>=', $sekarang)
+            ->whereHas('exam.event', $layak)
             ->with($this->muatan())
             ->orderBy('access_opens_at')
             ->limit(self::MAKS_SESI)
