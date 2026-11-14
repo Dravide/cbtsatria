@@ -5,6 +5,7 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 use App\Domain\Attendance\Enums\StatusPresensi;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
+use App\Domain\Attendance\Services\TempatUjianSiswa;
 use App\Domain\Event\Models\EventAnnouncement;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
@@ -48,7 +49,7 @@ use Inertia\Response;
  */
 class JadwalSiswaController extends SiswaDasar
 {
-    public function index(Request $request): Response
+    public function index(Request $request, TempatUjianSiswa $tempatUjian): Response
     {
         $penempatan = ExamParticipant::query()
             ->where('student_id', $request->user()->id)
@@ -92,6 +93,24 @@ class JadwalSiswaController extends SiswaDasar
         // atau yang paling cepat dibuka. Kriterianya "belum selesai", bukan
         // "hari ini" - lihat catatan kelas ini.
         $utama = $baris->first(fn (array $b) => $b['utama']);
+
+        // Denah kursi HANYA untuk kartu utama, dan itu disengaja.
+        //
+        // Setiap denah menuntut satu pemanggilan `PetaKursiEvent::sel()` -
+        // empat puluh kursi untuk satu ruang. Menempelkannya ke setiap baris
+        // daftar berarti membayar seluruh ruangan untuk baris-baris yang
+        // tidak akan ada yang membuka panelnya. Yang dibuka anak di hari-H
+        // adalah baris pertama, dan itu tebakan yang layak disebut.
+        //
+        // `untuk()` dipakai alih-alih `terdekat()` supaya denahnya menunjuk
+        // penempatan yang SAMA dengan kartu di atasnya. Dua pilihan yang
+        // berbeda bisa menyebut ujian yang berbeda - kartu "Ruang 02, kursi
+        // 7" dengan denah ruang 1 di belakangnya adalah layar yang
+        // bertengkar dengan dirinya sendiri.
+        if ($utama !== null) {
+            $pesertaUtama = $penempatan->firstWhere('id', $utama['peserta_id']);
+            $utama['tempat'] = $pesertaUtama === null ? null : $tempatUjian->untuk($pesertaUtama);
+        }
 
         return Inertia::render('Siswa/Jadwal', [
             'nama' => $request->user()->name,

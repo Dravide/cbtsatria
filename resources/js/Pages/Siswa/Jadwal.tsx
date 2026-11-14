@@ -2,6 +2,8 @@ import { Link } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import { formatDurasi } from '@/Components/angka';
+import { DenahKursi, type TempatUjian } from '@/Components/DenahKursi';
+import { Modal } from '@/Components/ui';
 
 /**
  * Jadwal ujian saya - wireframe-peran.html plate 19. `/siswa`.
@@ -59,6 +61,13 @@ type Baris = {
     selesai: boolean;
     status: string;
     nada: string;
+    /**
+     * Tempat ujian kartu utama, untuk panel denah - hanya dikirim untuk
+     * kartu utama, dan null bila penempatannya belum punya ruang. Baris
+     * daftar tidak membawanya sama sekali; bentuknya milik
+     * `TempatUjianSiswa`, sama dengan blok di Akun.
+     */
+    tempat?: TempatUjian | null;
 };
 
 type Pengumuman = {
@@ -311,6 +320,7 @@ function BarisDaftar({ baris }: { baris: Baris }) {
  */
 function PitaUtama({ baris }: { baris: Baris }) {
     const [mulai, selesai] = baris.jam?.split(/[–-]/) ?? [undefined, undefined];
+    const [denah, setDenah] = useState(false);
 
     // Hitung mundur berjalan di peramban, tetapi ANGKANYA dari server - lihat
     // catatan `hitungMundur()` di controller. Jam peramban anak bisa meleset
@@ -377,6 +387,30 @@ function PitaUtama({ baris }: { baris: Baris }) {
                     {baris.kursi ? `, kursi ${baris.kursi}` : ''}
                 </p>
 
+                {/*
+                 * Denah kursi - ditambahkan 2026-11-14, setelah blok di Akun.
+                 *
+                 * Blok di Akun benar sebagai ARSIP ("tadi saya duduk di
+                 * mana"), tetapi ia dua laman jauhnya dari tempat anak
+                 * menunggu pada hari-H. Yang dibuka sambil berjalan ke
+                 * ruangnya adalah beranda ini, jadi tombolnya berdiri di
+                 * sini - pada kartu yang sedang berjalan, bukan pada setiap
+                 * baris daftar.
+                 *
+                 * Syaratnya `baris.tempat !== null`: penempatan tanpa ruang
+                 * tidak punya kursi untuk digambar, dan tombol yang membuka
+                 * denah kosong lebih buruk daripada tombol yang tidak ada.
+                 */}
+                {baris.tempat != null && (
+                    <button
+                        type="button"
+                        onClick={() => setDenah(true)}
+                        className="mt-1.5 text-[12px] font-medium text-plate-ink underline decoration-dotted underline-offset-2"
+                    >
+                        Lihat posisi kursi
+                    </button>
+                )}
+
                 {/* --------------------------------------------------
                     Presensi: satu baris, dan ia menjawab pertanyaan yang
                     sampai 2026-11-14 hanya bisa dijawab gerbang
@@ -435,6 +469,24 @@ function PitaUtama({ baris }: { baris: Baris }) {
                     </Link>
                 </div>
             </div>
+
+            {/*
+             * Panel denah - `Modal` milik `ui.tsx` apa adanya, sama dengan
+             * yang dipakai Akun. Yang dibuat sendiri hanya isinya, dan itu
+             * pun komponen bersama: dua denah yang digambar dua kali adalah
+             * dua denah yang suatu hari berbeda.
+             */}
+            <Modal
+                judul={
+                    baris.tempat?.kursi !== null && baris.tempat?.kursi !== undefined
+                        ? `Posisi kursi ${baris.tempat.kursi}`
+                        : 'Posisi kursi'
+                }
+                terbuka={denah}
+                padaTutup={() => setDenah(false)}
+            >
+                {baris.tempat != null && <DenahKursi tempat={baris.tempat} />}
+            </Modal>
         </section>
     );
 }

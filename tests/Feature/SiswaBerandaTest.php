@@ -232,3 +232,49 @@ it('menghitung kemajuan dari beberapa ujian dalam satu event', function () {
     expect(propsBeranda($this, $data['siswa'][0])['kemajuan'])
         ->toMatchArray(['total' => 2, 'selesai' => 1, 'menunggu' => 1]);
 });
+
+it('mengirim denah kursi pada kartu utama, dan hanya pada kartu utama', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    // Sesi dibuka sekarang, sehingga ujiannya menjadi kartu utama.
+    $props = propsBeranda($this, $data['siswa'][0]);
+
+    expect($props['utama'])->not->toBeNull()
+        ->and($props['utama']['tempat'])->not->toBeNull()
+        ->and($props['utama']['tempat']['kursi'])->toBeInt()
+        // Geometrinya dari server: dua kursi per meja, empat meja per baris.
+        ->and($props['utama']['tempat']['denah']['kursi_per_meja'])->toBe(2)
+        ->and($props['utama']['tempat']['denah']['meja_per_baris'])->toBe(4)
+        ->and($props['utama']['tempat']['denah']['sel'])->not->toBeEmpty();
+
+    // Nama penghuni lain tidak ikut keluar - panel ini untuk mencari kursi
+    // sendiri, dan nama anak lain di layar anak lain adalah kebocoran.
+    $sel = $props['utama']['tempat']['denah']['sel'][0];
+    expect($sel)->toHaveKeys(['kursi', 'meja', 'baris', 'kolom', 'terisi', 'saya'])
+        ->and($sel)->not->toHaveKey('peserta');
+
+    // Baris daftar TIDAK membawa denah: setiap denah berarti satu
+    // pemanggilan `PetaKursiEvent::sel()` untuk seluruh ruangan.
+    foreach ($props['jadwal'] as $baris) {
+        expect($baris)->not->toHaveKey('tempat');
+    }
+});
+
+it('mengirim denah pada kartu yang sesinya belum dibuka', function () {
+    // Sesi baru dibuka satu jam lagi. Kartunya tetap "utama" - lihat
+    // `bentukBaris()`: yang menentukan adalah belum selesai dan jendelanya
+    // belum lewat - dan anak yang sedang berjalan ke ruangnya justru
+    // membutuhkan denahnya SEKARANG, bukan sesudah gerbangnya terbuka.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin, [
+        'buka' => '+1 hour',
+        'tutup' => '+3 hours',
+        'akhir' => '+4 hours',
+    ]);
+
+    $props = propsBeranda($this, $data['siswa'][0]);
+
+    expect($props['utama'])->not->toBeNull()
+        ->and($props['utama']['tempat'])->not->toBeNull()
+        ->and($props['utama']['tempat']['denah']['sel'])->not->toBeEmpty()
+        ->and($props['utama']['tempat']['selesai'])->toBeFalse();
+});

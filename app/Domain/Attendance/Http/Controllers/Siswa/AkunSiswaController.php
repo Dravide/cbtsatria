@@ -4,11 +4,8 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 
 use App\Domain\Academic\Services\PenempatanKelas;
 use App\Domain\Attendance\Http\Requests\GantiSandiRequest;
+use App\Domain\Attendance\Services\TempatUjianSiswa;
 use App\Domain\Audit\Services\ActivityLogger;
-use App\Domain\Event\Models\EventRoom;
-use App\Domain\Exam\Models\ExamParticipant;
-use App\Domain\Exam\Services\NomorKursi;
-use App\Domain\Exam\Services\PetaKursiEvent;
 use App\Domain\Identity\Models\User;
 use App\Support\PembatasLaju;
 use App\Support\SesiPengguna;
@@ -89,7 +86,7 @@ use Inertia\Response;
  */
 class AkunSiswaController extends SiswaDasar
 {
-    public function index(Request $request): Response
+    public function index(Request $request, TempatUjianSiswa $tempatUjian): Response
     {
         $user = $request->user();
         $profil = $user->studentProfile;
@@ -105,155 +102,10 @@ class AkunSiswaController extends SiswaDasar
             // di ujian mana pun tetap punya kelas.
             'kelas' => app(PenempatanKelas::class)->kelasSekarang((int) $user->id)?->name,
             'sandi_bawaan' => Hash::check(User::SANDI_BAWAAN, (string) $user->password),
-            'tempat_ujian' => $this->tempatUjian((int) $user->id),
+            // Bentuk payload-nya milik `TempatUjianSiswa`, bukan laman ini -
+            // beranda memakai bentuk yang sama untuk kartu utamanya.
+            'tempat_ujian' => $tempatUjian->terdekat((int) $user->id),
         ]);
-    }
-
-    /**
-     * Tempat ujian BERIKUTNYA, beserta denah kursinya - ditambahkan 2026-11-14.
-     *
-     * =====================================================================
-     * Mengapa di Akun, bukan di beranda
-     * =====================================================================
-     * Beranda sudah memuat ruang dan kursi, tetapi ia menghapusnya begitu
-     * ujiannya selesai - dan yang dibuka anak sambil berjalan ke ruangnya
-     * adalah laman yang menyimpan tempat ujian BERIKUTNYA sepanjang hari-H.
-     *
-     * =====================================================================
-     * Denah dikirim bersama tempatnya, bukan di rute kedua
-     * =====================================================================
-     * Panel posisi kursi dibuka dari tombol di blok ini, dan ia memuat
-     * paling banyak empat puluh sel. Rute kedua untuk empat puluh angka
-     * berarti satu perjalanan yang harus dijawab saat anak berdiri di depan
-     * pintu, di jaringan sekolah yang sedang dipakai tiga ratus orang.
-     * Payload laman Akun sudah cukup kecil untuk menampungnya.
-     *
-     * =====================================================================
-     * Yang TIDAK dikirim: nama penghuni lain
-     * =====================================================================
-     * Denah ini untuk mencari kursi sendiri, bukan untuk tahu siapa duduk
-     * di sebelah. `sel` membawa `peserta` lengkap - nama, NIS, kelas - dan
-     * seluruhnya DIBUANG di sini, menyisakan kursi yang terisi atau tidak.
-     * Panel yang memuat nama anak lain akan difoto lalu disebar, dan nama
-     * anak di layar ponsel anak lain adalah kebocoran yang tidak dibutuhkan
-     * fitur ini.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function tempatUjian(int $siswaId): ?array
-    {
-        // =================================================================
-        // TIDAK disaring menurut jam sesi, dan itu perbaikan 2026-11-14
-        // =================================================================
-        // Versi pertama menambahkan `whereHas('session', hard_end_at >= now())`,
-        // dan akibatnya blok ini HILANG seketika sesinya lewat - termasuk pada
-        // anak yang baru selesai mengerjakan ujiannya sendiri, yang justru
-        // sedang berdiri di ruang itu. Kursi tidak kedaluwarsa bersama jam
-        // sesi: ruang dan nomor kursi adalah tempat ujian yang ditetapkan
-        // untuk anak itu, dan pertanyaan "saya duduk di mana" tetap sah
-        // sesudah ujiannya berakhir.
-        //
-        // Yang dipilih: penempatan dengan sesi TERDEKAT YANG BELUM BERAKHIR;
-        // bila tidak ada, yang paling akhir. Laman menandai keadaan itu
-        // (`selesai`) supaya tidak terbaca sebagai ajakan datang.
-        $semua = ExamParticipant::query()
-            ->where('student_id', $siswaId)
-            ->where('status', ExamParticipant::STATUS_TERDAFTAR)
-            ->with([
-                'exam.subject:id,name',
-                'session',
-                'room.eventRoom.room:id,code,name,location,capacity',
-            ])
-            ->get()
-            // Penempatan TANPA ruang tidak bisa menunjuk kursi apa pun -
-            // ia belum ditempatkan, dan itu bukan "tempat ujian".
-            ->filter(fn (ExamParticipant $p) => $p->room !== null);
-
-        if ($semua->isEmpty()) {
-            return null;
-        }
-
-        $sekarang = now();
-
-        $peserta = $semua
-            ->filter(fn (ExamParticipant $p) => $p->session !== null && $p->session->hard_end_at->gte($sekarang))
-            ->sortBy(fn (ExamParticipant $p) => $p->session?->access_opens_at?->timestamp ?? PHP_INT_MAX)
-            ->first()
-            // Tidak ada yang belum berakhir: pakai yang TERAKHIR, supaya blok
-            // ini tetap menjawab "tadi saya duduk di mana" alih-alih hilang
-            // tanpa jejak.
-            ?? $semua->sortByDesc(fn (ExamParticipant $p) => $p->session?->access_opens_at?->timestamp ?? PHP_INT_MIN)->first();
-
-        if ($peserta === null) {
-            return null;
-        }
-
-        $kursi = $this->nomorKursi($peserta);
-        $eventRoom = $peserta->room->eventRoom;
-        $sesi = $peserta->session;
-
-        return [
-            'peserta_id' => (int) $peserta->id,
-            'ruang' => $eventRoom?->room?->code,
-            'ruang_nama' => $eventRoom?->room?->name,
-            'lokasi' => $eventRoom?->room?->location,
-            'kursi' => $kursi,
-            'meja' => $kursi === null ? null : NomorKursi::meja($kursi),
-            'baris' => $kursi === null ? null : intdiv(NomorKursi::meja($kursi) - 1, NomorKursi::MEJA_PER_BARIS) + 1,
-            'kolom' => $kursi === null ? null : ((NomorKursi::meja($kursi) - 1) % NomorKursi::MEJA_PER_BARIS) + 1,
-            'mapel' => $peserta->exam?->subject?->name,
-            'ujian' => $peserta->exam?->title,
-            'sesi' => $sesi?->label(),
-            'jam' => $sesi === null
-                ? null
-                : $sesi->access_opens_at->format('H:i').'–'.$sesi->hard_end_at->format('H:i'),
-            'tanggal' => $sesi?->access_opens_at?->format('d M'),
-            // Apakah sesinya sudah berakhir. Dipakai laman untuk mengubah
-            // kalimatnya - "tempat ujian" pada sesi yang sudah lewat terbaca
-            // sebagai ajakan datang ke ruang yang sudah dikosongkan.
-            'selesai' => $sesi !== null && $sesi->hard_end_at->lt(now()),
-            'denah' => $this->denah($eventRoom, $kursi),
-        ];
-    }
-
-    /**
-     * Seluruh kursi ruang itu, TANPA nama penghuni.
-     *
-     * Dihitung `PetaKursiEvent::sel()` - sumber yang sama dengan denah Admin,
-     * tablo PDF, dan papan pengawas. Denah yang menyusun ulang geometrinya
-     * sendiri adalah denah yang menaruh anak di kursi orang lain.
-     *
-     * @return array<string, mixed>
-     */
-    private function denah(?EventRoom $eventRoom, ?int $kursi): array
-    {
-        if ($eventRoom === null) {
-            return [
-                'kapasitas' => 0,
-                'kursi_per_meja' => NomorKursi::KURSI_PER_MEJA,
-                'meja_per_baris' => NomorKursi::MEJA_PER_BARIS,
-                'sel' => [],
-            ];
-        }
-
-        $baris = app(PetaKursiEvent::class)->sel((int) $eventRoom->id, $eventRoom->kapasitasEfektif());
-
-        return [
-            'kapasitas' => $eventRoom->kapasitasEfektif(),
-            'kursi_per_meja' => NomorKursi::KURSI_PER_MEJA,
-            'meja_per_baris' => NomorKursi::MEJA_PER_BARIS,
-            'sel' => collect($baris)->map(fn (array $s) => [
-                'kursi' => (int) $s['kursi'],
-                'meja' => (int) $s['meja'],
-                'baris' => (int) $s['baris'],
-                'kolom' => (int) $s['kolom'],
-                'terisi' => $s['peserta'] !== null,
-                // `saya` dibandingkan dengan nomor kursi yang SAMA yang
-                // ditampilkan di blok di atasnya - dua angka yang menjawab
-                // "kursi mana saya" tidak boleh berasal dari dua hitungan.
-                'saya' => $kursi !== null && (int) $s['kursi'] === $kursi,
-            ])->all(),
-        ];
     }
 
     /**
