@@ -1,0 +1,619 @@
+<title>Wireframe Soal per Mata Pelajaran — Event Admin</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   Wireframe School CBT — soal per mapel di dalam event
+   Primitif disalin dari wireframe-admin.html supaya keempat
+   berkas wireframe terbaca sebagai satu sistem. Tidak ada
+   primitif baru kecuali `.spark` (sebaran jenis) dan `.flag`
+   (keterangan pendek di dalam baris tabel).
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:72ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.fbtn{font:500 12px/1 var(--font-mono);letter-spacing:.04em;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.fbtn b{color:var(--ink-3);font-weight:500}
+.fbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.fbtn.on b{color:color-mix(in srgb,var(--on-accent) 70%,transparent)}
+.group{margin-bottom:38px;display:grid;gap:18px}
+.group[hidden]{display:none}
+.group>header{display:grid;gap:6px}
+.group>header h2{font-size:1.15rem;display:flex;gap:9px;align-items:baseline}
+.group>header h2 em{font-family:var(--font-mono);font-style:normal;font-size:12px;color:var(--accent);letter-spacing:.1em}
+.group>header p{color:var(--ink-2);max-width:72ch;font-size:13.5px}
+.shots{display:grid;gap:22px}
+.shots .wide{grid-column:1/-1}
+@media (min-width:760px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.shot{display:grid;gap:10px;min-width:0;align-content:start;margin:0}
+.cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cap .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.08em}
+.cap h3{font-size:.95rem}
+.cap .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+/* `.note` BUKAN grid. Versi grid membuat setiap <b> dan <em> inline
+   menjadi baris sendiri, dan kalimatnya pecah jadi lima fragmen -
+   terlihat paling jelas pada catatan O1 di bawah. Jarak antar-paragraf
+   ditangani `> * + *`, bukan `gap`. */
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;font-size:13.5px;color:var(--ink-2);line-height:1.6}
+.note>*+*{margin-top:5px}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+.note code{font-size:12px}
+
+/* ---------- primitif .wf (ringkas, sama dengan wireframe-admin) ---------- */
+.wf{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--wf-bg);color:var(--wf-ink);box-shadow:var(--shadow);font-size:10px;line-height:1.35;min-width:0}
+.wf.lg{font-size:11.5px}
+.chrome{display:flex;gap:7px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:6px;height:6px;border-radius:99px;background:var(--wf-dash);flex:none}
+.chrome .url{font-family:var(--font-mono);font-size:9px;color:var(--wf-dim);margin-left:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.chrome .who{margin-left:auto;font-size:9px;color:var(--wf-dim);white-space:nowrap}
+.grid2{display:grid;grid-template-columns:46px minmax(0,1fr);min-height:0}
+.wf.lg .grid2{grid-template-columns:126px minmax(0,1fr)}
+
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:8px 6px;display:grid;gap:2px;align-content:start;min-width:0}
+.rail .mark{width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);font:700 9px/16px var(--font-display);text-align:center;margin:0 auto 6px}
+.ni{display:flex;gap:6px;align-items:center;padding:3px 5px;border-radius:4px;font-size:9px;color:var(--wf-dim);min-width:0}
+.ni i{width:7px;height:7px;border-radius:2px;background:var(--wf-line);flex:none}
+.ni span{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf.lg .ni{font-size:10px;padding:4px 6px}
+.wf.lg .ni span{display:block}
+.ni.on{background:var(--wf-bg);color:var(--wf-ink);box-shadow:inset 2px 0 0 var(--accent)}
+.ni.on i{background:var(--accent)}
+.rail .sep{height:1px;background:var(--wf-hair);margin:4px 0}
+.rail .glab{display:none;font:500 8px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--wf-dim);padding:2px 5px}
+.wf.lg .glab{display:block}
+
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+.tbar{display:flex;gap:6px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.crumb{font-size:9px;color:var(--wf-dim);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.sel.ev{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.sp{margin-left:auto}
+.body{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sub{font-size:9px;color:var(--wf-dim)}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.tr{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.tr:last-child{border-bottom:0}
+.tr.th{background:var(--wf-head);font:500 8px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.tr .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.tr .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font:500 8px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.off{opacity:.5}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--wf-hair);flex-wrap:wrap}
+.tab{font-size:9px;padding:4px 8px;color:var(--wf-dim);border-bottom:2px solid transparent}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* --- primitif baru 1: `.spark`, sebaran jenis soal di kepala mapel ---
+   Batang sebanding, bukan angka berderet. Yang dibaca Admin di kepala
+   kelompok adalah BENTUK paketnya (kebanyakan PG? ada uraian?), dan enam
+   angka berderet tidak membentuk apa pun di mata. */
+.spark{display:flex;height:4px;border-radius:99px;overflow:hidden;background:var(--wf-hair);min-width:60px;gap:1px}
+.spark i{display:block;height:100%}
+.spark i.pg{background:var(--accent)}
+.spark i.gd{background:color-mix(in srgb,var(--accent) 62%,var(--wf-bg))}
+.spark i.bs{background:color-mix(in srgb,var(--accent) 40%,var(--wf-bg))}
+.spark i.is{background:color-mix(in srgb,var(--info) 55%,var(--wf-bg))}
+.spark i.jd{background:color-mix(in srgb,var(--info) 38%,var(--wf-bg))}
+.spark i.ur{background:var(--warn)}
+.spark i.md{background:var(--wf-dash)}
+
+/* --- primitif baru 2: `.flag`, keterangan pendek di dalam baris tabel ---
+   Huruf tunggal bergaris, bukan chip: baris ini bisa memuat tiga flag
+   sekaligus, dan tiga chip berwarna di satu baris berhenti terbaca
+   sebagai tiga keadaan. Huruf tidak menerangkan apa pun sendirian -
+   `title`-nya yang menerangkan, dan itu memang pola tabel padat. */
+.flag{display:inline-grid;place-items:center;width:13px;height:13px;border:1px solid var(--wf-dash);border-radius:2px;background:var(--wf-soft);color:var(--wf-dim);font:500 8px/1 var(--font-mono);flex:none}
+.flag.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.flag.warn{border-color:var(--warn);color:var(--warn);background:var(--warn-bg)}
+.flags{display:flex;gap:2px;align-items:center}
+
+/* --- primitif baru 3: `.sheet`, panel rincian yang mendorong isi ---
+   Panel rincian TIDAK modal. Ia berdiri di kolom kanan dan daftarnya
+   menyempit, karena yang sedang dikerjakan Admin adalah MEMBANDINGKAN
+   satu soal dengan tetangganya - dan modal menutupi tetangganya. */
+.split{display:grid;grid-template-columns:minmax(0,1fr);gap:0;min-width:0}
+.wf.lg .split{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+.sheet{border-left:1px solid var(--wf-hair);background:var(--wf-soft);padding:8px;display:grid;gap:7px;align-content:start;min-width:0}
+.sheet .hd{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.sheet .hd b{font-family:var(--font-display);font-size:11px}
+.kv{display:grid;grid-template-columns:78px minmax(0,1fr);gap:3px 7px;font-size:9px;align-items:baseline}
+.kv dt{color:var(--wf-dim);font:500 8px/1.4 var(--font-mono);letter-spacing:.04em;text-transform:uppercase;min-width:0}
+.kv dd{margin:0;color:var(--wf-ink);min-width:0;overflow:hidden;text-overflow:ellipsis}
+.txt{border:1px solid var(--wf-hair);border-radius:4px;background:var(--wf-bg);padding:5px 6px;font-size:9px;line-height:1.5;color:var(--wf-ink);min-width:0}
+.txt .q{color:var(--wf-dim);font-size:8px;font-family:var(--font-mono);display:block;margin-bottom:2px;letter-spacing:.05em;text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ wireframe soal per mapel</span></div>
+    <div class="r">
+      <span>4 laman · 1 panel rincian</span><span>draft 2026-11-14</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Satu laman yang belum ada</div>
+    <h1>Soal yang sudah dibuat, sebelum ujiannya dijalankan</h1>
+    <p class="lede">Hari ini <code>/admin/events/{event}/mapel</code> menjawab &ldquo;paket mana yang terpasang&rdquo; dan &ldquo;berapa butir&rdquo; &mdash; dua angka. Ia tidak pernah menjawab pertanyaan yang sebenarnya dibawa Admin ke sana: <em>soal apa saja yang akan dikerjakan 240 anak saya?</em> Admin menandai event siap, membuka sesi, dan mencetak tablo tanpa sekali pun melihat isi paket yang ia setujui. Laman ini menutup jarak itu: daftar soal yang sudah dibuat Guru, dikelompokkan per mata pelajaran, dengan keterangan yang menentukan apakah paketnya benar-benar layak diujikan.</p>
+    <div class="scope">
+      <span class="tag">Admin · baca saja</span>
+      <span class="tag">Dikelompokkan per mapel</span>
+      <span class="tag">Keterangan per soal</span>
+      <span class="tag">Snapshot vs bank soal</span>
+    </div>
+  </div>
+
+  <div class="filters" role="group" aria-label="Saring laman">
+    <button class="fbtn on" data-g="all">Semua <b>4</b></button>
+    <button class="fbtn" data-g="daftar">Daftar &amp; rincian <b>2</b></button>
+    <button class="fbtn" data-g="keadaan">Keadaan yang menuntut tindakan <b>2</b></button>
+  </div>
+
+  <!-- ================================================================= -->
+  <section class="group" data-g="daftar">
+    <header>
+      <h2><em>N</em> Daftar soal per mata pelajaran</h2>
+      <p>Satu laman, satu penyaring, dan kelompok per mapel &mdash; bukan satu tabel panjang dengan kolom Mapel. Alasannya bukan kerapian: pertanyaan yang dibawa Admin adalah <em>&ldquo;mapel ini sudah beres belum&rdquo;</em>, dan tabel berkolom mapel membuatnya memindai ulang seluruh baris untuk menjawab satu mapel. Kelompok membuat satu mapel menjadi satu blok yang bisa dinilai selesai atau belum dalam sekali lihat.</p>
+    </header>
+
+    <div class="shots">
+
+      <!-- N1 -->
+      <figure class="shot wide">
+        <div class="cap"><span class="n">N1</span><h3>Soal per mapel &mdash; laman utama</h3><span class="path">/admin/events/{event}/soal</span></div>
+        <div class="wf lg">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/soal</span><span class="who">Admin</span></div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark">E</div>
+              <div class="glab">Event</div>
+              <a class="ni"><i></i><span>Ringkasan</span></a>
+              <a class="ni"><i></i><span>Kepanitiaan</span></a>
+              <a class="ni"><i></i><span>Kelas &amp; peserta</span></a>
+              <a class="ni on"><i></i><span>Paket soal</span></a>
+              <a class="ni"><i></i><span>Jadwal &amp; sesi</span></a>
+              <div class="sep"></div>
+              <div class="glab">Pelaksanaan</div>
+              <a class="ni"><i></i><span>Pengawas</span></a>
+              <a class="ni"><i></i><span>Token</span></a>
+              <a class="ni"><i></i><span>Presensi</span></a>
+            </div>
+            <div class="main">
+              <div class="tbar">
+                <span class="crumb">Event / EV-2026-001 / Soal</span>
+                <span class="sel ev">ASESMEN SUMATIF AKHIR SEMESTER</span>
+                <span class="sp"></span>
+                <span class="btn">Buka bank soal</span>
+                <span class="btn">Unduh daftar</span>
+              </div>
+              <div class="body">
+
+                <div class="tabs">
+                  <span class="tab">Mata pelajaran &amp; paket</span>
+                  <span class="tab on">Soal</span>
+                </div>
+
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Mapel terpasang</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Butir seluruh mapel</span><b>19</b></div>
+                  <div class="kpi"><span class="lb">Uraian</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Soal diarsipkan</span><b>0</b></div>
+                </div>
+
+                <!-- ============ kelompok mapel ============ -->
+                <div class="box solid">
+                  <div class="ph">
+                    <b>INF-9 &middot; Informatika</b>
+                    <span class="chip ok">UAS Informatika 9</span>
+                    <span class="sub">19 butir &middot; 28 poin</span>
+                    <span class="sp"></span>
+                    <span class="spark" style="width:64px" title="sebaran jenis">
+                      <i class="pg" style="flex:10"></i>
+                      <i class="gd" style="flex:2"></i>
+                      <i class="is" style="flex:3"></i>
+                      <i class="jd" style="flex:1"></i>
+                      <i class="ur" style="flex:1"></i>
+                    </span>
+                  </div>
+
+                  <div class="tbl">
+                    <div class="tr th" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 46px 38px 44px 40px">
+                      <span>No</span><span>Kode</span><span>Judul soal</span><span>Jenis</span><span>Tingkat</span><span>Poin</span><span>Status</span><span>Ket.</span>
+                    </div>
+
+                    <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 46px 38px 44px 40px">
+                      <span class="c mono">1</span>
+                      <span class="c mono">Q-5-1</span>
+                      <span class="c">Konversi 173 ke Biner</span>
+                      <span class="c"><span class="chip info">PG</span></span>
+                      <span class="c">sulit</span>
+                      <span class="c mono">1</span>
+                      <span class="c"><span class="chip mute">Draf</span></span>
+                      <span class="c"><span class="flags"><i class="flag on" title="punya kunci">K</i></span></span>
+                    </div>
+
+                    <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 46px 38px 44px 40px">
+                      <span class="c mono">2</span>
+                      <span class="c mono">Q-5-2</span>
+                      <span class="c">Konversi 205 ke Biner 8 Bit</span>
+                      <span class="c"><span class="chip info">PG</span></span>
+                      <span class="c">sulit</span>
+                      <span class="c mono">1</span>
+                      <span class="c"><span class="chip mute">Draf</span></span>
+                      <span class="c"><span class="flags"><i class="flag on">K</i></span></span>
+                    </div>
+
+                    <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 46px 38px 44px 40px">
+                      <span class="c mono">11</span>
+                      <span class="c mono">Q-5-11</span>
+                      <span class="c">Berpikir Komputasional: Dekomposisi dan Pengenalan Pola</span>
+                      <span class="c"><span class="chip info">Rumpang</span></span>
+                      <span class="c">sedang</span>
+                      <span class="c mono">1</span>
+                      <span class="c"><span class="chip mute">Draf</span></span>
+                      <span class="c"><span class="flags"><i class="flag on">K</i><i class="flag on">4</i></span></span>
+                    </div>
+
+                    <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 46px 38px 44px 40px">
+                      <span class="c mono">16</span>
+                      <span class="c mono">Q-5-16</span>
+                      <span class="c">Konversi Bilangan Biner ke Desimal</span>
+                      <span class="c"><span class="chip info">Jodoh</span></span>
+                      <span class="c">sedang</span>
+                      <span class="c mono">1</span>
+                      <span class="c"><span class="chip mute">Draf</span></span>
+                      <span class="c"><span class="flags"><i class="flag on">K</i><i class="flag">M</i></span></span>
+                    </div>
+
+                    <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 46px 38px 44px 40px;background:var(--accent-soft)">
+                      <span class="c mono">19</span>
+                      <span class="c mono">Q-5-19</span>
+                      <span class="c">Analisis Konversi Desimal ke Biner dan Interpretasi Two&rsquo;s Complement</span>
+                      <span class="c"><span class="chip warn">Uraian</span></span>
+                      <span class="c">sulit</span>
+                      <span class="c mono">10</span>
+                      <span class="c"><span class="chip mute">Draf</span></span>
+                      <span class="c"><span class="flags"><i class="flag on">R</i><i class="flag warn">P</i></span></span>
+                    </div>
+
+                    <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 46px 38px 44px 40px">
+                      <span class="c mono">17</span>
+                      <span class="c mono">Q-5-17</span>
+                      <span class="c">Konversi Desimal ke Biner dengan Pembagian Berulang</span>
+                      <span class="c"><span class="chip info">Urut</span></span>
+                      <span class="c">sulit</span>
+                      <span class="c mono">1</span>
+                      <span class="c"><span class="chip mute">Draf</span></span>
+                      <span class="c"><span class="flags"><i class="flag on">K</i></span></span>
+                    </div>
+                  </div>
+
+                  <div class="ph">
+                    <span class="sub">Menampilkan 6 dari 19 butir</span>
+                    <span class="sp"></span>
+                    <span class="btn">Lihat semua 19</span>
+                  </div>
+                </div>
+
+                <div class="box">
+                  <div class="ph"><span class="lb">Keterangan kolom &ldquo;Ket.&rdquo;</span></div>
+                  <div class="ph" style="gap:10px;font-size:9px;color:var(--wf-dim)">
+                    <span><i class="flag on" style="display:inline-grid;vertical-align:-2px">K</i> kunci</span>
+                    <span><i class="flag on" style="display:inline-grid;vertical-align:-2px">4</i> jumlah rumpang</span>
+                    <span><i class="flag" style="display:inline-grid;vertical-align:-2px">M</i> media</span>
+                    <span><i class="flag on" style="display:inline-grid;vertical-align:-2px">R</i> rubrik</span>
+                    <span><i class="flag warn" style="display:inline-grid;vertical-align:-2px">P</i> pembahasan</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note"><b>Urutan barisnya urutan PAKET, bukan abjad.</b> Nomor di kolom pertama adalah posisi butir di paket &mdash; angka yang sama yang tercetak di naskah dan dibacakan pengawas. Daftar yang diurutkan menurut kode akan menampilkan 1, 2, 11, 16, 19, 17 dan terbaca sebagai daftar yang salah urut, padahal yang salah adalah urutannya. Baris beruraian diberi latar karena uraian satu-satunya jenis yang menahan publikasi nilai: guru harus mengoreksinya satu per satu sebelum hasil bisa dibuka.</p>
+      </figure>
+
+      <!-- N2 -->
+      <figure class="shot wide">
+        <div class="cap"><span class="n">N2</span><h3>Rincian satu soal &mdash; panel yang mendorong, bukan modal</h3><span class="path">/admin/events/{event}/soal?butir=19</span></div>
+        <div class="wf lg">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/soal?butir=19</span><span class="who">Admin</span></div>
+          <div class="main">
+            <div class="tbar">
+              <span class="crumb">Event / EV-2026-001 / Soal</span>
+              <span class="sel">Informatika</span>
+              <span class="sp"></span>
+              <span class="btn">&larr; Sebelumnya</span>
+              <span class="btn">Berikutnya &rarr;</span>
+            </div>
+            <div class="split">
+              <div class="body" style="padding-right:7px">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px">
+                    <span>No</span><span>Kode</span><span>Judul soal</span><span>Jenis</span><span>Poin</span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px;opacity:.55">
+                    <span class="c mono">17</span><span class="c mono">Q-5-17</span><span class="c">Konversi Desimal ke Biner dengan Pembagian Berulang</span><span class="c"><span class="chip info">Urut</span></span><span class="c mono">1</span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px;opacity:.55">
+                    <span class="c mono">18</span><span class="c mono">Q-5-18</span><span class="c">Konversi Desimal ke Biner</span><span class="c"><span class="chip info">Angka</span></span><span class="c mono">1</span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px;background:var(--accent-soft);box-shadow:inset 2px 0 0 var(--accent)">
+                    <span class="c mono">19</span><span class="c mono">Q-5-19</span><span class="c">Analisis Konversi Desimal ke Biner dan Interpretasi Two&rsquo;s Complement</span><span class="c"><span class="chip warn">Uraian</span></span><span class="c mono">10</span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px;opacity:.55">
+                    <span class="c mono">20</span><span class="c mono">Q-5-20</span><span class="c">Konversi Biner 11001010 ke Desimal</span><span class="c"><span class="chip info">Isian</span></span><span class="c mono">1</span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px;opacity:.55">
+                    <span class="c mono">21</span><span class="c mono">Q-5-21</span><span class="c">Representasi Bilangan Negatif dalam Biner</span><span class="c"><span class="chip info">PG</span></span><span class="c mono">1</span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px;opacity:.55">
+                    <span class="c mono">22</span><span class="c mono">Q-5-22</span><span class="c">Operasi Penjumlahan Biner 8 Bit</span><span class="c"><span class="chip info">Ganda</span></span><span class="c mono">1</span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px;opacity:.55">
+                    <span class="c mono">23</span><span class="c mono">Q-5-23</span><span class="c">Gerbang Logika AND, OR, dan XOR</span><span class="c"><span class="chip info">Jodoh</span></span><span class="c mono">1</span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:26px 54px minmax(0,1fr) 46px 38px;opacity:.55">
+                    <span class="c mono">24</span><span class="c mono">Q-5-24</span><span class="c">Urutan Langkah Konversi Desimal ke Biner</span><span class="c"><span class="chip info">Urut</span></span><span class="c mono">1</span>
+                  </div>
+                </div>
+                <div class="inbox">Panel di kanan memuat soal yang sedang dibuka. Daftar di kiri menyempit, tidak tertutup &mdash; karena yang dikerjakan Admin di sini adalah membandingkan satu soal dengan tetangganya.</div>
+                <div class="inbox warn">Baris beruraian diberi latar dan muncul paling bawah karena urutannya urutan paket. Guru yang mengoreksinya membuka panel ini untuk melihat rubrik yang mengikat penilaiannya &mdash; sepuluh poin, dua kriteria, dan angka itu yang membuat satu soal uraian setara sepuluh soal pilihan ganda.</div>
+              </div>
+
+              <div class="sheet">
+                <div class="hd">
+                  <b>Q-5-19</b>
+                  <span class="chip warn">Uraian</span>
+                  <span class="chip mute">Draf</span>
+                </div>
+                <p style="font-size:10px;line-height:1.4;color:var(--wf-ink)">Analisis Konversi Desimal ke Biner dan Interpretasi Two&rsquo;s Complement</p>
+
+                <div class="txt">
+                  <span class="q">Teks soal</span>
+                  Ubah bilangan 2024 ke biner 8 bit, lalu jelaskan bagaimana hasil 8 bit yang sama dibaca sebagai bilangan bertanda (two&rsquo;s complement).
+                </div>
+
+                <dl class="kv">
+                  <dt>Mapel</dt><dd>Informatika</dd>
+                  <dt>Penulis</dt><dd>Bahasa Indonesia #7</dd>
+                  <dt>Tingkat</dt><dd>sulit</dd>
+                  <dt>Poin</dt><dd>10 &mdash; tanpa timpaan</dd>
+                  <dt>Dipaka di</dt><dd>1 paket</dd>
+                  <dt>Media</dt><dd>tidak ada</dd>
+                  <dt>Diperbarui</dt><dd>12 Nov 11:39</dd>
+                </dl>
+
+                <div class="box solid" style="padding:5px 6px">
+                  <div class="ph"><span class="lb">Rubrik</span><span class="sp"><span class="chip ok">2 kriteria</span></span></div>
+                  <div style="font-size:9px;color:var(--wf-ink)">Ketepatan konsep &middot; maks 5</div>
+                  <div style="font-size:9px;color:var(--wf-ink)">Kelengkapan langkah &middot; maks 5</div>
+                </div>
+
+                <div class="inbox warn">Soal uraian dinilai manual. Hasil ujian tidak bisa dipublikasikan sebelum seluruh jawaban uraian dikoreksi Guru.</div>
+
+                <div class="ph">
+                  <span class="btn off" title="Admin tidak menyunting soal">Ubah di bank soal</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note gap"><b>Tombol &ldquo;Ubah&rdquo; tidak ada di sini, dan itu bukan kelalaian.</b> Soal adalah aset sekolah yang disunting Guru pemiliknya lewat bank soal; Admin hanya boleh melihat. Menaruh tombol yang server tolak (403) mengajari Admin untuk tidak memercayai layarnya. Yang tersedia adalah JALAN ke sana &mdash; satu tautan, dengan kalimat yang menerangkan mengapa ia harus berpindah laman.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section class="group" data-g="keadaan">
+    <header>
+      <h2><em>O</em> Keadaan yang menuntut tindakan</h2>
+      <p>Dua keadaan yang membuat laman ini bukan sekadar pratinjau. Keduanya tidak bisa ditemukan dari mana pun hari ini: Admin baru mengetahuinya setelah siswa mengeluh, atau setelah nilai tidak bisa diterbitkan.</p>
+    </header>
+
+    <div class="shots">
+
+      <!-- O1 -->
+      <figure class="shot">
+        <div class="cap"><span class="n">O1</span><h3>Mapel tanpa paket, dan paket yang kosong</h3><span class="path">/admin/events/{event}/soal</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/soal</span></div>
+          <div class="body">
+            <div class="box solid" style="border-color:color-mix(in srgb,var(--warn) 45%,transparent)">
+              <div class="ph">
+                <b style="font-size:10px">FIS-9 &middot; Fisika</b>
+                <span class="sp"></span>
+                <span class="chip warn">belum</span>
+              </div>
+              <div style="font-size:9px;color:var(--wf-dim)">Belum ada paket soal terpasang untuk mapel ini.</div>
+              <div class="ph"><span class="sub">0 butir</span><span class="sp"></span><span class="btn">Pasang paket</span></div>
+            </div>
+
+            <div class="box solid" style="border-color:color-mix(in srgb,var(--bad) 45%,transparent)">
+              <div class="ph">
+                <b style="font-size:10px">SEJ-9 &middot; Sejarah</b>
+                <span class="chip bad">kosong</span>
+              </div>
+              <div class="inbox bad">Paket &ldquo;UAS Sejarah 9&rdquo; terpasang tetapi belum berisi satu butir pun. Ujian tidak bisa dijalankan.</div>
+              <div class="ph"><span class="sub">0 butir</span><span class="sp"></span><span class="btn">Hubungi penulis paket</span></div>
+            </div>
+
+            <div class="inbox">Event dengan mapel tanpa paket tidak bisa ditandai <b>Siap</b> &mdash; gerbang kesiapan menolaknya. Laman ini menyebut mapel mana, bukan hanya berapa.</div>
+          </div>
+        </div>
+        <p class="note">Tiga keadaan, tiga kalimat, dan tiga tindakan berbeda: <b>belum</b> berarti Admin harus memilih paket; <b>kosong</b> berarti ia sudah memilih dan yang harus dihubungi adalah Gurunya. Menyatukan keduanya menjadi satu chip &ldquo;belum siap&rdquo; membuat Admin menekan tombol Pasang untuk paket yang sudah terpasang.</p>
+      </figure>
+
+      <!-- O2 -->
+      <figure class="shot">
+        <div class="cap"><span class="n">O2</span><h3>Soal diarsipkan, dan snapshot yang tertinggal</h3><span class="path">/admin/events/{event}/soal</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/soal</span></div>
+          <div class="body">
+            <div class="ph"><span class="lb">Butir yang perlu dibaca ulang</span><span class="sp"><span class="chip warn">2</span></span></div>
+
+            <div class="tbl">
+              <div class="tr th" style="grid-template-columns:52px minmax(0,1fr) 56px">
+                <span>Kode</span><span>Keterangan</span><span>Status</span>
+              </div>
+              <div class="tr" style="grid-template-columns:52px minmax(0,1fr) 56px">
+                <span class="c mono">Q-5-8</span>
+                <span class="c">diarsipkan, masih dipakai paket ini</span>
+                <span class="c"><span class="chip bad">arsip</span></span>
+              </div>
+              <div class="tr" style="grid-template-columns:52px minmax(0,1fr) 56px">
+                <span class="c mono">Q-5-12</span>
+                <span class="c">bank soal berubah sesudah dibekukan</span>
+                <span class="c"><span class="chip warn">basi</span></span>
+              </div>
+            </div>
+
+            <div class="inbox warn"><b>Snapshot menang.</b> Yang dikerjakan siswa adalah salinan yang dibekukan saat paket dipasang, bukan soal di bank soal. Perubahan Guru sesudah itu tidak sampai ke ujian ini.</div>
+
+            <div class="ph">
+              <span class="btn">Bekukan ulang paket</span>
+              <span class="sp"></span>
+              <span class="btn off">Lewati</span>
+            </div>
+          </div>
+        </div>
+        <p class="note gap"><b>Dua keadaan berbeda yang mudah disatukan.</b> Soal yang <em>diarsipkan</em> tetap sah di paket &mdash; arsip berarti &ldquo;tidak dipakai lagi untuk ujian berikutnya&rdquo;, bukan &ldquo;hilang&rdquo;. Soal yang <em>basi</em> justru sudah berbeda dari yang akan dikerjakan siswa. Yang pertama tidak menuntut apa pun; yang kedua menuntut Admin memutuskan: bekukan ulang, atau terima bahwa ujian memakai versi lama. Menyatukannya menjadi satu chip &ldquo;perlu diperiksa&rdquo; membuat Admin membekukan ulang paket yang tidak perlu.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <footer>
+    <span>School CBT &middot; wireframe soal per mapel</span>
+    <span>4 laman &middot; 1 panel rincian &middot; 3 primitif baru</span>
+    <span>sumber: prd.md &sect;16.5&ndash;16.6 + blueprint-cbt.html</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.fbtn'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.group[data-g]'));
+  function apply(g) {
+    groups.forEach(function (s) {
+      s.hidden = !(g === 'all' || s.getAttribute('data-g') === g);
+    });
+    btns.forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-g') === g);
+    });
+  }
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () { apply(b.getAttribute('data-g')); });
+  });
+})();
+</script>

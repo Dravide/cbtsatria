@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Chip, Inbox, Kotak, Tabel, Tombol, kelasInput } from '@/Components/ui';
@@ -101,6 +101,29 @@ export default function EventMapel({ event, baris, tersedia }: Props) {
             }
         >
             <Head title={`Mata pelajaran · ${event.nama}`} />
+
+            {/*
+             * Tabbar - dua tab, dan laman SOAL adalah tab kedua sejak
+             * 2026-11-14.
+             *
+             * Ia duduk di sini, bukan di sidebar, karena keduanya menjawab
+             * pertanyaan yang bersambung: "paket mana terpasang" lalu "soal
+             * apa isinya". Admin yang selesai memasang paket adalah Admin
+             * yang paling mungkin ingin melihat isinya - dan menu sidebar
+             * baru berarti ia harus meninggalkan laman yang baru saja ia
+             * kerjakan.
+             */}
+            <nav className="mb-3 flex gap-1 border-b border-line text-xs">
+                <span className="-mb-px border-b-2 border-accent px-3 py-1.5 font-medium text-accent">
+                    Mata pelajaran &amp; paket
+                </span>
+                <Link
+                    href={`/admin/events/${event.id}/mapel/soal`}
+                    className="px-3 py-1.5 text-ink-2 hover:text-ink"
+                >
+                    Soal
+                </Link>
+            </nav>
 
             <div className="mb-4 grid gap-3 sm:grid-cols-3">
                 <KPI label="Mapel ditetapkan" nilai={baris.length} />

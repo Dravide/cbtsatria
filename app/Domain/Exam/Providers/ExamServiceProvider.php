@@ -3,6 +3,7 @@
 namespace App\Domain\Exam\Providers;
 
 use App\Domain\Event\Contracts\ButirKesiapanUjian;
+use App\Domain\Event\Contracts\ButirSoalPerMapel;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamClass;
@@ -13,6 +14,7 @@ use App\Domain\Exam\Models\ExamToken;
 use App\Domain\Exam\Models\ExamTokenView;
 use App\Domain\Exam\Models\SupervisionAssignment;
 use App\Domain\Exam\Policies\ExamPolicy;
+use App\Domain\Exam\Services\ButirSoalEvent;
 use App\Domain\Exam\Services\ExamRegistrar;
 use App\Domain\Exam\Services\KesiapanUjian;
 use App\Domain\Exam\Services\KonflikJadwal;
@@ -79,6 +81,11 @@ class ExamServiceProvider extends ServiceProvider
         // Kontrak Event diikat ke implementasi Exam. Satu arah - lihat
         // catatan kelas ini.
         $this->app->singleton(ButirKesiapanUjian::class, KesiapanUjian::class);
+
+        // Kontrak kedua, ditambahkan 2026-11-14 - alasan yang sama persis:
+        // laman soal per mapel di konsol Admin membaca `exam_questions` dan
+        // `questions`, dan keduanya bukan milik modul Event.
+        $this->app->singleton(ButirSoalPerMapel::class, ButirSoalEvent::class);
     }
 
     public function boot(): void

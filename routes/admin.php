@@ -21,6 +21,7 @@ use App\Domain\Event\Http\Controllers\EventAnnouncementController;
 use App\Domain\Event\Http\Controllers\EventCommitteeController;
 use App\Domain\Event\Http\Controllers\EventController;
 use App\Domain\Event\Http\Controllers\EventParticipantController;
+use App\Domain\Event\Http\Controllers\EventSoalController;
 use App\Domain\Event\Http\Controllers\EventSubjectController;
 use App\Domain\Event\Http\Controllers\PemasanganPaketController;
 use App\Domain\Exam\Http\Controllers\ExamJadwalController;
@@ -358,6 +359,18 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // dan yang kedua menulis baris riwayat yang menyebut siapa dan kapan.
     Route::get('/events/{event}/mapel', [EventSubjectController::class, 'index'])->name('events.mapel');
     Route::put('/events/{event}/mapel', [EventSubjectController::class, 'store']);
+
+    // Laman SOAL per mapel - ditambahkan 2026-11-14.
+    //
+    // Didaftarkan SEBELUM `/mapel/{mapel}/paket`, dan urutannya menentukan:
+    // `{mapel}` adalah segmen dinamis yang sah-sah saja mencocokkan kata
+    // "soal", sehingga rute di bawah akan menangkap `/mapel/soal` sebagai
+    // mapel ber-id "soal" dan menjawab 404 dari model binding - bukan
+    // laman ini. Jebakan yang sama sudah tercatat untuk `/bank-soal/baru`
+    // di `routes/guru.php`.
+    Route::get('/events/{event}/mapel/soal', [EventSoalController::class, 'index'])
+        ->name('events.soal');
+
     Route::put('/events/{event}/mapel/paket', [PemasanganPaketController::class, 'simpan'])
         ->name('events.mapel.paket');
     Route::get('/events/{event}/mapel/{mapel}/paket', [PemasanganPaketController::class, 'riwayat'])
