@@ -109,12 +109,27 @@ class EventStatusService
      * Semua langkah yang mungkin dari status sekarang, beserta alasannya
      * bila tidak boleh.
      *
-     * @return array<int, array{tujuan: string, label: string, boleh: bool, alasan: ?string}>
+     * ---------------------------------------------------------------------
+     * `pemulihan` menandai tujuan YANG MEMBUKA KEMBALI arsip
+     * ---------------------------------------------------------------------
+     * Sejak 2026-11-14 arsip bisa dipindahkan ke lima keadaan, dan kelimanya
+     * berbeda arti dari transisi biasa: Admin yang menekannya sedang
+     * MEMBATALKAN pengarsipan, bukan melanjutkan alur. Laman menampilkannya
+     * sebagai kelompok tersendiri ("Buka kembali dari arsip") karena
+     * mencampurnya dengan "Batalkan"/"Selesaikan" membuat lima tombol
+     * berdiri sejajar tanpa urutan yang masuk akal.
+     *
+     * Penanda ini juga yang dipakai laman untuk menanyakan konfirmasi -
+     * pemulihan mengubah status event yang mungkin sudah dibaca orang lain
+     * di papan dan laporan.
+     *
+     * @return array<int, array{tujuan: string, label: string, boleh: bool, alasan: ?string, pemulihan: bool}>
      */
     public function langkahTersedia(SchoolEvent $event): array
     {
         $laporan = null;
         $hasil = [];
+        $dariArsip = $event->status === EventStatus::Archived;
 
         foreach ($event->status->tujuanYangBoleh() as $tujuan) {
             $boleh = true;
@@ -135,6 +150,7 @@ class EventStatusService
                 'label' => $tujuan->label(),
                 'boleh' => $boleh,
                 'alasan' => $alasan,
+                'pemulihan' => $dariArsip,
             ];
         }
 

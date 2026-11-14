@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi } from '@/Components/dialog';
 import { Chip, Inbox, Peringatan, Tombol, nadaStatus } from '@/Components/ui';
 
 /**
@@ -65,7 +66,14 @@ type Props = {
         menunggu: number;
         siap: number;
     };
-    langkah: { tujuan: string; label: string; boleh: boolean; alasan: string | null }[];
+    langkah: {
+        tujuan: string;
+        label: string;
+        boleh: boolean;
+        alasan: string | null;
+        /** Tujuan yang membuka kembali arsip - lihat EventStatusService. */
+        pemulihan: boolean;
+    }[];
     angka: {
         peserta: number;
         kelas: number;
@@ -82,7 +90,38 @@ export default function EventShow({ event, kesiapan, langkah, angka }: Props) {
     const pindah = (tujuan: string) =>
         router.post(`/admin/events/${event.id}/status`, { status: tujuan }, { preserveScroll: true });
 
+    /**
+     * Memulihkan event dari arsip DITANYAKAN lebih dulu, dan itu bukan
+     * kehati-hatian berlebih.
+     *
+     * Pengarsipan adalah tindakan yang mungkin sudah dibaca orang lain -
+     * papan pengumuman, laporan tercetak, dan kebiasaan wali kelas yang
+     * berhenti mencari event itu. Membukanya kembali diam-diam mengembalikan
+     * event ke layar semua orang, dan satu-satunya orang yang perlu tahu
+     * bahwa itu disengaja adalah Admin yang menekannya.
+     */
+    const pulihkan = async (tujuan: string, label: string) => {
+        const setuju = await konfirmasi({
+            judul: `Buka kembali event ini ke ${label}?`,
+            pesan:
+                'Event ini keluar dari arsip dan muncul lagi di daftar, papan, dan laporan ' +
+                'sesuai status barunya. Riwayat ujian, nilai, dan berita acara tidak berubah.',
+            labelYa: `Pindahkan ke ${label}`,
+            nada: 'bahaya',
+        });
+
+        if (setuju) {
+            pindah(tujuan);
+        }
+    };
+
     const ready = langkah.find((l) => l.tujuan === 'siap');
+
+    // Langkah biasa dan langkah PEMULIHAN dipisah: yang kedua bukan
+    // kelanjutan alur, melainkan pembatalan arsip. Mencampurnya membuat lima
+    // tombol berdiri sejajar tanpa urutan yang masuk akal.
+    const biasa = langkah.filter((l) => !l.pemulihan && l.tujuan !== 'siap' && l.tujuan !== 'draft');
+    const pemulihan = langkah.filter((l) => l.pemulihan && l.tujuan !== 'draft');
 
     return (
         <AdminLayout
@@ -108,40 +147,71 @@ export default function EventShow({ event, kesiapan, langkah, angka }: Props) {
                         </Tombol>
                     )}
 
+                    {/*
+                     * Kelompok PEMULIHAN dari arsip - ditambahkan 2026-11-14.
+                     *
+                     * Ia dirender sebagai deret tersendiri dengan satu
+                     * kalimat pengantar, karena lima tombol "Draft /
+                     * Persiapan / Siap / Berjalan / Selesai" tanpa konteks
+                     * terbaca sebagai lima langkah maju. Yang sedang
+                     * dikerjakan Admin di sini adalah MEMBATALKAN
+                     * pengarsipan.
+                     */}
+                    {pemulihan.length > 0 && (
+                        <span className="flex flex-wrap items-center gap-1 border-l border-line pl-2">
+                            <span className="text-[11px] text-ink-3">Buka kembali:</span>
+                            {pemulihan.map((l) => (
+                                <Tombol
+                                    key={l.tujuan}
+                                    nada="sek"
+                                    disabled={!l.boleh}
+                                    title={l.alasan ?? undefined}
+                                    onClick={() => {
+                                        void pulihkan(l.tujuan, l.label);
+                                    }}
+                                >
+                                    {l.label}
+                                </Tombol>
+                            ))}
+                        </span>
+                    )}
+
                     {/* Transisi lain - batal, mulai, selesaikan, arsipkan -
                         diturunkan dari graf status di server, bukan ditulis
                         ulang di sini. Menambah satu transisi kelak berarti
                         mengubah satu berkas di Domain/Event/Enums, dan laman
                         ini ikut begitu saja. */}
-                    {langkah
-                        .filter((l) => l.tujuan !== 'siap' && l.tujuan !== 'draft')
-                        .map((l) => (
-                            <Tombol
-                                key={l.tujuan}
-                                nada={l.tujuan === 'batal' ? 'bahaya' : 'sek'}
-                                disabled={!l.boleh}
-                                title={l.alasan ?? undefined}
-                                onClick={() => pindah(l.tujuan)}
-                            >
-                                {l.label}
-                            </Tombol>
-                        ))}
+                    {biasa.map((l) => (
+                        <Tombol
+                            key={l.tujuan}
+                            nada={l.tujuan === 'batal' ? 'bahaya' : 'sek'}
+                            disabled={!l.boleh}
+                            title={l.alasan ?? undefined}
+                            onClick={() => pindah(l.tujuan)}
+                        >
+                            {l.label}
+                        </Tombol>
+                    ))}
                 </>
             }
         >
             <Head title={event.nama} />
 
-            {/* Peringatan status final muncul di ATAS isi: begitu event
-                diarsipkan atau dibatalkan, tidak ada lagi yang bisa diubah di
-                laman ini, dan Admin perlu tahu itu sebelum membaca sisanya. */}
+            {/* Peringatan status buntu - dan sejak 2026-11-14 hanya Batal.
+                Arsip bisa dibuka kembali, sehingga kalimat "tidak bisa
+                dipindahkan lagi" untuk arsip sudah tidak benar dan harus
+                hilang bersama aturannya. Yang tetap perlu dibaca Admin
+                adalah bahwa komponennya masih terbaca utuh - itu yang
+                membedakan "buntu" dari "hilang". */}
             {event.final && (
                 <div className="mb-4">
                     <Peringatan>
-                        Event berstatus <strong>{event.status_label}</strong> bersifat final.
+                        Event berstatus <strong>{event.status_label}</strong> bersifat buntu.
                         Seluruh komponennya tetap bisa dibaca, tetapi statusnya tidak bisa
-                        dipindahkan lagi &mdash; dan itu disengaja: event yang dibatalkan berhenti
-                        sebagai catatan pembatalan, bukan tenggelam ke dalam arsip yang terbaca
-                        seperti pernah selesai.
+                        dipindahkan lagi &mdash; dan itu disengaja: event yang dibatalkan tidak
+                        pernah dijalankan, sehingga tidak ada keadaan &ldquo;sebelumnya&rdquo; yang
+                        benar untuk dikembalikan. Yang dibutuhkan sesudahnya adalah event
+                        pengganti, bukan membangkitkan yang sudah dibatalkan.
                     </Peringatan>
                 </div>
             )}

@@ -30,6 +30,8 @@ namespace App\Domain\Event\Enums;
  * Graf di bawah karena itu adalah USULAN, bukan kesepakatan:
  *
  *   Draft ⇄ Persiapan → Siap → Berjalan → Selesai → Arsip
+ *      ↑       ↓          ↓        ↓          ↓        │
+ *      └───────┴──────────┴────────┴──────────┴────────┘
  *              ↓          ↓        ↓          ↓
  *           Batal ───────┴────────┴──────────┘
  *
@@ -40,10 +42,24 @@ namespace App\Domain\Event\Enums;
  *      paling mungkin ditolak, dan mengubahnya berarti menambah satu baris
  *      di TABEL_TRANSIKSI - bukan memburu controller.
  *
- *   2. Arsip dan Batal bersifat final. Arsip hanya dari Selesai, sehingga
- *      event yang dibatalkan tidak pernah bisa diarsipkan: ia berhenti
- *      sebagai catatan pembatalan, bukan tenggelam ke dalam arsip yang
- *      terbaca seperti "pernah selesai".
+ *   2. Arsip tidak lagi final - DIUBAH 2026-11-14 atas permintaan pemilik
+ *      produk. Sampai saat itu arsip dan batal sama-sama buntu, dengan
+ *      alasan yang ditulis di sini: "arsip adalah tindakan sadar Admin".
+ *      Alasan itu ternyata salah menilai satu hal: mengarsipkan adalah
+ *      tindakan sadar yang bisa SALAH TEKAN, dan buntu berarti satu klik
+ *      keliru mengunci event beserta riwayatnya tanpa jalan pulang. Yang
+ *      dibutuhkan bukan penjagaan masuk, melainkan JALAN KELUAR.
+ *
+ *      Batal TETAP buntu, dan bedanya bukan kelemahan: event yang
+ *      dibatalkan tidak pernah dijalankan, sehingga tidak ada keadaan
+ *      "sebelumnya" yang benar untuk dikembalikan. Yang menjawab kebutuhan
+ *      itu adalah menyusun event pengganti, bukan membangkitkan yang sudah
+ *      dibatalkan.
+ *
+ *      Konsekuensi arsip yang bisa dibuka: seluruh tujuan lain menjadi sah,
+ *      termasuk komposisi yang sebelumnya mustahil - "Berjalan" dari arsip,
+ *      tanpa melewati Siap. Gerbang kesiapan tetap menggerbangi SATU jalur
+ *      saja (menuju Siap), dan itu memang tempatnya.
  *
  * Readiness gate (PRD §6.5) menggerbangi transisi ke Siap - lihat
  * EventReadiness. Graf ini menggerbangi sisanya.
@@ -96,7 +112,26 @@ enum EventStatus: string
             self::Ongoing => [self::Completed, self::Cancelled],
             self::Completed => [self::Archived],
 
-            self::Archived, self::Cancelled => [],
+            // Arsip bisa dibuka kembali - DIUBAH 2026-11-14, lihat catatan
+            // kepala berkas. Yang bisa dituju adalah SELURUH lima keadaan
+            // lain, bukan hanya "sebelumnya": arsip tidak menyimpan dari mana
+            // ia datang, dan menebak lewat riwayat aktivitas berarti Admin
+            // tidak bisa memilih - padahal justru pilihan itu yang ia cari
+            // saat menyadari arsipnya salah tekan.
+            //
+            // `Batal` TIDAK ikut: yang salah tekan dan ingin dibatalkan
+            // sebenarnya ada di antara lima itu, dan menawarkan Batal di
+            // antara pilihan pemulihan adalah menawarkan jalan buntu kedua.
+            self::Archived => [
+                self::Draft,
+                self::Preparation,
+                self::Ready,
+                self::Ongoing,
+                self::Completed,
+            ],
+
+            // Satu-satunya yang masih buntu.
+            self::Cancelled => [],
         };
     }
 

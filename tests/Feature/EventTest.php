@@ -486,7 +486,7 @@ it('menolak transisi yang tidak ada di graf', function () {
     $service->pindah($event, EventStatus::Ongoing);
 })->throws(DomainException::class);
 
-it('menjadikan arsip dan batal sebagai status final', function () {
+it('menjadikan batal sebagai satu-satunya status buntu', function () {
     $service = app(EventStatusService::class);
 
     $batal = $this->event->refresh();
@@ -494,9 +494,87 @@ it('menjadikan arsip dan batal sebagai status final', function () {
 
     expect($batal->refresh()->status->final())->toBeTrue();
 
-    // Tidak ada jalan keluar dari final - bahkan kembali ke draft.
+    // Event yang dibatalkan tidak pernah dijalankan, sehingga tidak ada
+    // keadaan "sebelumnya" yang benar untuk dikembalikan.
     $service->pindah($batal->refresh(), EventStatus::Draft);
 })->throws(DomainException::class);
+
+it('membuka kembali event yang diarsipkan ke lima keadaan', function () {
+    // Sebelum 2026-11-14 arsip ikut buntu, dengan alasan "arsip adalah
+    // tindakan sadar Admin". Alasan itu salah menilai satu hal: tindakan
+    // sadar pun bisa salah tekan, dan buntu berarti satu klik keliru
+    // mengunci event beserta riwayatnya tanpa jalan pulang.
+    $service = app(EventStatusService::class);
+
+    foreach ([
+        EventStatus::Draft,
+        EventStatus::Preparation,
+        EventStatus::Ongoing,
+        EventStatus::Completed,
+    ] as $tujuan) {
+        $event = $this->event->refresh();
+        $event->forceFill(['status' => EventStatus::Archived])->save();
+
+        $service->pindah($event, $tujuan);
+
+        expect($event->refresh()->status)->toBe($tujuan);
+    }
+
+    // "Siap" lewat jalur yang SAMA dengan setiap event lain: gerbang
+    // kesiapan tetap menggerbangi satu-satunya jalur itu, dan membukanya
+    // kembali dari arsip tidak mengubah syaratnya. Event yang belum lengkap
+    // ditolak - dan tesnya ada di bawah, sendiri.
+    $lengkap = lengkapi($this->event);
+    $lengkap->forceFill(['status' => EventStatus::Archived])->save();
+
+    $service->pindah($lengkap, EventStatus::Ready);
+
+    expect($lengkap->refresh()->status)->toBe(EventStatus::Ready);
+});
+
+it('menolak pemulihan dari arsip ke Siap bila syaratnya belum lengkap', function () {
+    // Kebalikannya harus dijaga juga: membuka kembali arsip BUKAN jalan
+    // pintas melewati gerbang kesiapan. Event yang belum lengkap ditolak ke
+    // Siap dari arsip persis seperti dari Persiapan.
+    $service = app(EventStatusService::class);
+
+    $this->event->forceFill(['status' => EventStatus::Archived])->save();
+
+    $service->pindah($this->event->refresh(), EventStatus::Ready);
+})->throws(DomainException::class, 'belum siap');
+
+it('tidak menawarkan Batal sebagai jalan keluar dari arsip', function () {
+    // Yang salah tekan dan ingin dipulihkan sebenarnya ada di antara lima
+    // keadaan lain, dan menawarkan Batal di antara pilihan pemulihan adalah
+    // menawarkan jalan buntu kedua.
+    $dariArsip = EventStatus::Archived->tujuanYangBoleh();
+
+    expect($dariArsip)->toHaveCount(5)
+        ->and($dariArsip)->not->toContain(EventStatus::Cancelled)
+        ->and($dariArsip)->not->toContain(EventStatus::Archived);
+});
+
+it('menandai langkah dari arsip sebagai pemulihan', function () {
+    $service = app(EventStatusService::class);
+
+    $this->event->forceFill(['status' => EventStatus::Archived])->save();
+
+    $langkah = $service->langkahTersedia($this->event->refresh());
+
+    // Seluruhnya pemulihan, dan laman memakainya untuk memisahkan deret ini
+    // dari transisi biasa - lima tombol sejajar tanpa konteks terbaca
+    // sebagai lima langkah maju.
+    expect($langkah)->toHaveCount(5)
+        ->and(collect($langkah)->every(fn (array $l) => $l['pemulihan'] === true))->toBeTrue();
+});
+
+it('tidak menandai langkah biasa sebagai pemulihan', function () {
+    $service = app(EventStatusService::class);
+
+    $langkah = $service->langkahTersedia($this->event->refresh());
+
+    expect(collect($langkah)->every(fn (array $l) => $l['pemulihan'] === false))->toBeTrue();
+});
 
 it('menolak event belum lengkap menjadi siap', function () {
     $service = app(EventStatusService::class);
