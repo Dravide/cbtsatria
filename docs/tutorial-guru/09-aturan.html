@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9. Aturan &amp; batas</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Guru</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-bank-soal.html"><span class="n">2</span>Bank soal</a></li>
+      <li><a href="03-menulis-soal.html"><span class="n">3</span>Menulis soal</a></li>
+      <li><a href="04-impor-soal.html"><span class="n">4</span>Impor soal</a></li>
+      <li><a href="05-paket.html"><span class="n">5</span>Paket soal</a></li>
+      <li><a href="06-nilai.html"><span class="n">6</span>Nilai kelas</a></li>
+      <li><a href="07-koreksi.html"><span class="n">7</span>Koreksi uraian</a></li>
+      <li><a href="08-analisis.html"><span class="n">8</span>Analisis butir</a></li>
+      <li><a href="09-aturan.html" aria-current="page"><span class="n">9</span>Aturan &amp; batas</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>9. Aturan &amp; batas</h1>
+    <p class="kepala">Cakupan mapel, arsip, dan hal-hal yang tidak bisa Anda lakukan.</p>
+
+
+    <p>Bab ini mengumpulkan hal-hal yang tidak muncul di layar sampai Anda mencoba melakukan sesuatu yang tidak diizinkan. Membacanya lebih dulu lebih murah daripada menemukannya satu per satu.</p>
+
+    <h2>Cakupan Anda ditentukan penugasan, bukan URL</h2>
+
+    <p>Tidak satu pun alamat di konsol Guru memuat id kelas, id mapel, atau id event. Yang membatasi apa yang Anda lihat adalah <strong>penugasan mengajar</strong> yang diisi Admin.</p>
+
+    <p>Konsekuensinya:</p>
+    <ul>
+      <li>Bank soal hanya menampilkan mata pelajaran yang Anda ampu.</li>
+      <li>Bila penugasan Anda dihapus Admin, soal yang pernah Anda tulis <strong>tidak hilang</strong> — ia tetap di bank soal, dan Anda berhenti melihatnya.</li>
+      <li>Bila Anda mengampu dua mapel, bank soal menampilkan keduanya dalam satu daftar.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Mengganti mapel di berkas impor tidak bisa dipakai untuk keluar dari cakupan.</strong> Baris untuk mapel yang tidak Anda ampu ditolak saat pratinjau.
+    </div>
+
+    <h2>Yang boleh dan tidak boleh Anda lakukan</h2>
+
+    <table>
+      <thead>
+        <tr><th>Pekerjaan</th><th>Siapa</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Menulis, menyunting, mengarsipkan soal</td><td><strong>Guru</strong></td></tr>
+        <tr><td>Menyusun paket soal dan menandainya siap</td><td><strong>Guru</strong></td></tr>
+        <tr><td>Menilai jawaban uraian</td><td><strong>Guru</strong></td></tr>
+        <tr><td>Memasang paket ke ujian</td><td>Admin</td></tr>
+        <tr><td>Membuat event, jadwal, dan sesi</td><td>Admin</td></tr>
+        <tr><td>Menempatkan siswa ke ruang</td><td>Admin</td></tr>
+        <tr><td>Mempublikasikan hasil</td><td>Admin</td></tr>
+        <tr><td>Membuka dan mengunci koreksi</td><td>Admin</td></tr>
+        <tr><td>Mengganti jawaban yang salah nilai</td><td>Admin</td></tr>
+      </tbody>
+    </table>
+
+    <div class="catat hati">
+      <strong>Mengetik alamat Admin di peramban tidak memberi Anda akses.</strong> Gerbangnya ada di server, bukan di tombol yang disembunyikan. Yang Anda terima adalah penolakan akses — dan itu disengaja: keberadaan halaman itu bukan rahasia.
+    </div>
+
+    <h2>Menyunting soal setelah ujian berjalan</h2>
+
+    <p>Ini jebakan yang paling mahal, dan tidak ada peringatan di layar saat Anda menyimpannya.</p>
+
+    <p>Saat Admin memasang paket Anda ke sebuah ujian, isi paket <strong>dibekukan</strong> — seluruh butirnya disalin ke ujian itu. Sejak saat itu ada dua salinan: yang asli di bank soal, dan yang terbeku di ujian.</p>
+
+    <ul>
+      <li>Menyunting soal di bank soal mengubah salinan aslinya saja.</li>
+      <li>Ujian yang sudah berjalan tetap memakai salinan terbeku.</li>
+      <li>Siswa mengerjakan versi terbeku — bukan versi terbaru Anda.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Memperbaiki kunci yang salah TIDAK memperbaiki nilai siswa.</strong> Siswa sudah mengerjakan versi lama, dan nilainya sudah dihitung dari kunci lama. Yang harus dilakukan: betulkan soalnya, lalu minta Admin <em>menghitung ulang</em> nilai ujian itu. Perbaikan soal saja hanya berguna untuk ujian berikutnya.
+    </div>
+
+    <h2>Mengapa soal tidak bisa dihapus</h2>
+
+    <p>Bank soal tidak punya tombol hapus, dan itu tetap. Soal yang pernah dipakai ujian dirujuk oleh salinan terbeku, analisis butir, dan laporan nilai. Menghapusnya akan memutus penelusuran &ldquo;soal ini dari mana&rdquo; pada nilai yang sudah dibagikan ke siswa.</p>
+
+    <p>Yang tersedia adalah <strong>Arsipkan</strong> — soal itu keluar dari daftar bawaan dan berhenti ditawarkan saat menyusun paket, tanpa memutus riwayatnya.</p>
+
+    <h2>Batas berkas dan jatah AI</h2>
+
+    <ul>
+      <li><strong>Impor soal</strong> — batas baris per berkas berlaku, dan berkas yang melebihinya ditolak seluruhnya, bukan dipotong.</li>
+      <li><strong>Berkas soal</strong> — gambar 2 MB, audio 5 MB, video 20 MB.</li>
+      <li><strong>Generate AI</strong> — dibatasi per Guru. Jatah habis berarti Anda menunggu, bukan bahwa penyedianya rusak.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Jatah AI dihitung saat soal disusun, bukan saat disimpan.</strong> Menekan <em>Simpan</em> tidak memakai jatah. Yang memakainya adalah setiap permintaan penyusunan — termasuk yang hasilnya Anda batalkan.
+    </div>
+
+
+    <nav class="kaki">
+      <a href="08-analisis.html"><span class="arah">Sebelumnya</span>Analisis butir</a>
+      
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

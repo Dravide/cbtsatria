@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5. Paket soal</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Guru</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-bank-soal.html"><span class="n">2</span>Bank soal</a></li>
+      <li><a href="03-menulis-soal.html"><span class="n">3</span>Menulis soal</a></li>
+      <li><a href="04-impor-soal.html"><span class="n">4</span>Impor soal</a></li>
+      <li><a href="05-paket.html" aria-current="page"><span class="n">5</span>Paket soal</a></li>
+      <li><a href="06-nilai.html"><span class="n">6</span>Nilai kelas</a></li>
+      <li><a href="07-koreksi.html"><span class="n">7</span>Koreksi uraian</a></li>
+      <li><a href="08-analisis.html"><span class="n">8</span>Analisis butir</a></li>
+      <li><a href="09-aturan.html"><span class="n">9</span>Aturan &amp; batas</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>5. Paket soal</h1>
+    <p class="kepala">Mengumpulkan butir, menetapkan poin, dan menandai siap.</p>
+
+
+    <p>Paket soal adalah daftar butir yang akan dikerjakan siswa dalam satu ujian. Satu paket berisi soal-soal dari <strong>satu mata pelajaran saja</strong>, dan bisa dipakai di beberapa event.</p>
+
+    <h2>Daftar paket</h2>
+
+    <figure>
+      <img src="gambar/05-paket.png" alt="Laman Paket soal dengan kolom Paket, Butir, dan Status, serta tombol Buat paket">
+      <figcaption>Daftar paket. Kolom <strong>Butir</strong> menghitung isinya; paket kosong tidak bisa ditandai siap.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Buat paket</strong>, isi nama, mata pelajaran, dan tingkat kelasnya.</p>
+      </li>
+      <li>
+        <p>Klik nama paket untuk membuka isinya.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Paket lahir sebagai Draf.</strong> Ia baru bisa dipakai Admin setelah Anda menandainya <em>Siap</em> — dan itu tidak bisa dilakukan selama paketnya masih kosong.
+    </div>
+
+    <h2>Mengisi paket</h2>
+
+    <figure>
+      <img src="gambar/05-paket-detail.png" alt="Rincian paket menampilkan butir, poin total, ringkasan objektif dan uraian, tabel butir dengan kolom Jenis, Poin, Urut, serta panel Bank soal di kanan">
+      <figcaption>Tiga angka di atas dan tabel butir di bawah. Panel <strong>Bank soal</strong> di kanan adalah tempat mengambil butirnya.</figcaption>
+    </figure>
+
+    <h3>Empat angka di atas</h3>
+    <ul>
+      <li><strong>Butir</strong> — jumlah soal dalam paket.</li>
+      <li><strong>Poin total</strong> — jumlah seluruh poin. Ini penyebut nilai siswa.</li>
+      <li><strong>Objektif</strong> — berapa butir yang dinilai mesin.</li>
+      <li><strong>Uraian</strong> — berapa butir yang harus Anda nilai sendiri.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Perhatikan angka Uraian sebelum menandai siap.</strong> Setiap butir uraian adalah pekerjaan koreksi manual setelah ujian. Paket dengan dua belas uraian berarti dua belas kali jumlah siswa pengerjaan yang harus Anda nilai satu per satu — dan selama belum selesai, hasilnya tidak bisa dipublikasikan Admin.
+    </div>
+
+    <h3>Menambah butir</h3>
+
+    <p>Panel kanan menampilkan bank soal untuk mata pelajaran paket ini. Soal yang sudah ada di paket tidak ditawarkan lagi, sehingga tidak mungkin terjadi duplikat.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Cari atau telusuri bank soal di panel kanan.</p>
+      </li>
+      <li>
+        <p>Centang butir yang diinginkan, lalu tekan <strong>Tambah butir</strong>.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Butir yang baru Anda tulis lewat builder langsung muncul di panel ini.</strong> Tidak ada langkah sinkronisasi. Bila sebuah soal tidak terlihat, periksa mata pelajarannya — panel ini hanya menampilkan soal dari mapel paket.
+    </div>
+
+    <h3>Poin dan urutan</h3>
+
+    <p>Tiap baris punya kotak <strong>Poin</strong> yang bisa disunting langsung, dan tombol <strong>naik/turun</strong> untuk mengubah urutan. Tombol <strong>Buang</strong> mengeluarkan butir dari paket — tanpa menghapusnya dari bank soal.</p>
+
+    <div class="catat">
+      <strong>Poin di sini menimpa poin bawaan soal.</strong> Mengubahnya tidak mengubah soal di bank, dan tidak memengaruhi paket lain yang memakai soal yang sama.
+    </div>
+
+    <h2>Menandai siap</h2>
+
+    <p>Tombol <strong>Tandai siap</strong> mengubah status paket dari Draf menjadi Siap. Admin hanya bisa memasang paket yang berstatus Siap.</p>
+
+    <p>Syaratnya satu: paket tidak boleh kosong. Selain itu tidak ada gerbang — termasuk tidak ada pemeriksaan apakah kunci jawabannya benar.</p>
+
+    <div class="catat hati">
+      <strong>Menandai siap adalah tanda tangan Anda.</strong> Setelah Siap, paket bisa dipasang ke event kapan saja tanpa Anda ketahui. Periksa pratinjaunya lebih dulu — dua kali, bila paketnya panjang.
+    </div>
+
+    <h2>Pratinjau paket</h2>
+
+    <figure>
+      <img src="gambar/05-paket-pratinjau.png" alt="Pratinjau paket menampilkan ringkasan paket dan seluruh butirnya berurutan">
+      <figcaption>Pratinjau paket: seluruh butir berurutan, sebagaimana akan dikerjakan siswa.</figcaption>
+    </figure>
+
+    <p>Ini satu-satunya layar yang memperlihatkan paket sebagai satu kesatuan. Memeriksa butir satu per satu di bank soal tidak akan memperlihatkan apakah urutannya masuk akal, apakah dua soal terlalu mirip, atau apakah bobotnya seimbang.</p>
+
+    <div class="catat">
+      <strong>Paket yang dikembalikan ke Draf tetap bisa dipakai ujian yang sudah dibekukan.</strong> Membatalkan status Siap mencegah pemasangan <em>baru</em>; ujian yang sudah ada memegang salinannya sendiri.
+    </div>
+
+
+    <nav class="kaki">
+      <a href="04-impor-soal.html"><span class="arah">Sebelumnya</span>Impor soal</a>
+      <a class="next" href="06-nilai.html"><span class="arah">Berikutnya</span>Nilai kelas</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

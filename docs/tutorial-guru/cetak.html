@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial Guru SATRIA CBT (cetak)</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<!-- BERKAS INI DIHASILKAN. Jangan disunting: sunting babnya lalu susun ulang. -->
+<div class="rangka tunggal">
+  <main class="isi">
+<section class="bab">
+    <h1>Tutorial Guru SATRIA CBT</h1>
+    <p class="kepala">Panduan bergambar untuk menyusun soal, merakit paket, dan menilai hasil ujian.</p>
+
+
+    <p>Konsol Guru tidak berbicara tentang event. Semua pekerjaannya berdiri di luar kegiatan ujian: Anda menulis soal, menyusunnya jadi paket, lalu menilainya setelah ujian berjalan. Admin yang memasang paket Anda ke event — bukan Anda.</p>
+
+    <p>Pemisahan itu disengaja. Satu paket soal bisa dipakai di beberapa event sekaligus, dan guru yang bisa memasangnya sendiri akan menulis paket yang hanya cocok untuk satu ujian.</p>
+
+    <h2>Enam menu, tiga kelompok</h2>
+
+    <p>Sidebar Guru dibagi tiga:</p>
+
+    <ul>
+      <li><strong>Bank soal</strong> — Bank soal, Paket soal, Impor soal. Tempat Anda menyusun.</li>
+      <li><strong>Nilai</strong> — Koreksi uraian, Nilai kelas, Analisis butir. Tempat Anda membaca hasil.</li>
+      <li>Di bawahnya, tidak terlihat sebagai menu: <strong>TA 2026/2027</strong>, semester yang aktif.</li>
+    </ul>
+
+    <h2>Urutan yang diikuti tutorial ini</h2>
+
+    <ol class="toc" id="toc">
+      <li><a href="01-masuk.html">
+        <span class="n">BAB 1</span>
+        <div class="j">Masuk &amp; beranda</div>
+        <div class="k">Apa yang boleh Anda sentuh, dan cakupan mana yang berlaku.</div>
+      </a></li>
+      <li><a href="02-bank-soal.html">
+        <span class="n">BAB 2</span>
+        <div class="j">Bank soal</div>
+        <div class="k">Daftar soal yang Anda tulis, penyaringnya, dan dua tindakan massal.</div>
+      </a></li>
+      <li><a href="03-menulis-soal.html">
+        <span class="n">BAB 3</span>
+        <div class="j">Menulis soal</div>
+        <div class="k">Sepuluh jenis soal, satu tab per jenis, dan bentuk kunci masing-masing.</div>
+      </a></li>
+      <li><a href="04-impor-soal.html">
+        <span class="n">BAB 4</span>
+        <div class="j">Impor soal</div>
+        <div class="k">Menulis tiga puluh soal di luar aplikasi, dan pratinjau yang menahan kesalahannya.</div>
+      </a></li>
+      <li><a href="05-paket.html">
+        <span class="n">BAB 5</span>
+        <div class="j">Paket soal</div>
+        <div class="k">Mengumpulkan butir, menetapkan poin, dan menandai siap.</div>
+      </a></li>
+      <li><a href="06-nilai.html">
+        <span class="n">BAB 6</span>
+        <div class="j">Nilai kelas</div>
+        <div class="k">Nilai setelah ujian berjalan — dan mengapa ia masih kosong.</div>
+      </a></li>
+      <li><a href="07-koreksi.html">
+        <span class="n">BAB 7</span>
+        <div class="j">Koreksi uraian</div>
+        <div class="k">Satu-satunya pekerjaan yang tidak bisa diotomatiskan.</div>
+      </a></li>
+      <li><a href="08-analisis.html">
+        <span class="n">BAB 8</span>
+        <div class="j">Analisis butir</div>
+        <div class="k">Soal mana yang perlu diperbaiki, dan kapan angkanya bermakna.</div>
+      </a></li>
+      <li><a href="09-aturan.html">
+        <span class="n">BAB 9</span>
+        <div class="j">Aturan &amp; batas</div>
+        <div class="k">Cakupan mapel, arsip, dan hal-hal yang tidak bisa Anda lakukan.</div>
+      </a></li>
+    </ol>
+
+    <div class="catat">
+      <strong>Tangkapan layar di panduan ini berasal dari akun Guru sekolah contoh</strong> yang sudah punya 19 soal dan 1 paket. Nama mapel, kode soal, dan angkanya berbeda dari akun Anda — yang sama adalah letak tombol dan urutan langkahnya.
+    </div>
+
+    <div class="catat hati">
+      <strong>Ujian di sekolah contoh belum pernah dikerjakan siswa.</strong> Karena itu Bab 6 dan Bab 7 menampilkan halaman yang masih kosong. Itu bukan gambar rusak: aplikasi memang menuliskan sendiri mengapa daftarnya kosong, dan panduan ini menjelaskan yang akan Anda lihat setelah ujian benar-benar berjalan.
+    </div>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>1. Masuk &amp; beranda</h1>
+    <p class="kepala">Apa yang boleh Anda sentuh, dan cakupan mana yang berlaku.</p>
+
+
+    <p>Beranda Guru tidak menampilkan event, jadwal, atau peserta. Ia menjawab satu pertanyaan: <em>apa yang sudah saya kerjakan?</em> Tiga angka, dan tiga pintasan.</p>
+
+    <figure>
+      <img src="gambar/01-beranda.png" alt="Beranda Guru menampilkan jumlah soal, paket, kelas diampu, keterangan cakupan bank soal, dan dua kotak pintasan">
+      <figcaption>Beranda Guru. Kotak biru di tengah menjelaskan aturan yang paling sering ditanyakan Guru baru.</figcaption>
+    </figure>
+
+    <h2>Tiga angka di atas</h2>
+
+    <ul>
+      <li><strong>Soal saya</strong> — berapa butir yang Anda tulis. Tidak menghitung soal Guru lain.</li>
+      <li><strong>Paket</strong> — berapa paket soal yang Anda susun.</li>
+      <li><strong>Kelas diampu</strong> — berapa penugasan mengajar yang menempel pada akun Anda.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>&ldquo;Kelas diampu&rdquo; nol berarti Anda belum bisa menulis soal apa pun.</strong> Penugasan mengajar diisi Admin di laman <em>Mata pelajaran</em>, bukan oleh Anda. Bila angkanya nol, hubungi Admin — menulis soal tidak akan berhasil sebelum penugasannya ada.
+    </div>
+
+    <h2>Bank soal berlaku lintas event</h2>
+
+    <p>Kotak biru di tengah beranda bukan hiasan; ia menjawab pertanyaan yang paling sering muncul: <em>soal ini untuk ujian yang mana?</em></p>
+
+    <p>Jawabannya: <strong>tidak untuk yang mana pun secara khusus.</strong> Soal yang Anda tulis masuk ke bank soal sekolah dan bisa dipakai di ujian mana pun, termasuk oleh Guru lain yang mengampu mata pelajaran sama. Yang menentukan cakupan Anda adalah penugasan mengajar — bukan event, bukan kelas ujian.</p>
+
+    <div class="catat">
+      <strong>Konsekuensinya dua arah.</strong> Anda melihat soal Guru lain untuk mapel yang sama, dan mereka melihat soal Anda. Bank soal adalah aset sekolah, bukan milik penulisnya — meski hanya penulisnya yang boleh menyunting.
+    </div>
+
+    <h2>Dua kelompok pintasan</h2>
+
+    <h3>Menyusun soal</h3>
+    <p>Tiga tautan, sesuai urutan pekerjaan: menulis satu soal, mengimpor banyak sekaligus, atau menyusun paket dari yang sudah ada.</p>
+
+    <h3>Koreksi &amp; nilai</h3>
+    <p>Koreksi uraian, nilai kelas, dan analisis butir membaca <strong>jawaban siswa</strong> — dan jawaban baru ada setelah mesin ujian berjalan. Ketiganya akan kosong sampai ujian yang memakai paket Anda benar-benar dikerjakan. Itu wajar, bukan tanda ada yang rusak.</p>
+
+    <div class="catat">
+      <strong>Sidebar menandai halaman yang sedang dibuka</strong> dengan latar biru. Perhatikan bahwa tidak ada menu &ldquo;Event&rdquo; di sini: mengelola event adalah pekerjaan Admin.
+    </div>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>2. Bank soal</h1>
+    <p class="kepala">Daftar soal yang Anda tulis, penyaringnya, dan dua tindakan massal.</p>
+
+
+    <p>Bank soal adalah daftar seluruh soal yang boleh Anda pakai — yang Anda tulis sendiri, dan yang ditulis Guru lain untuk mata pelajaran yang sama. Halaman ini tentang <em>menemukan</em> soal; menulisnya ada di <a href="03-menulis-soal.html">Bab 3</a>.</p>
+
+    <figure>
+      <img src="gambar/02-bank-soal.png" alt="Bank soal Guru dengan kolom Soal, Jenis, Tingkat, Dipakai, Status serta tombol Generate AI, Terapkan, Reset, Duplikat, dan Arsipkan">
+      <figcaption>Bank soal. Kolom <strong>Dipakai</strong> adalah yang paling berguna: ia menghitung di berapa paket soal itu masuk.</figcaption>
+    </figure>
+
+    <h2>Lima kolom yang perlu dibaca</h2>
+
+    <ul>
+      <li><strong>Soal</strong> — judul singkat butir, bukan teks lengkapnya.</li>
+      <li><strong>Jenis</strong> — chip pendek: <em>PG</em>, <em>Ganda</em>, <em>B/S</em>, <em>Isian</em>, <em>Rumpang</em>, <em>Jodoh</em>, <em>Urut</em>.</li>
+      <li><strong>Tingkat</strong> — kelas sasaran yang Anda tetapkan sendiri saat menulis.</li>
+      <li><strong>Dipakai</strong> — berapa paket soal memuat butir ini.</li>
+      <li><strong>Status</strong> — Draf, Siap, atau Arsip.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Kolom &ldquo;Dipakai&rdquo; yang bernilai nol berarti soal itu tidak akan pernah muncul di ujian.</strong> Ia ada di bank, tetapi tidak masuk paket mana pun. Menulis tiga puluh soal lalu lupa memasukkannya ke paket adalah kesalahan yang paling sering terjadi — dan tidak ada peringatan apa pun untuknya.
+    </div>
+
+    <h2>Penyaring</h2>
+
+    <p>Tiga penyaring di atas tabel: pencarian teks, jenis soal, dan status. Ketiganya bekerja bersama — menyaring dengan jenis <em>Uraian</em> lalu mencari kata tertentu hanya menampilkan uraian yang cocok.</p>
+
+    <p><strong>Terapkan</strong> menjalankan penyaring, <strong>Reset</strong> mengosongkannya. Penyaring yang tersisa di layar tetapi sudah tidak dipakai adalah penyaring yang membuat Anda menyimpulkan salah tentang jumlah soal.</p>
+
+    <h2>Dua tindakan massal</h2>
+
+    <p>Centang beberapa baris untuk mengaktifkan tombolnya.</p>
+
+    <h3>Duplikat</h3>
+    <p>Menyalin soal terpilih menjadi soal baru berstatus <strong>Draf</strong>. Berguna untuk soal yang mirip tetapi angkanya berbeda — varian A dan B dari satu butir yang sama.</p>
+
+    <div class="catat">
+      <strong>Salinan selalu lahir sebagai Draf</strong>, meskipun aslinya sudah Siap. Anda harus memeriksa dan menandainya sendiri: soal yang berstatus Siap boleh dipakai Guru lain, dan salinan yang belum Anda periksa tidak boleh ikut terbawa.
+    </div>
+
+    <h3>Arsipkan</h3>
+    <p>Menyingkirkan soal tanpa menghapusnya. Soal arsip hilang dari daftar bawaan tetapi tetap bisa dicari lewat penyaring status.</p>
+
+    <div class="catat hati">
+      <strong>Mengarsipkan tidak mencabut soal dari ujian yang sudah memakainya.</strong> Ujian menyimpan salinan butirnya sendiri saat dibekukan, jadi mengarsipkan soal hari ini tidak mengubah ujian yang berjalan kemarin. Yang berubah hanya keterangannya di bank soal.
+    </div>
+
+    <h2>Menulis soal dengan AI</h2>
+
+    <p>Tombol <strong>Generate AI</strong> membuka laman yang menyusun draf soal dari deskripsi Anda. Ia memakai penyedia model bahasa milik sekolah, dan <strong>dibatasi per Guru</strong> — bila Anda menerima pesan tentang jatah, bukan berarti aplikasinya rusak.</p>
+
+    <p>Soal hasil AI tidak tersimpan otomatis. Yang tersimpan hanya butir yang Anda centang di laman itu, dan yang tidak dicentang hilang saat lamannya ditutup.</p>
+
+    <div class="catat">
+      <strong>Periksa selalu soal hasil AI sebelum menandainya Siap.</strong> Model bahasa bisa menghasilkan kunci yang keliru dengan sangat meyakinkan. Yang menanggung akibatnya adalah siswa yang menjawab benar lalu dinilai salah.
+    </div>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>3. Menulis soal</h1>
+    <p class="kepala">Sepuluh jenis soal, satu tab per jenis, dan bentuk kunci masing-masing.</p>
+
+
+    <p>Builder soal adalah satu-satunya tempat Anda menulis butir. Bentuk formulirnya berubah mengikuti jenis soal yang dipilih, karena kunci jawaban setiap jenis memang berbeda bentuknya.</p>
+
+    <figure>
+      <img src="gambar/03-soal-baru.png" alt="Builder soal baru dengan sepuluh tab jenis soal, kotak teks soal dengan bilah pemformatan, bagian Gambar / berkas soal, dan Pilihan jawaban">
+      <figcaption>Tab di atas adalah sepuluh jenis soal. Yang berubah saat berpindah tab bukan hanya warna — bagian kunci jawabannya ikut berganti.</figcaption>
+    </figure>
+
+    <h2>Sepuluh jenis soal</h2>
+
+    <ul>
+      <li><strong>Pilihan ganda</strong> — satu jawaban benar di antara beberapa pilihan.</li>
+      <li><strong>Jawaban ganda</strong> — lebih dari satu pilihan benar.</li>
+      <li><strong>Benar/salah</strong> — satu pernyataan, dua kemungkinan.</li>
+      <li><strong>Isian singkat</strong> — jawaban berupa teks pendek, dinilai dari daftar varian.</li>
+      <li><strong>Isian rumpang</strong> — kalimat berlubang, tiap lubang punya varian jawabannya sendiri.</li>
+      <li><strong>Menjodohkan</strong> — memasangkan dua kumpulan.</li>
+      <li><strong>Mengurutkan</strong> — menyusun deret menjadi urutan yang benar.</li>
+      <li><strong>Angka</strong> — jawaban numerik, dengan toleransi.</li>
+      <li><strong>Uraian</strong> — jawaban bebas. <strong>Tidak dinilai otomatis.</strong></li>
+      <li><strong>Media</strong> — stimulus berupa berkas; mekanisme jawabannya tetap salah satu dari yang di atas.</li>
+    </ul>
+
+    <h2>Teori singkat sebelum mulai</h2>
+
+    <p>Yang perlu Anda pahami bukan tombol-tombolnya, melainkan satu perbedaan: <strong>soal yang dinilai mesin</strong> dan <strong>soal yang harus Anda nilai sendiri</strong>.</p>
+
+    <p>Hanya <strong>Uraian</strong> yang masuk kategori kedua. Kesembilan jenis lainnya dinilai otomatis, dengan syarat kuncinya bisa dicocokkan — karena itu isian singkat meminta daftar varian (bukan satu jawaban), dan angka meminta toleransi (bukan nilai tunggal).</p>
+
+    <div class="catat hati">
+      <strong>Isian singkat tanpa varian menilai terlalu keras.</strong> Jawaban &ldquo;Jakarta&rdquo; dan &ldquo;jakarta &rdquo; adalah jawaban yang sama bagi manusia, dan berbeda bagi pencocok teks bila variannya tidak ditulis. Tulis varian yang mungkin — huruf besar-kecil, singkatan yang lazim, salah ketik yang umum.
+    </div>
+
+    <h2>Langkah menulis satu soal</h2>
+
+    <ol class="langkah">
+      <li>
+        <p>Pilih <strong>jenis soal</strong> di tab atas. Bagian kunci jawaban di bawah menyesuaikan diri.</p>
+      </li>
+      <li>
+        <p>Tulis <strong>teks soal</strong>. Bilah di atasnya menyediakan tebal, miring, garis bawah, pangkat, subskrip, daftar, perataan, dan tabel.</p>
+      </li>
+      <li>
+        <p>Bila soal butuh gambar, audio, atau video, tekan <strong>Tambah gambar/berkas</strong> di bagian <em>Gambar / berkas soal</em>. Berkas ini tampil di atas teks soal, bukan di dalamnya.</p>
+      </li>
+      <li>
+        <p>Isi bagian <strong>kunci jawaban</strong> sesuai jenisnya.</p>
+      </li>
+      <li>
+        <p>Di bagian <strong>Detail soal</strong>, tetapkan judul singkat, tingkat, dan status.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Simpan ke bank</strong>.</p>
+      </li>
+    </ol>
+
+    <h3>Batas berkas</h3>
+    <ul>
+      <li>Gambar — JPG, PNG, WEBP, GIF, maksimal <strong>2 MB</strong>.</li>
+      <li>Audio — maksimal <strong>5 MB</strong>.</li>
+      <li>Video — maksimal <strong>20 MB</strong>.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Berkas besar membuat halaman ujian lambat.</strong> Video 20 MB diunduh ulang oleh setiap siswa di setiap sesi. Untuk stimulus berulang, gambar lebih baik daripada video; bila harus video, kecilkan sebelum diunggah.
+    </div>
+
+    <h2>Menyunting soal yang sudah ada</h2>
+
+    <figure>
+      <img src="gambar/03-soal-ubah.png" alt="Builder dalam mode ubah, judul Soal Q-5-1 dengan tombol Simpan perubahan">
+      <figcaption>Builder yang sama, dalam mode ubah. Tombolnya berbunyi <strong>Simpan perubahan</strong> — dan itu satu-satunya bedanya.</figcaption>
+    </figure>
+
+    <div class="catat hati">
+      <strong>Menyunting soal tidak mengubah ujian yang sudah berjalan.</strong> Saat Admin membuat ujian dari paket Anda, isi paket <em>dibekukan</em> — disalin ke ujian. Perubahan Anda berlaku untuk ujian berikutnya, bukan yang sudah ada. Bila soal di ujian lama ternyata salah kunci, yang harus diperbaiki adalah nilainya, bukan soalnya.
+    </div>
+
+    <h2>Memeriksa sebelum menyimpan</h2>
+
+    <p>Laman <strong>Pratinjau</strong> menampilkan soal sebagaimana siswa melihatnya — tanpa kunci, tanpa pembahasan. Pakai itu untuk memastikan gambar termuat, tabel tampil rapi, dan pilihan jawabannya tidak terpotong.</p>
+
+    <figure>
+      <img src="gambar/03-pratinjau.png" alt="Laman Pratinjau soal menampilkan butir seperti yang dilihat siswa">
+      <figcaption>Pratinjau. Yang Anda lihat di sini adalah yang dikerjakan siswa.</figcaption>
+    </figure>
+
+    <div class="catat">
+      <strong>Status Draf tidak menghalangi pemakaian.</strong> Soal berstatus Draf tetap bisa dimasukkan ke paket, dan tetap ikut terbawa ke ujian. Status adalah keterangan bagi Anda dan Guru lain — bukan pembatas yang dijaga aplikasi.
+    </div>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>4. Impor soal</h1>
+    <p class="kepala">Menulis tiga puluh soal di luar aplikasi, dan pratinjau yang menahan kesalahannya.</p>
+
+
+    <p>Menulis satu soal di peramban masuk akal untuk satu butir, dan tidak masuk akal untuk tiga puluh. Impor soal menerima berkas XLSX atau CSV, memeriksanya lebih dulu, lalu menunggu Anda menyetujui.</p>
+
+    <figure>
+      <img src="gambar/04-impor.png" alt="Laman Impor soal dengan bagian unggah berkas dan riwayat impor">
+      <figcaption>Impor soal. Tidak ada satu baris pun yang tersimpan sebelum Anda menekan konfirmasi.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Unduh <strong>template</strong> dari laman ini. Jangan menyusun berkas dari nol — susunan kolomnya menentukan hasilnya.</p>
+      </li>
+      <li>
+        <p>Isi di luar aplikasi. Satu baris satu soal; kolomnya menentukan jenis, kunci, dan poinnya.</p>
+      </li>
+      <li>
+        <p>Unggah berkasnya. Aplikasi menampilkan <strong>pratinjau</strong> baris per baris: mana yang akan dibuat, dan mana yang ditolak beserta alasannya.</p>
+      </li>
+      <li>
+        <p>Periksa pratinjaunya. Bila angkanya tidak seperti yang Anda duga, batalkan — belum ada yang berubah.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>konfirmasi</strong>. Baru sekarang data tersimpan.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Pratinjau adalah keseluruhan gunanya.</strong> Impor yang langsung menyimpan tiga puluh baris berarti tiga puluh baris yang harus Anda hapus satu per satu bila kolom kuncinya salah tempat. Karena itu langkah ketiga tidak bisa dilewati.
+    </div>
+
+    <h2>Setelah konfirmasi</h2>
+
+    <p>Impor punya <strong>riwayat</strong>: berkas apa, berapa baris berhasil, berapa gagal, dan kapan. Riwayat itu juga menyimpan laporan galat untuk baris yang ditolak — bacalah bila jumlah berhasilnya tidak sesuai harapan.</p>
+
+    <div class="catat hati">
+      <strong>Baris yang ditolak tidak menghentikan sisanya.</strong> Impor yang menghasilkan 28 berhasil dan 2 gagal bukan impor yang gagal. Dua baris itu harus Anda perbaiki dan unggah terpisah, atau tulis langsung di builder.
+    </div>
+
+    <h2>Tiga kesalahan yang paling sering</h2>
+
+    <ul>
+      <li><strong>Kunci tidak sesuai jenis.</strong> Kunci pilihan ganda adalah satu huruf; kunci menjodohkan adalah pasangan. Bentuk yang salah membuat barisnya ditolak, bukan dikoreksi diam-diam.</li>
+      <li><strong>Isian singkat dengan satu varian.</strong> Berkas impor yang hanya memuat satu jawaban menghasilkan soal yang menilai terlalu keras. Tulis variannya sejak di berkas.</li>
+      <li><strong>Mapel di berkas berbeda dari mapel Anda.</strong> Cakupan Anda ditentukan penugasan mengajar; baris untuk mapel yang tidak Anda ampu akan ditolak.</li>
+    </ul>
+
+    <h2>Mengubah soal hasil impor</h2>
+
+    <p>Impor tidak menautkan soal ke berkasnya. Setelah masuk, soal hasil impor sama seperti soal yang Anda tulis di builder: bisa disunting, diduplikat, dan diarsipkan dari <a href="02-bank-soal.html">Bab 2</a>.</p>
+
+    <div class="catat">
+      <strong>Mengimpor ulang berkas yang sama akan membuat soal baru lagi</strong>, bukan memperbarui yang lama. Bila ada beberapa baris yang perlu diperbaiki, sunting barisnya di bank soal — jangan mengunggah ulang seluruh berkas.
+    </div>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>5. Paket soal</h1>
+    <p class="kepala">Mengumpulkan butir, menetapkan poin, dan menandai siap.</p>
+
+
+    <p>Paket soal adalah daftar butir yang akan dikerjakan siswa dalam satu ujian. Satu paket berisi soal-soal dari <strong>satu mata pelajaran saja</strong>, dan bisa dipakai di beberapa event.</p>
+
+    <h2>Daftar paket</h2>
+
+    <figure>
+      <img src="gambar/05-paket.png" alt="Laman Paket soal dengan kolom Paket, Butir, dan Status, serta tombol Buat paket">
+      <figcaption>Daftar paket. Kolom <strong>Butir</strong> menghitung isinya; paket kosong tidak bisa ditandai siap.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Buat paket</strong>, isi nama, mata pelajaran, dan tingkat kelasnya.</p>
+      </li>
+      <li>
+        <p>Klik nama paket untuk membuka isinya.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Paket lahir sebagai Draf.</strong> Ia baru bisa dipakai Admin setelah Anda menandainya <em>Siap</em> — dan itu tidak bisa dilakukan selama paketnya masih kosong.
+    </div>
+
+    <h2>Mengisi paket</h2>
+
+    <figure>
+      <img src="gambar/05-paket-detail.png" alt="Rincian paket menampilkan butir, poin total, ringkasan objektif dan uraian, tabel butir dengan kolom Jenis, Poin, Urut, serta panel Bank soal di kanan">
+      <figcaption>Tiga angka di atas dan tabel butir di bawah. Panel <strong>Bank soal</strong> di kanan adalah tempat mengambil butirnya.</figcaption>
+    </figure>
+
+    <h3>Empat angka di atas</h3>
+    <ul>
+      <li><strong>Butir</strong> — jumlah soal dalam paket.</li>
+      <li><strong>Poin total</strong> — jumlah seluruh poin. Ini penyebut nilai siswa.</li>
+      <li><strong>Objektif</strong> — berapa butir yang dinilai mesin.</li>
+      <li><strong>Uraian</strong> — berapa butir yang harus Anda nilai sendiri.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Perhatikan angka Uraian sebelum menandai siap.</strong> Setiap butir uraian adalah pekerjaan koreksi manual setelah ujian. Paket dengan dua belas uraian berarti dua belas kali jumlah siswa pengerjaan yang harus Anda nilai satu per satu — dan selama belum selesai, hasilnya tidak bisa dipublikasikan Admin.
+    </div>
+
+    <h3>Menambah butir</h3>
+
+    <p>Panel kanan menampilkan bank soal untuk mata pelajaran paket ini. Soal yang sudah ada di paket tidak ditawarkan lagi, sehingga tidak mungkin terjadi duplikat.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Cari atau telusuri bank soal di panel kanan.</p>
+      </li>
+      <li>
+        <p>Centang butir yang diinginkan, lalu tekan <strong>Tambah butir</strong>.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Butir yang baru Anda tulis lewat builder langsung muncul di panel ini.</strong> Tidak ada langkah sinkronisasi. Bila sebuah soal tidak terlihat, periksa mata pelajarannya — panel ini hanya menampilkan soal dari mapel paket.
+    </div>
+
+    <h3>Poin dan urutan</h3>
+
+    <p>Tiap baris punya kotak <strong>Poin</strong> yang bisa disunting langsung, dan tombol <strong>naik/turun</strong> untuk mengubah urutan. Tombol <strong>Buang</strong> mengeluarkan butir dari paket — tanpa menghapusnya dari bank soal.</p>
+
+    <div class="catat">
+      <strong>Poin di sini menimpa poin bawaan soal.</strong> Mengubahnya tidak mengubah soal di bank, dan tidak memengaruhi paket lain yang memakai soal yang sama.
+    </div>
+
+    <h2>Menandai siap</h2>
+
+    <p>Tombol <strong>Tandai siap</strong> mengubah status paket dari Draf menjadi Siap. Admin hanya bisa memasang paket yang berstatus Siap.</p>
+
+    <p>Syaratnya satu: paket tidak boleh kosong. Selain itu tidak ada gerbang — termasuk tidak ada pemeriksaan apakah kunci jawabannya benar.</p>
+
+    <div class="catat hati">
+      <strong>Menandai siap adalah tanda tangan Anda.</strong> Setelah Siap, paket bisa dipasang ke event kapan saja tanpa Anda ketahui. Periksa pratinjaunya lebih dulu — dua kali, bila paketnya panjang.
+    </div>
+
+    <h2>Pratinjau paket</h2>
+
+    <figure>
+      <img src="gambar/05-paket-pratinjau.png" alt="Pratinjau paket menampilkan ringkasan paket dan seluruh butirnya berurutan">
+      <figcaption>Pratinjau paket: seluruh butir berurutan, sebagaimana akan dikerjakan siswa.</figcaption>
+    </figure>
+
+    <p>Ini satu-satunya layar yang memperlihatkan paket sebagai satu kesatuan. Memeriksa butir satu per satu di bank soal tidak akan memperlihatkan apakah urutannya masuk akal, apakah dua soal terlalu mirip, atau apakah bobotnya seimbang.</p>
+
+    <div class="catat">
+      <strong>Paket yang dikembalikan ke Draf tetap bisa dipakai ujian yang sudah dibekukan.</strong> Membatalkan status Siap mencegah pemasangan <em>baru</em>; ujian yang sudah ada memegang salinannya sendiri.
+    </div>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>6. Nilai kelas</h1>
+    <p class="kepala">Nilai setelah ujian berjalan — dan mengapa ia masih kosong.</p>
+
+
+    <p>Nilai kelas adalah nilai siswa pada ujian yang memakai paket Anda. Halaman ini <strong>membaca</strong>, bukan mengubah — kecuali bila Admin membuka kunci koreksi.</p>
+
+    <h2>Bila daftarnya kosong</h2>
+
+    <figure>
+      <img src="gambar/08-nilai.png" alt="Laman Nilai kelas masih kosong dengan pesan bahwa daftar terisi setelah siswa mengumpulkan ujiannya">
+      <figcaption>Nilai kelas pada akun contoh. Pesan di tengah bukan galat — ia menjelaskan sebabnya.</figcaption>
+    </figure>
+
+    <div class="catat">
+      <strong>Daftar ini terisi setelah siswa mengumpulkan ujiannya.</strong> Aplikasi menuliskannya sendiri di layar. Tidak ada yang perlu Anda aktifkan, dan tidak ada yang rusak: sebelum ujian berjalan, memang belum ada nilai.
+    </div>
+
+    <h2>Setelah ujian berjalan</h2>
+
+    <figure>
+      <img src="gambar/07-nilai-ujian.png" alt="Halaman nilai satu ujian dengan empat angka di atas dan tabel per siswa yang masih kosong">
+      <figcaption>Nilai satu ujian. Empat angka di atas, tabel per siswa di bawah, dan penyaring kelas di antaranya.</figcaption>
+    </figure>
+
+    <p>Laman ini berisi empat angka di atas dan tabel per siswa di bawah.</p>
+
+    <ul>
+      <li><strong>Siswa</strong> — berapa yang sudah mengumpulkan.</li>
+      <li><strong>Rata-rata</strong>, <strong>Tertinggi</strong> — keduanya dihitung dari nilai akhir, bukan nilai objektif saja.</li>
+      <li><strong>Remedial (&lt; 70)</strong> — berapa siswa di bawah ambang. Angka ini membantu menentukan siapa yang perlu ditindaklanjuti.</li>
+    </ul>
+
+    <p>Kolom tabelnya: NIS, Nama, <strong>Obj.</strong> (nilai objektif), <strong>Uraian</strong> (nilai dari koreksi manual), <strong>Nilai</strong> (gabungan keduanya), dan Status.</p>
+
+    <div class="catat hati">
+      <strong>Nilai akhir tidak akan lengkap selama uraian belum dikoreksi.</strong> Kolom Nilai menghitung dari keduanya. Selama masih ada uraian yang menunggu, angka di kolom itu bukan nilai akhir siswa — dan Admin tidak bisa mempublikasikannya. Pekerjaan Anda di <a href="07-koreksi.html">Bab 7</a> adalah yang menahan publikasi itu.
+    </div>
+
+    <h2>Penyaring kelas</h2>
+
+    <p>Daftar bisa disempitkan per kelas. Ini berguna pada ujian yang diikuti beberapa kelas: rata-rata seluruh angkatan mencampur kelas yang berbeda kemampuan, dan pertanyaan &ldquo;kelas saya bagaimana?&rdquo; hanya bisa dijawab setelah disaring.</p>
+
+    <div class="catat">
+      <strong>Rata-rata berubah saat penyaring dipakai.</strong> Angka di atas tabel mengikuti penyaring yang aktif, bukan seluruh ujian. Pastikan penyaringnya sudah di-<em>Reset</em> sebelum menyimpulkan sesuatu tentang keseluruhan kelas.
+    </div>
+
+    <h2>Apa yang tidak bisa Anda lakukan di sini</h2>
+
+    <ul>
+      <li><strong>Menyunting nilai objektif</strong> — ia dihitung dari kunci jawaban. Bila angkanya salah, kuncinya yang salah, dan itu diperbaiki lewat Admin (hitung ulang setelah kunci dibetulkan).</li>
+      <li><strong>Mempublikasikan</strong> — publikasi hasil adalah keputusan Admin, per event.</li>
+      <li><strong>Mengubah nilai uraian di sini</strong> — itu dilakukan di laman koreksi.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Nilai yang sudah dipublikasikan bisa dikunci Admin.</strong> Saat kunci koreksi aktif, Anda tidak bisa mengubah nilai uraian. Bila perubahan Anda ditolak, hubungi Admin: yang membuka kunci itu Admin, bukan Anda.
+    </div>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>7. Koreksi uraian</h1>
+    <p class="kepala">Satu-satunya pekerjaan yang tidak bisa diotomatiskan.</p>
+
+
+    <p>Ini satu-satunya pekerjaan di konsol Guru yang tidak bisa diotomatiskan. Kesembilan jenis soal lain dinilai mesin; uraian menuntut Anda membaca jawaban seorang anak dan memutuskan berapa nilainya.</p>
+
+    <h2>Daftar antrean</h2>
+
+    <figure>
+      <img src="gambar/07-koreksi.png" alt="Laman Koreksi uraian dengan pesan bahwa antrean muncul setelah siswa mengumpulkan ujian yang punya butir uraian">
+      <figcaption>Antrean koreksi. Pesan di tengah menjelaskan syarat munculnya antrean.</figcaption>
+    </figure>
+
+    <div class="catat">
+      <strong>Antrean muncul setelah siswa mengumpulkan ujian yang punya butir uraian.</strong> Ujian yang seluruh butirnya objektif tidak akan pernah masuk antrean ini — tidak ada yang perlu dinilai.
+    </div>
+
+    <h2>Per ujian</h2>
+
+    <figure>
+      <img src="gambar/06-koreksi-ujian.png" alt="Halaman koreksi satu ujian dengan angka Sudah, Sisa, Poin diberikan, dan Rata-rata, serta pesan bahwa ujian ini tidak punya butir uraian">
+      <figcaption>Koreksi satu ujian. Ujian pada contoh ini seluruhnya objektif — karena itu angka <em>Sisa</em> nol.</figcaption>
+    </figure>
+
+    <p>Setiap ujian punya halamannya sendiri, dan bisa dibuka dari daftar.</p>
+
+    <h3>Empat angka di atas</h3>
+    <ul>
+      <li><strong>Sudah</strong> — berapa jawaban yang sudah Anda nilai.</li>
+      <li><strong>Sisa</strong> — berapa yang belum.</li>
+      <li><strong>Poin diberikan</strong> — total poin yang sudah Anda berikan.</li>
+      <li><strong>Rata-rata</strong> — rata-rata poin per jawaban yang sudah dinilai.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>&ldquo;Sisa&rdquo; harus nol sebelum Admin bisa mempublikasikan hasil.</strong> Ini bukan saran. Selama masih ada sisa, publikasi ditolak — dan Admin yang menekan tombolnya akan menerima penolakan itu tanpa tahu siapa yang harus dihubungi. Anda yang tahu.
+    </div>
+
+    <h2>Menilai satu jawaban</h2>
+
+    <ol class="langkah">
+      <li>
+        <p>Buka satu baris dari antrean. Anda melihat teks soal, jawaban siswa, dan rubrik bila soalnya punya.</p>
+      </li>
+      <li>
+        <p>Baca jawabannya. Tentukan poinnya.</p>
+      </li>
+      <li>
+        <p>Tekan simpan. Baris itu keluar dari antrean, dan angka <em>Sisa</em> berkurang satu.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Nilai yang sudah tersimpan bisa diubah.</strong> Bila Anda menyadari salah menilai, buka kembali jawaban itu dan betulkan — selama Admin belum mengunci koreksi. Setelah dikunci, perubahan ditolak sampai Admin membukanya.
+    </div>
+
+    <h2>Menilai dengan adil, dan tetap cepat</h2>
+
+    <p>Rubrik ada untuk alasan ini. Bila soal uraian ditulis tanpa rubrik, dua jawaban yang setara bisa menerima poin berbeda hanya karena Anda membacanya di jam yang berbeda. Tiga kebiasaan yang menolong:</p>
+
+    <ul>
+      <li><strong>Nilai satu soal untuk seluruh siswa dulu</strong>, baru pindah ke soal berikutnya. Menilai satu siswa untuk semua soalnya membuat Anda berganti patokan di setiap jawaban.</li>
+      <li><strong>Baca dua jawaban sebelum memberi poin pertama.</strong> Patokan Anda bergeser setelah melihat jawaban yang sangat bagus atau sangat buruk.</li>
+      <li><strong>Jangan menilai di sisa sepuluh menit sebelum rapat.</strong> Kelelahan menggeser penilaian ke arah yang tidak Anda sadari.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Jawaban kosong tetap harus dinilai.</strong> Selama sebuah jawaban uraian belum diberi nilai, ia menahan publikasi seluruh event. Memberi nol pada jawaban kosong adalah tindakan yang benar, dan itu tetap harus dilakukan.
+    </div>
+
+    <h2>Setelah selesai</h2>
+
+    <p>Bila angka <em>Sisa</em> sudah nol untuk seluruh ujian di event itu, Admin bisa menerbitkan hasilnya. Beri tahu Admin bahwa koreksi Anda sudah tuntas — aplikasi tidak mengirim pemberitahuan otomatis untuk itu, dan Admin yang menunggu tidak akan tahu kecuali Anda mengatakan.</p>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>8. Analisis butir</h1>
+    <p class="kepala">Soal mana yang perlu diperbaiki, dan kapan angkanya bermakna.</p>
+
+
+    <p>Analisis butir menjawab pertanyaan yang berbeda dari nilai kelas. Nilai kelas bertanya <em>bagaimana siswa saya</em>; analisis butir bertanya <em>bagaimana soal saya</em>.</p>
+
+    <h2>Daftar ujian</h2>
+
+    <figure>
+      <img src="gambar/09-analisis.png" alt="Laman Analisis butir dengan daftar ujian yang bisa dianalisis">
+      <figcaption>Daftar ujian. Analisis dihitung per ujian, bukan per event.</figcaption>
+    </figure>
+
+    <h2>Per ujian</h2>
+
+    <figure>
+      <img src="gambar/08-analisis-ujian.png" alt="Halaman analisis satu ujian dengan tombol Hitung ulang dan tabel butir berstatus belum dihitung">
+      <figcaption>Tabel butir, dengan lima kolom. Sebelum dihitung, seluruhnya bertanda <em>belum dihitung</em>.</figcaption>
+    </figure>
+
+    <p>Lima kolom:</p>
+    <ul>
+      <li><strong>Dijawab</strong> — berapa siswa menjawab butir ini.</li>
+      <li><strong>Benar</strong> — berapa yang benar.</li>
+      <li><strong>Daya beda</strong> — seberapa baik butir ini membedakan siswa yang menguasai dari yang belum.</li>
+      <li><strong>Putusan</strong> — kesimpulan aplikasi tentang mutu butir.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Hitung hanya setelah seluruh kelas mengumpulkan.</strong> Daya beda yang dihitung dari separuh kelas adalah angka yang salah — dan angka salah yang terlihat resmi lebih berbahaya daripada tidak ada angka. Aplikasi menuliskannya sendiri di layar.
+    </div>
+
+    <h2>Membaca daya beda</h2>
+
+    <p>Daya beda membandingkan siswa peringkat atas dengan peringkat bawah pada butir yang sama. Angka tinggi berarti butir itu memisahkan keduanya dengan baik; angka mendekati nol berarti butir itu tidak membedakan apa pun.</p>
+
+    <p>Tiga tafsir yang berguna:</p>
+    <ul>
+      <li><strong>Tinggi</strong> — butir bekerja sebagaimana mestinya. Pertahankan.</li>
+      <li><strong>Rendah</strong> — semua menjawab benar, atau semua menjawab salah. Butir itu tidak memberi informasi tentang siapa yang menguasai. Bisa jadi terlalu mudah, bisa jadi soalnya ambigu.</li>
+      <li><strong>Negatif</strong> — siswa yang lebih kuat justru lebih sering salah. Ini tanda paling kuat bahwa ada yang keliru: kunci yang salah, atau soal yang menyesatkan.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Daya beda negatif hampir selalu berarti kunci jawabannya salah.</strong> Periksa kuncinya sebelum menyalahkan siswanya. Bila ternyata kunci memang salah, perbaiki soalnya dan minta Admin menghitung ulang nilai setelah kunci dibetulkan.
+    </div>
+
+    <h2>Menghitung ulang</h2>
+
+    <p>Tombol <strong>Hitung ulang</strong> menghitung analisis dari data yang ada sekarang. Ia tidak mengubah nilai siswa — hanya memperbarui angka analisisnya. Aman ditekan berkali-kali, dan perlu ditekan lagi setelah koreksi uraian selesai.</p>
+
+    <div class="catat">
+      <strong>Analisis butir bukan penilaian siswa.</strong> Ia menilai mutu soal. Soal yang jelek membuat siswa kuat terlihat biasa — dan menyimpulkan sesuatu tentang kemampuan kelas dari soal seperti itu adalah kesalahan yang mahal.
+    </div>
+
+
+    
+  </section>
+<section class="bab">
+    <h1>9. Aturan &amp; batas</h1>
+    <p class="kepala">Cakupan mapel, arsip, dan hal-hal yang tidak bisa Anda lakukan.</p>
+
+
+    <p>Bab ini mengumpulkan hal-hal yang tidak muncul di layar sampai Anda mencoba melakukan sesuatu yang tidak diizinkan. Membacanya lebih dulu lebih murah daripada menemukannya satu per satu.</p>
+
+    <h2>Cakupan Anda ditentukan penugasan, bukan URL</h2>
+
+    <p>Tidak satu pun alamat di konsol Guru memuat id kelas, id mapel, atau id event. Yang membatasi apa yang Anda lihat adalah <strong>penugasan mengajar</strong> yang diisi Admin.</p>
+
+    <p>Konsekuensinya:</p>
+    <ul>
+      <li>Bank soal hanya menampilkan mata pelajaran yang Anda ampu.</li>
+      <li>Bila penugasan Anda dihapus Admin, soal yang pernah Anda tulis <strong>tidak hilang</strong> — ia tetap di bank soal, dan Anda berhenti melihatnya.</li>
+      <li>Bila Anda mengampu dua mapel, bank soal menampilkan keduanya dalam satu daftar.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Mengganti mapel di berkas impor tidak bisa dipakai untuk keluar dari cakupan.</strong> Baris untuk mapel yang tidak Anda ampu ditolak saat pratinjau.
+    </div>
+
+    <h2>Yang boleh dan tidak boleh Anda lakukan</h2>
+
+    <table>
+      <thead>
+        <tr><th>Pekerjaan</th><th>Siapa</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Menulis, menyunting, mengarsipkan soal</td><td><strong>Guru</strong></td></tr>
+        <tr><td>Menyusun paket soal dan menandainya siap</td><td><strong>Guru</strong></td></tr>
+        <tr><td>Menilai jawaban uraian</td><td><strong>Guru</strong></td></tr>
+        <tr><td>Memasang paket ke ujian</td><td>Admin</td></tr>
+        <tr><td>Membuat event, jadwal, dan sesi</td><td>Admin</td></tr>
+        <tr><td>Menempatkan siswa ke ruang</td><td>Admin</td></tr>
+        <tr><td>Mempublikasikan hasil</td><td>Admin</td></tr>
+        <tr><td>Membuka dan mengunci koreksi</td><td>Admin</td></tr>
+        <tr><td>Mengganti jawaban yang salah nilai</td><td>Admin</td></tr>
+      </tbody>
+    </table>
+
+    <div class="catat hati">
+      <strong>Mengetik alamat Admin di peramban tidak memberi Anda akses.</strong> Gerbangnya ada di server, bukan di tombol yang disembunyikan. Yang Anda terima adalah penolakan akses — dan itu disengaja: keberadaan halaman itu bukan rahasia.
+    </div>
+
+    <h2>Menyunting soal setelah ujian berjalan</h2>
+
+    <p>Ini jebakan yang paling mahal, dan tidak ada peringatan di layar saat Anda menyimpannya.</p>
+
+    <p>Saat Admin memasang paket Anda ke sebuah ujian, isi paket <strong>dibekukan</strong> — seluruh butirnya disalin ke ujian itu. Sejak saat itu ada dua salinan: yang asli di bank soal, dan yang terbeku di ujian.</p>
+
+    <ul>
+      <li>Menyunting soal di bank soal mengubah salinan aslinya saja.</li>
+      <li>Ujian yang sudah berjalan tetap memakai salinan terbeku.</li>
+      <li>Siswa mengerjakan versi terbeku — bukan versi terbaru Anda.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Memperbaiki kunci yang salah TIDAK memperbaiki nilai siswa.</strong> Siswa sudah mengerjakan versi lama, dan nilainya sudah dihitung dari kunci lama. Yang harus dilakukan: betulkan soalnya, lalu minta Admin <em>menghitung ulang</em> nilai ujian itu. Perbaikan soal saja hanya berguna untuk ujian berikutnya.
+    </div>
+
+    <h2>Mengapa soal tidak bisa dihapus</h2>
+
+    <p>Bank soal tidak punya tombol hapus, dan itu tetap. Soal yang pernah dipakai ujian dirujuk oleh salinan terbeku, analisis butir, dan laporan nilai. Menghapusnya akan memutus penelusuran &ldquo;soal ini dari mana&rdquo; pada nilai yang sudah dibagikan ke siswa.</p>
+
+    <p>Yang tersedia adalah <strong>Arsipkan</strong> — soal itu keluar dari daftar bawaan dan berhenti ditawarkan saat menyusun paket, tanpa memutus riwayatnya.</p>
+
+    <h2>Batas berkas dan jatah AI</h2>
+
+    <ul>
+      <li><strong>Impor soal</strong> — batas baris per berkas berlaku, dan berkas yang melebihinya ditolak seluruhnya, bukan dipotong.</li>
+      <li><strong>Berkas soal</strong> — gambar 2 MB, audio 5 MB, video 20 MB.</li>
+      <li><strong>Generate AI</strong> — dibatasi per Guru. Jatah habis berarti Anda menunggu, bukan bahwa penyedianya rusak.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Jatah AI dihitung saat soal disusun, bukan saat disimpan.</strong> Menekan <em>Simpan</em> tidak memakai jatah. Yang memakainya adalah setiap permintaan penyusunan — termasuk yang hasilnya Anda batalkan.
+    </div>
+
+
+    
+  </section>
+  </main>
+</div>
+</body>
+</html>

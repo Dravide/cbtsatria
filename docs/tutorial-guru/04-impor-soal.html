@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4. Impor soal</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Guru</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-bank-soal.html"><span class="n">2</span>Bank soal</a></li>
+      <li><a href="03-menulis-soal.html"><span class="n">3</span>Menulis soal</a></li>
+      <li><a href="04-impor-soal.html" aria-current="page"><span class="n">4</span>Impor soal</a></li>
+      <li><a href="05-paket.html"><span class="n">5</span>Paket soal</a></li>
+      <li><a href="06-nilai.html"><span class="n">6</span>Nilai kelas</a></li>
+      <li><a href="07-koreksi.html"><span class="n">7</span>Koreksi uraian</a></li>
+      <li><a href="08-analisis.html"><span class="n">8</span>Analisis butir</a></li>
+      <li><a href="09-aturan.html"><span class="n">9</span>Aturan &amp; batas</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>4. Impor soal</h1>
+    <p class="kepala">Menulis tiga puluh soal di luar aplikasi, dan pratinjau yang menahan kesalahannya.</p>
+
+
+    <p>Menulis satu soal di peramban masuk akal untuk satu butir, dan tidak masuk akal untuk tiga puluh. Impor soal menerima berkas XLSX atau CSV, memeriksanya lebih dulu, lalu menunggu Anda menyetujui.</p>
+
+    <figure>
+      <img src="gambar/04-impor.png" alt="Laman Impor soal dengan bagian unggah berkas dan riwayat impor">
+      <figcaption>Impor soal. Tidak ada satu baris pun yang tersimpan sebelum Anda menekan konfirmasi.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Unduh <strong>template</strong> dari laman ini. Jangan menyusun berkas dari nol — susunan kolomnya menentukan hasilnya.</p>
+      </li>
+      <li>
+        <p>Isi di luar aplikasi. Satu baris satu soal; kolomnya menentukan jenis, kunci, dan poinnya.</p>
+      </li>
+      <li>
+        <p>Unggah berkasnya. Aplikasi menampilkan <strong>pratinjau</strong> baris per baris: mana yang akan dibuat, dan mana yang ditolak beserta alasannya.</p>
+      </li>
+      <li>
+        <p>Periksa pratinjaunya. Bila angkanya tidak seperti yang Anda duga, batalkan — belum ada yang berubah.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>konfirmasi</strong>. Baru sekarang data tersimpan.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Pratinjau adalah keseluruhan gunanya.</strong> Impor yang langsung menyimpan tiga puluh baris berarti tiga puluh baris yang harus Anda hapus satu per satu bila kolom kuncinya salah tempat. Karena itu langkah ketiga tidak bisa dilewati.
+    </div>
+
+    <h2>Setelah konfirmasi</h2>
+
+    <p>Impor punya <strong>riwayat</strong>: berkas apa, berapa baris berhasil, berapa gagal, dan kapan. Riwayat itu juga menyimpan laporan galat untuk baris yang ditolak — bacalah bila jumlah berhasilnya tidak sesuai harapan.</p>
+
+    <div class="catat hati">
+      <strong>Baris yang ditolak tidak menghentikan sisanya.</strong> Impor yang menghasilkan 28 berhasil dan 2 gagal bukan impor yang gagal. Dua baris itu harus Anda perbaiki dan unggah terpisah, atau tulis langsung di builder.
+    </div>
+
+    <h2>Tiga kesalahan yang paling sering</h2>
+
+    <ul>
+      <li><strong>Kunci tidak sesuai jenis.</strong> Kunci pilihan ganda adalah satu huruf; kunci menjodohkan adalah pasangan. Bentuk yang salah membuat barisnya ditolak, bukan dikoreksi diam-diam.</li>
+      <li><strong>Isian singkat dengan satu varian.</strong> Berkas impor yang hanya memuat satu jawaban menghasilkan soal yang menilai terlalu keras. Tulis variannya sejak di berkas.</li>
+      <li><strong>Mapel di berkas berbeda dari mapel Anda.</strong> Cakupan Anda ditentukan penugasan mengajar; baris untuk mapel yang tidak Anda ampu akan ditolak.</li>
+    </ul>
+
+    <h2>Mengubah soal hasil impor</h2>
+
+    <p>Impor tidak menautkan soal ke berkasnya. Setelah masuk, soal hasil impor sama seperti soal yang Anda tulis di builder: bisa disunting, diduplikat, dan diarsipkan dari <a href="02-bank-soal.html">Bab 2</a>.</p>
+
+    <div class="catat">
+      <strong>Mengimpor ulang berkas yang sama akan membuat soal baru lagi</strong>, bukan memperbarui yang lama. Bila ada beberapa baris yang perlu diperbaiki, sunting barisnya di bank soal — jangan mengunggah ulang seluruh berkas.
+    </div>
+
+
+    <nav class="kaki">
+      <a href="03-menulis-soal.html"><span class="arah">Sebelumnya</span>Menulis soal</a>
+      <a class="next" href="05-paket.html"><span class="arah">Berikutnya</span>Paket soal</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>
