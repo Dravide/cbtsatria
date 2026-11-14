@@ -1,5 +1,7 @@
 import { Link } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
+import { formatDurasi } from '@/Components/angka';
 
 /**
  * Jadwal ujian saya - wireframe-peran.html plate 19. `/siswa`.
@@ -43,6 +45,15 @@ type Baris = {
     ruang: string | null;
     ruang_nama: string | null;
     kursi: number | null;
+    /** Detik sampai sesi dibuka; null bila sudah dibuka atau tak ada sesi. */
+    hitung_mundur: number | null;
+    presensi: {
+        status: string | null;
+        label: string;
+        nada: string;
+        jam: string | null;
+        membuka_gerbang: boolean;
+    };
     utama: boolean;
     boleh_mulai: boolean;
     selesai: boolean;
@@ -66,6 +77,7 @@ type Props = {
     jadwal: Baris[];
     nilai_keluar: boolean;
     pengumuman: Pengumuman[];
+    kemajuan: { total: number; selesai: number; menunggu: number };
 };
 
 /**
@@ -97,7 +109,15 @@ function SelStatus({ nada, children }: { nada: string; children: string }) {
     );
 }
 
-export default function Jadwal({ nama, kelas, utama, jadwal, nilai_keluar, pengumuman }: Props) {
+export default function Jadwal({
+    nama,
+    kelas,
+    utama,
+    jadwal,
+    nilai_keluar,
+    pengumuman,
+    kemajuan,
+}: Props) {
     // Baris yang sudah tampil sebagai pita TIDAK diulang di daftar di
     // bawahnya. Dua kali menyebut ujian yang sama membuat anak menghitungnya
     // dua kali saat ia bertanya "berapa ujian saya hari ini".
@@ -146,6 +166,32 @@ export default function Jadwal({ nama, kelas, utama, jadwal, nilai_keluar, pengu
             )}
 
             {utama && <PitaUtama baris={utama} />}
+
+            {/*
+             * Kemajuan: "2 dari 5 ujian selesai". Satu baris, di bawah pita
+             * dan di atas daftar.
+             *
+             * Angkanya datang dari SERVER dan dihitung dari baris yang SAMA
+             * dengan daftar di bawahnya - bukan dari peramban yang menghitung
+             * ulang `jadwal.filter(...)`. Dua cara menghitung dalam satu laman
+             * adalah dua angka yang suatu hari berselisih, dan yang
+             * membacanya berhenti memercayai keduanya.
+             *
+             * Tidak dirender saat hanya ada satu ujian: "0 dari 1 selesai"
+             * tidak menambah apa pun yang belum terbaca di barisnya sendiri.
+             */}
+            {kemajuan.total > 1 && (
+                <p className="kemajuan" aria-label="Kemajuan ujian">
+                    <b className="kemajuan-angka">
+                        {kemajuan.selesai}
+                        <span className="kemajuan-dari"> / {kemajuan.total}</span>
+                    </b>
+                    <span className="kemajuan-teks">
+                        ujian selesai
+                        {kemajuan.menunggu > 0 ? `, ${kemajuan.menunggu} masih menunggu` : ''}
+                    </span>
+                </p>
+            )}
 
             {/*
              * Daftar. Ia dirender SELALU - juga saat tidak ada satu pun ujian -
@@ -205,6 +251,14 @@ function BarisDaftar({ baris }: { baris: Baris }) {
             .filter(Boolean)
             .join(', ') || null;
 
+    // Presensi di baris daftar hanya untuk ujian yang BELUM selesai. Pada
+    // ujian yang sudah lewat, "hadir" adalah catatan sejarah - dan baris
+    // yang sudah menjawab "selesai" tidak perlu dijejali keterangan kedua.
+    const presensi =
+        !baris.selesai && baris.presensi.status !== null && baris.presensi.status !== 'pending'
+            ? baris.presensi.label.toLowerCase()
+            : null;
+
     return (
         <Link
             href={`/siswa/ujian/${baris.peserta_id}/gerbang`}
@@ -215,6 +269,7 @@ function BarisDaftar({ baris }: { baris: Baris }) {
                     {baris.mapel ?? baris.ujian ?? 'Tanpa mapel'}
                 </p>
                 <p className="catatan mt-0.5 truncate">
+                    {presensi && <span className="text-ink-2">{presensi} · </span>}
                     {/*
                      * Kalimat pengganti bergantung pada APAKAH ujiannya sudah
                      * terjadi, bukan pada apakah kolom sesinya terisi.
@@ -255,8 +310,28 @@ function BarisDaftar({ baris }: { baris: Baris }) {
  * perlu membacanya.
  */
 function PitaUtama({ baris }: { baris: Baris }) {
-    const terverifikasi = baris.status === 'siap' || baris.status === 'siap dimulai';
     const [mulai, selesai] = baris.jam?.split(/[–-]/) ?? [undefined, undefined];
+
+    // Hitung mundur berjalan di peramban, tetapi ANGKANYA dari server - lihat
+    // catatan `hitungMundur()` di controller. Jam peramban anak bisa meleset
+    // berjam-jam, dan hitung mundur yang memakai jam perangkat akan
+    // menjanjikan "3 menit lagi" pada anak yang sesinya baru dibuka dua jam
+    // kemudian.
+    const [sisa, setSisa] = useState(baris.hitung_mundur);
+
+    useEffect(() => {
+        setSisa(baris.hitung_mundur);
+
+        if (baris.hitung_mundur === null) {
+            return;
+        }
+
+        const jam = window.setInterval(() => {
+            setSisa((v) => (v === null || v <= 1 ? 0 : v - 1));
+        }, 1000);
+
+        return () => window.clearInterval(jam);
+    }, [baris.peserta_id, baris.hitung_mundur]);
 
     return (
         <section className="pita overflow-hidden">
@@ -283,6 +358,16 @@ function PitaUtama({ baris }: { baris: Baris }) {
                     </span>
                 </div>
 
+                {/* Hitung mundur - dan ia HANYA muncul saat sesinya belum
+                    dibuka. Sesudah dibuka, "dimulai dalam 0 detik" adalah
+                    kebisingan; yang dibutuhkan anak saat itu adalah
+                    keadaan presensinya, di baris berikutnya. */}
+                {sisa !== null && sisa > 0 && (
+                    <p className="mt-1.5 text-[12px] text-plate-ink">
+                        dibuka dalam <b className="angka">{formatDurasi(sisa)}</b>
+                    </p>
+                )}
+
                 <p className="mt-2 truncate font-display text-[15px] leading-tight">
                     {baris.mapel ?? baris.ujian ?? 'Ujian'}
                 </p>
@@ -292,11 +377,37 @@ function PitaUtama({ baris }: { baris: Baris }) {
                     {baris.kursi ? `, kursi ${baris.kursi}` : ''}
                 </p>
 
-                {terverifikasi && (
-                    <p className="mt-1.5 text-[12px] text-plate-ink">
-                        Presensi sudah diverifikasi Pengawas
-                    </p>
-                )}
+                {/* --------------------------------------------------
+                    Presensi: satu baris, dan ia menjawab pertanyaan yang
+                    sampai 2026-11-14 hanya bisa dijawab gerbang
+                    --------------------------------------------------
+                    Presensi adalah gerbang ujian. Anak yang belum
+                    diverifikasi berdiri di depan pintu tanpa cara tahu
+                    apakah ia harus memanggil pengawas atau menunggu - ia
+                    hanya tahu setelah menekan Mulai dan ditolak.
+
+                    Baris `terverifikasi` yang lama DIHAPUS, bukan
+                    disandingkan: ia menyebut hal yang sama untuk satu
+                    keadaan saja, dan dua baris yang menjawab pertanyaan
+                    sama akan berselisih pada keadaan yang tidak mereka
+                    duga bersama.
+                    -------------------------------------------------- */}
+                <p className="mt-1.5 text-[12px] text-plate-ink">
+                    {baris.presensi.status === null ||
+                    baris.presensi.status === 'pending' ? (
+                        <>Presensi belum diverifikasi Pengawas</>
+                    ) : baris.presensi.membuka_gerbang ? (
+                        <>
+                            Presensi {baris.presensi.label.toLowerCase()}
+                            {baris.presensi.jam && ` pukul ${baris.presensi.jam}`}
+                        </>
+                    ) : (
+                        <>
+                            Presensi {baris.presensi.label.toLowerCase()} &mdash; hubungi
+                            Pengawas
+                        </>
+                    )}
+                </p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                     {baris.boleh_mulai ? (

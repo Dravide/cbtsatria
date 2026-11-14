@@ -2,6 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import { Chip } from '@/Components/ui';
+import { formatDurasi } from '@/Components/angka';
 import { KotakPonsel } from '@/Components/ponsel';
 
 /**
@@ -135,7 +136,7 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
                                 : 'Menunggu Pengawas membuka kunci'}
                         </span>
                         <span className="shrink-0 font-mono text-[12px] tabular-nums text-warn">
-                            {sisa > 0 ? formatSisa(sisa) : 'habis'}
+                            {sisa > 0 ? formatDurasi(sisa) : 'habis'}
                         </span>
                     </div>
 
@@ -196,7 +197,7 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
                     {sisa > 0 ? (
                         <>
                             Sisa waktu ujian{' '}
-                            <b className="font-mono text-warn">{formatSisa(sisa)}</b>
+                            <b className="font-mono text-warn">{formatDurasi(sisa)}</b>
                         </>
                     ) : (
                         <b className="text-bad">Waktu ujian sudah habis.</b>
@@ -266,15 +267,4 @@ export default function Terkunci({ peserta, attempt, ringkasan, riwayat, progres
             </p>
         </KerangkaSiswa>
     );
-}
-
-/** `mm:ss` atau `h:mm:ss` - jam dinding, bukan jumlah detik. */
-function formatSisa(detik: number): string {
-    const j = Math.floor(detik / 3600);
-    const m = Math.floor((detik % 3600) / 60);
-    const d = detik % 60;
-
-    const dua = (n: number) => String(n).padStart(2, '0');
-
-    return j > 0 ? `${j}:${dua(m)}:${dua(d)}` : `${dua(m)}:${dua(d)}`;
 }

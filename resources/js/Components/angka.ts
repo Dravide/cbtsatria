@@ -69,3 +69,32 @@ export function formatUkuran(byte: number | null | undefined): string {
 
     return `${Math.round((byte / (1024 * 1024)) * 10) / 10}`.replace('.', ',') + ' MB';
 }
+
+/**
+ * Sisa waktu sebagai jam dinding - "12:05" atau "1:02:05".
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa bukan "12 menit lagi"
+ * ---------------------------------------------------------------------
+ * Kalimat itu benar pada satu saat dan tetap terbaca SESUDAHNYA, dan angka
+ * yang tidak bergerak sendiri sesudah dibaca adalah angka yang menipu.
+ * Bentuk jam dinding setara di semua jarak: 5 detik dan 40 menit sama-sama
+ * terbaca tanpa diterjemahkan.
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa tinggal di sini, bukan di dua laman
+ * ---------------------------------------------------------------------
+ * Hitung mundur muncul di beranda dan di laman terkunci, dan dua salinan
+ * fungsi yang sama adalah dua salinan yang suatu hari berbeda pada detik
+ * yang dihabiskan untuk format. Nilai di bawah 0 dikembalikan "00:00",
+ * bukan angka negatif: waktu yang sudah lewat bukan "minus 12 detik".
+ */
+export function formatDurasi(detik: number): string {
+    const sisa = Math.max(0, Math.floor(detik));
+    const j = Math.floor(sisa / 3600);
+    const m = Math.floor((sisa % 3600) / 60);
+    const d = sisa % 60;
+    const dua = (n: number) => String(n).padStart(2, '0');
+
+    return j > 0 ? `${j}:${dua(m)}:${dua(d)}` : `${dua(m)}:${dua(d)}`;
+}

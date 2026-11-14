@@ -2,6 +2,7 @@
 
 namespace App\Domain\Attendance\Http\Controllers\Siswa;
 
+use App\Domain\Attendance\Enums\StatusPresensi;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Event\Models\EventAnnouncement;
@@ -66,10 +67,22 @@ class JadwalSiswaController extends SiswaDasar
             ->groupBy('exam_participant_id')
             ->map(fn ($baris) => $baris->last());
 
+        // Presensi seluruh penempatan anak ini, SATU kueri. Dipakai baris
+        // jadwal (status kehadiran) dan ringkasan di atas daftar.
+        $presensi = AttendanceRecord::query()
+            ->whereIn('exam_participant_id', $penempatan->pluck('id'))
+            ->get()
+            ->keyBy('exam_participant_id');
+
         $sekarang = now();
 
         $baris = $penempatan
-            ->map(fn (ExamParticipant $p) => $this->bentukBaris($p, $attempt->get($p->id), $sekarang))
+            ->map(fn (ExamParticipant $p) => $this->bentukBaris(
+                $p,
+                $attempt->get($p->id),
+                $presensi->get($p->id),
+                $sekarang,
+            ))
             // Urutan jadwal, bukan urutan id: yang dibaca anak adalah
             // "setelah ini apa", dan id tidak menjawabnya.
             ->sortBy(fn (array $b) => [$b['mulai'] ?? '9999', $b['mapel'] ?? ''])
@@ -88,7 +101,48 @@ class JadwalSiswaController extends SiswaDasar
             'jadwal' => $baris->all(),
             'nilai_keluar' => $this->adaNilaiKeluar($request->user()->id),
             'pengumuman' => $this->pengumumanBerlaku($penempatan),
+
+            // Ringkasan kemajuan ujian anak ini - dihitung dari baris yang
+            // SAMA dengan daftar di bawahnya. Angka di atas daftar yang
+            // dihitung dengan cara lain adalah angka yang suatu hari berbeda
+            // dari isinya, dan yang membacanya berhenti memercayai keduanya.
+            'kemajuan' => $this->kemajuan($baris),
         ]);
+    }
+
+    /**
+     * Berapa ujian yang sudah dituntaskan, dan berapa yang masih menunggu.
+     *
+     * ---------------------------------------------------------------------
+     * "Selesai" berarti pengerjaannya SUDAH DIKIRIM - bukan sekadar ada
+     * ---------------------------------------------------------------------
+     * Attempt yang `batal` adalah pengerjaan yang tidak dihitung sebagai
+     * kesempatan (lihat `PengendaliPengerjaan::reset()`), jadi menghitungnya
+     * sebagai "sudah dikerjakan" akan membuat anak yang direset melihat
+     * "1 dari 5 selesai" untuk ujian yang justru harus ia ulangi.
+     *
+     * `kedaluwarsa` DIHITUNG selesai: waktunya habis, jawabannya terkunci,
+     * dan tidak ada lagi yang bisa ia lakukan pada ujian itu.
+     *
+     * ---------------------------------------------------------------------
+     * Dikecualikan tidak dihitung sama sekali
+     * ---------------------------------------------------------------------
+     * Penempatan yang dikecualikan bukan ujian yang "menunggu" - ia ujian
+     * yang tidak akan pernah datang, dan memasukkannya ke penyebut membuat
+     * anak mengejar sesuatu yang tidak ada.
+     *
+     * @param  Collection<int, array<string, mixed>>  $baris
+     * @return array{total: int, selesai: int, menunggu: int}
+     */
+    private function kemajuan(Collection $baris): array
+    {
+        $dihitung = $baris->reject(fn (array $b) => $b['status'] === 'dikecualikan');
+
+        return [
+            'total' => $dihitung->count(),
+            'selesai' => $dihitung->where('selesai', true)->count(),
+            'menunggu' => $dihitung->where('selesai', false)->count(),
+        ];
     }
 
     /**
@@ -145,8 +199,12 @@ class JadwalSiswaController extends SiswaDasar
      *
      * @return array<string, mixed>
      */
-    private function bentukBaris(ExamParticipant $p, ?ExamAttempt $attempt, CarbonInterface $sekarang): array
-    {
+    private function bentukBaris(
+        ExamParticipant $p,
+        ?ExamAttempt $attempt,
+        ?AttendanceRecord $presensi,
+        CarbonInterface $sekarang,
+    ): array {
         $sesi = $p->session;
         $ujian = $p->exam;
 
@@ -192,14 +250,68 @@ class JadwalSiswaController extends SiswaDasar
             'ruang' => $p->room?->eventRoom?->room?->code,
             'ruang_nama' => $p->room?->eventRoom?->room?->name,
             'kursi' => $this->nomorKursi($p),
+            'hitung_mundur' => $this->hitungMundur($sesi, $sekarang),
 
             'utama' => $utama,
             'boleh_mulai' => $bolehMulai && ! $selesai,
             'selesai' => $selesai,
 
+            // ----------------------------------------------------------
+            // Presensi - keadaan yang TIDAK bisa dibaca anak dari mana pun
+            // ----------------------------------------------------------
+            // Sampai 2026-11-14 satu-satunya cara anak tahu presensinya
+            // sudah diverifikasi adalah membuka gerbang lalu membaca
+            // penolakannya. Padahal presensi adalah gerbang ujian: anak yang
+            // belum diverifikasi berdiri di depan pintu tanpa cara tahu
+            // apakah ia harus memanggil pengawas atau menunggu.
+            //
+            // `pending` dikirim sebagai status, bukan sebagai `null`: "belum
+            // diverifikasi" dan "tidak ada baris presensi" adalah dua keadaan
+            // berbeda, tetapi yang kedua tidak bisa terjadi di sini - baris
+            // presensi lahir bersama penempatan.
+            'presensi' => [
+                'status' => $presensi?->attendance_status->value,
+                'label' => $presensi?->attendance_status->label()
+                    ?? StatusPresensi::Pending->label(),
+                'nada' => $presensi?->attendance_status->nada()
+                    ?? StatusPresensi::Pending->nada(),
+                'jam' => $presensi?->verified_at?->format('H:i'),
+                // Membuka gerbang TERGANTUNG izin terlambat milik ujian -
+                // aturan yang sama dengan `KelayakanUjian`. Dihitung di sini
+                // supaya laman tidak menyimpulkan sendiri dan menampilkan
+                // "siap mulai" untuk anak yang gerbangnya pasti menolak.
+                'membuka_gerbang' => $presensi !== null
+                    && $presensi->attendance_status->membukaGerbang(
+                        (bool) $ujian?->allow_late_entry,
+                    ),
+            ],
+
             'status' => $this->statusBaris($p, $attempt, $sesi, $sekarang),
             'nada' => $this->nadaBaris($p, $attempt, $sesi, $sekarang),
         ];
+    }
+
+    /**
+     * Detik sampai sesi ini dibuka, dan itu yang dihitung, bukan jam dinding.
+     *
+     * Dihitung SERVER dan dikirim sebagai selisih, bukan sebagai waktu buka.
+     * Jam peramban anak bisa meleset berjam-jam, dan hitung mundur yang
+     * memakai jam perangkat akan menjanjikan "3 menit lagi" pada anak yang
+     * sesinya baru dibuka dua jam kemudian. Laman hanya mengurangi angka ini
+     * satu per detik sejak prop itu diterima - dan angka yang sudah lewat
+     * ditampilkan sebagai nol, bukan sebagai hitung mundur negatif.
+     *
+     * `null` bila sesinya tidak ada, sudah dibuka, atau sudah berakhir:
+     * ketiganya bukan "menunggu", dan menghitung mundur ke waktu yang tidak
+     * akan datang adalah janji yang tidak ditepati.
+     */
+    private function hitungMundur(?ExamSession $sesi, CarbonInterface $sekarang): ?int
+    {
+        if ($sesi === null || $sekarang->gte($sesi->access_opens_at)) {
+            return null;
+        }
+
+        return max(0, (int) $sekarang->diffInSeconds($sesi->access_opens_at));
     }
 
     /**

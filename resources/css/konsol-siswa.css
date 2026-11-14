@@ -702,3 +702,46 @@
     font-size: var(--text-xs);
     color: var(--color-ink-3);
 }
+
+/* -------------------------------------------------------------- Kemajuan */
+
+/*
+ * "2 / 5 ujian selesai" - satu baris di bawah pita.
+ *
+ * =====================================================================
+ * Mengapa satu baris, bukan tiga kotak KPI
+ * =====================================================================
+ * Seluruh angka di sini bisa dibaca dari daftar di bawahnya, jadi yang
+ * ditambahkan bukan informasi melainkan RINGKASAN - dan ringkasan yang
+ * mengambil tiga baris layar menukar ruang dengan kemalasan membaca. Satu
+ * baris, angka di depan.
+ *
+ * Angkanya memakai `--font-mono` lewat `.kemajuan-angka`: ia dibaca sebagai
+ * "berapa banyak", dan nol di Syne adalah bulatan yang bisa terbaca sebagai
+ * huruf O pada angka yang kecil.
+ */
+.konsol-siswa .kemajuan {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-xs);
+    padding: var(--space-2xs) var(--space-sm);
+    background-color: var(--color-surface-2);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
+}
+
+.konsol-siswa .kemajuan-angka {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+}
+
+.konsol-siswa .kemajuan-dari {
+    color: var(--color-ink-3);
+    font-weight: 400;
+}
+
+.konsol-siswa .kemajuan-teks {
+    min-width: 0;
+}
