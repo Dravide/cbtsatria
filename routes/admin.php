@@ -30,6 +30,7 @@ use App\Domain\Exam\Http\Controllers\ExamPengawasController;
 use App\Domain\Exam\Http\Controllers\ExamTokenController;
 use App\Domain\Grading\Http\Controllers\Admin\HasilController;
 use App\Domain\Grading\Http\Controllers\Admin\LaporanController;
+use App\Domain\Question\Http\Controllers\BankSoalAdminController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -206,6 +207,21 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('/kelas/{kelas}', [SchoolClassController::class, 'update']);
     Route::get('/kelas/{kelas}/anggota', [SchoolClassController::class, 'anggota'])->name('kelas.anggota');
     Route::put('/kelas/{kelas}/anggota', [SchoolClassController::class, 'simpanAnggota']);
+
+    // Bank soal versi ADMIN - baca saja, ditambahkan 2026-11-14.
+    //
+    // Sampai sekarang satu-satunya pintu ke bank soal adalah
+    // `/guru/bank-soal`: konsol Guru dengan sidebar Guru, tombol Builder,
+    // Impor, dan Generate AI - tombol-tombol yang server TOLAK untuk Admin
+    // (PRD §3.1: Admin "lihat semua", bukan "tulis soal"). Laman itu karena
+    // itu memberi Admin menu yang mengajarinya untuk tidak memercayai
+    // layarnya sendiri.
+    //
+    // Controller-nya milik modul Question, bukan Admin: peta modul
+    // (DomainBoundariesTest) tidak punya panah Admin -> Question, dan
+    // menambahkannya berarti modul Admin berhenti bisa diuji tanpa bank
+    // soal. Yang menyeberang batas di sini hanyalah ALAMATNYA.
+    Route::get('/bank-soal', [BankSoalAdminController::class, 'index'])->name('bank-soal');
 
     // 08 - mata pelajaran + penugasan mengajar
     Route::get('/mapel', [SubjectController::class, 'index'])->name('mapel');

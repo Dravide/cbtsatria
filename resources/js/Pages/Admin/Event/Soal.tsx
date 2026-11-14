@@ -157,7 +157,16 @@ export default function EventSoal({
             judul="Soal per mata pelajaran"
             breadcrumb={`/admin/events · ${event.kode} · Soal`}
             aksi={
-                <Link href="/guru/bank-soal">
+                // Menuju bank soal VERSI ADMIN, bukan konsol Guru.
+                //
+                // Sampai 2026-11-14 tombol ini menunjuk `/guru/bank-soal`, dan
+                // akibatnya Admin mendarat di konsol orang lain: sidebar Guru,
+                // tombol Builder, Impor, dan Generate AI - ketiganya server
+                // TOLAK untuk Admin (PRD §3.1: "lihat semua", bukan "tulis
+                // soal"). Laman yang mengirim Admin ke menu yang pasti gagal
+                // adalah laman yang mengajarinya untuk tidak memercayai
+                // layarnya.
+                <Link href="/admin/bank-soal">
                     <span className="inline-block rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 hover:bg-surface-2">
                         Buka bank soal
                     </span>

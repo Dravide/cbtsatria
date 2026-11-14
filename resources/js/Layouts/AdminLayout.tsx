@@ -47,6 +47,14 @@ const MASTER: ItemNav[] = [
     { label: 'Tahun ajaran', href: '/admin/tahun-ajaran', awalan: false, ikon: 'kalender' },
     { label: 'Kelas', href: '/admin/kelas', awalan: false, ikon: 'kelas' },
     { label: 'Mata pelajaran', href: '/admin/mapel', awalan: false, ikon: 'buku' },
+    // Bank soal - BACA SAJA, ditambahkan 2026-11-14.
+    //
+    // Ia duduk di Master, bukan di kelompok Event, dan itu yang benar: soal
+    // adalah aset SEKOLAH yang hidup lintas event, sama seperti mata pelajaran
+    // dan kelas. Menaruhnya di kelompok Event berarti soal hanya bisa
+    // ditemukan setelah satu event dibuka - padahal Admin yang memeriksa bank
+    // soal sering belum tahu event mana yang akan memakainya.
+    { label: 'Bank soal', href: '/admin/bank-soal', awalan: false, ikon: 'paket' },
     // Rincian ruang (/admin/ruang/R-01) harus tetap menyalakan "Ruang" di
     // sidebar; tanpa awalan ini, Admin yang membuka satu ruang melihat tidak
     // ada menu yang aktif dan merasa tersesat.
