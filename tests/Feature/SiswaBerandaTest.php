@@ -57,7 +57,8 @@ it('mengirim jumlah ujian yang sudah dan belum dituntaskan', function () {
     $props = propsBeranda($this, $data['siswa'][0]);
 
     // Satu ujian, belum dikerjakan.
-    expect($props['kemajuan'])->toMatchArray(['total' => 1, 'selesai' => 0, 'menunggu' => 1]);
+    expect($props['kemajuan'])
+        ->toMatchArray(['total' => 1, 'selesai' => 0, 'terlewat' => 0, 'menunggu' => 1]);
 });
 
 it('menghitung attempt yang dikirim sebagai selesai, dan yang batal tidak', function () {
@@ -71,7 +72,7 @@ it('menghitung attempt yang dikirim sebagai selesai, dan yang batal tidak', func
     app(MesinUjian::class)->kumpulkan($attempt);
 
     expect(propsBeranda($this, $data['siswa'][0])['kemajuan'])
-        ->toMatchArray(['total' => 1, 'selesai' => 1, 'menunggu' => 0]);
+        ->toMatchArray(['total' => 1, 'selesai' => 1, 'terlewat' => 0, 'menunggu' => 0]);
 
     // Attempt yang DIBATALKAN bukan "selesai": anaknya harus mengulang, dan
     // menghitungnya sebagai tuntas membuat ia melihat "1 dari 1 selesai"
@@ -82,7 +83,7 @@ it('menghitung attempt yang dikirim sebagai selesai, dan yang batal tidak', func
         ]);
 
     expect(propsBeranda($this, $data['siswa'][0])['kemajuan'])
-        ->toMatchArray(['total' => 1, 'selesai' => 0, 'menunggu' => 1]);
+        ->toMatchArray(['total' => 1, 'selesai' => 0, 'terlewat' => 0, 'menunggu' => 1]);
 });
 
 it('tidak menghitung peserta yang dikecualikan sebagai ujian yang menunggu', function () {
@@ -95,7 +96,35 @@ it('tidak menghitung peserta yang dikecualikan sebagai ujian yang menunggu', fun
     // Ujian yang tidak akan pernah datang bukan ujian yang menunggu, dan
     // memasukkannya ke penyebut membuat anak mengejar sesuatu yang tidak ada.
     expect(propsBeranda($this, $data['siswa'][0])['kemajuan'])
-        ->toMatchArray(['total' => 0, 'selesai' => 0, 'menunggu' => 0]);
+        ->toMatchArray(['total' => 0, 'selesai' => 0, 'terlewat' => 0, 'menunggu' => 0]);
+});
+
+it('menghitung ujian yang jendelanya lewat sebagai terlewat, bukan menunggu', function () {
+    // Sesi yang jendelanya sudah berakhir dan TIDAK pernah dikerjakan. Ia
+    // tetap tampil di daftar sebagai riwayat, tetapi sampai 2026-11-14 ia
+    // ikut terhitung "masih menunggu" - sehingga anak yang sudah melewati
+    // jendelanya mengejar ujian yang tidak akan pernah datang.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin, [
+        'buka' => '-4 hours',
+        'tutup' => '-3 hours',
+        'akhir' => '-2 hours',
+    ]);
+
+    $props = propsBeranda($this, $data['siswa'][0]);
+
+    $kemajuan = $props['kemajuan'];
+
+    expect($kemajuan)
+        ->toMatchArray(['total' => 1, 'selesai' => 0, 'terlewat' => 1, 'menunggu' => 0])
+        // Barisnya TETAP ada: yang berubah hanya artinya, bukan tampilnya.
+        ->and($props['jadwal'])->toHaveCount(1)
+        ->and($props['jadwal'][0]['status'])->toBe('terlewat')
+        // Ketiga angka harus menjumlah ke totalnya. Inilah yang menangkap
+        // penghitungan ganda: baris terlewat yang juga dihitung "menunggu"
+        // akan membuat jumlahnya lebih besar dari totalnya, dan tidak ada
+        // satu pun dari ketiganya yang terlihat salah sendirian.
+        ->and($kemajuan['selesai'] + $kemajuan['terlewat'] + $kemajuan['menunggu'])
+        ->toBe($kemajuan['total']);
 });
 
 it('menghitung mundur ke pembukaan sesi, dan nol sesudahnya', function () {
@@ -230,7 +259,7 @@ it('menghitung kemajuan dari beberapa ujian dalam satu event', function () {
     app(MesinUjian::class)->kumpulkan(attemptBerjalan($peserta));
 
     expect(propsBeranda($this, $data['siswa'][0])['kemajuan'])
-        ->toMatchArray(['total' => 2, 'selesai' => 1, 'menunggu' => 1]);
+        ->toMatchArray(['total' => 2, 'selesai' => 1, 'terlewat' => 0, 'menunggu' => 1]);
 });
 
 it('mengirim denah kursi pada kartu utama, dan hanya pada kartu utama', function () {

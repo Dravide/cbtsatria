@@ -86,7 +86,7 @@ type Props = {
     jadwal: Baris[];
     nilai_keluar: boolean;
     pengumuman: Pengumuman[];
-    kemajuan: { total: number; selesai: number; menunggu: number };
+    kemajuan: { total: number; selesai: number; terlewat: number; menunggu: number };
 };
 
 /**
@@ -198,6 +198,14 @@ export default function Jadwal({
                     <span className="kemajuan-teks">
                         ujian selesai
                         {kemajuan.menunggu > 0 ? `, ${kemajuan.menunggu} masih menunggu` : ''}
+                        {/*
+                         * Terlewat disebut TERPISAH, dan itu bukan kerapian
+                         * kalimat: sampai 2026-11-14 angka ini masuk ke
+                         * "masih menunggu", sehingga anak yang sudah
+                         * melewati jendela sebuah ujian mengejar ujian yang
+                         * tidak akan pernah datang.
+                         */}
+                        {kemajuan.terlewat > 0 ? `, ${kemajuan.terlewat} terlewat` : ''}
                     </span>
                 </p>
             )}

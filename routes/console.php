@@ -56,6 +56,26 @@ Schedule::command('ujian:tutup-kedaluwarsa')
     ->withoutOverlapping();
 
 // ---------------------------------------------------------------------------
+// Penutup sesi kedaluwarsa - setiap menit, ditambahkan 2026-11-14
+// ---------------------------------------------------------------------------
+// Satu tingkat DI ATAS perintah sebelumnya, dan keduanya dibutuhkan.
+//
+// `ujian:tutup-kedaluwarsa` menutup ATTEMPT; ia tidak menyentuh status
+// sesinya. Sesi yang `hard_end_at`-nya lewat karena itu tetap "berjalan"
+// sampai Admin menekan Tutup di laman jadwal - dan bila ia lupa, tab
+// Berjalan di `/admin/events` terus memuat event yang ujiannya sudah
+// selesai berhari-hari lalu. Tab itu menjawab "apa yang masih perlu saya
+// kerjakan", dan jawaban itulah yang menjadi salah.
+//
+// Urutannya sengaja SESUDAH penutup attempt di berkas ini: sesi yang
+// attempt-nya masih menggantung sebaiknya dinilai lebih dulu, dan keduanya
+// berjalan pada menit yang sama tanpa saling menunggu (keduanya punya
+// `withoutOverlapping()` sendiri).
+Schedule::command('ujian:tutup-sesi')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+// ---------------------------------------------------------------------------
 // Pangkas ekspor lama - setiap malam pukul 03:00
 // ---------------------------------------------------------------------------
 // Dini hari karena ia menghapus berkas: kalau ada Admin yang sedang mengunduh

@@ -3,6 +3,10 @@
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\Semester;
 use App\Domain\Attendance\Models\ExamAttempt;
+use App\Domain\Event\Enums\EventStatus;
+use App\Domain\Exam\Enums\StatusSesi;
+use App\Domain\Exam\Services\PengawasService;
+use App\Domain\Exam\Services\SesiService;
 use App\Domain\Grading\Models\ExamResult;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\School;
@@ -221,6 +225,214 @@ it('tidak mengubah apa pun dalam mode kering', function () {
 });
 
 /* =====================================================================
+ | ujian:tutup-sesi
+ |===================================================================== */
+
+/**
+ * Sesi yang sudah BERJALAN, pada event yang sudah berjalan.
+ *
+ * =====================================================================
+ * Prasyaratnya ditegakkan `forceFill`, dan itu bukan jalur pintas
+ * =====================================================================
+ * Yang diuji di sini adalah penutupan sesi DAN pemindahan eventnya dari
+ * `berjalan` ke `selesai`. Untuk sampai ke `berjalan` lewat graf, sebuah
+ * event harus melewati gerbang kesiapan di `EventStatusService::pindah()` -
+ * dan gerbang itu adalah pokok bahasan `EventTest`, bukan berkas ini.
+ * Menempuhnya di sini berarti setiap test penutup sesi ikut gagal begitu
+ * satu syarat kesiapan berubah, dengan pesan yang menunjuk berkas yang
+ * salah.
+ *
+ * Yang TIDAK dipalsukan: transisi `berjalan -> selesai` yang diperiksa
+ * di bawah, dan itu justru transisi yang dilaporkan hilang.
+ *
+ * `mulai()` tetap dipanggil lewat jalur sungguhan, karena hanya itulah yang
+ * memindahkan STATUS SESI ke `berjalan` - dan sesi berstatus `siap` tidak
+ * pernah masuk filter perintah ini.
+ */
+function sesiBerjalanPenjadwal(TestCase $test): array
+{
+    Auth::logout();
+
+    app(SchoolResolver::class)->forget();
+
+    $data = siapkanUjianSiswa(
+        $test->sekolah,
+        $test->tahun,
+        $test->semester,
+        $test->admin,
+    );
+
+    app(SesiService::class)->mulai($data['sesi']);
+
+    $data['event']->forceFill(['status' => EventStatus::Ongoing])->save();
+
+    return $data;
+}
+
+it('menutup sesi yang jendelanya berakhir, dan memindahkan eventnya ke selesai', function () {
+    $data = sesiBerjalanPenjadwal($this);
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Berjalan)
+        ->and($data['event']->refresh()->status)->toBe(EventStatus::Ongoing);
+
+    // Jendela sesi bawaan berakhir `now() + 3 jam`.
+    $this->travel(4)->hours();
+
+    $this->artisan('ujian:tutup-sesi')->assertExitCode(0);
+
+    // Inilah yang membedakannya dari UPDATE borongan: sesinya ditutup DAN
+    // eventnya ikut pindah. Tanpa yang kedua, tab "Berjalan" di
+    // `/admin/events` tetap memuat event yang ujiannya sudah selesai
+    // berhari-hari lalu - dan gejala itulah yang melahirkan perintah ini.
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Selesai)
+        ->and($data['event']->refresh()->status)->toBe(EventStatus::Completed);
+});
+
+it('tidak menyentuh sesi yang jendelanya belum berakhir', function () {
+    $data = sesiBerjalanPenjadwal($this);
+
+    $this->artisan('ujian:tutup-sesi')
+        ->expectsOutputToContain('Tidak ada sesi')
+        ->assertExitCode(0);
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Berjalan)
+        ->and($data['event']->refresh()->status)->toBe(EventStatus::Ongoing);
+});
+
+it('tidak menutup sesi yang dibatalkan', function () {
+    $data = sesiBerjalanPenjadwal($this);
+
+    app(SesiService::class)->batalkan($data['sesi'], 'Listrik padam di gedung 1.');
+
+    $this->travel(4)->hours();
+
+    $this->artisan('ujian:tutup-sesi')->assertExitCode(0);
+
+    // Dibatalkan BUKAN "belum tuntas": sesi itu tidak jadi dijalankan, dan
+    // menutupnya akan membawa eventnya ke Selesai - padahal yang dibutuhkan
+    // sekolah adalah menyusun sesi penggantinya di event yang sama.
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Batal);
+});
+
+it('tidak menggandakan apa pun bila dijalankan dua kali', function () {
+    $data = sesiBerjalanPenjadwal($this);
+
+    $this->travel(4)->hours();
+
+    $this->artisan('ujian:tutup-sesi')->assertExitCode(0);
+    // Putaran kedua adalah keadaan normal: perintah ini berjalan tiap menit,
+    // dan sesi yang sudah ditutup keluar dari filternya.
+    $this->artisan('ujian:tutup-sesi')
+        ->expectsOutputToContain('Tidak ada sesi')
+        ->assertExitCode(0);
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Selesai)
+        ->and($data['event']->refresh()->status)->toBe(EventStatus::Completed);
+});
+
+it('tidak mengubah apa pun dalam mode kering, pada sesi', function () {
+    $data = sesiBerjalanPenjadwal($this);
+
+    $this->travel(4)->hours();
+
+    $this->artisan('ujian:tutup-sesi', ['--kering' => true])
+        ->expectsOutputToContain('mode kering')
+        ->assertExitCode(0);
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Berjalan)
+        ->and($data['event']->refresh()->status)->toBe(EventStatus::Ongoing);
+});
+
+it('menutup sesi milik sekolah LAIN dalam eksekusi yang sama', function () {
+    $dataA = sesiBerjalanPenjadwal($this);
+
+    $sekolahB = School::factory()->create(['name' => 'SMA Negeri 3']);
+
+    $adminB = User::factory()->admin()->untukSekolah($sekolahB)->create([
+        'username' => 'admin.penjadwal.c',
+    ]);
+
+    $tahunB = AcademicYear::factory()->untukSekolah($sekolahB)->aktif()->create([
+        'name' => '2026/2027',
+    ]);
+
+    $semesterB = Semester::factory()->create([
+        'school_id' => $sekolahB->id,
+        'academic_year_id' => $tahunB->id,
+        'name' => 'Ganjil',
+    ]);
+
+    Auth::logout();
+    app(SchoolResolver::class)->forget();
+
+    $dataB = siapkanUjianSiswa($sekolahB, $tahunB, $semesterB, $adminB);
+
+    app(SesiService::class)->mulai($dataB['sesi']);
+    $dataB['event']->forceFill(['status' => EventStatus::Ongoing])->save();
+
+    $this->travel(4)->hours();
+
+    $this->artisan('ujian:tutup-sesi')->assertExitCode(0);
+
+    expect($dataA['sesi']->refresh()->status)->toBe(StatusSesi::Selesai)
+        ->and($dataB['sesi']->refresh()->status)->toBe(StatusSesi::Selesai)
+        ->and($dataA['event']->refresh()->status)->toBe(EventStatus::Completed)
+        ->and($dataB['event']->refresh()->status)->toBe(EventStatus::Completed);
+});
+
+it('menutup sesi satu per satu, dan eventnya baru selesai saat sesi terakhir', function () {
+    $data = sesiBerjalanPenjadwal($this);
+
+    // Sesi KEDUA pada ujian yang sama, jendelanya lebih panjang. "Sesi
+    // terakhir" bukan `session_number` terbesar - lihat `semuaTuntas()` -
+    // melainkan sesi yang terakhir tuntas, dan urutan penutupan itu yang
+    // diuji di sini.
+    $sesiKedua = app(SesiService::class)->buat($data['ujian'], [
+        'session_number' => 2,
+        'access_opens_at' => now()->addHour(),
+        'access_closes_at' => now()->addHours(2),
+        'hard_end_at' => now()->addHours(9),
+        'duration_minutes' => 60,
+        'event_room_id' => [$data['event']->rooms()->first()->id],
+    ]);
+
+    // Pengawas LAIN, bukan pengawas sesi pertama. `PengawasService::tugaskan()`
+    // menolak orang yang sudah memegang ruang lain pada jam yang tumpang
+    // tindih - dan sesi kedua dimulai satu jam setelah sesi pertama, jadi
+    // pengawas yang sama memang BENTROK. Penolakan itu benar; yang salah
+    // adalah test yang memaksanya.
+    $pengawasKedua = User::factory()->pengawas()->untukSekolah($this->sekolah)->create([
+        'username' => 'pengawas.penjadwal.dua',
+    ]);
+
+    app(PengawasService::class)->tugaskan(
+        $sesiKedua->rooms()->firstOrFail(),
+        $pengawasKedua,
+        $this->admin->id,
+    );
+
+    app(SesiService::class)->siapkan($sesiKedua);
+    app(SesiService::class)->mulai($sesiKedua);
+
+    // Sesi pertama lewat, sesi kedua belum.
+    $this->travel(4)->hours();
+
+    $this->artisan('ujian:tutup-sesi')->assertExitCode(0);
+
+    expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Selesai)
+        ->and($sesiKedua->refresh()->status)->toBe(StatusSesi::Berjalan)
+        // Event BELUM selesai - masih ada sesi yang berjalan.
+        ->and($data['event']->refresh()->status)->toBe(EventStatus::Ongoing);
+
+    $this->travel(6)->hours();
+
+    $this->artisan('ujian:tutup-sesi')->assertExitCode(0);
+
+    expect($sesiKedua->refresh()->status)->toBe(StatusSesi::Selesai)
+        ->and($data['event']->refresh()->status)->toBe(EventStatus::Completed);
+});
+
+/* =====================================================================
  | Jadwal
  |===================================================================== */
 
@@ -233,6 +445,10 @@ it('menjadwalkan kelima tugas, bukan sekadar menuliskannya', function () {
         ->implode("\n");
 
     expect($perintah)->toContain('ujian:tutup-kedaluwarsa')
+        // Perintah KETUJUH, ditambahkan 2026-11-14. Ia menutup SESI, satu
+        // tingkat di atas penutup attempt - dan tanpa baris ini, sesi yang
+        // jendelanya berakhir tidak pernah pindah dari "berjalan".
+        ->and($perintah)->toContain('ujian:tutup-sesi')
         ->and($perintah)->toContain('laporan:pangkas-ekspor')
         // Perintah KELIMA, dan yang paling mudah terlupa: ekspor pengguna
         // meninggalkan berkas sebesar ekspor laporan, di disk privat yang

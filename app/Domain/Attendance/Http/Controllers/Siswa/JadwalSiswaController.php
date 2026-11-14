@@ -130,7 +130,8 @@ class JadwalSiswaController extends SiswaDasar
     }
 
     /**
-     * Berapa ujian yang sudah dituntaskan, dan berapa yang masih menunggu.
+     * Berapa ujian yang sudah dituntaskan, berapa yang masih menunggu, dan
+     * berapa yang jendelanya sudah lewat.
      *
      * ---------------------------------------------------------------------
      * "Selesai" berarti pengerjaannya SUDAH DIKIRIM - bukan sekadar ada
@@ -144,6 +145,19 @@ class JadwalSiswaController extends SiswaDasar
      * dan tidak ada lagi yang bisa ia lakukan pada ujian itu.
      *
      * ---------------------------------------------------------------------
+     * "Terlewat" BUKAN "masih menunggu" - perbaikan 2026-11-14
+     * ---------------------------------------------------------------------
+     * Sebelum ini `menunggu` dihitung sebagai `selesai === false`, dan baris
+     * berstatus "terlewat" selalu `false` karena `selesai` hanya membaca
+     * attempt. Akibatnya anak yang sudah melewati jendela sebuah ujian -
+     * tanpa pernah mengerjakannya - melihat "3 masih menunggu" untuk ujian
+     * yang tidak akan pernah datang, dan mengejar sesuatu yang tidak ada.
+     *
+     * Yang benar: terlewat adalah keadaan KETIGA, disebut apa adanya. Ia
+     * tetap ditampilkan di daftar sebagai riwayat, tetapi ia tidak lagi
+     * dijanjikan sebagai pekerjaan yang menunggu.
+     *
+     * ---------------------------------------------------------------------
      * Dikecualikan tidak dihitung sama sekali
      * ---------------------------------------------------------------------
      * Penempatan yang dikecualikan bukan ujian yang "menunggu" - ia ujian
@@ -151,16 +165,23 @@ class JadwalSiswaController extends SiswaDasar
      * anak mengejar sesuatu yang tidak ada.
      *
      * @param  Collection<int, array<string, mixed>>  $baris
-     * @return array{total: int, selesai: int, menunggu: int}
+     * @return array{total: int, selesai: int, terlewat: int, menunggu: int}
      */
     private function kemajuan(Collection $baris): array
     {
         $dihitung = $baris->reject(fn (array $b) => $b['status'] === 'dikecualikan');
 
+        $terlewat = $dihitung->where('status', 'terlewat')->count();
+        $selesai = $dihitung->where('selesai', true)->count();
+
         return [
             'total' => $dihitung->count(),
-            'selesai' => $dihitung->where('selesai', true)->count(),
-            'menunggu' => $dihitung->where('selesai', false)->count(),
+            'selesai' => $selesai,
+            'terlewat' => $terlewat,
+            // Sisanya, bukan `where('selesai', false)`: baris yang terlewat
+            // DAN belum dikumpulkan akan terhitung dua kali bila dihitung
+            // dari keadaan `selesai`.
+            'menunggu' => $dihitung->count() - $selesai - $terlewat,
         ];
     }
 
