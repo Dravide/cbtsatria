@@ -27,6 +27,14 @@ use Illuminate\Database\Eloquent\Model;
     'code',
     'name',
     'npsn',
+    /*
+     * Alamat papan publik pengawas - `/papan/{slug}`.
+     *
+     * `papan_slug` sengaja TIDAK fillable: ia ditulis hanya lewat
+     * `PapanPublikService`, yang memastikan slugnya unik lintas sekolah dan
+     * tidak lahir dari input bebas. Kolom yang boleh diisi dari luar adalah
+     * alamat internet yang suatu hari ditentukan peramban, bukan Admin.
+     */
     'logo_path',
     'branding',
     'address',

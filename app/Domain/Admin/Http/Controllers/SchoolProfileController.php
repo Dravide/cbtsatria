@@ -39,6 +39,10 @@ class SchoolProfileController
                 'zona_waktu' => $sekolah->timezone,
                 'logo_url' => $sekolah->logo_path ? asset('storage/'.$sekolah->logo_path) : null,
                 'status' => $sekolah->status,
+                // Alamat papan publik pengawas; null = belum dinyalakan.
+                // Dibaca laman Profil karena saklarnya ada di sana - lihat
+                // `PengaturanPapanController` tentang mengapa rutenya sendiri.
+                'papan_slug' => $sekolah->papan_slug,
             ],
             'zonaWaktu' => [
                 'Asia/Jakarta' => 'WIB - Asia/Jakarta (UTC+7)',

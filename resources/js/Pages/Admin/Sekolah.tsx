@@ -1,6 +1,7 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi } from '@/Components/dialog';
 import { Chip, Field, Inbox, Kotak, Tombol, kelasInput } from '@/Components/ui';
 
 /**
@@ -22,6 +23,8 @@ type Props = {
         zona_waktu: string;
         logo_url: string | null;
         status: string;
+        /** Alamat papan publik pengawas; null = papan belum dinyalakan. */
+        papan_slug: string | null;
     };
     zonaWaktu: Record<string, string>;
 };
@@ -150,6 +153,8 @@ export default function Sekolah({ sekolah, zonaWaktu }: Props) {
                         <LogoFormulir sekolah={sekolah} />
                     </Kotak>
 
+                    <PapanFormulir sekolah={sekolah} />
+
                     <Kotak judul="Status">
                         <div className="flex items-center gap-2">
                             <Chip nada={sekolah.status === 'aktif' ? 'ok' : 'bad'}>
@@ -175,6 +180,102 @@ export default function Sekolah({ sekolah, zonaWaktu }: Props) {
                 </div>
             </form>
         </AdminLayout>
+    );
+}
+
+/**
+ * Saklar papan publik pengawas - ditambahkan 2026-11-14.
+ *
+ * =====================================================================
+ * Mengapa form SENDIRI, bukan tombol di form profil
+ * =====================================================================
+ * Form profil mengirim seluruh kolomnya sekaligus. Saklar yang ikut di
+ * dalamnya berarti setiap penyimpanan alamat sekolah memutuskan ulang
+ * apakah nama pengawas tayang ke internet - dan keputusan yang
+ * digabungkan begitu suatu hari diambil tanpa dibaca.
+ *
+ * =====================================================================
+ * Kalimatnya menyebut APA yang tayang, bukan "papan publik"
+ * =====================================================================
+ * Admin yang membaca "menyalakan papan publik" akan membayangkan denah,
+ * nilai, atau daftar peserta. Yang sebenarnya tayang hanya tiga hal, dan
+ * itu ditulis di sini - sebelum saklarnya ditekan, bukan sesudah.
+ *
+ * =====================================================================
+ * Alamatnya tidak bisa diketik
+ * =====================================================================
+ * Slug dibangkitkan dari nama sekolah + empat huruf acak dan tidak pernah
+ * menerima input. Kolom yang bisa diisi peramban adalah alamat internet
+ * yang suatu hari diisi sesuatu yang bukan nama sekolah.
+ */
+function PapanFormulir({ sekolah }: { sekolah: Props['sekolah'] }) {
+    const aktif = sekolah.papan_slug !== null;
+
+    const kirim = (nyalakan: boolean) => {
+        router.patch(
+            '/admin/papan',
+            { aktif: nyalakan },
+            { preserveScroll: true },
+        );
+    };
+
+    return (
+        <Kotak judul="Papan publik pengawas">
+            <div className="space-y-2.5">
+                <p className="text-xs leading-relaxed text-ink-2">
+                    Alamat tanpa login yang menjawab &ldquo;pengawas mana ada di ruang
+                    mana&rdquo;. Yang tayang hanya <strong className="text-ink">nama ruang</strong>,{' '}
+                    <strong className="text-ink">nama pengawas</strong>, dan{' '}
+                    <strong className="text-ink">jam sesi</strong> &mdash; tidak nama siswa,
+                    tidak nomor kursi, tidak token.
+                </p>
+
+                {aktif ? (
+                    <>
+                        <div className="rounded-wf border border-line bg-surface-2 px-2.5 py-2">
+                            <p className="text-[11px] text-ink-3">Alamat papan</p>
+                            <a
+                                href={`/papan/${sekolah.papan_slug}`}
+                                target="_blank"
+                                rel="noopener"
+                                className="mt-0.5 block break-all font-mono text-[11px] text-accent hover:underline"
+                            >
+                                /papan/{sekolah.papan_slug}
+                            </a>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Chip nada="ok">menyala</Chip>
+                            <Tombol
+                                nada="bahaya"
+                                onClick={async () => {
+                                    const ya = await konfirmasi({
+                                        judul: 'Matikan papan publik?',
+                                        pesan: 'Alamatnya berhenti berlaku seketika, dan tautan yang sudah ditempel di lorong menjadi 404. Menyalakannya lagi akan membuat alamat BARU yang harus ditempel ulang.',
+                                        labelYa: 'Matikan',
+                                        labelTidak: 'Jangan',
+                                        nada: 'bahaya',
+                                    });
+
+                                    if (ya) {
+                                        kirim(false);
+                                    }
+                                }}
+                            >
+                                Matikan
+                            </Tombol>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Chip nada="mute">mati</Chip>
+                        <Tombol nada="pri" onClick={() => kirim(true)}>
+                            Nyalakan papan
+                        </Tombol>
+                    </div>
+                )}
+            </div>
+        </Kotak>
     );
 }
 

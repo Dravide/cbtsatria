@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Attendance\Http\Controllers\PapanPublikController;
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
 use App\Domain\Attendance\Http\Controllers\Siswa\HadirSiswaController;
 use App\Domain\Identity\Http\Controllers\Auth\LoginController;
@@ -102,6 +103,33 @@ Route::post('/p/{slug}', [PintuRuangController::class, 'buka'])
 // Menyerahkan kembali hibah sesi. Di luar grup auth dengan alasan yang sama:
 // yang memegangnya tidak punya akun untuk keluar darinya.
 Route::post('/p/{slug}/keluar', [PintuRuangController::class, 'keluar'])->name('pintu.ruang.keluar');
+
+/*
+|--------------------------------------------------------------------------
+| Papan publik pengawas - `/papan/{slug}`
+|--------------------------------------------------------------------------
+| Ditambahkan 2026-11-14. Menjawab "pengawas mana ada di ruang mana" untuk
+| orang yang TIDAK punya akun: wali kelas, panitia, orang tua, pengawas
+| ruang lain. Sampai sekarang pertanyaan itu hanya bisa dijawab dari konsol
+| Admin setelah login.
+|
+| Di luar `auth`, dan isinya dibatasi di `PapanPengawas`: nama ruang, nama
+| pengawas, jam. Tidak nama siswa, tidak nomor kursi, tidak token - halaman
+| ini tayang untuk seluruh internet, dan tautannya ditempel di lorong.
+|
+| Slugnya milik SEKOLAH (`schools.papan_slug`) dan nullable. Sekolah yang
+| tidak pernah menyalakan papannya tidak punya alamat sama sekali - rute
+| yang tidak pernah lahir tidak bisa ditebak, dan itu lebih kuat daripada
+| 403 yang justru membuktikan alamatnya ada.
+|
+| TIDAK diberi default `tenant`: pada permintaan ini belum ada pengguna,
+| sehingga `SchoolResolver` mengembalikan null. Sekolahnya ditentukan oleh
+| slug, di controller.
+*/
+Route::get('/papan/{slug}', [PapanPublikController::class, 'tampilkan'])->name('papan.publik');
+Route::get('/papan/{slug}/pengawas/{supervisor}', [PapanPublikController::class, 'pengawas'])
+    ->whereNumber('supervisor')
+    ->name('papan.pengawas');
 
 /*
 |--------------------------------------------------------------------------

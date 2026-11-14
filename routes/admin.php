@@ -7,6 +7,7 @@ use App\Domain\Admin\Http\Controllers\IdentitasAplikasiController;
 use App\Domain\Admin\Http\Controllers\KartuAkunController;
 use App\Domain\Admin\Http\Controllers\MasterImportController;
 use App\Domain\Admin\Http\Controllers\PengaturanAiController;
+use App\Domain\Admin\Http\Controllers\PengaturanPapanController;
 use App\Domain\Admin\Http\Controllers\RoomController;
 use App\Domain\Admin\Http\Controllers\SchoolClassController;
 use App\Domain\Admin\Http\Controllers\SchoolProfileController;
@@ -90,6 +91,20 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     // 24 - log aktivitas. Hanya baca; tidak ada route hapus, selamanya.
     Route::get('/log', [ActivityLogController::class, 'index'])->name('log');
+
+    /*
+    |----------------------------------------------------------------------
+    | Papan publik pengawas - ditambahkan 2026-11-14
+    |----------------------------------------------------------------------
+    | Menyalakan dan mematikan `/papan/{slug}`. Laman pengaturannya ada di
+    | Profil sekolah (saklarnya), sehingga tidak ada rute GET tersendiri -
+    | dan tidak ada menu sidebar baru untuk satu saklar.
+    |
+    | Mematikan berarti slug-nya di-null-kan, bukan sekadar ditandai: papan
+    | yang "dimatikan" tetapi masih bisa dibuka dengan alamat lama adalah
+    | papan yang tidak dimatikan.
+    */
+    Route::patch('/papan', [PengaturanPapanController::class, 'update'])->name('papan');
 
     /*
     |----------------------------------------------------------------------

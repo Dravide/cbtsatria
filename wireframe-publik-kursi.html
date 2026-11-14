@@ -1,0 +1,503 @@
+<title>Wireframe Publik Pengawas &amp; Posisi Kursi Siswa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   Wireframe School CBT — papan publik pengawas &amp; posisi kursi
+   Primitif disalin dari wireframe-peran.html supaya ketiganya
+   terbaca sebagai satu sistem. Tidak ada primitif baru; yang
+   baru hanya SUSUNAN.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:70ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.fbtn{font:500 12px/1 var(--font-mono);letter-spacing:.04em;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.fbtn b{color:var(--ink-3);font-weight:500}
+.fbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.fbtn.on b{color:color-mix(in srgb,var(--on-accent) 70%,transparent)}
+.group{margin-bottom:38px;display:grid;gap:18px}
+.group>header{display:grid;gap:6px}
+.group>header h2{font-size:1.15rem;display:flex;gap:9px;align-items:baseline}
+.group>header h2 em{font-family:var(--font-mono);font-style:normal;font-size:12px;color:var(--accent);letter-spacing:.1em}
+.group>header p{color:var(--ink-2);max-width:72ch;font-size:13.5px}
+.shots{display:grid;gap:22px}
+.shots.phones{grid-template-columns:1fr}
+.shots.phones .cols.c2{grid-template-columns:1fr}
+@media (min-width:600px){.shots.phones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:760px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1060px){.shots.phones{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.shot{display:grid;gap:10px;min-width:0}
+.cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cap .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.08em}
+.cap h3{font-size:.95rem}
+.cap .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;display:grid;gap:5px;font-size:13.5px;color:var(--ink-2)}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+
+/* --- primitif konsol (.wf) --- */
+.wf{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--wf-bg);color:var(--wf-ink);box-shadow:var(--shadow);min-width:0}
+.wf .chrome{display:flex;gap:4px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--wf-line);background:var(--wf-head)}
+.wf .chrome .dot{width:5px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wf .chrome .url{margin-left:7px;font:500 8.5px/1 var(--font-mono);color:var(--wf-dim);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.wf .bd{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.crumb{font-size:9px;color:var(--wf-dim);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sp{margin-left:auto}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.list{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.lrow{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.lrow:last-child{border-bottom:0}
+.lrow.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.lrow .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.big{font-size:11px;padding:6px 14px}
+.btn.off{opacity:.5}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* --- primitif ponsel (.wd) --- */
+.wd{position:relative;width:238px;max-width:100%;height:auto;min-height:318px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--wf-bg);box-shadow:var(--shadow);color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;font-size:9.5px;line-height:1.35;min-width:0}
+.wd .notch{position:relative;height:15px;background:var(--wf-head);border-bottom:1px solid var(--wf-hair)}
+.wd .notch::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:4px;width:46px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wd .scr{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
+.wd .hd{display:flex;gap:6px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);min-width:0;flex-wrap:wrap}
+.wd .hd b{font-family:var(--font-display);font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd .hd .sp{margin-left:auto}
+.wd .bd{padding:8px;display:grid;gap:7px;align-content:start;overflow:hidden;min-width:0}
+.wd .tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--wf-hair);background:var(--wf-head)}
+.wd .tabbar span{font:500 7.5px/1 var(--font-mono);color:var(--wf-dim);text-align:center;padding:8px 2px 9px;min-width:0;overflow:hidden;white-space:nowrap}
+.wd .tabbar span.on{color:var(--accent);box-shadow:inset 0 2px 0 var(--accent)}
+.wd .home{height:17px;background:var(--wf-head);display:grid;place-items:center}
+.wd .home::after{content:"";width:56px;height:4px;border-radius:99px;background:var(--wf-line)}
+.wd .list{border:1px solid var(--wf-hair);border-radius:8px;overflow:hidden;min-width:0}
+.wd .lrow{display:grid;gap:6px;align-items:center;padding:6px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.wd .lrow:last-child{border-bottom:0}
+.wd .lrow.th{background:var(--wf-head);font:500 7.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim);padding:5px 7px}
+.wd .sel,.wd .btn,.wd .chip{font-size:8px;padding:2px 5px}
+.wd .sub{font-size:8.5px;color:var(--wf-dim)}
+.wd .card2{display:grid;gap:5px;border:1px solid var(--wf-hair);border-radius:8px;background:var(--wf-bg);padding:7px;min-width:0}
+.wd .big{font-family:var(--font-display);font-size:13px}
+.wd .sheet{border:1px solid var(--wf-hair);border-radius:10px 10px 0 0;border-bottom:0;background:var(--wf-soft);padding:7px;display:grid;gap:6px;min-width:0}
+.wd .grip{width:30px;height:3px;border-radius:99px;background:var(--wf-dash);margin:0 auto}
+.wd .dimmed .bd{position:relative}
+
+/* --- primitif baru: denah kursi (dipakai dua plate) --- */
+.floor{border:1px solid var(--wf-hair);border-radius:5px;background:var(--wf-bg);padding:7px;display:grid;gap:6px;min-width:0}
+.floor .front{display:flex;align-items:center;gap:6px;font:500 8px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--wf-dim);border-bottom:1px dashed var(--wf-hair);padding-bottom:4px}
+.floor .front::after{content:"";flex:1;height:1px;background:var(--wf-hair)}
+/*
+ * Satu MEJA memuat DUA kursi berdampingan - `NomorKursi::KURSI_PER_MEJA = 2`.
+ * Kursi 1 dan 2 duduk di meja 1, kursi 3 dan 4 di meja 2, dan seterusnya.
+ * Empat meja per baris; penomoran menyusur satu baris meja penuh lalu turun
+ * (bentuk Z), supaya pengawas yang menyusur dari pintu tidak menyeberang.
+ */
+.deskrow{display:grid;grid-template-columns:11px repeat(4,minmax(0,1fr));gap:3px;align-items:stretch;min-width:0}
+.deskrow .rl{font:500 7px/1 var(--font-mono);color:var(--wf-dim);text-align:center;align-self:center}
+.meja{border:1px solid var(--wf-line);border-radius:4px;background:var(--wf-soft);padding:2px;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-width:0}
+.meja .mn{grid-column:1/-1;font:500 6px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim);text-align:center;padding-bottom:1px}
+.seat{border:1px solid var(--wf-hair);border-radius:2px;background:var(--wf-bg);padding:2px 1px;display:grid;gap:0;justify-items:center;min-width:0;overflow:hidden}
+.seat b{font:500 8px/1.1 var(--font-mono);color:var(--wf-ink);font-variant-numeric:tabular-nums}
+.seat.mine{border-color:var(--accent);border-width:2px;background:var(--accent-soft)}
+.seat.mine b{color:var(--accent)}
+.seat.empty{background:var(--wf-soft);border-style:dashed}
+.seat.empty b{color:var(--wf-dash)}
+.door{display:flex;align-items:center;gap:5px;font:500 7px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);justify-content:center;padding-top:2px}
+.door::before,.door::after{content:"";height:1px;flex:1;background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.legend{display:flex;gap:8px;flex-wrap:wrap;font-size:7px;color:var(--wf-dim)}
+.legend span{display:flex;gap:3px;align-items:center}
+.legend b{width:7px;height:7px;border:1px solid var(--wf-hair);border-radius:2px;display:block}
+.legend b.l{background:var(--accent-soft);border-color:var(--accent)}
+.legend b.e{background:var(--wf-soft);border-style:dashed}
+.wd.lg{min-height:470px}
+.wd .sheet{position:absolute;left:0;right:0;bottom:17px;z-index:4;box-shadow:0 -10px 24px -14px rgba(16,22,32,.45);border-top-left-radius:12px;border-top-right-radius:12px}
+.wd .dim{position:absolute;inset:0 0 0 0;background:color-mix(in srgb,var(--wf-ink) 22%,transparent);z-index:3}
+.wd .meja{padding:1px;gap:1px}
+.wd .meja .mn{font-size:5.5px}
+.wd .seat{padding:1px}
+.wd .seat b{font-size:6.5px}
+.wd .deskrow{grid-template-columns:9px repeat(4,minmax(0,1fr));gap:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ wireframe papan publik pengawas &amp; posisi kursi</span></div>
+    <div class="r">
+      <span>4 laman · 1 permukaan publik</span><span> draft 2026-11-14</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Dua permintaan, satu tambahan</div>
+    <h1>Ke mana pengawas pergi, dan di mana saya duduk</h1>
+    <p class="lede">Dua kebutuhan yang tidak pernah terjawab aplikasi ini. Pertama: sampai sekarang tidak ada satu pun tempat — di dalam maupun di luar sistem — yang menjawab "pengawas mana ada di ruang mana". Admin melihat penugasan per baris di laman Pengawas, tetapi wali kelas yang bertanya di lorong tidak punya layar untuk dibuka. Kedua: siswa tahu ruang dan kursinya dari beranda, tetapi tidak tahu di mana kursi itu berada di dalam ruangan — dan "kursi 14" saja tidak menolong anak yang baru pertama masuk ruang itu.</p>
+    <div class="scope">
+      <span class="tag">Publik · tanpa login</span>
+      <span class="tag">Pengawas · posisi per ruang</span>
+      <span class="tag">Siswa · kursi + denah</span>
+    </div>
+  </div>
+
+  <div class="filters" role="group" aria-label="Saring laman">
+    <button class="fbtn on" data-g="all">Semua <b>4</b></button>
+    <button class="fbtn" data-g="publik">Publik <b>2</b></button>
+    <button class="fbtn" data-g="siswa">Siswa <b>2</b></button>
+  </div>
+
+  <!-- ================================================================= -->
+  <section class="group" data-g="publik">
+    <header>
+      <h2><em>L</em> Papan publik</h2>
+      <p>Satu alamat tanpa login, untuk dibuka dari ponsel siapa pun yang berdiri di lorong: wali kelas, orang tua, panitia, atau pengawas lain. Isinya hanya hal yang aman dibaca siapa pun: nama ruang, nama pengawas, dan jam. Tidak ada nomor kursi, tidak ada nama siswa, tidak ada token — halaman ini di luar sistem login, dan apa pun yang tayang di sini tayang untuk seluruh internet.</p>
+    </header>
+
+    <div class="shots">
+
+      <!-- L1 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">L1</span><h3>Papan publik · daftar ruang</h3><span class="path">/papan/{slug}</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/papan/smk1-uas-ganjil</span></div>
+          <div class="tbar">
+            <span class="crumb">SMP Negeri 1 Cipanas</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip ok">diperbarui 07:42</span>
+          </div>
+          <div class="bd">
+            <div class="ph">
+              <b>Pengawas per ruang</b>
+              <span class="sp"><span class="sel">UAS Ganjil · Sesi 2</span></span>
+            </div>
+            <div class="box" style="background:var(--info-bg);border-color:color-mix(in srgb,var(--info) 30%,transparent);border-style:solid">
+              <span style="font-size:9px;color:var(--info)">Halaman ini hanya memuat nama ruang, nama pengawas, dan jam. Nama siswa, nomor kursi, dan token tidak pernah tayang di sini.</span>
+            </div>
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:52px 1fr 1fr 60px">
+                <span>Ruang</span><span>Pengawas</span><span>Lokasi</span><span>Jam</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 60px">
+                <span class="c mono" style="font-weight:500">R-01</span>
+                <span class="c">Ani Mulyani</span>
+                <span class="c">Gedung A · lantai 1</span>
+                <span class="c mono">07:30–09:30</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 60px">
+                <span class="c mono" style="font-weight:500">R-02</span>
+                <span class="c">Sri Handayani</span>
+                <span class="c">Gedung A · lantai 1</span>
+                <span class="c mono">07:30–09:30</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 60px">
+                <span class="c mono" style="font-weight:500">R-03</span>
+                <span class="c" style="color:var(--warn)">belum ditetapkan</span>
+                <span class="c">Gedung A · lantai 2</span>
+                <span class="c mono">07:30–09:30</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 60px">
+                <span class="c mono" style="font-weight:500">R-04</span>
+                <span class="c">Budi Santoso</span>
+                <span class="c">Gedung B · lantai 1</span>
+                <span class="c mono">07:30–09:30</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 60px">
+                <span class="c mono" style="font-weight:500">R-05</span>
+                <span class="c">Dewi Kartika</span>
+                <span class="c">Gedung B · lantai 2</span>
+                <span class="c mono">07:30–09:30</span>
+              </div>
+            </div>
+            <p style="font-size:8.5px;color:var(--wf-dim)">Dibuat otomatis dari penugasan pengawas. Ruang yang pengawasnya belum ditetapkan <b>tetap tampil</b> — justru itu yang perlu dikejar panitia sepuluh menit sebelum sesi dibuka.</p>
+          </div>
+        </div>
+      </figure>
+
+      <!-- L2 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">L2</span><h3>Papan publik · satu pengawas, beberapa ruang</h3><span class="path">/papan/{slug}/pengawas/{id}</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/papan/smk1-uas-ganjil/pengawas/12</span></div>
+          <div class="tbar">
+            <span class="crumb">← Semua ruang</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip info">Sesi 2</span>
+          </div>
+          <div class="bd">
+            <div class="box solid">
+              <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">
+                <b style="font-family:var(--font-display);font-size:13px">Ani Mulyani</b>
+                <span class="chip mute">Pengawas</span>
+                <span class="sp" style="margin-left:auto"></span>
+                <span class="sub" style="font-size:8.5px;color:var(--wf-dim)">2 ruang sesi ini</span>
+              </div>
+              <span style="font-size:9px;color:var(--wf-dim)">SMP Negeri 1 Cipanas · UAS Ganjil · Sesi 2 (07:30–09:30)</span>
+            </div>
+
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:52px 1fr 54px"><span>Ruang</span><span>Lokasi</span><span>Jam</span></div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 54px">
+                <span class="c mono" style="font-weight:500">R-01</span><span class="c">Gedung A · lantai 1</span><span class="c mono">07:30–09:30</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 54px">
+                <span class="c mono" style="font-weight:500">R-07</span><span class="c">Gedung C · lantai 1</span><span class="c mono">07:30–09:30</span>
+              </div>
+            </div>
+
+            <div class="box">
+              <span class="lb">Catatan</span>
+              <span style="font-size:9px;color:var(--wf-dim)">Pengawas yang bertugas di lebih dari satu ruang pada satu sesi biasanya bergiliran. Urutan di sini mengikuti urutan ruang, bukan jadwal keliling — jadwal keliling tidak pernah ditetapkan sistem.</span>
+            </div>
+
+            <p style="font-size:8.5px;color:var(--wf-dim)">Halaman per orang ada karena pertanyaan di lorong biasanya menyebut nama, bukan ruang: "Bu Ani di mana?". Tanpa halaman ini, penanya harus memindai seluruh baris daftar.</p>
+          </div>
+        </div>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section class="group" data-g="siswa">
+    <header>
+      <h2><em>M</em> Posisi kursi siswa</h2>
+      <p>Dua laman yang menjawab satu pertanyaan — "saya duduk di mana" — dengan dua tingkat ketelitian. Yang pertama adalah keterangan singkat di laman Akun, yang dibaca sebelum hari-H. Yang kedua adalah denah yang dibuka sebagai panel dari keterangan itu, untuk dibaca di depan pintu ruang.</p>
+    </header>
+
+    <div class="shots phones">
+
+      <!-- M1 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">M1</span><h3>Akun · ruang &amp; kursi</h3><span class="path">/siswa/akun</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Akun · Aisya Ulfiya</span><span class="sp"></span><span class="sel">9K</span></div>
+            <div class="bd">
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:1fr"><span>Identitas</span></div>
+                <div style="padding:7px">
+                  <b class="big">AISYA ULFIYA PUTRI</b>
+                  <span class="sub" style="display:block">SMP Negeri 1 Cipanas</span>
+                </div>
+                <div class="lrow" style="grid-template-columns:70px 1fr"><span class="c" style="color:var(--wf-dim)">Username</span><span class="c mono">24257077</span></div>
+                <div class="lrow" style="grid-template-columns:70px 1fr"><span class="c" style="color:var(--wf-dim)">Kelas</span><span class="c">9K</span></div>
+                <div class="lrow" style="grid-template-columns:70px 1fr"><span class="c" style="color:var(--wf-dim)">NIS</span><span class="c mono">24257077</span></div>
+              </div>
+
+              <!-- BLOK BARU -->
+              <div class="list" style="border-color:var(--accent)">
+                <div class="lrow th" style="grid-template-columns:1fr"><span>Tempat ujian saya</span></div>
+                <div style="padding:7px;display:grid;gap:6px">
+                  <div style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap">
+                    <b style="font-family:var(--font-display);font-size:15px">R-01</b>
+                    <span class="chip info">kursi 14</span>
+                  </div>
+                  <span class="sub">Gedung A · lantai 1 · Informatika · sesi 2</span>
+                  <span class="sub">Sabtu, 14 Nov · 11:00–15:00</span>
+                  <span class="btn" style="text-align:center">Lihat posisi kursi</span>
+                </div>
+              </div>
+
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:1fr"><span>Keamanan</span></div>
+                <div style="padding:7px;display:grid;gap:5px">
+                  <span class="sub">Sandi akun diganti di laman tersendiri.</span>
+                  <span class="btn" style="text-align:center">Ganti sandi</span>
+                </div>
+              </div>
+
+              <span class="btn" style="text-align:center;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)">Keluar dari akun</span>
+            </div>
+          </div>
+          <div class="tabbar"><span>Ujian</span><span>Nilai</span><span>Pelanggaran</span><span class="on">Akun</span></div>
+          <div class="home"></div>
+        </div>
+        <p class="note"><b>Mengapa di Akun, bukan di beranda.</b> Beranda sudah memuat ruang dan kursi sebagai bagian dari jadwal — tetapi ia menghapusnya begitu ujiannya selesai. Akun menyimpan tempat ujian BERIKUTNYA sepanjang hari-H, dan itu yang dibuka anak sambil berjalan ke ruangnya. Blok ini hanya muncul bila ada ujian yang belum selesai; anak yang sudah menyelesaikan semuanya melihat Akun tanpa blok ini, bukan blok kosong.</p>
+      </figure>
+
+      <!-- M2 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">M2</span><h3>Panel posisi kursi</h3><span class="path">lembar · dari M1</span></div>
+        <div class="wd dimmed lg">
+          <div class="dim"></div>
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Akun · Aisya Ulfiya</span><span class="sp"></span><span class="sel">9K</span></div>
+            <div class="bd">
+              <div class="list" style="filter:blur(.6px)">
+                <div class="lrow th" style="grid-template-columns:1fr"><span>Tempat ujian saya</span></div>
+                <div style="padding:7px;display:grid;gap:6px">
+                  <b style="font-family:var(--font-display);font-size:15px">R-01</b>
+                  <span class="sub">Gedung A · lantai 1</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="sheet">
+            <div class="grip"></div>
+            <div style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap">
+              <b style="font-family:var(--font-display);font-size:12px">Posisi kursi 14</b>
+              <span class="sp" style="margin-left:auto"></span>
+              <span class="chip info">R-01</span>
+            </div>
+            <span class="sub">Masuk dari pintu depan. Kursi Anda <b>meja 7</b>, baris ke-2 dari depan, kolom ke-3 dari kiri — sisi kanan meja.</span>
+
+            <div class="floor">
+              <div class="front">papan tulis &amp; meja pengawas</div>
+              <div class="deskrow"><span class="rl">1</span><div class="meja"><span class="mn">meja 1</span><div class="seat filled"><b>1</b></div><div class="seat filled"><b>2</b></div></div><div class="meja"><span class="mn">meja 2</span><div class="seat filled"><b>3</b></div><div class="seat filled"><b>4</b></div></div><div class="meja"><span class="mn">meja 3</span><div class="seat filled"><b>5</b></div><div class="seat filled"><b>6</b></div></div><div class="meja"><span class="mn">meja 4</span><div class="seat filled"><b>7</b></div><div class="seat filled"><b>8</b></div></div></div>
+              <div class="deskrow"><span class="rl">2</span><div class="meja"><span class="mn">meja 5</span><div class="seat filled"><b>9</b></div><div class="seat filled"><b>10</b></div></div><div class="meja"><span class="mn">meja 6</span><div class="seat filled"><b>11</b></div><div class="seat filled"><b>12</b></div></div><div class="meja"><span class="mn">meja 7</span><div class="seat filled"><b>13</b></div><div class="seat mine"><b>14</b></div></div><div class="meja"><span class="mn">meja 8</span><div class="seat filled"><b>15</b></div><div class="seat filled"><b>16</b></div></div></div>
+              <div class="deskrow"><span class="rl">3</span><div class="meja"><span class="mn">meja 9</span><div class="seat filled"><b>17</b></div><div class="seat filled"><b>18</b></div></div><div class="meja"><span class="mn">meja 10</span><div class="seat filled"><b>19</b></div><div class="seat filled"><b>20</b></div></div><div class="meja"><span class="mn">meja 11</span><div class="seat filled"><b>21</b></div><div class="seat filled"><b>22</b></div></div><div class="meja"><span class="mn">meja 12</span><div class="seat filled"><b>23</b></div><div class="seat filled"><b>24</b></div></div></div>
+              <div class="deskrow"><span class="rl">4</span><div class="meja"><span class="mn">meja 13</span><div class="seat filled"><b>25</b></div><div class="seat filled"><b>26</b></div></div><div class="meja"><span class="mn">meja 14</span><div class="seat filled"><b>27</b></div><div class="seat filled"><b>28</b></div></div><div class="meja"><span class="mn">meja 15</span><div class="seat filled"><b>29</b></div><div class="seat filled"><b>30</b></div></div><div class="meja"><span class="mn">meja 16</span><div class="seat filled"><b>31</b></div><div class="seat filled"><b>32</b></div></div></div>
+              <div class="deskrow"><span class="rl">5</span><div class="meja"><span class="mn">meja 17</span><div class="seat empty"><b>33</b></div><div class="seat empty"><b>34</b></div></div><div class="meja"><span class="mn">meja 18</span><div class="seat empty"><b>35</b></div><div class="seat empty"><b>36</b></div></div><div class="meja"><span class="mn">meja 19</span><div class="seat empty"><b>37</b></div><div class="seat empty"><b>38</b></div></div><div class="meja"><span class="mn">meja 20</span><div class="seat empty"><b>39</b></div><div class="seat empty"><b>40</b></div></div></div>
+              <div class="door">pintu masuk</div>
+            </div>
+
+            <div class="legend">
+              <span><b class="l"></b>kursi Anda</span>
+              <span><b></b>terisi</span>
+              <span><b class="e"></b>kosong</span>
+              <span style="margin-left:auto;font-family:var(--font-mono)">2 kursi per meja · 4 meja per baris</span>
+            </div>
+
+            <span class="sub">Kursi bernomor berisi anak lain; nama mereka tidak ditampilkan. Nomor yang sama tercetak di meja dan dibaca pengawas.</span>
+            <span class="btn" style="text-align:center">Tutup</span>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note gap"><b>Yang TIDAK ditampilkan: nama penghuni lain.</b> Denah ini untuk mencari kursi sendiri, bukan untuk tahu siapa duduk di sebelah. Nama anak lain di layar ponsel anak adalah kebocoran yang tidak dibutuhkan fitur ini — dan panel yang memuatnya akan difoto lalu disebar. Kursi lain tampil sebagai nomor saja. <b>Geometrinya disalin dari server:</b> dua kursi per meja, empat meja per baris, penomoran menyusur satu baris meja penuh lalu turun (bentuk Z) — aturan yang sama dengan denah Admin, tablo PDF, dan papan pengawas.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <footer>
+    <span>wireframe · 4 laman</span>
+    <span>primitif: .wf .wd .floor .meja .seat</span>
+    <span>belum satu baris kode aplikasi</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.fbtn'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.group'));
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      var g = b.getAttribute('data-g');
+      groups.forEach(function(sec){
+        sec.style.display = (g === 'all' || sec.getAttribute('data-g') === g) ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>

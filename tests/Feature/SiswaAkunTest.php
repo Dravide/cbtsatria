@@ -3,6 +3,7 @@
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Academic\Models\Semester;
+use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Identity\Models\StudentProfile;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\School;
@@ -51,7 +52,7 @@ beforeEach(function () {
         'name' => '2026/2027',
     ]);
 
-    Semester::factory()->create([
+    $this->semester = Semester::factory()->create([
         'school_id' => $this->sekolah->id,
         'academic_year_id' => $this->tahun->id,
         'name' => 'Ganjil',
@@ -471,4 +472,75 @@ it('menolak peran lain membuka laman ganti sandi siswa', function () {
     masukUji($this, $this->admin)
         ->get('/siswa/akun/sandi')
         ->assertForbidden();
+});
+
+/* =====================================================================
+ | Tempat ujian & denah kursi - ditambahkan 2026-11-14
+ |===================================================================== */
+
+it('mengirim tempat ujian beserta denah kursinya di laman Akun', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get('/siswa/akun')
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    $tempat = $props['tempat_ujian'];
+
+    expect($tempat)->not->toBeNull()
+        ->and($tempat['ruang'])->toBe($data['ruang'][0]->eventRoom->room->code)
+        ->and($tempat['kursi'])->not->toBeNull()
+        // `meja` = ceil(kursi / 2), aturan `NomorKursi::meja()` - bukan
+        // hitungan React.
+        ->and($tempat['meja'])->toBe(intdiv($tempat['kursi'] - 1, 2) + 1)
+        ->and($tempat['denah']['kursi_per_meja'])->toBe(2)
+        ->and($tempat['denah']['meja_per_baris'])->toBe(4);
+
+    // Satu kursi bertanda `saya`, dan itu kursi yang SAMA dengan yang
+    // tertulis di blok di atasnya.
+    $saya = collect($tempat['denah']['sel'])->where('saya', true);
+
+    expect($saya)->toHaveCount(1)
+        ->and($saya->first()['kursi'])->toBe($tempat['kursi']);
+});
+
+it('tidak mengirim nama penghuni lain di denah', function () {
+    // Denah ini untuk mencari kursi sendiri, bukan untuk tahu siapa duduk di
+    // sebelah. `PetaKursiEvent::sel()` membawa nama, NIS, dan kelas - dan
+    // seluruhnya harus dibuang sebelum keluar laman.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get('/siswa/akun')
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    $mentah = json_encode($props['tempat_ujian']);
+
+    // Nama siswa LAIN - bukan milik anak yang sedang masuk.
+    $lain = $data['siswa'][1];
+
+    expect($mentah)->not->toContain($lain->name)
+        ->and($mentah)->not->toContain($lain->username)
+        ->and($mentah)->not->toContain('"nama"')
+        ->and($mentah)->not->toContain('"nis"');
+});
+
+it('tidak mengirim tempat ujian saat semua ujiannya sudah lewat', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    // Seluruh sesinya sudah berakhir.
+    ExamSession::query()
+        ->whereIn('id', $data['ruang']->pluck('exam_session_id'))
+        ->update(['hard_end_at' => now()->subDay()]);
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get('/siswa/akun')
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    // Null, bukan blok kosong: blok kosong terbaca sebagai "tempat ujian saya
+    // hilang", dan itu kalimat yang salah.
+    expect($props['tempat_ujian'])->toBeNull();
 });
