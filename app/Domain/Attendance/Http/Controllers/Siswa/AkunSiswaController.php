@@ -142,23 +142,49 @@ class AkunSiswaController extends SiswaDasar
      */
     private function tempatUjian(int $siswaId): ?array
     {
-        $peserta = ExamParticipant::query()
+        // =================================================================
+        // TIDAK disaring menurut jam sesi, dan itu perbaikan 2026-11-14
+        // =================================================================
+        // Versi pertama menambahkan `whereHas('session', hard_end_at >= now())`,
+        // dan akibatnya blok ini HILANG seketika sesinya lewat - termasuk pada
+        // anak yang baru selesai mengerjakan ujiannya sendiri, yang justru
+        // sedang berdiri di ruang itu. Kursi tidak kedaluwarsa bersama jam
+        // sesi: ruang dan nomor kursi adalah tempat ujian yang ditetapkan
+        // untuk anak itu, dan pertanyaan "saya duduk di mana" tetap sah
+        // sesudah ujiannya berakhir.
+        //
+        // Yang dipilih: penempatan dengan sesi TERDEKAT YANG BELUM BERAKHIR;
+        // bila tidak ada, yang paling akhir. Laman menandai keadaan itu
+        // (`selesai`) supaya tidak terbaca sebagai ajakan datang.
+        $semua = ExamParticipant::query()
             ->where('student_id', $siswaId)
             ->where('status', ExamParticipant::STATUS_TERDAFTAR)
-            ->whereHas('session', fn ($q) => $q->where('hard_end_at', '>=', now()))
             ->with([
                 'exam.subject:id,name',
                 'session',
                 'room.eventRoom.room:id,code,name,location,capacity',
             ])
             ->get()
-            // Urutan JADWAL, bukan id: yang dibaca anak adalah "setelah ini
-            // apa". Penempatan tanpa sesi tidak bisa diurutkan dan ditaruh
-            // paling belakang.
-            ->sortBy(fn (ExamParticipant $p) => $p->session?->access_opens_at?->timestamp ?? PHP_INT_MAX)
-            ->first();
+            // Penempatan TANPA ruang tidak bisa menunjuk kursi apa pun -
+            // ia belum ditempatkan, dan itu bukan "tempat ujian".
+            ->filter(fn (ExamParticipant $p) => $p->room !== null);
 
-        if ($peserta === null || $peserta->room === null) {
+        if ($semua->isEmpty()) {
+            return null;
+        }
+
+        $sekarang = now();
+
+        $peserta = $semua
+            ->filter(fn (ExamParticipant $p) => $p->session !== null && $p->session->hard_end_at->gte($sekarang))
+            ->sortBy(fn (ExamParticipant $p) => $p->session?->access_opens_at?->timestamp ?? PHP_INT_MAX)
+            ->first()
+            // Tidak ada yang belum berakhir: pakai yang TERAKHIR, supaya blok
+            // ini tetap menjawab "tadi saya duduk di mana" alih-alih hilang
+            // tanpa jejak.
+            ?? $semua->sortByDesc(fn (ExamParticipant $p) => $p->session?->access_opens_at?->timestamp ?? PHP_INT_MIN)->first();
+
+        if ($peserta === null) {
             return null;
         }
 
@@ -182,6 +208,10 @@ class AkunSiswaController extends SiswaDasar
                 ? null
                 : $sesi->access_opens_at->format('H:i').'–'.$sesi->hard_end_at->format('H:i'),
             'tanggal' => $sesi?->access_opens_at?->format('d M'),
+            // Apakah sesinya sudah berakhir. Dipakai laman untuk mengubah
+            // kalimatnya - "tempat ujian" pada sesi yang sudah lewat terbaca
+            // sebagai ajakan datang ke ruang yang sudah dikosongkan.
+            'selesai' => $sesi !== null && $sesi->hard_end_at->lt(now()),
             'denah' => $this->denah($eventRoom, $kursi),
         ];
     }

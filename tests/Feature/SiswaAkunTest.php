@@ -527,10 +527,13 @@ it('tidak mengirim nama penghuni lain di denah', function () {
         ->and($mentah)->not->toContain('"nis"');
 });
 
-it('tidak mengirim tempat ujian saat semua ujiannya sudah lewat', function () {
+it('tetap mengirim tempat ujian sesudah sesinya berakhir, dengan tanda selesai', function () {
+    // Versi pertama test ini menegaskan `null`, dan itu BUG: blok tempat
+    // ujian hilang seketika sesinya lewat - termasuk pada anak yang baru
+    // selesai mengerjakan ujiannya sendiri, yang justru sedang berdiri di
+    // ruang itu. Kursi tidak kedaluwarsa bersama jam sesi.
     $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
 
-    // Seluruh sesinya sudah berakhir.
     ExamSession::query()
         ->whereIn('id', $data['ruang']->pluck('exam_session_id'))
         ->update(['hard_end_at' => now()->subDay()]);
@@ -540,7 +543,38 @@ it('tidak mengirim tempat ujian saat semua ujiannya sudah lewat', function () {
         ->assertOk()
         ->viewData('page')['props'];
 
-    // Null, bukan blok kosong: blok kosong terbaca sebagai "tempat ujian saya
-    // hilang", dan itu kalimat yang salah.
-    expect($props['tempat_ujian'])->toBeNull();
+    // Bloknya TETAP ada - ia menjawab "tadi saya duduk di mana" - tetapi
+    // ditandai selesai supaya tidak terbaca sebagai ajakan datang.
+    expect($props['tempat_ujian'])->not->toBeNull()
+        ->and($props['tempat_ujian']['selesai'])->toBeTrue()
+        ->and($props['tempat_ujian']['kursi'])->not->toBeNull();
+});
+
+it('memilih sesi yang belum berakhir walau ada sesi lama', function () {
+    // Anak yang punya dua penempatan: satu sudah lewat, satu masih menunggu.
+    // Yang ditampilkan harus yang MENUNGGU - itu pertanyaan yang dibawa anak
+    // ke laman ini pada pagi hari ujian.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $sekarang = ExamSession::query()
+        ->whereIn('id', $data['ruang']->pluck('exam_session_id'))
+        ->firstOrFail();
+
+    $lalu = ExamSession::query()->create([
+        'school_id' => $this->sekolah->id,
+        'exam_id' => $sekarang->exam_id,
+        'session_number' => 8,
+        'access_opens_at' => now()->subDays(2),
+        'access_closes_at' => now()->subDays(2)->addHour(),
+        'hard_end_at' => now()->subDay(),
+        'status' => 'selesai',
+    ]);
+
+    $props = masukUji($this, $data['siswa'][0])
+        ->get('/siswa/akun')
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($props['tempat_ujian']['selesai'])->toBeFalse()
+        ->and($props['tempat_ujian']['sesi'])->toBe($sekarang->label());
 });

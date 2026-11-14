@@ -89,6 +89,8 @@ type TempatUjian = {
     sesi: string | null;
     jam: string | null;
     tanggal: string | null;
+    /** Sesi ini sudah berakhir - mengubah kalimat, bukan menyembunyikan. */
+    selesai: boolean;
     denah: {
         kapasitas: number;
         kursi_per_meja: number;
@@ -187,7 +189,7 @@ export default function Akun({
             {tempat_ujian !== null && (
                 <section className="daftar overflow-hidden" style={{ borderColor: 'var(--color-accent)' }}>
                     <header className="daftar-kepala">
-                        <h2>Tempat ujian saya</h2>
+                        <h2>{tempat_ujian.selesai ? 'Tempat ujian terakhir' : 'Tempat ujian saya'}</h2>
                     </header>
 
                     <div className="space-y-1.5 px-3 py-3">
@@ -216,6 +218,16 @@ export default function Akun({
                         <p className="angka text-[11px] text-ink-3">
                             {[tempat_ujian.tanggal, tempat_ujian.jam].filter(Boolean).join(' · ')}
                         </p>
+
+                        {/* Kalimat untuk sesi yang SUDAH berakhir. Blok ini
+                            tidak disembunyikan sesudah ujiannya lewat - ia
+                            menjawab "tadi saya duduk di mana" - tetapi
+                            "tempat ujian" pada sesi yang lewat terbaca
+                            sebagai ajakan datang ke ruang yang sudah
+                            dikosongkan. */}
+                        {tempat_ujian.selesai && (
+                            <p className="catatan text-ink-3">Sesi ini sudah berakhir.</p>
+                        )}
 
                         {tempat_ujian.denah.sel.length > 0 && (
                             <button
