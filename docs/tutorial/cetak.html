@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial Admin SATRIA CBT (cetak)</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<!-- BERKAS INI DIHASILKAN. Jangan disunting: sunting babnya lalu susun ulang. -->
+<div class="rangka tunggal">
+  <main class="isi">
+<section class="bab">
+    <h1>Tutorial Admin</h1>
+    <p class="kepala">Panduan bergambar untuk menjalankan ujian berbasis komputer di sekolah — dari menyiapkan data sampai membaca hasil.</p>
+
+    <p>Urutan bab mengikuti pekerjaan, bukan urutan menu. Sekolah disiapkan sekali; tahun ajaran berjalan setahun; event dibuat setiap kali ada ujian. Karena itu bab-bab di bawah tidak bisa ditukar urutannya — setiap bab memakai hasil bab sebelumnya.</p>
+
+    <ol class="toc" id="toc">
+      <li><a href="01-masuk.html">
+        <span class="n">BAB 1</span>
+        <div class="j">Masuk &amp; beranda</div>
+        <div class="k">Akun dibuatkan sekolah. Beranda memberi tahu apa yang sedang berjalan.</div>
+      </a></li>
+      <li><a href="02-sekolah.html">
+        <span class="n">BAB 2</span>
+        <div class="j">Menyiapkan sekolah</div>
+        <div class="k">Profil, logo, zona waktu, identitas aplikasi, dan pengaturan bawaan.</div>
+      </a></li>
+      <li><a href="03-tahun-ajaran.html">
+        <span class="n">BAB 3</span>
+        <div class="j">Tahun ajaran</div>
+        <div class="k">Wadah yang menaungi kelas, siswa, dan event. Tanpa ini, event tidak bisa dibuat.</div>
+      </a></li>
+      <li><a href="04-kelas-mapel.html">
+        <span class="n">BAB 4</span>
+        <div class="j">Kelas &amp; mata pelajaran</div>
+        <div class="k">Siapa duduk di kelas mana, dan siapa mengajar apa.</div>
+      </a></li>
+      <li><a href="05-ruang-pengguna.html">
+        <span class="n">BAB 5</span>
+        <div class="j">Ruang &amp; pengguna</div>
+        <div class="k">Ruang ujian beserta kapasitasnya, dan akun semua peran — termasuk impor massal.</div>
+      </a></li>
+      <li><a href="06-bank-soal.html">
+        <span class="n">BAB 6</span>
+        <div class="j">Bank soal</div>
+        <div class="k">Melihat soal yang disusun Guru, tanpa bisa menyuntingnya.</div>
+      </a></li>
+      <li><a href="07-event.html">
+        <span class="n">BAB 7</span>
+        <div class="j">Membuat event</div>
+        <div class="k">Satu kegiatan ujian, dan sebelas langkah kesiapan yang dijaga aplikasi.</div>
+      </a></li>
+      <li><a href="08-peserta-jadwal.html">
+        <span class="n">BAB 8</span>
+        <div class="j">Peserta &amp; jadwal</div>
+        <div class="k">Menarik peserta, memasang paket soal, menyusun ujian dan sesi.</div>
+      </a></li>
+      <li><a href="09-hari-h.html">
+        <span class="n">BAB 9</span>
+        <div class="j">Hari-H</div>
+        <div class="k">Penempatan kursi, pengawas, token, presensi, dan papan monitoring.</div>
+      </a></li>
+      <li><a href="10-hasil.html">
+        <span class="n">BAB 10</span>
+        <div class="j">Hasil &amp; laporan</div>
+        <div class="k">Publikasi nilai, ekspor laporan, dan membaca log aktivitas.</div>
+      </a></li>
+    </ol>
+
+    <div class="catat">
+      <strong>Tangkapan layar dalam panduan ini berasal dari sekolah contoh</strong> yang datanya sudah diisi. Nama siswa, nilai, dan kode di dalamnya berbeda dari sekolah Anda — yang sama adalah letak tombol dan urutan langkahnya.
+    </div>
+
+    <h2>Istilah yang dipakai</h2>
+    <ul>
+      <li><strong>Event</strong> — satu kegiatan ujian, misalnya &ldquo;Asesmen Sumatif Akhir Semester&rdquo;. Satu event berisi banyak ujian.</li>
+      <li><strong>Ujian</strong> — satu mata pelajaran yang diujikan, dengan paket soal dan durasinya sendiri.</li>
+      <li><strong>Sesi</strong> — satu kesempatan pengerjaan pada jam tertentu. Satu ujian bisa punya dua sesi, misalnya pagi dan siang.</li>
+      <li><strong>Peserta</strong> — siswa yang didaftarkan ke event. Mereka baru punya kursi setelah ditempatkan ke ruang.</li>
+    </ul>
+
+    
+  </section>
+<section class="bab">
+    <h1>1. Masuk &amp; beranda</h1>
+    <p class="kepala">Akun Admin dibuatkan sekolah. Tidak ada pendaftaran mandiri, dan tidak ada tautan aktivasi.</p>
+
+    <p>Seluruh peran masuk lewat layar yang sama. Aplikasi yang menentukan ke mana Anda diarahkan sesudahnya — Admin mendarat di ringkasan sekolah, bukan di daftar event.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Buka alamat aplikasi. Layar pertama meminta dua hal: <strong>username</strong> dan sandi.</p>
+        <figure>
+          <img src="gambar/01-masuk.png" alt="Layar masuk SATRIA CBT dengan kolom username dan password">
+          <figcaption>Isi username yang diberikan sekolah — bukan alamat surel, meskipun bentuknya mirip.</figcaption>
+        </figure>
+      </li>
+      <li>
+        <p>Tekan <strong>Masuk</strong>. Anda akan diarahkan ke <strong>Ringkasan sekolah</strong>.</p>
+      </li>
+    </ol>
+
+    <h3>Bila sandi tidak terbaca</h3>
+    <p>Tombol bergambar mata di dalam kolom sandi menampilkan isinya sementara. Sandi tetap tersembunyi secara bawaan — tombol itu hanya untuk memeriksa apa yang baru saja diketik.</p>
+
+    <figure>
+      <img src="gambar/01-masuk-sandi.png" alt="Kolom sandi dengan tombol mata ditekan, isi sandi terlihat sebagai teks biasa">
+      <figcaption>Sekali tekan menampilkan, sekali tekan lagi menyembunyikan. Kolomnya tidak mengosongkan isi saat berganti.</figcaption>
+    </figure>
+
+    <div class="catat">
+      <strong>Jangan menampilkan sandi di layar yang diproyeksikan.</strong> Tombol ini berguna saat membacakan akun siswa di ruang ujian; ia berbahaya bila ditekan di layar yang terlihat seluruh kelas.
+    </div>
+
+    <div class="catat hati">
+      <strong>Lupa sandi?</strong> Sandi tidak bisa diatur ulang dari layar masuk. Hanya Admin lain — atau pemasang aplikasi — yang bisa menggantinya lewat menu Pengguna.
+    </div>
+
+    <h2>Apa yang dikatakan beranda</h2>
+
+    <p>Beranda menjawab satu pertanyaan: <em>apa yang sedang berjalan hari ini?</em> Tiga bagiannya diurutkan sesuai kepentingan.</p>
+
+    <figure>
+      <img src="gambar/01-beranda.png" alt="Beranda Admin menampilkan ringkasan sekolah, event berjalan, tahun ajaran, dan menu yang paling sering dibuka">
+      <figcaption>Ringkasan sekolah: jumlah data pokok, event yang sedang berjalan, dan pintasan ke menu yang paling sering dibuka.</figcaption>
+    </figure>
+
+    <h3>Di ponsel</h3>
+    <p>Pada layar sempit, kartu keterangan menyusut menjadi kepala, dan formulirnya naik sehingga kedua kolom isian dan tombol Masuk terbaca tanpa menggulir.</p>
+
+    <figure class="sempit">
+      <img src="gambar/01-masuk-ponsel.png" alt="Layar masuk pada ponsel: merek di atas, lalu kolom username, sandi, dan tombol Masuk dalam satu layar">
+      <figcaption>Layar masuk di ponsel 390×844.</figcaption>
+    </figure>
+
+    <h3>Event berjalan</h3>
+    <p>Bagian ini <strong>hanya</strong> menampilkan event yang statusnya masih aktif. Event yang sudah selesai atau diarsipkan tidak muncul di sini — dan itu disengaja: beranda yang menampilkan event selesai membuat Admin membuka kegiatan yang sudah tidak berjalan.</p>
+
+    <h3>Event aktif di sidebar</h3>
+    <p>Perhatikan kotak biru di sidebar kiri: <strong>Event aktif</strong>. Sekali Anda membuka sebuah event, ia tertinggal di situ, dan seluruh menu event (Kepanitiaan, Peserta, Jadwal, dan seterusnya) berbicara tentang event itu. Berpindah event berarti kembali ke <strong>Daftar event</strong> lalu memilih yang lain.</p>
+
+    <div class="catat">
+      <strong>Sidebar punya dua lapis.</strong> Lapis atas adalah menu sekolah — berlaku untuk semua event. Lapis bawah, di bawah judul &ldquo;Event aktif&rdquo;, hanya muncul setelah sebuah event dibuka, dan isinya milik event itu. Bingung mencari menu? Perhatikan lapis mana yang sedang Anda lihat.
+    </div>
+
+    <h3>Yang paling sering dibuka</h3>
+    <p>Daftar pintasan ini dihitung dari riwayat pemakaian, bukan dipilih manual. Pada sekolah yang baru dipasang, daftarnya masih pendek — itu wajar.</p>
+
+    
+  </section>
+<section class="bab">
+    <h1>2. Menyiapkan sekolah</h1>
+    <p class="kepala">Dikerjakan sekali di awal. Empat laman, dan hanya satu di antaranya yang memengaruhi jalannya ujian.</p>
+
+    <p>Bab ini bukan tentang mengisi kolom. Yang perlu Anda pahami adalah <strong>mana yang mengikat</strong>: satu salah isi di sini bisa membuat jam sesi ujian meleset beberapa jam tanpa pesan galat apa pun.</p>
+
+    <h2>Profil sekolah</h2>
+
+    <figure>
+      <img src="gambar/02-profil-sekolah.png" alt="Laman Profil sekolah dengan bagian Identitas, Kontak &amp; waktu, Logo, Papan publik pengawas, dan Status">
+      <figcaption>Profil sekolah. Perhatikan bagian <strong>Kontak &amp; waktu</strong> — di sanalah zona waktu berada.</figcaption>
+    </figure>
+
+    <h3>Zona waktu — satu-satunya isian yang benar-benar berbahaya</h3>
+    <p>Aplikasi ini menyimpan jadwal sebagai jam dinding sekolah. Zona waktu menentukan jam berapa &ldquo;07.00&rdquo; itu sebenarnya. Bila salah, tidak ada galat: aplikasi tetap berjalan, sesi tetap terbuka, hanya saja <strong>terbuka beberapa jam lebih awal atau lebih lambat</strong> dari yang Anda maksud.</p>
+
+    <div class="catat hati">
+      <strong>Zona waktu tidak boleh diubah setelah ada event berjalan.</strong> Mengubahnya menggeser jam seluruh sesi yang sudah tersimpan. Tetapkan sekali, di awal, dan biarkan.
+    </div>
+
+    <p>Tiga pilihan yang tersedia:</p>
+    <ul>
+      <li><strong>WIB</strong> — Asia/Jakarta (UTC+7)</li>
+      <li><strong>WITA</strong> — Asia/Makassar (UTC+8)</li>
+      <li><strong>WIT</strong> — Asia/Jayapura (UTC+9)</li>
+    </ul>
+
+    <h3>NPSN dan kode sekolah terkunci</h3>
+    <p>Kedua kolom bertanda <em>terkunci</em>. NPSN dipakai untuk mengenali sekolah Anda di antara banyak sekolah lain, dan kode internal dipakai aplikasi. Bila salah, hubungi pemasang aplikasi — bukan diubah sendiri.</p>
+
+    <h3>Logo</h3>
+    <p>Logo muncul di kop berita acara, laporan hasil, dan kartu peserta. Unggahannya lewat tombol <strong>Ganti logo</strong> tersendiri, bukan menyatu dengan tombol <strong>Simpan profil</strong> — supaya menyimpan perubahan alamat tidak ikut mengunggah ulang berkas.</p>
+
+    <h3>Papan publik pengawas</h3>
+    <p>Saklar di bagian ini menyalakan alamat publik <code>/papan/&lt;slug&gt;</code>: satu halaman tanpa login yang menampilkan sesi yang sedang berjalan. Halaman itu dibuka pengawas di HP, atau ditempel di layar ruang guru.</p>
+
+    <div class="catat">
+      <strong>Mematikan berarti mematikan.</strong> Saat dimatikan, alamatnya benar-benar lenyap — bukan hanya disembunyikan. Orang yang menyimpan tautannya tidak bisa lagi membukanya. Nyalakan hanya bila sekolah Anda memang butuh papan itu.
+    </div>
+
+    <h2>Identitas aplikasi</h2>
+
+    <figure>
+      <img src="gambar/02-identitas-aplikasi.png" alt="Laman Identitas aplikasi dengan kolom nama situs, nama pendek, deskripsi, ikon, dan warna tema">
+      <figcaption>Identitas aplikasi terpisah dari profil sekolah: ini yang dibaca peramban, bukan yang tercetak di laporan.</figcaption>
+    </figure>
+
+    <p>Bagian ini tidak memengaruhi ujian sama sekali. Isinya yang dibaca peramban: judul tab, ikon, dan warna bilah atas di HP.</p>
+
+    <ul>
+      <li><strong>Nama situs</strong> — tampil di judul tab dan pratinjau tautan saat dibagikan.</li>
+      <li><strong>Nama pendek</strong> — maksimal 12 karakter. Android memotongnya di tengah kata bila lebih panjang.</li>
+      <li><strong>Deskripsi</strong> — meta description, dibaca mesin pencari dan WhatsApp saat tautan dibagikan.</li>
+      <li><strong>Ikon</strong> — tiga jenis: favicon (tab), ikon (layar beranda), dan apple (iOS).</li>
+    </ul>
+
+    <h2>Pengaturan sekolah</h2>
+
+    <figure>
+      <img src="gambar/03-pengaturan.png" alt="Laman Pengaturan sekolah dengan tab Ujian, Keamanan, Nilai, AI, dan Notifikasi">
+      <figcaption>Pengaturan bawaan. Nilai di sini dipakai event <strong>yang dibuat berikutnya</strong>, bukan event yang sudah ada.</figcaption>
+    </figure>
+
+    <p>Lima tab: <strong>Ujian</strong>, <strong>Keamanan</strong>, <strong>Nilai</strong>, <strong>AI</strong>, dan <strong>Notifikasi</strong>.</p>
+
+    <p>Tiga kolom pada tab Ujian yang perlu dipahami:</p>
+    <ul>
+      <li><strong>Durasi token berlaku</strong> — berapa lama token sesi tetap sah setelah dibuka pengawas. Terlalu pendek: pengawas harus membacakan ulang di tengah ujian. Terlalu panjang: token yang bocor tetap berlaku sepanjang hari.</li>
+      <li><strong>Simpan otomatis tiap</strong> — jeda antar penyimpanan jawaban. Menaikkannya mengurangi beban server tetapi memperbesar jawaban yang hilang bila perangkat siswa mati.</li>
+      <li><strong>Ambang pelanggaran bawaan</strong> — jumlah pelanggaran sebelum ujian siswa terkunci.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Ini nilai bawaan, bukan nilai yang berlaku.</strong> Setiap event menyimpan salinannya sendiri saat dibuat. Mengubah angka di sini <em>tidak</em> mengubah event yang sudah ada — buka eventnya bila ingin mengubahnya.
+    </div>
+
+    
+  </section>
+<section class="bab">
+    <h1>3. Tahun ajaran</h1>
+    <p class="kepala">Wadah yang menaungi kelas, siswa, dan event. Tanpa satu pun tahun ajaran aktif, event tidak bisa dibuat.</p>
+
+    <p>Ini bukan formalitas administrasi. Tahun ajaran menentukan <strong>kelas mana yang dihitung &ldquo;kelas sekarang&rdquo;</strong> — dan karena itu menentukan siswa mana yang bisa ditarik menjadi peserta ujian. Aplikasi menolak membuat event tanpa tahun ajaran aktif, dan penolakannya berupa kalimat yang menyuruh Anda kembali ke sini.</p>
+
+    <figure>
+      <img src="gambar/04-tahun-ajaran.png" alt="Laman Tahun ajaran &amp; semester dengan tombol Tambah tahun ajaran, Tutup tahun ajaran, Tambah semester, dan Aktifkan">
+      <figcaption>Tahun ajaran dan semester berada di satu laman. Keduanya berpasangan: aktivasi tahun tidak otomatis mengaktifkan semester.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Tambah tahun ajaran</strong>. Isi nama (misalnya <code>2026/2027</code>), tanggal mulai, dan tanggal selesai.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Aktifkan</strong> pada tahun ajaran yang baru dibuat.</p>
+      </li>
+      <li>
+        <p>Tambahkan semesternya lewat <strong>Tambah semester</strong> — Ganjil dan Genap — lalu tekan <strong>Aktifkan</strong> pada salah satunya.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Tahun aktif dan semester aktif adalah dua hal berbeda.</strong> Mengaktifkan tahun ajaran tidak mengaktifkan semesternya. Event baru mengambil <em>keduanya</em>, dan bila semester belum aktif, event lahir dengan semester kosong — lalu kesiapan event melaporkannya sebagai belum lengkap tanpa menjelaskan sebabnya dengan gamblang.
+    </div>
+
+    <h2>Menutup tahun ajaran</h2>
+    <p>Tombol <strong>Tutup tahun ajaran</strong> tidak menghapus apa pun. Ia hanya menandai bahwa tahun itu sudah berakhir, sehingga daftar kelas dan siswa berhenti menampilkannya sebagai pilihan aktif. Riwayatnya tetap ada dan tetap bisa dibaca.</p>
+
+    <div class="catat">
+      <strong>Menutup bukan membatalkan.</strong> Event yang masih berjalan di tahun ajaran yang Anda tutup tetap berjalan. Bila ingin menghentikannya, itu dilakukan per event — lihat <a href="07-event.html">Bab 7</a>.
+    </div>
+
+    <h2>Satu tahun aktif pada satu waktu</h2>
+    <p>Menekan <strong>Aktifkan</strong> pada tahun ajaran lain otomatis menonaktifkan yang sedang aktif. Tidak ada keadaan dua tahun aktif sekaligus, dan karenanya tidak ada pertanyaan &ldquo;kelas yang mana yang dipakai?&rdquo; saat menarik peserta.</p>
+
+    
+  </section>
+<section class="bab">
+    <h1>4. Kelas &amp; mata pelajaran</h1>
+    <p class="kepala">Siapa duduk di kelas mana, dan siapa mengajar apa. Dua laman, dan keduanya bisa diisi massal lewat berkas.</p>
+
+    <h2>Kelas</h2>
+
+    <figure>
+      <img src="gambar/04-kelas.png" alt="Laman Kelas dengan kolom Kelas, Tingkat, Wali kelas, Siswa, dan Status">
+      <figcaption>Kelas dikelompokkan per tahun ajaran. Angka pada kolom <strong>Siswa</strong> dihitung dari keanggotaan, bukan diisi manual.</figcaption>
+    </figure>
+
+    <p>Kelas punya tiga hal yang dipakai aplikasi:</p>
+    <ul>
+      <li><strong>Tingkat</strong> — dipakai menyaring mata pelajaran yang relevan saat memasang paket soal.</li>
+      <li><strong>Wali kelas</strong> — hanya keterangan; tidak memberi hak akses apa pun.</li>
+      <li><strong>Anggota</strong> — siswa yang masuk kelas ini. Daftar inilah yang ditarik menjadi peserta event.</li>
+    </ul>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Tambah kelas</strong>, isi nama dan tingkatnya.</p>
+      </li>
+      <li>
+        <p>Klik nama kelas untuk membuka daftar anggotanya, lalu tambahkan siswa.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Kelas tanpa anggota menghasilkan event tanpa peserta.</strong> Tidak ada galat saat menarik peserta dari kelas kosong — jumlahnya saja yang nol, dan event terlihat siap padahal tidak ada seorang pun yang akan mengerjakan.
+    </div>
+
+    <h2>Mata pelajaran</h2>
+
+    <figure>
+      <img src="gambar/04-mapel.png" alt="Laman Mata pelajaran dikelompokkan per tingkat, dengan tombol Impor dan Tambah mapel">
+      <figcaption>Mata pelajaran dikelompokkan per tingkat. Angka pada tiap kelompok menunjukkan berapa penugasan guru yang sudah ada.</figcaption>
+    </figure>
+
+    <p>Mata pelajaran dikelompokkan menurut tingkat dengan sengaja: satu mapel yang sama bisa ada di beberapa tingkat, dan daftar rata membuat keduanya sulit dibedakan.</p>
+
+    <h3>Menugaskan guru ke mata pelajaran</h3>
+    <p>Mapel yang belum punya guru tidak bisa dipakai untuk mengajar, tetapi <strong>tetap bisa diujikan</strong>. Yang menolak hanyalah penugasan mengajar — bukan pembuatan ujian.</p>
+
+    <div class="catat">
+      <strong>Guru tidak bisa menulis soal untuk mapel yang tidak diampu.</strong> Bila Guru mengeluh daftar mapelnya kosong, periksa di sini: kemungkinan besar penugasannya belum dibuat, bukan aplikasinya rusak.
+    </div>
+
+    <h2>Mengisi massal lewat berkas</h2>
+
+    <p>Baik kelas maupun mata pelajaran punya tombol <strong>Impor</strong>. Keduanya bekerja sama: unduh template, isi, unggah, lalu periksa pratinjaunya <em>sebelum</em> apa pun disimpan.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Impor</strong>, unduh templatenya, isi di luar aplikasi.</p>
+      </li>
+      <li>
+        <p>Unggah. Aplikasi menampilkan pratinjau baris per baris — mana yang akan dibuat, mana yang akan diperbarui, dan mana yang ditolak beserta alasannya.</p>
+      </li>
+      <li>
+        <p>Periksa, lalu konfirmasi. Tidak ada yang tersimpan sebelum langkah ini.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Impor tidak menimpa diam-diam.</strong> Baris yang cocok dengan data yang sudah ada ditandai sebagai <em>pembaruan</em> pada pratinjau. Bila angkanya tidak seperti yang Anda duga, batalkan di langkah pratinjau — belum ada yang berubah.
+    </div>
+
+    
+  </section>
+<section class="bab">
+    <h1>5. Ruang &amp; pengguna</h1>
+    <p class="kepala">Ruang ujian beserta kapasitasnya, dan akun semua peran. Dua-duanya bisa diisi massal.</p>
+
+    <h2>Ruang ujian</h2>
+
+    <figure>
+      <img src="gambar/05-ruang.png" alt="Laman Ruang ujian dengan kolom Kode, Nama &amp; lokasi, Kapasitas, PC, dan Status">
+      <figcaption>Ruang ujian. Tombol <strong>Terbitkan tautan massal</strong> membuat tautan masuk untuk banyak ruang sekaligus.</figcaption>
+    </figure>
+
+    <p>Ruang menyimpan dua angka yang berbeda dan sering tertukar:</p>
+    <ul>
+      <li><strong>Kapasitas</strong> — berapa siswa bisa ditempatkan di ruang ini.</li>
+      <li><strong>PC</strong> — berapa perangkat tersedia. Angka ini keterangan, bukan pembatas; aplikasi tidak menolak penempatan karena jumlah PC kurang.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Kapasitas menentukan pembagian kursi.</strong> Bila total kapasitas seluruh ruang lebih kecil dari jumlah peserta, sebagian peserta tidak mendapat kursi saat penempatan dijalankan — dan itu baru kelihatan di <a href="09-hari-h.html">Bab 9</a>. Periksa angka ini sebelum hari-H.
+    </div>
+
+    <h3>Tautan masuk ruang dan kode pengawas</h3>
+
+    <figure>
+      <img src="gambar/05-ruang-detail.png" alt="Rincian satu ruang menampilkan tautan masuk ruang, riwayat tautan, dan kode pengawas">
+      <figcaption>Rincian satu ruang: tautan masuk, riwayatnya, dan — bila sudah diterbitkan — kode pengawas.</figcaption>
+    </figure>
+
+    <p>Ada dua hal berbeda di laman ini, dan keduanya sering tertukar:</p>
+    <ul>
+      <li><strong>Tautan masuk ruang</strong> — alamat yang dibuka pengawas untuk masuk ke ruang itu tanpa akun. Bisa dicabut kapan saja, dan yang sudah dicabut langsung berhenti bekerja.</li>
+      <li><strong>Kode pengawas</strong> — angka yang dibacakan kepada pengawas, dicetak pada kartu. Terpisah dari tautan, dan punya masa berlaku sendiri.</li>
+    </ul>
+
+    <p>Tautan yang tercetak pada kartu tidak bisa dibatalkan oleh penerbitan ulang kode. Karena itu tombol <strong>Terbitkan ulang</strong> hanya menyentuh baris yang belum punya kode — kartu yang sudah di tangan pengawas tidak mati mendadak.</p>
+
+    <h2>Pengguna</h2>
+
+    <figure>
+      <img src="gambar/05-pengguna.png" alt="Laman Pengguna dengan penyaring peran Siswa, Guru, Pengawas, Admin, serta tombol Impor dan Ekspor">
+      <figcaption>Pengguna. Hitungan per peran di atas tabel berlaku sebagai penyaring — tekan salah satunya untuk menyaring.</figcaption>
+    </figure>
+
+    <p>Empat peran, dan masing-masing melihat aplikasi yang sangat berbeda:</p>
+    <ul>
+      <li><strong>Admin</strong> — seluruh menu sekolah. Anda.</li>
+      <li><strong>Guru</strong> — bank soal, paket soal, dan koreksi uraian.</li>
+      <li><strong>Pengawas</strong> — portal ruang dan presensi. Tidak bisa melihat soal.</li>
+      <li><strong>Siswa</strong> — jadwal ujian, pengerjaan, dan nilai yang sudah dipublikasikan.</li>
+    </ul>
+
+    <h3>Mengganti username</h3>
+    <p>Username berdiri sendiri, bukan kolom di dalam form Ubah. Alasannya praktis: username tertempel di kartu login yang dipegang siswa, dan satu salah ketik yang tidak disadari langsung mengunci anak itu pada hari ujian. Tombolnya terpisah supaya tidak tertekan tanpa sengaja saat mengubah nama.</p>
+
+    <div class="catat">
+      <strong>Username harus unik di seluruh aplikasi</strong>, bukan hanya di sekolah Anda. Bila ditolak sebagai &ldquo;sudah dipakai&rdquo;, tambahkan pembeda — misalnya angka tahun masuk.
+    </div>
+
+    <h3>Reset sandi</h3>
+    <p>Tombol <strong>Reset</strong> mengembalikan sandi ke sandi bawaan aplikasi. Sampaikan ke pemilik akun bahwa sandi lama tidak berlaku lagi — tidak ada surat pemberitahuan otomatis.</p>
+
+    <h2>Impor pengguna secara massal</h2>
+
+    <figure>
+      <img src="gambar/05-impor.png" alt="Laman Impor pengguna dengan bagian Pilih berkas dan Riwayat impor">
+      <figcaption>Impor pengguna menerima XLSX atau CSV, maksimal 2 MB dan 2.000 baris per berkas.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Unduh template, isi satu baris per pengguna, tentukan perannya di kolom yang tersedia.</p>
+      </li>
+      <li>
+        <p>Unggah. Pratinjau menampilkan tiap baris: dibuat, diperbarui, atau ditolak beserta alasannya.</p>
+      </li>
+      <li>
+        <p>Konfirmasi. Baru pada langkah ini data tersimpan.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Format .xls lama tidak didukung.</strong> Simpan ulang sebagai .xlsx atau .csv. Berkas yang lebih dari 2.000 baris harus dipecah — impor tidak memotongnya sendiri, ia menolak seluruh berkas.
+    </div>
+
+    <h3>Kartu akun</h3>
+    <p>Setelah akun jadi, tombol <strong>Ekspor</strong> dapat menghasilkan kartu login untuk dicetak dan dibagikan. Satu akun menghasilkan satu halaman PDF; banyak akun sekaligus menghasilkan satu berkas ZIP — dan itu memakan waktu lebih lama, bukan gagal.</p>
+
+    
+  </section>
+<section class="bab">
+    <h1>6. Bank soal</h1>
+    <p class="kepala">Melihat soal yang disusun Guru. Admin membaca, tidak menulis — dan perbedaan itu disengaja.</p>
+
+    <figure>
+      <img src="gambar/06-bank-soal.png" alt="Laman Bank soal Admin dengan kolom Kode, Soal, Jenis, Tingkat, Mapel, Dipakai, dan Status, serta panel pratinjau di kanan">
+      <figcaption>Bank soal versi Admin. Mengklik satu baris membuka pratinjau soalnya di panel kanan, termasuk kunci jawaban.</figcaption>
+    </figure>
+
+    <p>Laman ini lahir dari satu masalah nyata: satu-satunya pintu ke bank soal tadinya adalah konsol Guru, lengkap dengan tombol Builder, Impor, dan Generate AI — tombol-tombol yang server tolak untuk Admin. Admin yang membukanya melihat menu yang mengajarinya untuk tidak memercayai layarnya sendiri.</p>
+
+    <p>Sekarang Admin punya laman sendiri: tanpa satu pun tombol yang akan gagal.</p>
+
+    <h2>Apa yang bisa dan tidak bisa dilakukan</h2>
+
+    <ul>
+      <li><strong>Bisa</strong> — membaca soal, melihat kunci jawaban, rubrik uraian, pembahasan, dan media yang menempel.</li>
+      <li><strong>Tidak bisa</strong> — membuat, menyunting, menghapus, atau menerbitkan soal. Itu pekerjaan Guru, dan pembatasnya ada di server, bukan hanya di tombol yang disembunyikan.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Kenapa Admin tidak menulis soal.</strong> Soal adalah tanggung jawab guru mata pelajaran yang bersangkutan. Admin yang bisa menyuntingnya bisa mengubah kunci jawaban tanpa jejak yang jelas ke pemilik soalnya.
+    </div>
+
+    <h2>Kolom &ldquo;Dipakai&rdquo;</h2>
+    <p>Kolom ini menghitung di berapa paket soal butir itu dipakai. Angka nol berarti soal itu ada di bank tetapi tidak masuk paket mana pun — jadi tidak akan muncul di ujian mana pun, berapa pun event yang Anda buat.</p>
+
+    <h3>Status soal tidak menghalangi pemakaian</h3>
+    <p>Kolom <strong>Status</strong> berisi tiga nilai: <strong>Draf</strong> (masih disunting penulisnya), <strong>Siap</strong> (sudah boleh dipakai Guru lain), dan <strong>Arsip</strong> (tidak dipakai lagi, tetapi tidak dihapus karena dirujuk snapshot dan laporan nilai).</p>
+
+    <div class="catat">
+      <strong>Soal Draf tetap ikut ke ujian.</strong> Aplikasi tidak menyaring status saat Guru memasukkan soal ke paket, dan tidak menyaringnya lagi saat paket dibekukan ke ujian. Statusnya keterangan bagi Guru, bukan pembatas. Bila sebuah paket berisi soal yang belum selesai ditulis, soal itu tetap akan muncul di layar siswa.
+    </div>
+
+    <div class="catat hati">
+      <strong>Arsip bukan hapus.</strong> Soal yang diarsipkan tetap bisa dibaca di sini dan tetap muncul pada ujian yang sudah memakainya. Yang berubah hanya keterangannya di bank soal.</div>
+
+
+    <h2>Membaca soal dengan aman</h2>
+    <p>Panel pratinjau menampilkan soal sebagaimana siswa melihatnya, ditambah kunci dan pembahasan yang tidak dilihat siswa. Isinya lengkap untuk setiap jenis soal — pilihan ganda, uraian, rumpang, menjodohkan — karena bentuk kuncinya berbeda per jenis.</p>
+
+    <div class="catat">
+      <strong>Layar ini tidak boleh diproyeksikan.</strong> Panelnya memuat kunci jawaban. Bila sedang mengajar di depan kelas, tutup panelnya dulu.
+    </div>
+
+    
+  </section>
+<section class="bab">
+    <h1>7. Membuat event</h1>
+    <p class="kepala">Satu kegiatan ujian. Aplikasi menjaga sebelas syarat sebelum event boleh dibuka — dan itulah bagian yang paling sering mengejutkan.</p>
+
+    <h2>Daftar event</h2>
+
+    <figure>
+      <img src="gambar/07-event-daftar.png" alt="Daftar event dengan penyaring Berjalan, Draft, Selesai, dan Arsip, serta tombol Buat event">
+      <figcaption>Daftar event. Tombol penyaring di atas tabel menyaring menurut status — bukan sekadar keterangan.</figcaption>
+    </figure>
+
+    <p>Hanya ada satu event di sekolah contoh ini. Di sekolah yang sudah beberapa semester berjalan, daftarnya memanjang, dan penyaring status di atas tabel menjadi penting.</p>
+
+    <h2>Membuat event baru</h2>
+
+    <figure>
+      <img src="gambar/07-event-baru.png" alt="Formulir Buat event dengan bagian Identitas dan Ambang pelanggaran siswa">
+      <figcaption>Formulir event: identitas di atas, ambang pelanggaran di bawah.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Isi <strong>nama event</strong>. Pakai nama yang dikenali guru dan siswa — nama inilah yang tercetak di berita acara dan laporan hasil.</p>
+      </li>
+      <li>
+        <p>Pilih <strong>jenis</strong>, <strong>periode</strong>, dan pastikan <strong>tahun ajaran</strong> serta <strong>semester</strong> terisi.</p>
+      </li>
+      <li>
+        <p>Sesuaikan <strong>ambang pelanggaran</strong> bila perlu. Nilainya disalin dari Pengaturan sekolah saat event dibuat, lalu berdiri sendiri — mengubah Pengaturan kelak tidak mengubah event ini.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Simpan draft</strong>. Event lahir berstatus Draft, dan belum bisa dibuka.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Event lahir sebagai Draft, dan itu benar.</strong> Yang belum siap tidak boleh terlihat siswa. Status berikutnya hanya bisa dicapai setelah syaratnya terpenuhi.
+    </div>
+
+    <h2>Ringkasan dan sebelas langkah kesiapan</h2>
+
+    <figure>
+      <img src="gambar/07-event-ringkasan.png" alt="Ringkasan event menampilkan lima angka pokok dan daftar kesiapan dengan sepuluh butir berstatus ok">
+      <figcaption>Ringkasan event. Angka di atas adalah hitungan nyata; daftar di bawah adalah syarat yang dijaga aplikasi.</figcaption>
+    </figure>
+
+    <p>Setelah event dibuat, sidebar bertambah satu lapis: menu milik event itu. <strong>Ringkasan</strong> adalah halamannya, dan di situ ada daftar kesiapan.</p>
+
+    <figure>
+      <img src="gambar/07-kesiapan.png" alt="Tab Kesiapan menampilkan sebelas butir syarat, sepuluh berstatus ok dan satu berstatus belum">
+      <figcaption>Tab Kesiapan. Sebelas butir, dan satu di antaranya belum terpenuhi di sekolah contoh ini.</figcaption>
+    </figure>
+
+    <p>Sebelas butir itu, berurutan:</p>
+    <ol>
+      <li><strong>Identitas event lengkap</strong> — nama, jenis, periode.</li>
+      <li><strong>Tahun ajaran dan semester tersedia.</strong></li>
+      <li><strong>Kelas peserta ditetapkan</strong> — kelas mana yang ikut.</li>
+      <li><strong>Mata pelajaran ditetapkan</strong> — mapel apa saja yang diujikan.</li>
+      <li><strong>Peserta terdaftar</strong> — siswa yang benar-benar ikut.</li>
+      <li><strong>Jadwal ujian tersedia</strong> — ada sesi, dan sesinya punya ruang.</li>
+      <li><strong>Paket soal ditetapkan</strong> — setiap mapel punya paketnya.</li>
+      <li><strong>Ruang teralokasi.</strong></li>
+      <li><strong>Pengawas ditugaskan.</strong></li>
+      <li><strong>Token tersedia.</strong></li>
+      <li><strong>Kapasitas ruang mencukupi</strong> — jumlah kursi tidak kurang dari jumlah peserta.</li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Butir ke-11 adalah yang paling sering menghalangi.</strong> Jumlah kursi dihitung dari kapasitas seluruh ruang yang teralokasi. Ruang yang kapasitasnya belum diisi — nilai bawaannya nol — membuat butir ini gagal meski peserta dan ruangnya sudah ada. Perbaiki di <a href="05-ruang-pengguna.html">Bab 5</a>.
+    </div>
+
+    <div class="catat">
+      <strong>Butir ke-10 wajar berstatus belum.</strong> Token baru terbit saat sesi dibuka pengawas. Event yang jadwalnya belum tiba akan selalu melaporkan butir ini belum — dan itu bukan kesalahan yang perlu Anda betulkan.
+    </div>
+
+    <h2>Status event dan perjalanannya</h2>
+
+    <p>Event bergerak satu arah, dengan satu pengecualian:</p>
+    <p><code>Draft → Persiapan → Siap → Berjalan → Selesai → Arsip</code></p>
+
+    <ul>
+      <li><strong>Draft</strong> — baru dibuat.</li>
+      <li><strong>Persiapan</strong> — sedang dilengkapi.</li>
+      <li><strong>Siap</strong> — gerbang kesiapan lulus. Hanya dari sini event bisa dibuka.</li>
+      <li><strong>Berjalan</strong> — ada sesi yang sedang dikerjakan siswa.</li>
+      <li><strong>Selesai</strong> — seluruh sesi tuntas. Aplikasi memindahkannya sendiri, bukan Anda.</li>
+      <li><strong>Arsip</strong> — disimpan, tidak lagi aktif.</li>
+    </ul>
+
+    <p><strong>Dibatalkan</strong> adalah satu-satunya status final: dari sana tidak ada jalan kembali. Hati-hati menekannya.</p>
+
+    <h3>Membuka kembali event yang diarsipkan</h3>
+    <p>Mengarsipkan bukan menghapus, dan bisa dibatalkan. Dari event yang berstatus Arsip, tombol pemulihan tersedia dan tujuannya bisa Anda pilih — Draft, Persiapan, Siap, Berjalan, atau Selesai — bukan dikunci ke satu tujuan.</p>
+
+    <div class="catat">
+      <strong>Event yang Selesai atau Arsip tidak lagi muncul di sisi siswa.</strong> Jadwal mereka, ruang ujian mereka, dan papan publik pengawas berhenti menampilkannya. Itu yang diinginkan: kegiatan yang sudah lewat tidak boleh menuntut perhatian anak yang sedang menyiapkan ujian berikutnya.
+    </div>
+
+    <h3>Menghapus event</h3>
+    <p>Event hanya bisa dihapus bila statusnya <strong>Draft</strong> dan belum punya ujian. Tombolnya tetap terlihat pada event lain, dan penolakannya berupa kalimat yang menjelaskan apa yang harus dilakukan — bukan tombol yang hilang tanpa keterangan.</p>
+
+    
+  </section>
+<section class="bab">
+    <h1>8. Peserta &amp; jadwal</h1>
+    <p class="kepala">Menarik peserta dari kelas, memasang paket soal ke mata pelajaran, lalu menyusun ujian dan sesinya.</p>
+
+    <p>Tiga pekerjaan di bab ini berurutan dan saling menunggu. Peserta tidak punya kursi sebelum ruangnya dialokasikan; sesi tidak bisa dibuat sebelum ujian ada; ujian tidak bisa dibuat tanpa paket soal. Aplikasi memaksa urutannya lewat daftar kesiapan di <a href="07-event.html">Bab 7</a>.</p>
+
+    <h2>Kepanitiaan</h2>
+
+    <figure>
+      <img src="gambar/08-panitia.png" alt="Laman Kepanitiaan dengan kolom Nama, Jabatan, Cakupan, Kontak, Status, dan Kode pengawas">
+      <figcaption>Kepanitiaan. Kolom <strong>Cakupan</strong> menentukan ruang mana yang dijaga orang itu.</figcaption>
+    </figure>
+
+    <p>Panitia mendaftar dulu, sebelum hari-H, karena <a href="09-hari-h.html">pengawas ruang</a> diambil dari daftar ini.</p>
+
+    <ul>
+      <li><strong>Tambahkan massal</strong> — satu jabatan satu cakupan, diisi berkelompok.</li>
+      <li><strong>Kode pengawas</strong> — diterbitkan per orang, dan bisa dicetak pada kartu. Kartu yang sudah dicetak tidak mati oleh penerbitan berikutnya.</li>
+      <li><strong>Terbitkan kode massal</strong> — hanya menyentuh baris yang belum punya kode.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Nama panitia diambil dari akun pengguna</strong>, bukan diketik bebas. Panitia yang belum punya akun harus dibuatkan dulu di <a href="05-ruang-pengguna.html">Bab 5</a>.
+    </div>
+
+    <h2>Pengumuman</h2>
+
+    <figure>
+      <img src="gambar/08-pengumuman.png" alt="Laman Pengumuman dengan tombol Tulis pengumuman">
+      <figcaption>Pengumuman event — satu-satunya tulisan Admin yang dibaca siswa.</figcaption>
+    </figure>
+
+    <p>Pengumuman menempel pada event, bukan pada sekolah. Pertanyaan &ldquo;apa yang perlu dibaca siswa&rdquo; selalu tentang satu kegiatan tertentu, dan pengumuman ujian semester tidak relevan bagi siswa yang sedang menghadapi ujian lain.</p>
+
+    <h2>Kelas &amp; peserta</h2>
+
+    <figure>
+      <img src="gambar/08-peserta.png" alt="Laman Kelas &amp; peserta dengan tabel NIS, Nama, Kelas, Sumber, Status serta tombol Tarik peserta, Simpan kelas, Simpan ruang">
+      <figcaption>Kelas &amp; peserta. Kolom <strong>Sumber</strong> menunjukkan dari mana siswa itu masuk.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Centang kelas yang ikut di bagian <strong>Kelas peserta</strong>, lalu <strong>Simpan kelas</strong>. Ini menentukan keranjang siswa yang tersedia.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Tarik peserta</strong>. Siswa dari kelas terpilih masuk ke daftar.</p>
+      </li>
+      <li>
+        <p>Bila ada yang perlu dikeluarkan, tandai lalu <strong>Kecualikan terpilih</strong> — bukan dihapus dari daftar.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Mengubah kelas peserta tidak menarik ulang otomatis.</strong> Menambah kelas di langkah 1 hanya memperluas keranjang. Siswa dari kelas baru itu baru masuk setelah <strong>Tarik peserta</strong> ditekan lagi. Event yang terlihat &ldquo;kurang peserta&rdquo; biasanya karena langkah ini terlewat.
+    </div>
+
+    <h3>&ldquo;Kecualikan&rdquo; berbeda dari &ldquo;hapus&rdquo;</h3>
+    <p>Peserta yang dikecualikan tetap tercatat pernah terdaftar, dan bisa dikembalikan. Menghapus akan membuat riwayatnya hilang — dan nilai yang sudah ada menjadi tidak bisa ditelusuri ke siapa pemiliknya.</p>
+
+    <h2>Mata pelajaran &amp; paket soal</h2>
+
+    <figure>
+      <img src="gambar/08-mapel.png" alt="Laman Mata pelajaran &amp; paket soal dengan bagian Tambah / lepas mapel dan Paket soal">
+      <figcaption>Dua keputusan terpisah di satu laman: mapel apa yang diujikan, dan paket mana yang dipasang.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Centang mapel yang diujikan, lalu <strong>Simpan mapel</strong>.</p>
+      </li>
+      <li>
+        <p>Untuk tiap mapel, tekan <strong>Ganti</strong> pada kolom paket soal, pilih paketnya, lalu <strong>Simpan</strong>.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Memasang paket menulis riwayat.</strong> Setiap pemasangan mencatat siapa yang memasang dan kapan. Karena itu tombolnya terpisah dari penyimpanan mapel — mengganti paket bukan sekadar mengubah pilihan, ia meninggalkan jejak.
+    </div>
+
+    <p>Paket yang dipasang akan <strong>dibekukan</strong> saat ujian dibuat: isinya disalin ke ujian, sehingga menyunting soal di bank soal kelak <em>tidak</em> mengubah ujian yang sudah berjalan.</p>
+
+    <figure>
+      <img src="gambar/08-soal.png" alt="Laman Soal per mata pelajaran menampilkan kelompok mapel dan daftar butir soal dengan kolom No, Kode, Judul soal, Jenis, Tingkat, Poin, Ket.">
+      <figcaption>Soal per mata pelajaran — daftar butir yang benar-benar terpasang, lengkap dengan keterangan bila ada yang perlu dicermati.</figcaption>
+    </figure>
+
+    <p>Laman <em>Soal per mata pelajaran</em> memperlihatkan butir yang sudah terpasang, dan menandai yang <strong>basi</strong> — soal di bank soal yang sudah disunting setelah dibekukan. Ujian tetap memakai salinan lamanya, jadi yang Anda lihat di laman itu adalah yang benar-benar dikerjakan siswa.</p>
+
+    <h2>Jadwal &amp; sesi</h2>
+
+    <figure>
+      <img src="gambar/08-jadwal.png" alt="Laman Jadwal &amp; sesi dengan bagian Validasi jadwal dan tabel Ujian di event ini">
+      <figcaption>Jadwal &amp; sesi. Tombol <strong>Deteksi konflik</strong> memeriksa benturan sebelum sesi dibuka.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Tambah ujian</strong>: pilih mapel, paket, dan durasinya. Satu mapel yang diujikan menjadi satu ujian.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Tambah sesi</strong> pada ujian itu: tentukan tanggal, jam mulai, dan jam berakhir paksa.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Deteksi konflik</strong>. Benturan ruang, peserta, dan pengawas dilaporkan di sini.</p>
+      </li>
+    </ol>
+
+    <h3>Tiga waktu yang berbeda</h3>
+    <ul>
+      <li><strong>Jam buka</strong> — sejak kapan siswa boleh masuk.</li>
+      <li><strong>Jam tutup akses</strong> — batas terakhir siswa baru boleh mulai.</li>
+      <li><strong>Akhir paksa</strong> — pada jam ini seluruh pengerjaan dihentikan, apa pun sisanya.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Akhir paksa memotong, bukan memperpanjang.</strong> Siswa yang mulai terlambat tetap kehilangan waktu: durasi ujian tidak digeser mengikuti jam mulainya. Isi akhir paksa dengan jam sekolah benar-benar berakhir, bukan jam mulai ditambah durasi.
+    </div>
+
+    <h3>Status sesi</h3>
+    <p>Sesi bergerak <code>Draft → Siap → Berjalan → Selesai</code>. Tombol <strong>Buka</strong> pada sesi yang masih Draft akan ditolak — sesi harus <em>Siap</em> dulu, dan itu lewat tombol ubah sesi. Sesi yang batal terselenggara memakai <strong>Batalkan</strong>, bukan Hapus: sesi yang sudah punya berita acara tidak bisa dihapus.</p>
+
+    <h3>Sesi tidak ditutup dengan sendirinya?</h3>
+    <p>Setiap menit aplikasi memeriksa sesi yang sudah melewati akhir paksa dan menutupnya sendiri. Bila sesi masih berstatus Berjalan jauh setelah jamnya lewat, periksa apakah penjadwal aplikasi (<code>ujian:tutup-sesi</code>) benar-benar berjalan di server.</p>
+
+    
+  </section>
+<section class="bab">
+    <h1>9. Hari-H</h1>
+    <p class="kepala">Penempatan kursi, pengawas, token, presensi, dan papan pemantauan. Bab terpanjang, karena inilah harinya.</p>
+
+    <h2>Penempatan peserta ke ruang</h2>
+
+    <figure>
+      <img src="gambar/09-penempatan.png" alt="Laman Penempatan peserta ke ruang dengan pratinjau peta ruang, tabel kelayakan sesi, dan tombol Kocok ulang serta Sebar peserta">
+      <figcaption>Penempatan. Peta ruangnya berlaku sepanjang event, bukan per sesi.</figcaption>
+    </figure>
+
+    <p>Sampai langkah ini, peserta hanya terdaftar — belum punya kursi. Laman ini yang membagikannya, dan keputusan di sini <strong>dicetak lalu ditempel di pintu</strong>. Karena itu ada pratinjaunya lebih dulu.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Periksa <strong>Pratinjau peta ruang</strong>. Peta ini berlaku sepanjang event: sekali disebar, ia dipakai semua sesi.</p>
+      </li>
+      <li>
+        <p>Pilih <strong>Cara mengocok</strong> — <em>Campur antar kelas</em> untuk membaurkan kelas, atau <em>Berurutan per kelas</em> bila ingin anak satu kelas berdekatan.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Sebar peserta</strong>. Aplikasi membagi kursi dan menuliskan hasilnya.</p>
+      </li>
+      <li>
+        <p>Periksa tabel <strong>Kelayakan</strong>: tiap sesi menunjukkan berapa kursi terpakai dari kapasitas.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Menu</strong> <strong>Kocok ulang</strong> menghasilkan susunan yang <em>berbeda</em> dari sebelumnya, bukan sama. Aplikasi memakai benih acak tersimpan supaya hasilnya bisa dihitung ulang persis — itulah sebabnya denah bisa dicetak kapan saja dan tetap cocok dengan yang di layar siswa. Setiap kali dikocok ulang, benihnya diganti dan seluruh cetakan lama tidak berlaku lagi.
+    </div>
+
+    <div class="catat hati">
+      <strong>Sebar ulang setelah ada yang mengerjakan.</strong> Peserta yang sudah mulai ujian memegang kursinya. Bila Anda menyebar ulang di tengah ujian, susunan berubah tetapi pengerjaan yang sedang berjalan tidak — dan itu menghasilkan layar siswa yang tidak cocok dengan denah di pintu.
+    </div>
+
+    <h2>Denah tempat duduk</h2>
+
+    <figure>
+      <img src="gambar/09-denah.png" alt="Laman Denah tempat duduk menampilkan tata letak meja dan kursi">
+      <figcaption>Denah dihitung ulang dari kocokan yang tersimpan. Tidak ada susunan baru yang dibuat di laman ini.</figcaption>
+    </figure>
+
+    <p>Denah tersedia sebagai halaman dan sebagai PDF untuk ditempel di meja. Isinya dihitung dari kocokan yang sudah tersimpan — membuka laman ini tidak mengocok apa pun.</p>
+
+    <h2>Pengawas &amp; penempatan ruang</h2>
+
+    <figure>
+      <img src="gambar/09-pengawas.png" alt="Laman Pengawas &amp; penempatan ruang dengan kolom Ruang, Pengawas 1, Pengawas 2, dan Sesi">
+      <figcaption>Setiap ruang punya satu atau dua pengawas. Barisnya ruang-sesi: pengawas pagi belum tentu pengawas siang.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Tugaskan otomatis</strong>. Aplikasi mengisi ruang yang belum punya pengawas.</p>
+      </li>
+      <li>
+        <p>Periksa hasilnya. Tekan <strong>Tugaskan</strong> pada baris tertentu untuk mengisi manual, atau <strong>Tukar pengawas</strong> untuk menukar dua penugasan sekaligus.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Satu pengawas tidak bisa berada di dua ruang pada jam yang sama.</strong> Bila penugasan ditolak dengan alasan itu, tugaskan orang lain — bukan memindahkan jamnya.
+    </div>
+
+    <p>Dua pengawas per ruang adalah <strong>saran</strong>, bukan syarat. Satu pengawas sudah cukup bagi aplikasi, dan kesiapan event tidak akan menghalangi Anda karenanya — tetapi ruang dengan satu pengawas lebih sulit ditangani saat ada kejadian.</p>
+
+    <h2>Token ujian</h2>
+
+    <figure>
+      <img src="gambar/09-token.png" alt="Laman Token ujian dengan bagian Token per sesi dan Riwayat pembukaan token">
+      <figcaption>Token per sesi, beserta riwayat siapa yang membukanya dan kapan.</figcaption>
+    </figure>
+
+    <p>Token adalah angka yang dibacakan pengawas di ruang supaya siswa bisa mulai. Ia <strong>per sesi</strong>, bukan per siswa.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Terbitkan token untuk sesi yang akan berjalan, lalu <strong>Cetak kartu token</strong> untuk dibawa pengawas.</p>
+      </li>
+      <li>
+        <p>Pengawas menekan <strong>Baca</strong> saat waktunya tiba, lalu membacakannya ke ruang.</p>
+      </li>
+      <li>
+        <p>Bila token bocor, tekan <strong>Cabut</strong>. Siswa yang sudah masuk tetap mengerjakan; siswa yang belum tidak bisa lagi memakainya.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Membaca token itu tindakan yang tercatat.</strong> Bagian <em>Riwayat pembukaan token</em> mencatat siapa membukanya dan kapan. Token yang dibuka di luar jadwal akan terlihat di situ — dan itu gunanya.
+    </div>
+
+    <h2>Presensi</h2>
+
+    <figure>
+      <img src="gambar/09-presensi.png" alt="Laman Presensi dengan tabel Mapel, Keadaan, Sesi, Peserta, Hadir, Tidak hadir, Belum diverifikasi">
+      <figcaption>Presensi per ruang-sesi. Di sinilah Admin mengoreksi catatan pengawas.</figcaption>
+    </figure>
+
+    <p>Presensi diisi pengawas dari portal ruang. Laman ini untuk <strong>memeriksa dan mengoreksi</strong>, bukan untuk mengisi dari nol.</p>
+
+    <p>Tiga angka yang perlu diperhatikan: <strong>Hadir</strong>, <strong>Tidak hadir</strong>, dan <strong>Belum diverifikasi</strong>. Angka ketiga yang paling sering terlupakan — siswa yang tidak pernah dipanggil statusnya, dan itu berbeda dari siswa yang dinyatakan tidak hadir.</p>
+
+    <h2>Monitoring</h2>
+
+    <figure>
+      <img src="gambar/09-monitoring.png" alt="Laman Monitoring dengan tabel per mapel dan keadaan sesi">
+      <figcaption>Papan pemantauan. Barisnya ruang-sesi, dan keadaannya diperbarui selama ujian berjalan.</figcaption>
+    </figure>
+
+    <p>Papan ini menjawab <em>siapa yang sedang mengerjakan, dan siapa yang bermasalah</em> — selama ujian berlangsung.</p>
+
+    <p>Yang bisa dilakukan dari sini, dan semuanya tercatat di log aktivitas:</p>
+    <ul>
+      <li><strong>Buka kunci</strong> — membuka pengerjaan yang terkunci karena pelanggaran.</li>
+      <li><strong>Reset</strong> — membatalkan pengerjaan terakhir dan menghapus nilainya, sehingga anak mengulang dari soal pertama.</li>
+      <li><strong>Hentikan</strong> — mengunci pengerjaan dengan pesan yang Anda tulis sendiri, dan pesan itulah yang dibaca siswa.</li>
+      <li><strong>Reset massal</strong> — melakukan reset untuk seluruh peserta satu ruang.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Reset menghapus nilai seorang anak.</strong> Ia tidak bisa dibatalkan. Bila yang Anda maksud hanya &ldquo;anak ini perlu melanjutkan&rdquo;, yang benar adalah <strong>Buka kunci</strong> — bukan reset.
+    </div>
+
+    <p>Tombol <strong>Lihat peserta</strong> membuka satu ruang di tab baru. Itu disengaja: papan lintas ruang disegarkan terus, dan membawanya pindah halaman berarti kehilangan tempat Anda di rekap.</p>
+
+    
+  </section>
+<section class="bab">
+    <h1>10. Hasil &amp; laporan</h1>
+    <p class="kepala">Menerbitkan nilai, mengekspor laporan, dan membaca jejak siapa mengubah apa.</p>
+
+    <h2>Publikasi hasil</h2>
+
+    <figure>
+      <img src="gambar/10-hasil.png" alt="Laman Publikasi hasil dengan tabel Ujian, Peserta, Objektif, Uraian dan tombol Publikasikan, Tarik publikasi, Kunci koreksi, Hitung ulang">
+      <figcaption>Publikasi hasil per event. Perhatikan angka pada kolom <strong>Uraian</strong> sebelum menekan Publikasikan.</figcaption>
+    </figure>
+
+    <p>Nilai tidak terlihat siswa sampai Anda menerbitkannya. Publikasi bekerja <strong>per event</strong>: satu tekanan menampilkan seluruh ujian di dalamnya.</p>
+
+    <ul>
+      <li><strong>Publikasikan</strong> — hasil mulai terlihat siswa.</li>
+      <li><strong>Tarik publikasi</strong> — mencabutnya kembali, dan sekaligus membuka kunci koreksi.</li>
+      <li><strong>Kunci koreksi</strong> — menghentikan perubahan nilai tanpa menarik publikasinya.</li>
+      <li><strong>Kirim pengumuman</strong> — memberi tahu siswa bahwa nilainya sudah bisa dilihat.</li>
+      <li><strong>Hitung ulang</strong> — memperbaiki angka setelah kunci jawaban dibetulkan.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Uraian yang belum dinilai memblokir publikasi.</strong> Selama masih ada jawaban uraian yang belum diberi nilai, penerbitan akan ditolak. Guru menilainya dari konsol Guru — bukan dari sini. Periksa kolom <strong>Uraian</strong> lebih dulu, dan hubungi guru mapelnya.
+    </div>
+
+    <h3>Mengatur apa yang terlihat</h3>
+    <p>Setelah dipublikasikan, dua saklar menentukan apa yang boleh dibaca siswa: <strong>nilai objektifnya saja</strong> atau <strong>beserta pembahasan</strong>. Keduanya bisa diubah kapan saja — selama publikasinya masih terbuka.</p>
+
+    <div class="catat">
+      <strong>Membuka koreksi tidak sama dengan menarik publikasi.</strong> Menekan <strong>Kunci koreksi</strong> menghentikan guru menyunting nilai, sementara siswa tetap melihat hasilnya. Menekan <strong>Tarik publikasi</strong> menyembunyikan hasilnya dari siswa. Dua hal yang berbeda, dan hanya satu di antaranya yang Anda maksud.
+    </div>
+
+    <h2>Laporan</h2>
+
+    <figure>
+      <img src="gambar/10-laporan.png" alt="Laman Laporan dengan tabel NIS, Nama, Kelas, Mata pelajaran, Ujian, Nilai objektif, Nilai uraian, Nilai akhir, Status serta tombol ekspor XLSX, CSV, PDF">
+      <figcaption>Laporan hasil. Lima tombol di atas memilih <em>bentuk laporan</em>; tiga tombol ekspor memilih <em>berkasnya</em>.</figcaption>
+    </figure>
+
+    <p>Laporan dikelompokkan menurut pertanyaan yang hendak dijawab:</p>
+    <ul>
+      <li><strong>Nilai per siswa</strong> — daftar lengkap dengan seluruh nilainya.</li>
+      <li><strong>Rekap kelas</strong> — rata-rata dan sebaran per kelas.</li>
+      <li><strong>Analisis butir</strong> — soal mana yang paling banyak dijawab salah. Berguna untuk menilai mutu soal, bukan mutu siswa.</li>
+      <li><strong>Kehadiran</strong> — rekap presensi.</li>
+      <li><strong>Pelanggaran</strong> — kejadian selama ujian berlangsung.</li>
+    </ul>
+
+    <p>Tiga format ekspor: <strong>XLSX</strong> untuk diolah, <strong>CSV</strong> untuk dipindah ke sistem lain, dan <strong>PDF</strong> untuk diserahkan atau diarsipkan.</p>
+
+    <div class="catat">
+      <strong>Analisis butir perlu data yang cukup.</strong> Pada ujian yang baru diikuti belasan siswa, angkanya belum bermakna. Jangan ambil keputusan tentang mutu soal dari ujian kecil.
+    </div>
+
+    <h2>Log aktivitas</h2>
+
+    <figure>
+      <img src="gambar/10-log.png" alt="Laman Log aktivitas dengan kolom Jam, Aktor, Aksi, Objek, IP dan tombol Saring serta Ekspor">
+      <figcaption>Log aktivitas. Pencatatannya berjalan sendiri; tidak ada yang perlu dinyalakan.</figcaption>
+    </figure>
+
+    <p>Log mencatat tindakan yang mengubah data: siapa, kapan, dari alamat IP mana. Termasuk tindakan dari bab ini — publikasi, penarikan, reset nilai, pembukaan kunci.</p>
+
+    <p>Pakai <strong>Saring</strong> untuk mempersempit menurut aktor, aksi, atau rentang waktu, lalu <strong>Ekspor</strong> bila perlu diserahkan sebagai bukti.</p>
+
+    <div class="catat">
+      <strong>Tidak ada tombol hapus di laman ini, dan itu tetap.</strong> Log yang bisa dihapus bukan log. Bila ada catatan yang menurut Anda keliru, catatan itu sendiri adalah informasi — bukan sesuatu yang perlu dibersihkan.
+    </div>
+
+    <h2>Setelah ujian selesai</h2>
+    <ol class="langkah">
+      <li>
+        <p>Pastikan seluruh sesi berstatus Selesai. Event berpindah ke Selesai sendiri setelah semua sesinya tuntas.</p>
+      </li>
+      <li>
+        <p>Periksa kolom <strong>Uraian</strong> di laman publikasi. Bila masih ada yang menunggu, koordinasikan dengan guru mapelnya.</p>
+      </li>
+      <li>
+        <p>Publikasikan, lalu beri tahu siswa.</p>
+      </li>
+      <li>
+        <p>Ekspor laporan yang dibutuhkan, lalu <strong>arsipkan</strong> eventnya. Mengarsipkan tidak menyembunyikan nilainya dari siswa — ia hanya menghentikan event itu tampil sebagai kegiatan aktif.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Mengarsipkan masih bisa dibatalkan.</strong> Event yang diarsipkan bisa dibuka kembali ke status mana pun Anda pilih. Yang benar-benar buntu hanya <strong>Batal</strong>.
+    </div>
+
+    
+  </section>
+  </main>
+</div>
+</body>
+</html>

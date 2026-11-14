@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9. Hari-H — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html" aria-current="page"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>9. Hari-H</h1>
+    <p class="kepala">Penempatan kursi, pengawas, token, presensi, dan papan pemantauan. Bab terpanjang, karena inilah harinya.</p>
+
+    <h2>Penempatan peserta ke ruang</h2>
+
+    <figure>
+      <img src="gambar/09-penempatan.png" alt="Laman Penempatan peserta ke ruang dengan pratinjau peta ruang, tabel kelayakan sesi, dan tombol Kocok ulang serta Sebar peserta">
+      <figcaption>Penempatan. Peta ruangnya berlaku sepanjang event, bukan per sesi.</figcaption>
+    </figure>
+
+    <p>Sampai langkah ini, peserta hanya terdaftar — belum punya kursi. Laman ini yang membagikannya, dan keputusan di sini <strong>dicetak lalu ditempel di pintu</strong>. Karena itu ada pratinjaunya lebih dulu.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Periksa <strong>Pratinjau peta ruang</strong>. Peta ini berlaku sepanjang event: sekali disebar, ia dipakai semua sesi.</p>
+      </li>
+      <li>
+        <p>Pilih <strong>Cara mengocok</strong> — <em>Campur antar kelas</em> untuk membaurkan kelas, atau <em>Berurutan per kelas</em> bila ingin anak satu kelas berdekatan.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Sebar peserta</strong>. Aplikasi membagi kursi dan menuliskan hasilnya.</p>
+      </li>
+      <li>
+        <p>Periksa tabel <strong>Kelayakan</strong>: tiap sesi menunjukkan berapa kursi terpakai dari kapasitas.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Menu</strong> <strong>Kocok ulang</strong> menghasilkan susunan yang <em>berbeda</em> dari sebelumnya, bukan sama. Aplikasi memakai benih acak tersimpan supaya hasilnya bisa dihitung ulang persis — itulah sebabnya denah bisa dicetak kapan saja dan tetap cocok dengan yang di layar siswa. Setiap kali dikocok ulang, benihnya diganti dan seluruh cetakan lama tidak berlaku lagi.
+    </div>
+
+    <div class="catat hati">
+      <strong>Sebar ulang setelah ada yang mengerjakan.</strong> Peserta yang sudah mulai ujian memegang kursinya. Bila Anda menyebar ulang di tengah ujian, susunan berubah tetapi pengerjaan yang sedang berjalan tidak — dan itu menghasilkan layar siswa yang tidak cocok dengan denah di pintu.
+    </div>
+
+    <h2>Denah tempat duduk</h2>
+
+    <figure>
+      <img src="gambar/09-denah.png" alt="Laman Denah tempat duduk menampilkan tata letak meja dan kursi">
+      <figcaption>Denah dihitung ulang dari kocokan yang tersimpan. Tidak ada susunan baru yang dibuat di laman ini.</figcaption>
+    </figure>
+
+    <p>Denah tersedia sebagai halaman dan sebagai PDF untuk ditempel di meja. Isinya dihitung dari kocokan yang sudah tersimpan — membuka laman ini tidak mengocok apa pun.</p>
+
+    <h2>Pengawas &amp; penempatan ruang</h2>
+
+    <figure>
+      <img src="gambar/09-pengawas.png" alt="Laman Pengawas &amp; penempatan ruang dengan kolom Ruang, Pengawas 1, Pengawas 2, dan Sesi">
+      <figcaption>Setiap ruang punya satu atau dua pengawas. Barisnya ruang-sesi: pengawas pagi belum tentu pengawas siang.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Tugaskan otomatis</strong>. Aplikasi mengisi ruang yang belum punya pengawas.</p>
+      </li>
+      <li>
+        <p>Periksa hasilnya. Tekan <strong>Tugaskan</strong> pada baris tertentu untuk mengisi manual, atau <strong>Tukar pengawas</strong> untuk menukar dua penugasan sekaligus.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Satu pengawas tidak bisa berada di dua ruang pada jam yang sama.</strong> Bila penugasan ditolak dengan alasan itu, tugaskan orang lain — bukan memindahkan jamnya.
+    </div>
+
+    <p>Dua pengawas per ruang adalah <strong>saran</strong>, bukan syarat. Satu pengawas sudah cukup bagi aplikasi, dan kesiapan event tidak akan menghalangi Anda karenanya — tetapi ruang dengan satu pengawas lebih sulit ditangani saat ada kejadian.</p>
+
+    <h2>Token ujian</h2>
+
+    <figure>
+      <img src="gambar/09-token.png" alt="Laman Token ujian dengan bagian Token per sesi dan Riwayat pembukaan token">
+      <figcaption>Token per sesi, beserta riwayat siapa yang membukanya dan kapan.</figcaption>
+    </figure>
+
+    <p>Token adalah angka yang dibacakan pengawas di ruang supaya siswa bisa mulai. Ia <strong>per sesi</strong>, bukan per siswa.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Terbitkan token untuk sesi yang akan berjalan, lalu <strong>Cetak kartu token</strong> untuk dibawa pengawas.</p>
+      </li>
+      <li>
+        <p>Pengawas menekan <strong>Baca</strong> saat waktunya tiba, lalu membacakannya ke ruang.</p>
+      </li>
+      <li>
+        <p>Bila token bocor, tekan <strong>Cabut</strong>. Siswa yang sudah masuk tetap mengerjakan; siswa yang belum tidak bisa lagi memakainya.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Membaca token itu tindakan yang tercatat.</strong> Bagian <em>Riwayat pembukaan token</em> mencatat siapa membukanya dan kapan. Token yang dibuka di luar jadwal akan terlihat di situ — dan itu gunanya.
+    </div>
+
+    <h2>Presensi</h2>
+
+    <figure>
+      <img src="gambar/09-presensi.png" alt="Laman Presensi dengan tabel Mapel, Keadaan, Sesi, Peserta, Hadir, Tidak hadir, Belum diverifikasi">
+      <figcaption>Presensi per ruang-sesi. Di sinilah Admin mengoreksi catatan pengawas.</figcaption>
+    </figure>
+
+    <p>Presensi diisi pengawas dari portal ruang. Laman ini untuk <strong>memeriksa dan mengoreksi</strong>, bukan untuk mengisi dari nol.</p>
+
+    <p>Tiga angka yang perlu diperhatikan: <strong>Hadir</strong>, <strong>Tidak hadir</strong>, dan <strong>Belum diverifikasi</strong>. Angka ketiga yang paling sering terlupakan — siswa yang tidak pernah dipanggil statusnya, dan itu berbeda dari siswa yang dinyatakan tidak hadir.</p>
+
+    <h2>Monitoring</h2>
+
+    <figure>
+      <img src="gambar/09-monitoring.png" alt="Laman Monitoring dengan tabel per mapel dan keadaan sesi">
+      <figcaption>Papan pemantauan. Barisnya ruang-sesi, dan keadaannya diperbarui selama ujian berjalan.</figcaption>
+    </figure>
+
+    <p>Papan ini menjawab <em>siapa yang sedang mengerjakan, dan siapa yang bermasalah</em> — selama ujian berlangsung.</p>
+
+    <p>Yang bisa dilakukan dari sini, dan semuanya tercatat di log aktivitas:</p>
+    <ul>
+      <li><strong>Buka kunci</strong> — membuka pengerjaan yang terkunci karena pelanggaran.</li>
+      <li><strong>Reset</strong> — membatalkan pengerjaan terakhir dan menghapus nilainya, sehingga anak mengulang dari soal pertama.</li>
+      <li><strong>Hentikan</strong> — mengunci pengerjaan dengan pesan yang Anda tulis sendiri, dan pesan itulah yang dibaca siswa.</li>
+      <li><strong>Reset massal</strong> — melakukan reset untuk seluruh peserta satu ruang.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Reset menghapus nilai seorang anak.</strong> Ia tidak bisa dibatalkan. Bila yang Anda maksud hanya &ldquo;anak ini perlu melanjutkan&rdquo;, yang benar adalah <strong>Buka kunci</strong> — bukan reset.
+    </div>
+
+    <p>Tombol <strong>Lihat peserta</strong> membuka satu ruang di tab baru. Itu disengaja: papan lintas ruang disegarkan terus, dan membawanya pindah halaman berarti kehilangan tempat Anda di rekap.</p>
+
+    <nav class="kaki">
+      <a href="08-peserta-jadwal.html"><span class="arah">Sebelumnya</span>Peserta &amp; jadwal</a>
+      <a class="next" href="10-hasil.html"><span class="arah">Berikutnya</span>Hasil &amp; laporan</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

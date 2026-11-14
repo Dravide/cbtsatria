@@ -1,0 +1,171 @@
+:root{
+  --paper:#ffffff; --surface:#f7f8fa; --line:#e3e7ee; --line-2:#c9d1dd;
+  --ink:#161b24; --ink-2:#4a5565; --ink-3:#7b8596; --accent:#1e4fa3; --accent-soft:#e9effa;
+  --ok:#186b47; --ok-bg:#e6f4ec; --warn:#8a5a06; --warn-bg:#fdf3df;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:8px; --lebar:760px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0d1117; --surface:#151b24; --line:#26303d; --line-2:#39465a;
+    --ink:#e6ecf4; --ink-2:#a4aebd; --ink-3:#7d8798; --accent:#79a9f2; --accent-soft:#16233a;
+    --ok:#6ecfa0; --ok-bg:#122c22; --warn:#e0b062; --warn-bg:#2e2413;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:16px/1.75 var(--font);
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.875em;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+
+/* ---------- rangka dua kolom ---------- */
+.rangka{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:100vh}
+@media (max-width:900px){.rangka{grid-template-columns:1fr}}
+/* cetak.html tidak punya sidebar. Tanpa ini isinya jatuh ke kolom 264px
+   yang disediakan untuk sidebar, dan setiap gambar tampil sebesar perangko. */
+.rangka.tunggal{grid-template-columns:minmax(0,1fr)}
+
+/* ---------- sidebar ---------- */
+.sisi{
+  border-right:1px solid var(--line); background:var(--surface);
+  padding:22px 16px;
+  /* Latar sidebar harus mengisi SELURUH tinggi kolom, bukan setinggi
+     daftar babnya. `position:sticky` + `align-self:start` membuat kotaknya
+     menciut ke isinya, sehingga latar abu-abunya berhenti di tengah layar
+     dan sisa kolomnya putih - terlihat seperti tata letak yang rusak.
+     Yang lengket adalah ISI-nya, bukan kotaknya. */
+  position:relative;
+}
+.sisi > .lengket{
+  position:sticky; top:0;
+  max-height:100vh; overflow-y:auto;
+}
+@media (max-width:900px){
+  .sisi{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+}
+.sisi .judul{font-weight:650;font-size:15px;letter-spacing:-.01em;display:block;color:var(--ink);text-decoration:none}
+.sisi .sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+.sisi ol{list-style:none;margin:18px 0 0;padding:0}
+.sisi li a{
+  display:block;padding:7px 10px;border-radius:6px;
+  font-size:13.5px;color:var(--ink-2);text-decoration:none;line-height:1.4;
+}
+.sisi li a:hover{background:var(--paper);color:var(--ink)}
+.sisi li a[aria-current="page"]{
+  background:var(--accent-soft);color:var(--accent);font-weight:600;
+}
+.sisi li .n{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-right:8px}
+.sisi li a[aria-current="page"] .n{color:var(--accent)}
+
+/* ---------- isi ---------- */
+.isi{padding:40px 32px 80px;max-width:calc(var(--lebar) + 64px);margin:0 auto;width:100%}
+@media (max-width:900px){.isi{padding:28px 18px 64px}}
+
+.isi h1{font-size:1.9rem;line-height:1.2;letter-spacing:-.02em;margin:0 0 6px}
+.isi .kepala{color:var(--ink-3);font-size:13px;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.isi h2{font-size:1.15rem;margin:38px 0 10px;letter-spacing:-.01em}
+.isi h3{font-size:1rem;margin:26px 0 8px}
+.isi p{margin:0 0 16px}
+.isi ul,.isi ol{margin:0 0 16px;padding-left:22px}
+.isi li{margin-bottom:6px}
+
+/* ---------- blok langkah bernomor ---------- */
+.langkah{counter-reset:l;list-style:none;padding:0;margin:0 0 26px}
+.langkah>li{
+  counter-increment:l; position:relative; padding-left:40px; margin-bottom:20px;
+}
+.langkah>li::before{
+  content:counter(l);
+  position:absolute; left:0; top:1px;
+  width:26px; height:26px; border-radius:99px;
+  background:var(--accent); color:#fff;
+  font:600 13px/26px var(--mono); text-align:center;
+}
+@media (prefers-color-scheme:dark){.langkah>li::before{color:#0d1117}}
+
+/* ---------- gambar ---------- */
+figure{margin:0 0 26px}
+figure img{
+  display:block; max-width:100%; height:auto;
+  border:1px solid var(--line-2); border-radius:var(--r);
+  box-shadow:0 1px 2px rgba(16,22,32,.06), 0 12px 28px -20px rgba(16,22,32,.4);
+  background:var(--paper);
+}
+/*
+ * Tangkapan layar PENUH halaman panjang berisi ruang kosong dalam jumlah
+ * besar. Diperkecil ke lebar kolom, isinya menjadi tidak terbaca dan
+ * gambarnya terlihat seperti kotak abu-abu raksasa. Batasi tingginya: yang
+ * terbaca adalah bagian atasnya, dan pembaca yang butuh seluruhnya membuka
+ * berkas PNG-nya.
+ *
+ * Aturan praktisnya: JANGAN memakai `fullPage: true` untuk halaman yang
+ * tingginya lebih dari ~2x lebarnya. Tangkap elemen yang dimaksud.
+ */
+/*
+ * `max-height` saja TIDAK cukup: `height:auto` dari aturan di atas menang,
+ * dan `object-fit` tidak berlaku pada gambar yang tingginya ditentukan
+ * rasio aslinya. Yang memotong adalah `aspect-ratio` + `object-fit:cover`
+ * pada LEBAR penuh - gambar tetap memenuhi kolom, tetapi hanya bagian
+ * atasnya yang ditampilkan.
+ */
+figure.panjang img{
+  width:100%; height:auto; aspect-ratio:16/10;
+  object-fit:cover; object-position:top;
+}
+figcaption{font-size:12.5px;color:var(--ink-3);margin-top:8px;line-height:1.5}
+figure.sempit img{max-width:390px}   /* tangkapan layar ponsel */
+
+/* ---------- kotak catatan ---------- */
+.catat{
+  border-left:3px solid var(--accent); background:var(--surface);
+  border-radius:0 var(--r) var(--r) 0; padding:12px 15px; margin:0 0 22px;
+  font-size:14.5px; color:var(--ink-2);
+}
+.catat.hati{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.catat.hati strong{color:inherit}
+.catat strong{color:var(--ink)}
+
+/* ---------- navigasi kaki ---------- */
+.kaki{
+  display:flex; gap:10px; justify-content:space-between;
+  margin-top:54px; padding-top:22px; border-top:1px solid var(--line);
+}
+.kaki a{
+  display:block; padding:11px 15px; border:1px solid var(--line-2); border-radius:var(--r);
+  text-decoration:none; color:var(--ink-2); font-size:13.5px; min-width:0;
+}
+.kaki a:hover{border-color:var(--accent);color:var(--accent)}
+.kaki .arah{display:block;font-size:11px;color:var(--ink-3);margin-bottom:2px}
+.kaki .next{margin-left:auto;text-align:right}
+
+/* ---------- daftar isi (index.html) ---------- */
+.toc{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.toc a{
+  display:block; padding:16px 18px; border:1px solid var(--line); border-radius:var(--r);
+  text-decoration:none; color:var(--ink); background:var(--surface);
+}
+.toc a:hover{border-color:var(--accent)}
+.toc .n{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+.toc .j{font-weight:600;margin-top:3px}
+.toc .k{font-size:13px;color:var(--ink-3);margin-top:3px}
+
+/* ---------- cetak ke PDF ---------- */
+@media print{
+  .sisi, .kaki, .tanpa-cetak{display:none !important}
+  .rangka{grid-template-columns:1fr}
+  .isi{max-width:none;padding:0}
+  body{font-size:11pt;line-height:1.5}
+  figure{break-inside:avoid}
+  figure img{box-shadow:none; max-height:16cm; width:auto; max-width:100%; margin:0 auto}
+  h1,h2,h3{break-after:avoid}
+  .bab{break-before:page}
+  .bab:first-child{break-before:auto}
+  a{color:inherit;text-decoration:none}
+}

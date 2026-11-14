@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7. Membuat event — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html" aria-current="page"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>7. Membuat event</h1>
+    <p class="kepala">Satu kegiatan ujian. Aplikasi menjaga sebelas syarat sebelum event boleh dibuka — dan itulah bagian yang paling sering mengejutkan.</p>
+
+    <h2>Daftar event</h2>
+
+    <figure>
+      <img src="gambar/07-event-daftar.png" alt="Daftar event dengan penyaring Berjalan, Draft, Selesai, dan Arsip, serta tombol Buat event">
+      <figcaption>Daftar event. Tombol penyaring di atas tabel menyaring menurut status — bukan sekadar keterangan.</figcaption>
+    </figure>
+
+    <p>Hanya ada satu event di sekolah contoh ini. Di sekolah yang sudah beberapa semester berjalan, daftarnya memanjang, dan penyaring status di atas tabel menjadi penting.</p>
+
+    <h2>Membuat event baru</h2>
+
+    <figure>
+      <img src="gambar/07-event-baru.png" alt="Formulir Buat event dengan bagian Identitas dan Ambang pelanggaran siswa">
+      <figcaption>Formulir event: identitas di atas, ambang pelanggaran di bawah.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Isi <strong>nama event</strong>. Pakai nama yang dikenali guru dan siswa — nama inilah yang tercetak di berita acara dan laporan hasil.</p>
+      </li>
+      <li>
+        <p>Pilih <strong>jenis</strong>, <strong>periode</strong>, dan pastikan <strong>tahun ajaran</strong> serta <strong>semester</strong> terisi.</p>
+      </li>
+      <li>
+        <p>Sesuaikan <strong>ambang pelanggaran</strong> bila perlu. Nilainya disalin dari Pengaturan sekolah saat event dibuat, lalu berdiri sendiri — mengubah Pengaturan kelak tidak mengubah event ini.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Simpan draft</strong>. Event lahir berstatus Draft, dan belum bisa dibuka.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Event lahir sebagai Draft, dan itu benar.</strong> Yang belum siap tidak boleh terlihat siswa. Status berikutnya hanya bisa dicapai setelah syaratnya terpenuhi.
+    </div>
+
+    <h2>Ringkasan dan sebelas langkah kesiapan</h2>
+
+    <figure>
+      <img src="gambar/07-event-ringkasan.png" alt="Ringkasan event menampilkan lima angka pokok dan daftar kesiapan dengan sepuluh butir berstatus ok">
+      <figcaption>Ringkasan event. Angka di atas adalah hitungan nyata; daftar di bawah adalah syarat yang dijaga aplikasi.</figcaption>
+    </figure>
+
+    <p>Setelah event dibuat, sidebar bertambah satu lapis: menu milik event itu. <strong>Ringkasan</strong> adalah halamannya, dan di situ ada daftar kesiapan.</p>
+
+    <figure>
+      <img src="gambar/07-kesiapan.png" alt="Tab Kesiapan menampilkan sebelas butir syarat, sepuluh berstatus ok dan satu berstatus belum">
+      <figcaption>Tab Kesiapan. Sebelas butir, dan satu di antaranya belum terpenuhi di sekolah contoh ini.</figcaption>
+    </figure>
+
+    <p>Sebelas butir itu, berurutan:</p>
+    <ol>
+      <li><strong>Identitas event lengkap</strong> — nama, jenis, periode.</li>
+      <li><strong>Tahun ajaran dan semester tersedia.</strong></li>
+      <li><strong>Kelas peserta ditetapkan</strong> — kelas mana yang ikut.</li>
+      <li><strong>Mata pelajaran ditetapkan</strong> — mapel apa saja yang diujikan.</li>
+      <li><strong>Peserta terdaftar</strong> — siswa yang benar-benar ikut.</li>
+      <li><strong>Jadwal ujian tersedia</strong> — ada sesi, dan sesinya punya ruang.</li>
+      <li><strong>Paket soal ditetapkan</strong> — setiap mapel punya paketnya.</li>
+      <li><strong>Ruang teralokasi.</strong></li>
+      <li><strong>Pengawas ditugaskan.</strong></li>
+      <li><strong>Token tersedia.</strong></li>
+      <li><strong>Kapasitas ruang mencukupi</strong> — jumlah kursi tidak kurang dari jumlah peserta.</li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Butir ke-11 adalah yang paling sering menghalangi.</strong> Jumlah kursi dihitung dari kapasitas seluruh ruang yang teralokasi. Ruang yang kapasitasnya belum diisi — nilai bawaannya nol — membuat butir ini gagal meski peserta dan ruangnya sudah ada. Perbaiki di <a href="05-ruang-pengguna.html">Bab 5</a>.
+    </div>
+
+    <div class="catat">
+      <strong>Butir ke-10 wajar berstatus belum.</strong> Token baru terbit saat sesi dibuka pengawas. Event yang jadwalnya belum tiba akan selalu melaporkan butir ini belum — dan itu bukan kesalahan yang perlu Anda betulkan.
+    </div>
+
+    <h2>Status event dan perjalanannya</h2>
+
+    <p>Event bergerak satu arah, dengan satu pengecualian:</p>
+    <p><code>Draft → Persiapan → Siap → Berjalan → Selesai → Arsip</code></p>
+
+    <ul>
+      <li><strong>Draft</strong> — baru dibuat.</li>
+      <li><strong>Persiapan</strong> — sedang dilengkapi.</li>
+      <li><strong>Siap</strong> — gerbang kesiapan lulus. Hanya dari sini event bisa dibuka.</li>
+      <li><strong>Berjalan</strong> — ada sesi yang sedang dikerjakan siswa.</li>
+      <li><strong>Selesai</strong> — seluruh sesi tuntas. Aplikasi memindahkannya sendiri, bukan Anda.</li>
+      <li><strong>Arsip</strong> — disimpan, tidak lagi aktif.</li>
+    </ul>
+
+    <p><strong>Dibatalkan</strong> adalah satu-satunya status final: dari sana tidak ada jalan kembali. Hati-hati menekannya.</p>
+
+    <h3>Membuka kembali event yang diarsipkan</h3>
+    <p>Mengarsipkan bukan menghapus, dan bisa dibatalkan. Dari event yang berstatus Arsip, tombol pemulihan tersedia dan tujuannya bisa Anda pilih — Draft, Persiapan, Siap, Berjalan, atau Selesai — bukan dikunci ke satu tujuan.</p>
+
+    <div class="catat">
+      <strong>Event yang Selesai atau Arsip tidak lagi muncul di sisi siswa.</strong> Jadwal mereka, ruang ujian mereka, dan papan publik pengawas berhenti menampilkannya. Itu yang diinginkan: kegiatan yang sudah lewat tidak boleh menuntut perhatian anak yang sedang menyiapkan ujian berikutnya.
+    </div>
+
+    <h3>Menghapus event</h3>
+    <p>Event hanya bisa dihapus bila statusnya <strong>Draft</strong> dan belum punya ujian. Tombolnya tetap terlihat pada event lain, dan penolakannya berupa kalimat yang menjelaskan apa yang harus dilakukan — bukan tombol yang hilang tanpa keterangan.</p>
+
+    <nav class="kaki">
+      <a href="06-bank-soal.html"><span class="arah">Sebelumnya</span>Bank soal</a>
+      <a class="next" href="08-peserta-jadwal.html"><span class="arah">Berikutnya</span>Peserta &amp; jadwal</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

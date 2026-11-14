@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1. Masuk &amp; beranda — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html" aria-current="page"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>1. Masuk &amp; beranda</h1>
+    <p class="kepala">Akun Admin dibuatkan sekolah. Tidak ada pendaftaran mandiri, dan tidak ada tautan aktivasi.</p>
+
+    <p>Seluruh peran masuk lewat layar yang sama. Aplikasi yang menentukan ke mana Anda diarahkan sesudahnya — Admin mendarat di ringkasan sekolah, bukan di daftar event.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Buka alamat aplikasi. Layar pertama meminta dua hal: <strong>username</strong> dan sandi.</p>
+        <figure>
+          <img src="gambar/01-masuk.png" alt="Layar masuk SATRIA CBT dengan kolom username dan password">
+          <figcaption>Isi username yang diberikan sekolah — bukan alamat surel, meskipun bentuknya mirip.</figcaption>
+        </figure>
+      </li>
+      <li>
+        <p>Tekan <strong>Masuk</strong>. Anda akan diarahkan ke <strong>Ringkasan sekolah</strong>.</p>
+      </li>
+    </ol>
+
+    <h3>Bila sandi tidak terbaca</h3>
+    <p>Tombol bergambar mata di dalam kolom sandi menampilkan isinya sementara. Sandi tetap tersembunyi secara bawaan — tombol itu hanya untuk memeriksa apa yang baru saja diketik.</p>
+
+    <figure>
+      <img src="gambar/01-masuk-sandi.png" alt="Kolom sandi dengan tombol mata ditekan, isi sandi terlihat sebagai teks biasa">
+      <figcaption>Sekali tekan menampilkan, sekali tekan lagi menyembunyikan. Kolomnya tidak mengosongkan isi saat berganti.</figcaption>
+    </figure>
+
+    <div class="catat">
+      <strong>Jangan menampilkan sandi di layar yang diproyeksikan.</strong> Tombol ini berguna saat membacakan akun siswa di ruang ujian; ia berbahaya bila ditekan di layar yang terlihat seluruh kelas.
+    </div>
+
+    <div class="catat hati">
+      <strong>Lupa sandi?</strong> Sandi tidak bisa diatur ulang dari layar masuk. Hanya Admin lain — atau pemasang aplikasi — yang bisa menggantinya lewat menu Pengguna.
+    </div>
+
+    <h2>Apa yang dikatakan beranda</h2>
+
+    <p>Beranda menjawab satu pertanyaan: <em>apa yang sedang berjalan hari ini?</em> Tiga bagiannya diurutkan sesuai kepentingan.</p>
+
+    <figure>
+      <img src="gambar/01-beranda.png" alt="Beranda Admin menampilkan ringkasan sekolah, event berjalan, tahun ajaran, dan menu yang paling sering dibuka">
+      <figcaption>Ringkasan sekolah: jumlah data pokok, event yang sedang berjalan, dan pintasan ke menu yang paling sering dibuka.</figcaption>
+    </figure>
+
+    <h3>Di ponsel</h3>
+    <p>Pada layar sempit, kartu keterangan menyusut menjadi kepala, dan formulirnya naik sehingga kedua kolom isian dan tombol Masuk terbaca tanpa menggulir.</p>
+
+    <figure class="sempit">
+      <img src="gambar/01-masuk-ponsel.png" alt="Layar masuk pada ponsel: merek di atas, lalu kolom username, sandi, dan tombol Masuk dalam satu layar">
+      <figcaption>Layar masuk di ponsel 390×844.</figcaption>
+    </figure>
+
+    <h3>Event berjalan</h3>
+    <p>Bagian ini <strong>hanya</strong> menampilkan event yang statusnya masih aktif. Event yang sudah selesai atau diarsipkan tidak muncul di sini — dan itu disengaja: beranda yang menampilkan event selesai membuat Admin membuka kegiatan yang sudah tidak berjalan.</p>
+
+    <h3>Event aktif di sidebar</h3>
+    <p>Perhatikan kotak biru di sidebar kiri: <strong>Event aktif</strong>. Sekali Anda membuka sebuah event, ia tertinggal di situ, dan seluruh menu event (Kepanitiaan, Peserta, Jadwal, dan seterusnya) berbicara tentang event itu. Berpindah event berarti kembali ke <strong>Daftar event</strong> lalu memilih yang lain.</p>
+
+    <div class="catat">
+      <strong>Sidebar punya dua lapis.</strong> Lapis atas adalah menu sekolah — berlaku untuk semua event. Lapis bawah, di bawah judul &ldquo;Event aktif&rdquo;, hanya muncul setelah sebuah event dibuka, dan isinya milik event itu. Bingung mencari menu? Perhatikan lapis mana yang sedang Anda lihat.
+    </div>
+
+    <h3>Yang paling sering dibuka</h3>
+    <p>Daftar pintasan ini dihitung dari riwayat pemakaian, bukan dipilih manual. Pada sekolah yang baru dipasang, daftarnya masih pendek — itu wajar.</p>
+
+    <nav class="kaki">
+      <a href="index.html"><span class="arah">Sebelumnya</span>Daftar isi</a>
+      <a class="next" href="02-sekolah.html"><span class="arah">Berikutnya</span>Menyiapkan sekolah</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

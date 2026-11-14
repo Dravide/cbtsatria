@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6. Bank soal — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html" aria-current="page"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>6. Bank soal</h1>
+    <p class="kepala">Melihat soal yang disusun Guru. Admin membaca, tidak menulis — dan perbedaan itu disengaja.</p>
+
+    <figure>
+      <img src="gambar/06-bank-soal.png" alt="Laman Bank soal Admin dengan kolom Kode, Soal, Jenis, Tingkat, Mapel, Dipakai, dan Status, serta panel pratinjau di kanan">
+      <figcaption>Bank soal versi Admin. Mengklik satu baris membuka pratinjau soalnya di panel kanan, termasuk kunci jawaban.</figcaption>
+    </figure>
+
+    <p>Laman ini lahir dari satu masalah nyata: satu-satunya pintu ke bank soal tadinya adalah konsol Guru, lengkap dengan tombol Builder, Impor, dan Generate AI — tombol-tombol yang server tolak untuk Admin. Admin yang membukanya melihat menu yang mengajarinya untuk tidak memercayai layarnya sendiri.</p>
+
+    <p>Sekarang Admin punya laman sendiri: tanpa satu pun tombol yang akan gagal.</p>
+
+    <h2>Apa yang bisa dan tidak bisa dilakukan</h2>
+
+    <ul>
+      <li><strong>Bisa</strong> — membaca soal, melihat kunci jawaban, rubrik uraian, pembahasan, dan media yang menempel.</li>
+      <li><strong>Tidak bisa</strong> — membuat, menyunting, menghapus, atau menerbitkan soal. Itu pekerjaan Guru, dan pembatasnya ada di server, bukan hanya di tombol yang disembunyikan.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Kenapa Admin tidak menulis soal.</strong> Soal adalah tanggung jawab guru mata pelajaran yang bersangkutan. Admin yang bisa menyuntingnya bisa mengubah kunci jawaban tanpa jejak yang jelas ke pemilik soalnya.
+    </div>
+
+    <h2>Kolom &ldquo;Dipakai&rdquo;</h2>
+    <p>Kolom ini menghitung di berapa paket soal butir itu dipakai. Angka nol berarti soal itu ada di bank tetapi tidak masuk paket mana pun — jadi tidak akan muncul di ujian mana pun, berapa pun event yang Anda buat.</p>
+
+    <h3>Status soal tidak menghalangi pemakaian</h3>
+    <p>Kolom <strong>Status</strong> berisi tiga nilai: <strong>Draf</strong> (masih disunting penulisnya), <strong>Siap</strong> (sudah boleh dipakai Guru lain), dan <strong>Arsip</strong> (tidak dipakai lagi, tetapi tidak dihapus karena dirujuk snapshot dan laporan nilai).</p>
+
+    <div class="catat">
+      <strong>Soal Draf tetap ikut ke ujian.</strong> Aplikasi tidak menyaring status saat Guru memasukkan soal ke paket, dan tidak menyaringnya lagi saat paket dibekukan ke ujian. Statusnya keterangan bagi Guru, bukan pembatas. Bila sebuah paket berisi soal yang belum selesai ditulis, soal itu tetap akan muncul di layar siswa.
+    </div>
+
+    <div class="catat hati">
+      <strong>Arsip bukan hapus.</strong> Soal yang diarsipkan tetap bisa dibaca di sini dan tetap muncul pada ujian yang sudah memakainya. Yang berubah hanya keterangannya di bank soal.</div>
+
+
+    <h2>Membaca soal dengan aman</h2>
+    <p>Panel pratinjau menampilkan soal sebagaimana siswa melihatnya, ditambah kunci dan pembahasan yang tidak dilihat siswa. Isinya lengkap untuk setiap jenis soal — pilihan ganda, uraian, rumpang, menjodohkan — karena bentuk kuncinya berbeda per jenis.</p>
+
+    <div class="catat">
+      <strong>Layar ini tidak boleh diproyeksikan.</strong> Panelnya memuat kunci jawaban. Bila sedang mengajar di depan kelas, tutup panelnya dulu.
+    </div>
+
+    <nav class="kaki">
+      <a href="05-ruang-pengguna.html"><span class="arah">Sebelumnya</span>Ruang &amp; pengguna</a>
+      <a class="next" href="07-event.html"><span class="arah">Berikutnya</span>Membuat event</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

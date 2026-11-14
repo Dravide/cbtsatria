@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5. Ruang &amp; pengguna — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html" aria-current="page"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>5. Ruang &amp; pengguna</h1>
+    <p class="kepala">Ruang ujian beserta kapasitasnya, dan akun semua peran. Dua-duanya bisa diisi massal.</p>
+
+    <h2>Ruang ujian</h2>
+
+    <figure>
+      <img src="gambar/05-ruang.png" alt="Laman Ruang ujian dengan kolom Kode, Nama &amp; lokasi, Kapasitas, PC, dan Status">
+      <figcaption>Ruang ujian. Tombol <strong>Terbitkan tautan massal</strong> membuat tautan masuk untuk banyak ruang sekaligus.</figcaption>
+    </figure>
+
+    <p>Ruang menyimpan dua angka yang berbeda dan sering tertukar:</p>
+    <ul>
+      <li><strong>Kapasitas</strong> — berapa siswa bisa ditempatkan di ruang ini.</li>
+      <li><strong>PC</strong> — berapa perangkat tersedia. Angka ini keterangan, bukan pembatas; aplikasi tidak menolak penempatan karena jumlah PC kurang.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Kapasitas menentukan pembagian kursi.</strong> Bila total kapasitas seluruh ruang lebih kecil dari jumlah peserta, sebagian peserta tidak mendapat kursi saat penempatan dijalankan — dan itu baru kelihatan di <a href="09-hari-h.html">Bab 9</a>. Periksa angka ini sebelum hari-H.
+    </div>
+
+    <h3>Tautan masuk ruang dan kode pengawas</h3>
+
+    <figure>
+      <img src="gambar/05-ruang-detail.png" alt="Rincian satu ruang menampilkan tautan masuk ruang, riwayat tautan, dan kode pengawas">
+      <figcaption>Rincian satu ruang: tautan masuk, riwayatnya, dan — bila sudah diterbitkan — kode pengawas.</figcaption>
+    </figure>
+
+    <p>Ada dua hal berbeda di laman ini, dan keduanya sering tertukar:</p>
+    <ul>
+      <li><strong>Tautan masuk ruang</strong> — alamat yang dibuka pengawas untuk masuk ke ruang itu tanpa akun. Bisa dicabut kapan saja, dan yang sudah dicabut langsung berhenti bekerja.</li>
+      <li><strong>Kode pengawas</strong> — angka yang dibacakan kepada pengawas, dicetak pada kartu. Terpisah dari tautan, dan punya masa berlaku sendiri.</li>
+    </ul>
+
+    <p>Tautan yang tercetak pada kartu tidak bisa dibatalkan oleh penerbitan ulang kode. Karena itu tombol <strong>Terbitkan ulang</strong> hanya menyentuh baris yang belum punya kode — kartu yang sudah di tangan pengawas tidak mati mendadak.</p>
+
+    <h2>Pengguna</h2>
+
+    <figure>
+      <img src="gambar/05-pengguna.png" alt="Laman Pengguna dengan penyaring peran Siswa, Guru, Pengawas, Admin, serta tombol Impor dan Ekspor">
+      <figcaption>Pengguna. Hitungan per peran di atas tabel berlaku sebagai penyaring — tekan salah satunya untuk menyaring.</figcaption>
+    </figure>
+
+    <p>Empat peran, dan masing-masing melihat aplikasi yang sangat berbeda:</p>
+    <ul>
+      <li><strong>Admin</strong> — seluruh menu sekolah. Anda.</li>
+      <li><strong>Guru</strong> — bank soal, paket soal, dan koreksi uraian.</li>
+      <li><strong>Pengawas</strong> — portal ruang dan presensi. Tidak bisa melihat soal.</li>
+      <li><strong>Siswa</strong> — jadwal ujian, pengerjaan, dan nilai yang sudah dipublikasikan.</li>
+    </ul>
+
+    <h3>Mengganti username</h3>
+    <p>Username berdiri sendiri, bukan kolom di dalam form Ubah. Alasannya praktis: username tertempel di kartu login yang dipegang siswa, dan satu salah ketik yang tidak disadari langsung mengunci anak itu pada hari ujian. Tombolnya terpisah supaya tidak tertekan tanpa sengaja saat mengubah nama.</p>
+
+    <div class="catat">
+      <strong>Username harus unik di seluruh aplikasi</strong>, bukan hanya di sekolah Anda. Bila ditolak sebagai &ldquo;sudah dipakai&rdquo;, tambahkan pembeda — misalnya angka tahun masuk.
+    </div>
+
+    <h3>Reset sandi</h3>
+    <p>Tombol <strong>Reset</strong> mengembalikan sandi ke sandi bawaan aplikasi. Sampaikan ke pemilik akun bahwa sandi lama tidak berlaku lagi — tidak ada surat pemberitahuan otomatis.</p>
+
+    <h2>Impor pengguna secara massal</h2>
+
+    <figure>
+      <img src="gambar/05-impor.png" alt="Laman Impor pengguna dengan bagian Pilih berkas dan Riwayat impor">
+      <figcaption>Impor pengguna menerima XLSX atau CSV, maksimal 2 MB dan 2.000 baris per berkas.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Unduh template, isi satu baris per pengguna, tentukan perannya di kolom yang tersedia.</p>
+      </li>
+      <li>
+        <p>Unggah. Pratinjau menampilkan tiap baris: dibuat, diperbarui, atau ditolak beserta alasannya.</p>
+      </li>
+      <li>
+        <p>Konfirmasi. Baru pada langkah ini data tersimpan.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Format .xls lama tidak didukung.</strong> Simpan ulang sebagai .xlsx atau .csv. Berkas yang lebih dari 2.000 baris harus dipecah — impor tidak memotongnya sendiri, ia menolak seluruh berkas.
+    </div>
+
+    <h3>Kartu akun</h3>
+    <p>Setelah akun jadi, tombol <strong>Ekspor</strong> dapat menghasilkan kartu login untuk dicetak dan dibagikan. Satu akun menghasilkan satu halaman PDF; banyak akun sekaligus menghasilkan satu berkas ZIP — dan itu memakan waktu lebih lama, bukan gagal.</p>
+
+    <nav class="kaki">
+      <a href="04-kelas-mapel.html"><span class="arah">Sebelumnya</span>Kelas &amp; mata pelajaran</a>
+      <a class="next" href="06-bank-soal.html"><span class="arah">Berikutnya</span>Bank soal</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

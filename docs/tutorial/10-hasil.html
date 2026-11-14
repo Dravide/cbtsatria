@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10. Hasil &amp; laporan — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html" aria-current="page"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>10. Hasil &amp; laporan</h1>
+    <p class="kepala">Menerbitkan nilai, mengekspor laporan, dan membaca jejak siapa mengubah apa.</p>
+
+    <h2>Publikasi hasil</h2>
+
+    <figure>
+      <img src="gambar/10-hasil.png" alt="Laman Publikasi hasil dengan tabel Ujian, Peserta, Objektif, Uraian dan tombol Publikasikan, Tarik publikasi, Kunci koreksi, Hitung ulang">
+      <figcaption>Publikasi hasil per event. Perhatikan angka pada kolom <strong>Uraian</strong> sebelum menekan Publikasikan.</figcaption>
+    </figure>
+
+    <p>Nilai tidak terlihat siswa sampai Anda menerbitkannya. Publikasi bekerja <strong>per event</strong>: satu tekanan menampilkan seluruh ujian di dalamnya.</p>
+
+    <ul>
+      <li><strong>Publikasikan</strong> — hasil mulai terlihat siswa.</li>
+      <li><strong>Tarik publikasi</strong> — mencabutnya kembali, dan sekaligus membuka kunci koreksi.</li>
+      <li><strong>Kunci koreksi</strong> — menghentikan perubahan nilai tanpa menarik publikasinya.</li>
+      <li><strong>Kirim pengumuman</strong> — memberi tahu siswa bahwa nilainya sudah bisa dilihat.</li>
+      <li><strong>Hitung ulang</strong> — memperbaiki angka setelah kunci jawaban dibetulkan.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Uraian yang belum dinilai memblokir publikasi.</strong> Selama masih ada jawaban uraian yang belum diberi nilai, penerbitan akan ditolak. Guru menilainya dari konsol Guru — bukan dari sini. Periksa kolom <strong>Uraian</strong> lebih dulu, dan hubungi guru mapelnya.
+    </div>
+
+    <h3>Mengatur apa yang terlihat</h3>
+    <p>Setelah dipublikasikan, dua saklar menentukan apa yang boleh dibaca siswa: <strong>nilai objektifnya saja</strong> atau <strong>beserta pembahasan</strong>. Keduanya bisa diubah kapan saja — selama publikasinya masih terbuka.</p>
+
+    <div class="catat">
+      <strong>Membuka koreksi tidak sama dengan menarik publikasi.</strong> Menekan <strong>Kunci koreksi</strong> menghentikan guru menyunting nilai, sementara siswa tetap melihat hasilnya. Menekan <strong>Tarik publikasi</strong> menyembunyikan hasilnya dari siswa. Dua hal yang berbeda, dan hanya satu di antaranya yang Anda maksud.
+    </div>
+
+    <h2>Laporan</h2>
+
+    <figure>
+      <img src="gambar/10-laporan.png" alt="Laman Laporan dengan tabel NIS, Nama, Kelas, Mata pelajaran, Ujian, Nilai objektif, Nilai uraian, Nilai akhir, Status serta tombol ekspor XLSX, CSV, PDF">
+      <figcaption>Laporan hasil. Lima tombol di atas memilih <em>bentuk laporan</em>; tiga tombol ekspor memilih <em>berkasnya</em>.</figcaption>
+    </figure>
+
+    <p>Laporan dikelompokkan menurut pertanyaan yang hendak dijawab:</p>
+    <ul>
+      <li><strong>Nilai per siswa</strong> — daftar lengkap dengan seluruh nilainya.</li>
+      <li><strong>Rekap kelas</strong> — rata-rata dan sebaran per kelas.</li>
+      <li><strong>Analisis butir</strong> — soal mana yang paling banyak dijawab salah. Berguna untuk menilai mutu soal, bukan mutu siswa.</li>
+      <li><strong>Kehadiran</strong> — rekap presensi.</li>
+      <li><strong>Pelanggaran</strong> — kejadian selama ujian berlangsung.</li>
+    </ul>
+
+    <p>Tiga format ekspor: <strong>XLSX</strong> untuk diolah, <strong>CSV</strong> untuk dipindah ke sistem lain, dan <strong>PDF</strong> untuk diserahkan atau diarsipkan.</p>
+
+    <div class="catat">
+      <strong>Analisis butir perlu data yang cukup.</strong> Pada ujian yang baru diikuti belasan siswa, angkanya belum bermakna. Jangan ambil keputusan tentang mutu soal dari ujian kecil.
+    </div>
+
+    <h2>Log aktivitas</h2>
+
+    <figure>
+      <img src="gambar/10-log.png" alt="Laman Log aktivitas dengan kolom Jam, Aktor, Aksi, Objek, IP dan tombol Saring serta Ekspor">
+      <figcaption>Log aktivitas. Pencatatannya berjalan sendiri; tidak ada yang perlu dinyalakan.</figcaption>
+    </figure>
+
+    <p>Log mencatat tindakan yang mengubah data: siapa, kapan, dari alamat IP mana. Termasuk tindakan dari bab ini — publikasi, penarikan, reset nilai, pembukaan kunci.</p>
+
+    <p>Pakai <strong>Saring</strong> untuk mempersempit menurut aktor, aksi, atau rentang waktu, lalu <strong>Ekspor</strong> bila perlu diserahkan sebagai bukti.</p>
+
+    <div class="catat">
+      <strong>Tidak ada tombol hapus di laman ini, dan itu tetap.</strong> Log yang bisa dihapus bukan log. Bila ada catatan yang menurut Anda keliru, catatan itu sendiri adalah informasi — bukan sesuatu yang perlu dibersihkan.
+    </div>
+
+    <h2>Setelah ujian selesai</h2>
+    <ol class="langkah">
+      <li>
+        <p>Pastikan seluruh sesi berstatus Selesai. Event berpindah ke Selesai sendiri setelah semua sesinya tuntas.</p>
+      </li>
+      <li>
+        <p>Periksa kolom <strong>Uraian</strong> di laman publikasi. Bila masih ada yang menunggu, koordinasikan dengan guru mapelnya.</p>
+      </li>
+      <li>
+        <p>Publikasikan, lalu beri tahu siswa.</p>
+      </li>
+      <li>
+        <p>Ekspor laporan yang dibutuhkan, lalu <strong>arsipkan</strong> eventnya. Mengarsipkan tidak menyembunyikan nilainya dari siswa — ia hanya menghentikan event itu tampil sebagai kegiatan aktif.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Mengarsipkan masih bisa dibatalkan.</strong> Event yang diarsipkan bisa dibuka kembali ke status mana pun Anda pilih. Yang benar-benar buntu hanya <strong>Batal</strong>.
+    </div>
+
+    <nav class="kaki">
+      <a href="09-hari-h.html"><span class="arah">Sebelumnya</span>Hari-H</a>
+      
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

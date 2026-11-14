@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4. Kelas &amp; mata pelajaran — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html" aria-current="page"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>4. Kelas &amp; mata pelajaran</h1>
+    <p class="kepala">Siapa duduk di kelas mana, dan siapa mengajar apa. Dua laman, dan keduanya bisa diisi massal lewat berkas.</p>
+
+    <h2>Kelas</h2>
+
+    <figure>
+      <img src="gambar/04-kelas.png" alt="Laman Kelas dengan kolom Kelas, Tingkat, Wali kelas, Siswa, dan Status">
+      <figcaption>Kelas dikelompokkan per tahun ajaran. Angka pada kolom <strong>Siswa</strong> dihitung dari keanggotaan, bukan diisi manual.</figcaption>
+    </figure>
+
+    <p>Kelas punya tiga hal yang dipakai aplikasi:</p>
+    <ul>
+      <li><strong>Tingkat</strong> — dipakai menyaring mata pelajaran yang relevan saat memasang paket soal.</li>
+      <li><strong>Wali kelas</strong> — hanya keterangan; tidak memberi hak akses apa pun.</li>
+      <li><strong>Anggota</strong> — siswa yang masuk kelas ini. Daftar inilah yang ditarik menjadi peserta event.</li>
+    </ul>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Tambah kelas</strong>, isi nama dan tingkatnya.</p>
+      </li>
+      <li>
+        <p>Klik nama kelas untuk membuka daftar anggotanya, lalu tambahkan siswa.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Kelas tanpa anggota menghasilkan event tanpa peserta.</strong> Tidak ada galat saat menarik peserta dari kelas kosong — jumlahnya saja yang nol, dan event terlihat siap padahal tidak ada seorang pun yang akan mengerjakan.
+    </div>
+
+    <h2>Mata pelajaran</h2>
+
+    <figure>
+      <img src="gambar/04-mapel.png" alt="Laman Mata pelajaran dikelompokkan per tingkat, dengan tombol Impor dan Tambah mapel">
+      <figcaption>Mata pelajaran dikelompokkan per tingkat. Angka pada tiap kelompok menunjukkan berapa penugasan guru yang sudah ada.</figcaption>
+    </figure>
+
+    <p>Mata pelajaran dikelompokkan menurut tingkat dengan sengaja: satu mapel yang sama bisa ada di beberapa tingkat, dan daftar rata membuat keduanya sulit dibedakan.</p>
+
+    <h3>Menugaskan guru ke mata pelajaran</h3>
+    <p>Mapel yang belum punya guru tidak bisa dipakai untuk mengajar, tetapi <strong>tetap bisa diujikan</strong>. Yang menolak hanyalah penugasan mengajar — bukan pembuatan ujian.</p>
+
+    <div class="catat">
+      <strong>Guru tidak bisa menulis soal untuk mapel yang tidak diampu.</strong> Bila Guru mengeluh daftar mapelnya kosong, periksa di sini: kemungkinan besar penugasannya belum dibuat, bukan aplikasinya rusak.
+    </div>
+
+    <h2>Mengisi massal lewat berkas</h2>
+
+    <p>Baik kelas maupun mata pelajaran punya tombol <strong>Impor</strong>. Keduanya bekerja sama: unduh template, isi, unggah, lalu periksa pratinjaunya <em>sebelum</em> apa pun disimpan.</p>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Impor</strong>, unduh templatenya, isi di luar aplikasi.</p>
+      </li>
+      <li>
+        <p>Unggah. Aplikasi menampilkan pratinjau baris per baris — mana yang akan dibuat, mana yang akan diperbarui, dan mana yang ditolak beserta alasannya.</p>
+      </li>
+      <li>
+        <p>Periksa, lalu konfirmasi. Tidak ada yang tersimpan sebelum langkah ini.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Impor tidak menimpa diam-diam.</strong> Baris yang cocok dengan data yang sudah ada ditandai sebagai <em>pembaruan</em> pada pratinjau. Bila angkanya tidak seperti yang Anda duga, batalkan di langkah pratinjau — belum ada yang berubah.
+    </div>
+
+    <nav class="kaki">
+      <a href="03-tahun-ajaran.html"><span class="arah">Sebelumnya</span>Tahun ajaran</a>
+      <a class="next" href="05-ruang-pengguna.html"><span class="arah">Berikutnya</span>Ruang &amp; pengguna</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8. Peserta &amp; jadwal — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html" aria-current="page"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>8. Peserta &amp; jadwal</h1>
+    <p class="kepala">Menarik peserta dari kelas, memasang paket soal ke mata pelajaran, lalu menyusun ujian dan sesinya.</p>
+
+    <p>Tiga pekerjaan di bab ini berurutan dan saling menunggu. Peserta tidak punya kursi sebelum ruangnya dialokasikan; sesi tidak bisa dibuat sebelum ujian ada; ujian tidak bisa dibuat tanpa paket soal. Aplikasi memaksa urutannya lewat daftar kesiapan di <a href="07-event.html">Bab 7</a>.</p>
+
+    <h2>Kepanitiaan</h2>
+
+    <figure>
+      <img src="gambar/08-panitia.png" alt="Laman Kepanitiaan dengan kolom Nama, Jabatan, Cakupan, Kontak, Status, dan Kode pengawas">
+      <figcaption>Kepanitiaan. Kolom <strong>Cakupan</strong> menentukan ruang mana yang dijaga orang itu.</figcaption>
+    </figure>
+
+    <p>Panitia mendaftar dulu, sebelum hari-H, karena <a href="09-hari-h.html">pengawas ruang</a> diambil dari daftar ini.</p>
+
+    <ul>
+      <li><strong>Tambahkan massal</strong> — satu jabatan satu cakupan, diisi berkelompok.</li>
+      <li><strong>Kode pengawas</strong> — diterbitkan per orang, dan bisa dicetak pada kartu. Kartu yang sudah dicetak tidak mati oleh penerbitan berikutnya.</li>
+      <li><strong>Terbitkan kode massal</strong> — hanya menyentuh baris yang belum punya kode.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Nama panitia diambil dari akun pengguna</strong>, bukan diketik bebas. Panitia yang belum punya akun harus dibuatkan dulu di <a href="05-ruang-pengguna.html">Bab 5</a>.
+    </div>
+
+    <h2>Pengumuman</h2>
+
+    <figure>
+      <img src="gambar/08-pengumuman.png" alt="Laman Pengumuman dengan tombol Tulis pengumuman">
+      <figcaption>Pengumuman event — satu-satunya tulisan Admin yang dibaca siswa.</figcaption>
+    </figure>
+
+    <p>Pengumuman menempel pada event, bukan pada sekolah. Pertanyaan &ldquo;apa yang perlu dibaca siswa&rdquo; selalu tentang satu kegiatan tertentu, dan pengumuman ujian semester tidak relevan bagi siswa yang sedang menghadapi ujian lain.</p>
+
+    <h2>Kelas &amp; peserta</h2>
+
+    <figure>
+      <img src="gambar/08-peserta.png" alt="Laman Kelas &amp; peserta dengan tabel NIS, Nama, Kelas, Sumber, Status serta tombol Tarik peserta, Simpan kelas, Simpan ruang">
+      <figcaption>Kelas &amp; peserta. Kolom <strong>Sumber</strong> menunjukkan dari mana siswa itu masuk.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Centang kelas yang ikut di bagian <strong>Kelas peserta</strong>, lalu <strong>Simpan kelas</strong>. Ini menentukan keranjang siswa yang tersedia.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Tarik peserta</strong>. Siswa dari kelas terpilih masuk ke daftar.</p>
+      </li>
+      <li>
+        <p>Bila ada yang perlu dikeluarkan, tandai lalu <strong>Kecualikan terpilih</strong> — bukan dihapus dari daftar.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Mengubah kelas peserta tidak menarik ulang otomatis.</strong> Menambah kelas di langkah 1 hanya memperluas keranjang. Siswa dari kelas baru itu baru masuk setelah <strong>Tarik peserta</strong> ditekan lagi. Event yang terlihat &ldquo;kurang peserta&rdquo; biasanya karena langkah ini terlewat.
+    </div>
+
+    <h3>&ldquo;Kecualikan&rdquo; berbeda dari &ldquo;hapus&rdquo;</h3>
+    <p>Peserta yang dikecualikan tetap tercatat pernah terdaftar, dan bisa dikembalikan. Menghapus akan membuat riwayatnya hilang — dan nilai yang sudah ada menjadi tidak bisa ditelusuri ke siapa pemiliknya.</p>
+
+    <h2>Mata pelajaran &amp; paket soal</h2>
+
+    <figure>
+      <img src="gambar/08-mapel.png" alt="Laman Mata pelajaran &amp; paket soal dengan bagian Tambah / lepas mapel dan Paket soal">
+      <figcaption>Dua keputusan terpisah di satu laman: mapel apa yang diujikan, dan paket mana yang dipasang.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Centang mapel yang diujikan, lalu <strong>Simpan mapel</strong>.</p>
+      </li>
+      <li>
+        <p>Untuk tiap mapel, tekan <strong>Ganti</strong> pada kolom paket soal, pilih paketnya, lalu <strong>Simpan</strong>.</p>
+      </li>
+    </ol>
+
+    <div class="catat">
+      <strong>Memasang paket menulis riwayat.</strong> Setiap pemasangan mencatat siapa yang memasang dan kapan. Karena itu tombolnya terpisah dari penyimpanan mapel — mengganti paket bukan sekadar mengubah pilihan, ia meninggalkan jejak.
+    </div>
+
+    <p>Paket yang dipasang akan <strong>dibekukan</strong> saat ujian dibuat: isinya disalin ke ujian, sehingga menyunting soal di bank soal kelak <em>tidak</em> mengubah ujian yang sudah berjalan.</p>
+
+    <figure>
+      <img src="gambar/08-soal.png" alt="Laman Soal per mata pelajaran menampilkan kelompok mapel dan daftar butir soal dengan kolom No, Kode, Judul soal, Jenis, Tingkat, Poin, Ket.">
+      <figcaption>Soal per mata pelajaran — daftar butir yang benar-benar terpasang, lengkap dengan keterangan bila ada yang perlu dicermati.</figcaption>
+    </figure>
+
+    <p>Laman <em>Soal per mata pelajaran</em> memperlihatkan butir yang sudah terpasang, dan menandai yang <strong>basi</strong> — soal di bank soal yang sudah disunting setelah dibekukan. Ujian tetap memakai salinan lamanya, jadi yang Anda lihat di laman itu adalah yang benar-benar dikerjakan siswa.</p>
+
+    <h2>Jadwal &amp; sesi</h2>
+
+    <figure>
+      <img src="gambar/08-jadwal.png" alt="Laman Jadwal &amp; sesi dengan bagian Validasi jadwal dan tabel Ujian di event ini">
+      <figcaption>Jadwal &amp; sesi. Tombol <strong>Deteksi konflik</strong> memeriksa benturan sebelum sesi dibuka.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Tambah ujian</strong>: pilih mapel, paket, dan durasinya. Satu mapel yang diujikan menjadi satu ujian.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Tambah sesi</strong> pada ujian itu: tentukan tanggal, jam mulai, dan jam berakhir paksa.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Deteksi konflik</strong>. Benturan ruang, peserta, dan pengawas dilaporkan di sini.</p>
+      </li>
+    </ol>
+
+    <h3>Tiga waktu yang berbeda</h3>
+    <ul>
+      <li><strong>Jam buka</strong> — sejak kapan siswa boleh masuk.</li>
+      <li><strong>Jam tutup akses</strong> — batas terakhir siswa baru boleh mulai.</li>
+      <li><strong>Akhir paksa</strong> — pada jam ini seluruh pengerjaan dihentikan, apa pun sisanya.</li>
+    </ul>
+
+    <div class="catat hati">
+      <strong>Akhir paksa memotong, bukan memperpanjang.</strong> Siswa yang mulai terlambat tetap kehilangan waktu: durasi ujian tidak digeser mengikuti jam mulainya. Isi akhir paksa dengan jam sekolah benar-benar berakhir, bukan jam mulai ditambah durasi.
+    </div>
+
+    <h3>Status sesi</h3>
+    <p>Sesi bergerak <code>Draft → Siap → Berjalan → Selesai</code>. Tombol <strong>Buka</strong> pada sesi yang masih Draft akan ditolak — sesi harus <em>Siap</em> dulu, dan itu lewat tombol ubah sesi. Sesi yang batal terselenggara memakai <strong>Batalkan</strong>, bukan Hapus: sesi yang sudah punya berita acara tidak bisa dihapus.</p>
+
+    <h3>Sesi tidak ditutup dengan sendirinya?</h3>
+    <p>Setiap menit aplikasi memeriksa sesi yang sudah melewati akhir paksa dan menutupnya sendiri. Bila sesi masih berstatus Berjalan jauh setelah jamnya lewat, periksa apakah penjadwal aplikasi (<code>ujian:tutup-sesi</code>) benar-benar berjalan di server.</p>
+
+    <nav class="kaki">
+      <a href="07-event.html"><span class="arah">Sebelumnya</span>Membuat event</a>
+      <a class="next" href="09-hari-h.html"><span class="arah">Berikutnya</span>Hari-H</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. Tahun ajaran — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html" aria-current="page"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>3. Tahun ajaran</h1>
+    <p class="kepala">Wadah yang menaungi kelas, siswa, dan event. Tanpa satu pun tahun ajaran aktif, event tidak bisa dibuat.</p>
+
+    <p>Ini bukan formalitas administrasi. Tahun ajaran menentukan <strong>kelas mana yang dihitung &ldquo;kelas sekarang&rdquo;</strong> — dan karena itu menentukan siswa mana yang bisa ditarik menjadi peserta ujian. Aplikasi menolak membuat event tanpa tahun ajaran aktif, dan penolakannya berupa kalimat yang menyuruh Anda kembali ke sini.</p>
+
+    <figure>
+      <img src="gambar/04-tahun-ajaran.png" alt="Laman Tahun ajaran &amp; semester dengan tombol Tambah tahun ajaran, Tutup tahun ajaran, Tambah semester, dan Aktifkan">
+      <figcaption>Tahun ajaran dan semester berada di satu laman. Keduanya berpasangan: aktivasi tahun tidak otomatis mengaktifkan semester.</figcaption>
+    </figure>
+
+    <ol class="langkah">
+      <li>
+        <p>Tekan <strong>Tambah tahun ajaran</strong>. Isi nama (misalnya <code>2026/2027</code>), tanggal mulai, dan tanggal selesai.</p>
+      </li>
+      <li>
+        <p>Tekan <strong>Aktifkan</strong> pada tahun ajaran yang baru dibuat.</p>
+      </li>
+      <li>
+        <p>Tambahkan semesternya lewat <strong>Tambah semester</strong> — Ganjil dan Genap — lalu tekan <strong>Aktifkan</strong> pada salah satunya.</p>
+      </li>
+    </ol>
+
+    <div class="catat hati">
+      <strong>Tahun aktif dan semester aktif adalah dua hal berbeda.</strong> Mengaktifkan tahun ajaran tidak mengaktifkan semesternya. Event baru mengambil <em>keduanya</em>, dan bila semester belum aktif, event lahir dengan semester kosong — lalu kesiapan event melaporkannya sebagai belum lengkap tanpa menjelaskan sebabnya dengan gamblang.
+    </div>
+
+    <h2>Menutup tahun ajaran</h2>
+    <p>Tombol <strong>Tutup tahun ajaran</strong> tidak menghapus apa pun. Ia hanya menandai bahwa tahun itu sudah berakhir, sehingga daftar kelas dan siswa berhenti menampilkannya sebagai pilihan aktif. Riwayatnya tetap ada dan tetap bisa dibaca.</p>
+
+    <div class="catat">
+      <strong>Menutup bukan membatalkan.</strong> Event yang masih berjalan di tahun ajaran yang Anda tutup tetap berjalan. Bila ingin menghentikannya, itu dilakukan per event — lihat <a href="07-event.html">Bab 7</a>.
+    </div>
+
+    <h2>Satu tahun aktif pada satu waktu</h2>
+    <p>Menekan <strong>Aktifkan</strong> pada tahun ajaran lain otomatis menonaktifkan yang sedang aktif. Tidak ada keadaan dua tahun aktif sekaligus, dan karenanya tidak ada pertanyaan &ldquo;kelas yang mana yang dipakai?&rdquo; saat menarik peserta.</p>
+
+    <nav class="kaki">
+      <a href="02-sekolah.html"><span class="arah">Sebelumnya</span>Menyiapkan sekolah</a>
+      <a class="next" href="04-kelas-mapel.html"><span class="arah">Berikutnya</span>Kelas &amp; mata pelajaran</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>

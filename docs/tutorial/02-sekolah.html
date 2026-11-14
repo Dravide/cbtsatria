@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2. Menyiapkan sekolah — Tutorial Admin SATRIA CBT</title>
+<link rel="stylesheet" href="gaya.css">
+</head>
+<body>
+<div class="rangka">
+
+  <nav class="sisi"><div class="lengket">
+    <a class="judul" href="index.html">Tutorial Admin</a>
+    <p class="sub">SATRIA CBT</p>
+    <ol>
+      <li><a href="01-masuk.html"><span class="n">1</span>Masuk &amp; beranda</a></li>
+      <li><a href="02-sekolah.html" aria-current="page"><span class="n">2</span>Menyiapkan sekolah</a></li>
+      <li><a href="03-tahun-ajaran.html"><span class="n">3</span>Tahun ajaran</a></li>
+      <li><a href="04-kelas-mapel.html"><span class="n">4</span>Kelas &amp; mata pelajaran</a></li>
+      <li><a href="05-ruang-pengguna.html"><span class="n">5</span>Ruang &amp; pengguna</a></li>
+      <li><a href="06-bank-soal.html"><span class="n">6</span>Bank soal</a></li>
+      <li><a href="07-event.html"><span class="n">7</span>Membuat event</a></li>
+      <li><a href="08-peserta-jadwal.html"><span class="n">8</span>Peserta &amp; jadwal</a></li>
+      <li><a href="09-hari-h.html"><span class="n">9</span>Hari-H</a></li>
+      <li><a href="10-hasil.html"><span class="n">10</span>Hasil &amp; laporan</a></li>
+    </ol>
+  </div></nav>
+
+  <main class="isi">
+    <h1>2. Menyiapkan sekolah</h1>
+    <p class="kepala">Dikerjakan sekali di awal. Empat laman, dan hanya satu di antaranya yang memengaruhi jalannya ujian.</p>
+
+    <p>Bab ini bukan tentang mengisi kolom. Yang perlu Anda pahami adalah <strong>mana yang mengikat</strong>: satu salah isi di sini bisa membuat jam sesi ujian meleset beberapa jam tanpa pesan galat apa pun.</p>
+
+    <h2>Profil sekolah</h2>
+
+    <figure>
+      <img src="gambar/02-profil-sekolah.png" alt="Laman Profil sekolah dengan bagian Identitas, Kontak &amp; waktu, Logo, Papan publik pengawas, dan Status">
+      <figcaption>Profil sekolah. Perhatikan bagian <strong>Kontak &amp; waktu</strong> — di sanalah zona waktu berada.</figcaption>
+    </figure>
+
+    <h3>Zona waktu — satu-satunya isian yang benar-benar berbahaya</h3>
+    <p>Aplikasi ini menyimpan jadwal sebagai jam dinding sekolah. Zona waktu menentukan jam berapa &ldquo;07.00&rdquo; itu sebenarnya. Bila salah, tidak ada galat: aplikasi tetap berjalan, sesi tetap terbuka, hanya saja <strong>terbuka beberapa jam lebih awal atau lebih lambat</strong> dari yang Anda maksud.</p>
+
+    <div class="catat hati">
+      <strong>Zona waktu tidak boleh diubah setelah ada event berjalan.</strong> Mengubahnya menggeser jam seluruh sesi yang sudah tersimpan. Tetapkan sekali, di awal, dan biarkan.
+    </div>
+
+    <p>Tiga pilihan yang tersedia:</p>
+    <ul>
+      <li><strong>WIB</strong> — Asia/Jakarta (UTC+7)</li>
+      <li><strong>WITA</strong> — Asia/Makassar (UTC+8)</li>
+      <li><strong>WIT</strong> — Asia/Jayapura (UTC+9)</li>
+    </ul>
+
+    <h3>NPSN dan kode sekolah terkunci</h3>
+    <p>Kedua kolom bertanda <em>terkunci</em>. NPSN dipakai untuk mengenali sekolah Anda di antara banyak sekolah lain, dan kode internal dipakai aplikasi. Bila salah, hubungi pemasang aplikasi — bukan diubah sendiri.</p>
+
+    <h3>Logo</h3>
+    <p>Logo muncul di kop berita acara, laporan hasil, dan kartu peserta. Unggahannya lewat tombol <strong>Ganti logo</strong> tersendiri, bukan menyatu dengan tombol <strong>Simpan profil</strong> — supaya menyimpan perubahan alamat tidak ikut mengunggah ulang berkas.</p>
+
+    <h3>Papan publik pengawas</h3>
+    <p>Saklar di bagian ini menyalakan alamat publik <code>/papan/&lt;slug&gt;</code>: satu halaman tanpa login yang menampilkan sesi yang sedang berjalan. Halaman itu dibuka pengawas di HP, atau ditempel di layar ruang guru.</p>
+
+    <div class="catat">
+      <strong>Mematikan berarti mematikan.</strong> Saat dimatikan, alamatnya benar-benar lenyap — bukan hanya disembunyikan. Orang yang menyimpan tautannya tidak bisa lagi membukanya. Nyalakan hanya bila sekolah Anda memang butuh papan itu.
+    </div>
+
+    <h2>Identitas aplikasi</h2>
+
+    <figure>
+      <img src="gambar/02-identitas-aplikasi.png" alt="Laman Identitas aplikasi dengan kolom nama situs, nama pendek, deskripsi, ikon, dan warna tema">
+      <figcaption>Identitas aplikasi terpisah dari profil sekolah: ini yang dibaca peramban, bukan yang tercetak di laporan.</figcaption>
+    </figure>
+
+    <p>Bagian ini tidak memengaruhi ujian sama sekali. Isinya yang dibaca peramban: judul tab, ikon, dan warna bilah atas di HP.</p>
+
+    <ul>
+      <li><strong>Nama situs</strong> — tampil di judul tab dan pratinjau tautan saat dibagikan.</li>
+      <li><strong>Nama pendek</strong> — maksimal 12 karakter. Android memotongnya di tengah kata bila lebih panjang.</li>
+      <li><strong>Deskripsi</strong> — meta description, dibaca mesin pencari dan WhatsApp saat tautan dibagikan.</li>
+      <li><strong>Ikon</strong> — tiga jenis: favicon (tab), ikon (layar beranda), dan apple (iOS).</li>
+    </ul>
+
+    <h2>Pengaturan sekolah</h2>
+
+    <figure>
+      <img src="gambar/03-pengaturan.png" alt="Laman Pengaturan sekolah dengan tab Ujian, Keamanan, Nilai, AI, dan Notifikasi">
+      <figcaption>Pengaturan bawaan. Nilai di sini dipakai event <strong>yang dibuat berikutnya</strong>, bukan event yang sudah ada.</figcaption>
+    </figure>
+
+    <p>Lima tab: <strong>Ujian</strong>, <strong>Keamanan</strong>, <strong>Nilai</strong>, <strong>AI</strong>, dan <strong>Notifikasi</strong>.</p>
+
+    <p>Tiga kolom pada tab Ujian yang perlu dipahami:</p>
+    <ul>
+      <li><strong>Durasi token berlaku</strong> — berapa lama token sesi tetap sah setelah dibuka pengawas. Terlalu pendek: pengawas harus membacakan ulang di tengah ujian. Terlalu panjang: token yang bocor tetap berlaku sepanjang hari.</li>
+      <li><strong>Simpan otomatis tiap</strong> — jeda antar penyimpanan jawaban. Menaikkannya mengurangi beban server tetapi memperbesar jawaban yang hilang bila perangkat siswa mati.</li>
+      <li><strong>Ambang pelanggaran bawaan</strong> — jumlah pelanggaran sebelum ujian siswa terkunci.</li>
+    </ul>
+
+    <div class="catat">
+      <strong>Ini nilai bawaan, bukan nilai yang berlaku.</strong> Setiap event menyimpan salinannya sendiri saat dibuat. Mengubah angka di sini <em>tidak</em> mengubah event yang sudah ada — buka eventnya bila ingin mengubahnya.
+    </div>
+
+    <nav class="kaki">
+      <a href="01-masuk.html"><span class="arah">Sebelumnya</span>Masuk &amp; beranda</a>
+      <a class="next" href="03-tahun-ajaran.html"><span class="arah">Berikutnya</span>Tahun ajaran</a>
+    </nav>
+  </main>
+
+</div>
+</body>
+</html>
