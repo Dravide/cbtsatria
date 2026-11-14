@@ -53,6 +53,8 @@ export type NamaIkon =
     | 'keluar'
     | 'cari'
     | 'tambah'
+    | 'mata'
+    | 'mata-coret'
     | 'panah';
 
 const JALUR: Record<NamaIkon, string> = {
@@ -88,6 +90,13 @@ const JALUR: Record<NamaIkon, string> = {
     keluar: 'M15 4h4v16h-4M11 8l-4 4 4 4M7 12h8',
     cari: 'M11 18a7 7 0 100-14 7 7 0 000 14zM16 16l4 4',
     tambah: 'M12 5v14M5 12h14',
+    // Mata terbuka: kelopak atas dan bawah bertemu di dua sudut.
+    mata: 'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
+    // Mata coret: kelopaknya sama, ditambah garis miring. Sengaja BUKAN mata
+    // yang digambar ulang tanpa pupil - pada ukuran 18px keduanya terbaca
+    // sama, dan tombol yang keadaannya tidak terbaca adalah tombol yang
+    // ditekan dua kali.
+    'mata-coret': 'M2.5 12S6 5.5 12 5.5c1.6 0 3 .4 4.2 1M21.5 12S18 18.5 12 18.5c-1.6 0-3-.4-4.2-1M12 15a3 3 0 01-2.1-5.1M3 3l18 18',
     panah: 'M9 6l6 6-6 6',
 };
 
