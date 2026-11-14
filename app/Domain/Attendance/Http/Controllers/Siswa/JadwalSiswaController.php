@@ -6,6 +6,7 @@ use App\Domain\Attendance\Enums\StatusPresensi;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Services\TempatUjianSiswa;
+use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventAnnouncement;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
@@ -53,9 +54,18 @@ class JadwalSiswaController extends SiswaDasar
     {
         $penempatan = ExamParticipant::query()
             ->where('student_id', $request->user()->id)
+            // Event yang sudah DIARSIPKAN atau DIBATALKAN tidak ditampilkan -
+            // lihat `EventStatus::tampilKeSiswa()` tentang mengapa `Selesai`
+            // tetap ikut. Penyaringnya di sini, bukan di peramban: baris yang
+            // sudah dikirim ke peramban adalah baris yang akan ditemukannya
+            // lewat devtools, dan "hilang dari daftar" bukan keamanan.
+            ->whereHas('exam.event', fn ($q) => $q->whereIn(
+                'status',
+                array_map(fn (EventStatus $s) => $s->value, EventStatus::tampilKeSiswa()),
+            ))
             ->with([
                 'exam.subject:id,name',
-                'exam.event:id,name',
+                'exam.event:id,name,status',
                 'session',
                 'room.eventRoom.room:id,code,name,location',
             ])

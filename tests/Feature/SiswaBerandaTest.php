@@ -99,8 +99,39 @@ it('tidak menghitung peserta yang dikecualikan sebagai ujian yang menunggu', fun
         ->toMatchArray(['total' => 0, 'selesai' => 0, 'terlewat' => 0, 'menunggu' => 0]);
 });
 
-it('menghitung ujian yang jendelanya lewat sebagai terlewat, bukan menunggu', function () {
-    // Sesi yang jendelanya sudah berakhir dan TIDAK pernah dikerjakan. Ia
+it('menyembunyikan ujian dari event yang diarsipkan dan dibatalkan', function () {
+    // Gejala 2026-11-14: event yang sudah diarsipkan Admin tetap berdiri di
+    // beranda siswa selamanya. Menyaringnya di sini, bukan di peramban:
+    // baris yang sudah terkirim adalah baris yang ditemukan lewat devtools.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    expect(propsBeranda($this, $data['siswa'][0])['jadwal'])->toHaveCount(1);
+
+    foreach (['arsip', 'batal'] as $status) {
+        $data['event']->forceFill(['status' => $status])->save();
+
+        $props = propsBeranda($this, $data['siswa'][0]);
+
+        expect($props['jadwal'])->toBeEmpty()
+            ->and($props['kemajuan'])
+            ->toMatchArray(['total' => 0, 'selesai' => 0, 'terlewat' => 0, 'menunggu' => 0]);
+    }
+});
+
+it('tetap menampilkan ujian dari event yang sudah selesai', function () {
+    // `Selesai` BUKAN `Arsip`, dan bedanya menentukan: anak yang baru keluar
+    // dari ruang ujian membuka laman ini untuk memastikan ujiannya tercatat,
+    // dan menghapusnya seketika membuat laman itu berbohong tentang apa yang
+    // baru saja terjadi. Arsip adalah tindakan sadar Admin; Selesai berjalan
+    // sendiri.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $data['event']->forceFill(['status' => 'selesai'])->save();
+
+    expect(propsBeranda($this, $data['siswa'][0])['jadwal'])->toHaveCount(1);
+});
+
+it('menghitung ujian yang jendelanya lewat sebagai terlewat, bukan menunggu', function () {    // Sesi yang jendelanya sudah berakhir dan TIDAK pernah dikerjakan. Ia
     // tetap tampil di daftar sebagai riwayat, tetapi sampai 2026-11-14 ia
     // ikut terhitung "masih menunggu" - sehingga anak yang sudah melewati
     // jendelanya mengejar ujian yang tidak akan pernah datang.

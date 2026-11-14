@@ -129,6 +129,54 @@ enum EventStatus: string
         return [self::Draft, self::Preparation, self::Ready, self::Ongoing];
     }
 
+    /**
+     * Event yang masih pantas muncul di jadwal SISWA - ditambahkan 2026-11-14.
+     *
+     * =====================================================================
+     * Arsip dan Batal disembunyikan, dan keduanya karena alasan berbeda
+     * =====================================================================
+     * Sebelum ini laman siswa membaca SELURUH penempatannya tanpa melihat
+     * status event sama sekali. Akibatnya event yang sudah diarsipkan Admin
+     * - tindakan yang justru berarti "singkirkan ini" - tetap berdiri di
+     * beranda siswa selamanya, dan event yang DIBATALKAN terbaca sebagai
+     * ujian yang terlewat. Yang kedua lebih buruk daripada yang pertama: anak
+     * membaca "Informatika · terlewat" untuk ujian yang tidak pernah
+     * dijalankan, lalu menyimpulkan dirinya melewatkan sesuatu.
+     *
+     * ---------------------------------------------------------------------
+     * Selesai TETAP tampil, dan itu keputusan yang berbeda
+     * ---------------------------------------------------------------------
+     * `Selesai` adalah ujian yang benar-benar dijalankan dan baru saja
+     * berakhir. Ia tetap di jadwal sebagai riwayat - child yang baru keluar
+     * dari ruang ujian membuka laman ini untuk memastikan ujiannya tercatat,
+     * dan menghapusnya seketika membuat laman itu berbohong tentang apa yang
+     * baru saja terjadi.
+     *
+     * Batasnya karena itu bukan "sudah lewat" melainkan "sudah DIARSIPKAN":
+     * arsip adalah tindakan sadar Admin, dan `Selesai` adalah keadaan yang
+     * berjalan sendiri.
+     *
+     * ---------------------------------------------------------------------
+     * Draft, Persiapan, dan Siap ikut tampil, walau ujiannya belum jalan
+     * ---------------------------------------------------------------------
+     * Anak perlu melihat ujian yang akan datang - "minggu depan ada
+     * Informatika" - dan jadwal yang kosong sampai harinya tiba membuat ia
+     * tidak punya cara tahu apa pun. Yang menyaring apakah ia BOLEH masuk
+     * adalah `KelayakanUjian`, bukan daftar ini.
+     *
+     * @return array<int, self>
+     */
+    public static function tampilKeSiswa(): array
+    {
+        return [
+            self::Draft,
+            self::Preparation,
+            self::Ready,
+            self::Ongoing,
+            self::Completed,
+        ];
+    }
+
     /** @return array<string, string> */
     public static function options(): array
     {

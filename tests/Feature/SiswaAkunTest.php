@@ -578,3 +578,29 @@ it('memilih sesi yang belum berakhir walau ada sesi lama', function () {
     expect($props['tempat_ujian']['selesai'])->toBeFalse()
         ->and($props['tempat_ujian']['sesi'])->toBe($sekarang->label());
 });
+
+it('tidak mengirim tempat ujian dari event yang diarsipkan', function () {
+    // Aturannya SAMA dengan beranda - `EventStatus::tampilKeSiswa()` - dan
+    // justru itu yang diuji di sini. Bila keduanya menyaring berbeda, blok
+    // "Tempat ujian saya" akan menunjuk ujian yang sudah tidak ada di jadwal,
+    // dan anak mencarinya di beranda tanpa menemukannya.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $propsAkun = fn () => masukUji($this, $data['siswa'][0])
+        ->get('/siswa/akun')
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($propsAkun()['tempat_ujian'])->not->toBeNull();
+
+    foreach (['arsip', 'batal'] as $status) {
+        $data['event']->forceFill(['status' => $status])->save();
+
+        expect($propsAkun()['tempat_ujian'])->toBeNull();
+    }
+
+    // `Selesai` tetap dikirim - lihat `EventStatus::tampilKeSiswa()`.
+    $data['event']->forceFill(['status' => 'selesai'])->save();
+
+    expect($propsAkun()['tempat_ujian'])->not->toBeNull();
+});

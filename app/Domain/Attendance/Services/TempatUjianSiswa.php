@@ -2,6 +2,7 @@
 
 namespace App\Domain\Attendance\Services;
 
+use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventRoom;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Services\NomorKursi;
@@ -148,6 +149,11 @@ final class TempatUjianSiswa
     /**
      * Penempatan milik satu siswa yang menunjuk ruang.
      *
+     * Event yang sudah diarsipkan atau dibatalkan tidak ikut - aturannya sama
+     * dengan beranda, dan datang dari `EventStatus::tampilKeSiswa()`. Kalau
+     * keduanya menyaring berbeda, blok "Tempat ujian saya" di Akun akan
+     * menunjuk ujian yang sudah tidak ada di beranda.
+     *
      * @return Collection<int, ExamParticipant>
      */
     private function penempatanSiswa(int $siswaId): Collection
@@ -155,6 +161,10 @@ final class TempatUjianSiswa
         return ExamParticipant::query()
             ->where('student_id', $siswaId)
             ->where('status', ExamParticipant::STATUS_TERDAFTAR)
+            ->whereHas('exam.event', fn ($q) => $q->whereIn(
+                'status',
+                array_map(fn (EventStatus $s) => $s->value, EventStatus::tampilKeSiswa()),
+            ))
             ->with([
                 'exam.subject:id,name',
                 'session',
