@@ -784,6 +784,10 @@ it('menampilkan nilai sendiri dan TIDAK menampilkan baris siswa lain', function 
             // pemeriksaan "siswa bisa membuka lamannya".
             ->has('daftar', 1)
             ->where('daftar.0.peserta_id', $data['peserta'][0]->id)
+            // Nama event IKUT dikirim - ditambahkan 2026-11-14. Anak yang
+            // punya Informatika di dua periode melihat dua baris yang
+            // mapelnya sama persis, dan hanya nama event yang membedakannya.
+            ->where('daftar.0.event', $data['event']->name)
             // JSON menulis 100.0 sebagai 100 - bilangan bulat tidak punya
             // bagian desimal untuk dipertahankan.
             ->where('daftar.0.nilai', 100)

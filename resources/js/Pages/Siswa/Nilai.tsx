@@ -207,11 +207,22 @@ function BarisNilai({ baris }: { baris: Baris }) {
                 )}
             </div>
 
-            {/* SATU titik, dan itu memang yang diizinkan lantai 63 - "one dot
-                in a byline". Pita di beranda memakai kolom karena ia empat
-                hal yang dibandingkan sekilas; baris ini dua keterangan satu
-                ujian, dan memisahkannya jadi sel tidak menambah apa pun. */}
-            <p className="catatan mt-0.5 truncate">
+            {/* Dua baris keterangan, dan pembagiannya bukan selera:
+                nama EVENT di atas, tanggal dan status di bawahnya.
+
+                Nama event menjawab "yang mana" - anak yang punya Informatika
+                di dua periode melihat dua baris yang mapelnya sama persis,
+                dan hanya nama event yang membedakannya. Ia karena itu berdiri
+                SENDIRI, bukan disisipkan ke byline di bawahnya: menggabungnya
+                menjadi `event · tanggal · status` berarti dua titik pemisah,
+                dan lantai 63 hanya mengizinkan satu.
+
+                Barisnya dua caption bertumpuk, bukan satu kalimat panjang,
+                sehingga yang dipisahkan tetap terbaca sebagai dua jenis
+                keterangan: nama (apa) dan waktu (kapan). */}
+            <p className="catatan mt-0.5 truncate">{baris.event ?? 'Tanpa event'}</p>
+
+            <p className="catatan truncate">
                 {[baris.tanggal_label, baris.status_label].filter(Boolean).join(' · ')}
             </p>
 

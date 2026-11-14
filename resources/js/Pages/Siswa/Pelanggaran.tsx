@@ -58,6 +58,15 @@ type Riwayat = {
     tingkat: string;
     nada: string;
     mapel: string | null;
+    /**
+     * Nama event per baris - ditambahkan 2026-11-14.
+     *
+     * Penyaring event di atas riwayat hanya muncul saat siswa punya LEBIH
+     * DARI SATU event berisi catatan. Dengan satu event ia tidak dirender
+     * sama sekali, sehingga tanpa baris ini riwayatnya berdiri tanpa satu
+     * pun keterangan tentang ujian mana yang dimaksud.
+     */
+    event: string | null;
     durasi: string | null;
     tindakan_pengawas: boolean;
 };
@@ -191,6 +200,24 @@ export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: P
                                 </span>
                                 <LencanaTingkat nada={r.nada}>{r.tingkat}</LencanaTingkat>
                             </div>
+                            {/*
+                             * Nama event berdiri SENDIRI di antara jenis dan
+                             * keterangan waktu - ditambahkan 2026-11-14.
+                             *
+                             * Ia menjawab "yang mana", sementara baris di
+                             * bawahnya menjawab "kapan". Menyatukannya ke
+                             * baris bawah berarti tiga keterangan berderet,
+                             * dan satu di antaranya (mapel) dipotong lebih
+                             * dulu di ponsel 26rem.
+                             *
+                             * Penyaring event di ATAS laman belum cukup:
+                             * ia hanya dirender saat siswa punya lebih dari
+                             * satu event berisi catatan.
+                             */}
+                            <p className="catatan mt-0.5 truncate">
+                                {r.event ?? 'Tanpa event'}
+                            </p>
+
                             {/*
                              * Mapel, tanggal dan durasi sebagai SEL, bukan
                              * satu kalimat bertitik pemisah.

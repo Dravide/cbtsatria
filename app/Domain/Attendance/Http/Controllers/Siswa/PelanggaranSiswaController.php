@@ -130,6 +130,16 @@ class PelanggaranSiswaController extends SiswaDasar
                 'tingkat' => $v->labelTingkat(),
                 'nada' => $v->nadaTingkat(),
                 'mapel' => $this->mapelDari($penempatan, $v->exam_participant_id),
+
+                // Nama event per baris - ditambahkan 2026-11-14.
+                //
+                // Penyaring event di atas riwayat hanya muncul saat siswa
+                // punya LEBIH DARI SATU event berisi catatan. Dengan satu
+                // event ia tidak dirender sama sekali, sehingga riwayatnya
+                // berdiri tanpa satu pun keterangan tentang ujian mana yang
+                // dimaksud - dan pelanggaran "keluar dari layar penuh" pada
+                // dua ujian berbeda adalah dua peristiwa yang berbeda.
+                'event' => $this->eventDari($penempatan, $v->exam_participant_id),
                 'durasi' => $v->duration_ms === null
                     ? null
                     : round($v->duration_ms / 1000, 1).' detik',
@@ -170,5 +180,19 @@ class PelanggaranSiswaController extends SiswaDasar
     private function mapelDari($penempatan, int $pesertaId): ?string
     {
         return $penempatan->firstWhere('id', $pesertaId)?->exam?->subject?->name;
+    }
+
+    /**
+     * Nama event untuk satu baris riwayat.
+     *
+     * Jalur yang sama dengan `mapelDari()`, dan alasannya sama: nama event
+     * hidup di `school_events`, dan menyalinnya ke `exam_violations` berarti
+     * dua tempat yang menyimpan nama yang sama - yang satu akan basi.
+     *
+     * @param  Collection<int, ExamParticipant>  $penempatan
+     */
+    private function eventDari($penempatan, int $pesertaId): ?string
+    {
+        return $penempatan->firstWhere('id', $pesertaId)?->exam?->event?->name;
     }
 }

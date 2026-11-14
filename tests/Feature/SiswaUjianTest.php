@@ -1103,3 +1103,37 @@ it('menampilkan sisa waktu di laman terkunci, dan tidak menyembunyikannya', func
     // yang ditunggu anaknya.
     expect($props['attempt']['sisa_detik'])->toBeGreaterThan(0);
 });
+
+/* =====================================================================
+ | Nama event di riwayat pelanggaran - ditambahkan 2026-11-14
+ |===================================================================== */
+
+it('menyebut nama event pada setiap baris riwayat pelanggaran', function () {
+    // Penyaring event di ATAS laman pelanggaran hanya dirender saat siswa
+    // punya LEBIH DARI SATU event berisi catatan - lihat `Pelanggaran.tsx`.
+    // Dengan satu event ia tidak muncul sama sekali, sehingga tanpa nama
+    // event per baris, riwayatnya berdiri tanpa keterangan tentang ujian
+    // mana yang dimaksud.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'][0];
+
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    // `pindah_tab`, bukan `klik_kanan`: yang terakhir bertingkat 0 dan
+    // SENGAJA tidak pernah menjadi baris - lihat TanggaPelanggaran.
+    masukUji($this, $data['siswa'][0])
+        ->postJson("/siswa/ujian/{$peserta->id}/lapor", [
+            'jenis' => 'pindah_tab',
+            'durasi_ms' => 5000,
+        ]);
+
+    masukUji($this, $data['siswa'][0])
+        ->get('/siswa/pelanggaran')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Siswa/Pelanggaran')
+            ->has('riwayat', 1)
+            ->where('riwayat.0.event', $data['event']->name)
+        );
+});
