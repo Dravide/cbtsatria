@@ -2,8 +2,12 @@
 
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\Semester;
+use App\Domain\Event\Models\EventRoom;
+use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Models\SupervisionAssignment;
+use App\Domain\Exam\Services\PengawasService;
 use App\Domain\Exam\Services\SesiService;
+use App\Domain\Facility\Models\Room;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\School;
 
@@ -190,4 +194,177 @@ it('tidak membocorkan papan sekolah lain lewat slug', function () {
 
     // Dan slug sekolah yang tidak menyala tidak ditemukan sama sekali.
     expect($lain->fresh()->papan_slug)->toBeNull();
+});
+
+/* =====================================================================
+ | Tukar pengawas - ditambahkan 2026-11-14
+ |===================================================================== */
+
+it('menukar dua penugasan pengawas antar ruang', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    // Ruang kedua pada sesi yang sama, dengan pengawas lain.
+    $ruangDua = ExamSessionRoom::query()
+        ->where('exam_session_id', $data['sesi']->id)
+        ->where('id', '!=', $data['ruang'][0]->id)
+        ->first();
+
+    // Event ini baru punya satu ruang - buat ruang sesi kedua dari ruang
+    // master yang baru, lewat service yang sama dengan Admin.
+    if ($ruangDua === null) {
+        $ruangMaster = Room::factory()->create([
+            'school_id' => $this->sekolah->id,
+            'code' => 'R-02-TUKAR',
+            'capacity' => 10,
+        ]);
+
+        $eventRoom = EventRoom::create([
+            'school_id' => $this->sekolah->id,
+            'event_id' => $data['event']->id,
+            'room_id' => $ruangMaster->id,
+            'status' => 'aktif',
+        ]);
+
+        $ruangDua = ExamSessionRoom::create([
+            'school_id' => $this->sekolah->id,
+            'exam_session_id' => $data['sesi']->id,
+            'event_room_id' => $eventRoom->id,
+        ]);
+    }
+
+    $pengawasDua = User::factory()->pengawas()
+        ->untukSekolah($this->sekolah)->create(['username' => 'pengawas.tukar']);
+
+    app(PengawasService::class)->tugaskan($ruangDua, $pengawasDua, $this->admin->id);
+
+    $tugasA = SupervisionAssignment::query()
+        ->where('exam_session_room_id', $data['ruang'][0]->id)->sole();
+    $tugasB = SupervisionAssignment::query()
+        ->where('exam_session_room_id', $ruangDua->id)->sole();
+
+    expect((int) $tugasA->supervisor_id)->toBe($data['pengawas']->id);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$data['event']->id}/pengawas/tukar", [
+            'a' => $tugasA->id,
+            'b' => $tugasB->id,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    // Orangnya bertukar; BARISNYA tetap, sehingga ruang dan sesinya tidak
+    // bergerak - hanya siapa yang berdiri di sana.
+    expect((int) $tugasA->fresh()->supervisor_id)->toBe($pengawasDua->id)
+        ->and((int) $tugasB->fresh()->supervisor_id)->toBe($data['pengawas']->id)
+        ->and((int) $tugasA->fresh()->exam_session_room_id)->toBe((int) $data['ruang'][0]->id);
+});
+
+it('menolak menukar penugasan dengan dirinya sendiri', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $tugas = SupervisionAssignment::query()
+        ->where('exam_session_room_id', $data['ruang'][0]->id)->sole();
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$data['event']->id}/pengawas/tukar", [
+            'a' => $tugas->id,
+            'b' => $tugas->id,
+        ])
+        ->assertSessionHasErrors('b');
+});
+
+it('menolak menukar penugasan milik event lain', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $lain = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $tugasA = SupervisionAssignment::query()
+        ->where('exam_session_room_id', $data['ruang'][0]->id)->sole();
+    $tugasB = SupervisionAssignment::query()
+        ->where('exam_session_room_id', $lain['ruang'][0]->id)->sole();
+
+    // 404, bukan 403 - alasan yang sama dengan seluruh rute bersarang.
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$data['event']->id}/pengawas/tukar", [
+            'a' => $tugasA->id,
+            'b' => $tugasB->id,
+        ])
+        ->assertNotFound();
+
+    // Dan tidak satu pun berubah.
+    expect((int) $tugasA->fresh()->supervisor_id)->toBe($data['pengawas']->id)
+        ->and((int) $tugasB->fresh()->supervisor_id)->toBe($lain['pengawas']->id);
+});
+
+it('membatalkan seluruh pertukaran bila hasilnya bentrok', function () {
+    // Penugasan pertama di sesi 1, penugasan kedua di SESI LAIN pada jam yang
+    // sama. Menukarnya akan menaruh pengawas sesi 1 ke sesi 2, dan ia sudah
+    // punya penugasan di sana - bentrok.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $tugasA = SupervisionAssignment::query()
+        ->where('exam_session_room_id', $data['ruang'][0]->id)->sole();
+
+    $sesiKedua = app(SesiService::class)->buat($data['ujian'], [
+        'session_number' => 9,
+        'access_opens_at' => now()->subHour(),
+        'access_closes_at' => now()->addHours(2),
+        'hard_end_at' => now()->addHours(3),
+        'event_room_id' => [$data['event']->rooms()->first()->id],
+    ]);
+
+    $ruangKedua = ExamSessionRoom::query()
+        ->where('exam_session_id', $sesiKedua->id)->firstOrFail();
+
+    // Pengawas yang SAMA ditugaskan di sesi kedua yang jendelanya bertumpang.
+    // `tugaskan()` menolak bentrok, jadi baris kedua ditulis langsung - yang
+    // diuji di sini adalah penjagaan `tukar()`, bukan penjagaan `tugaskan()`.
+    $tugasB = SupervisionAssignment::create([
+        'school_id' => $this->sekolah->id,
+        'exam_session_room_id' => $ruangKedua->id,
+        'supervisor_id' => $data['pengawas']->id,
+        'assigned_by' => $this->admin->id,
+        'status' => 'aktif',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$data['event']->id}/pengawas/tukar", [
+            'a' => $tugasA->id,
+            'b' => $tugasB->id,
+        ])
+        ->assertSessionHas('galat');
+
+    // Penolakan TIDAK meninggalkan perubahan setengah jadi: kedua baris
+    // kembali ke orang semula.
+    expect((int) $tugasA->fresh()->supervisor_id)->toBe($data['pengawas']->id)
+        ->and((int) $tugasB->fresh()->supervisor_id)->toBe($data['pengawas']->id);
+});
+
+it('mengirim dua penugasan yang bisa ditukar dari laman Pengawas', function () {
+    // Panel tukar disusun dari `baris[].pengawas[]` yang dikirim server -
+    // bukan dari state lain. Test ini menjaga kontraknya: id penugasan
+    // (bukan id orang), beserta ruang dan sesi yang membedakan dua baris
+    // yang orangnya sama.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $kedua = User::factory()->pengawas()
+        ->untukSekolah($this->sekolah)->create(['username' => 'pengawas.dua']);
+
+    app(PengawasService::class)
+        ->tugaskan($data['ruang'][0], $kedua, $this->admin->id);
+
+    $props = $this->actingAs($this->admin)
+        ->get("/admin/events/{$data['event']->id}/pengawas")
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    $pengawas = collect($props['baris'])->flatMap(fn (array $b) => $b['pengawas']);
+
+    expect($pengawas)->toHaveCount(2)
+        // `id` adalah id BARIS penugasan - yang ditukar. `user_id` adalah
+        // orangnya. Mengirim hanya `user_id` berarti laman tidak bisa
+        // menyatakan penugasan mana yang dimaksud saat orangnya memegang
+        // dua penugasan sah di sesi berbeda.
+        ->and($pengawas->pluck('id')->unique())->toHaveCount(2)
+        ->and($pengawas->pluck('user_id')->unique())->toHaveCount(2)
+        ->and($pengawas->every(fn (array $p) => isset($p['nama'])))->toBeTrue();
 });

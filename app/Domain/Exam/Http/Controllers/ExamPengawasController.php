@@ -316,6 +316,71 @@ class ExamPengawasController
         abort_unless($ruang->session?->exam?->event_id === $event->id, 404);
     }
 
+    /**
+     * Tukar dua penugasan pengawas - ditambahkan 2026-11-14.
+     *
+     * ---------------------------------------------------------------------
+     * Yang dikirim adalah DUA id penugasan, bukan dua id orang
+     * ---------------------------------------------------------------------
+     * Penugasan menempel pada ruang-SESI, dan orang yang sama bisa memegang
+     * dua penugasan sah di sesi berbeda. Mengirim `supervisor_id` berarti
+     * laman harus memilih penugasan mana yang dimaksud - dan pilihan itu
+     * bisa salah tanpa terlihat. Yang dikirim karena itu id BARIS-nya.
+     *
+     * ---------------------------------------------------------------------
+     * Kedua baris harus milik event ini
+     * ---------------------------------------------------------------------
+     * Binding implisit hanya menjamin keduanya milik sekolah yang sama.
+     * Tanpa pemeriksaan tambahan, Admin yang membuka event A bisa menukar
+     * pengawas event B dengan satu angka di URL.
+     */
+    public function tukar(
+        Request $request,
+        SchoolEvent $event,
+        PengawasService $service,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $data = $request->validate([
+            'a' => ['required', 'integer'],
+            'b' => ['required', 'integer', 'different:a'],
+        ], [
+            'b.different' => 'Pilih dua penugasan yang berbeda.',
+        ], ['a' => 'penugasan pertama', 'b' => 'penugasan kedua']);
+
+        $a = SupervisionAssignment::query()->with('room.session.exam')->find($data['a']);
+        $b = SupervisionAssignment::query()->with('room.session.exam')->find($data['b']);
+
+        if ($a === null || $b === null) {
+            return back()->with('galat', 'Salah satu penugasan itu sudah tidak ada.');
+        }
+
+        $this->pastikanTugasMilikEvent($a, $event);
+        $this->pastikanTugasMilikEvent($b, $event);
+
+        $namaA = $a->supervisor?->name ?? 'Pengawas';
+        $namaB = $b->supervisor?->name ?? 'Pengawas';
+
+        try {
+            $service->tukar($a, $b);
+        } catch (ValidationException $e) {
+            return back()->with('galat', $e->validator->errors()->first());
+        }
+
+        $logger->log('Menukar pengawas antar ruang', $event, [
+            'a' => $namaA,
+            'a_ruang' => $a->room?->eventRoom?->room?->code,
+            'b' => $namaB,
+            'b_ruang' => $b->room?->eventRoom?->room?->code,
+        ]);
+
+        return back()->with(
+            'sukses',
+            "{$namaA} dan {$namaB} bertukar ruang.",
+        );
+    }
+
     private function pastikanTugasMilikEvent(SupervisionAssignment $tugas, SchoolEvent $event): void
     {
         abort_unless($tugas->room?->session?->exam?->event_id === $event->id, 404);

@@ -101,7 +101,45 @@ export default function EventPengawas({
     const [ruangId, setRuangId] = useState<number | null>(null);
     const [orangId, setOrangId] = useState<number | null>(null);
 
+    // Panel tukar - ditambahkan 2026-11-14. `null` = tertutup. Dibuka dari
+    // tombol Tukar pada baris dengan isi BARIS ITU lebih dulu dipilih, karena
+    // Admin yang menekan Tukar di baris R-02 sedang ingin menukar R-02 -
+    // menampilkan dua dropdown kosong berarti menanyakannya lagi.
+    const [tukar, setTukar] = useState<{ a: number | null; b: number | null } | null>(null);
+
     const jalur = `/admin/events/${event.id}`;
+
+    /**
+     * Seluruh penugasan event ini, sebagai pilihan panel tukar.
+     *
+     * Disusun dari `baris` yang sudah dikirim server - bukan dari state lain.
+     * Daftar yang disusun ulang di peramban adalah daftar yang suatu hari
+     * berbeda dari yang ditampilkan tabelnya.
+     */
+    const semuaPenugasan = baris.flatMap((b) =>
+        b.pengawas.map((p) => ({
+            id: p.id,
+            label: `${b.ruang ?? 'R-?'} · ${b.sesi ?? '—'} · ${p.nama ?? p.username ?? '—'}`,
+        })),
+    );
+
+    const bukaTukar = (barisId?: number) => {
+        const awal = barisId === undefined ? null : (baris.find((b) => b.id === barisId)?.pengawas[0]?.id ?? null);
+
+        setTukar({ a: awal, b: null });
+    };
+
+    const kirimTukar = () => {
+        if (tukar?.a === null || tukar?.b === null || tukar === null) {
+            return;
+        }
+
+        router.post(
+            `${jalur}/pengawas/tukar`,
+            { a: tukar.a, b: tukar.b },
+            { preserveScroll: true, onSuccess: () => setTukar(null) },
+        );
+    };
 
     const bukaPanel = (id?: number) => {
         setRuangId(id ?? baris.find((b) => b.pengawas.length === 0)?.id ?? baris[0]?.id ?? null);
@@ -157,6 +195,20 @@ export default function EventPengawas({
                         onClick={() => bukaPanel()}
                     >
                         Tugaskan
+                    </Tombol>
+
+                    {/* Tukar hanya masuk akal bila ADA yang bisa ditukar:
+                        satu penugasan sendirian tidak punya pasangan. */}
+                    <Tombol
+                        disabled={semuaPenugasan.length < 2}
+                        title={
+                            semuaPenugasan.length < 2
+                                ? 'Butuh paling sedikit dua penugasan untuk ditukar.'
+                                : 'Tukar pengawas antar ruang'
+                        }
+                        onClick={() => bukaTukar()}
+                    >
+                        Tukar pengawas
                     </Tombol>
                 </>
             }
@@ -242,8 +294,86 @@ export default function EventPengawas({
                 </div>
             )}
 
-            {calon.length === 0 && baris.length > 0 && (
-                <div className="mb-3">
+            {tukar !== null && (
+                <div className="mb-4">
+                    <Kotak
+                        judul="Tukar pengawas"
+                        aksi={
+                            <>
+                                <Tombol nada="sek" onClick={() => setTukar(null)}>
+                                    Batal
+                                </Tombol>
+                                <Tombol
+                                    nada="pri"
+                                    disabled={tukar.a === null || tukar.b === null}
+                                    onClick={kirimTukar}
+                                >
+                                    Tukar
+                                </Tombol>
+                            </>
+                        }
+                    >
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <Field label="Penugasan pertama" petunjuk="Ruang · sesi · pengawas">
+                                <select
+                                    value={tukar.a ?? ''}
+                                    onChange={(e) =>
+                                        setTukar({ ...tukar, a: e.target.value === '' ? null : Number(e.target.value) })
+                                    }
+                                    className={kelasInput}
+                                >
+                                    <option value="">— pilih —</option>
+                                    {semuaPenugasan.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+
+                            <Field
+                                label="Penugasan kedua"
+                                petunjuk="Ditukar dengan yang pertama"
+                                galat={
+                                    tukar.a !== null && tukar.b !== null && tukar.a === tukar.b
+                                        ? 'Pilih dua penugasan yang berbeda.'
+                                        : undefined
+                                }
+                            >
+                                <select
+                                    value={tukar.b ?? ''}
+                                    onChange={(e) =>
+                                        setTukar({ ...tukar, b: e.target.value === '' ? null : Number(e.target.value) })
+                                    }
+                                    className={kelasInput}
+                                >
+                                    <option value="">— pilih —</option>
+                                    {semuaPenugasan
+                                        // Penugasan pertama tidak ditawarkan lagi:
+                                        // menukar sesuatu dengan dirinya sendiri
+                                        // bukan pertukaran, dan server menolaknya.
+                                        .filter((p) => p.id !== tukar.a)
+                                        .map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.label}
+                                            </option>
+                                        ))}
+                                </select>
+                            </Field>
+                        </div>
+
+                        <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
+                            Yang bertukar adalah <strong>orangnya</strong>: kedua pengawas berdiri di
+                            ruang masing-masing yang lain, dan jadwal ruangnya tidak bergerak.
+                            Pertukaran ditolak bila hasilnya menaruh salah satunya di dua ruang pada
+                            jam yang sama &mdash; dan penolakan itu tidak meninggalkan perubahan
+                            setengah jadi.
+                        </p>
+                    </Kotak>
+                </div>
+            )}
+
+            {calon.length === 0 && baris.length > 0 && (                <div className="mb-3">
                     <Peringatan>
                         Belum ada panitia berjabatan <strong>pengawas</strong> yang punya akun.
                         Tambahkan orangnya di laman <strong>Kepanitiaan</strong> &mdash; penugasan di
@@ -312,6 +442,23 @@ export default function EventPengawas({
                                     onClick={() => bukaPanel(b.id)}
                                 >
                                     Tugaskan
+                                </Tombol>
+                                {/* Tukar per baris: ruang & sesi baris ini
+                                    dipilih lebih dulu, karena Admin yang
+                                    menekannya di R-02 sedang memikirkan R-02.
+                                    Ia tetap bisa memilih pasangan dari ruang
+                                    mana pun di panelnya. */}
+                                <Tombol
+                                    nada="sek"
+                                    disabled={b.pengawas.length === 0 || semuaPenugasan.length < 2}
+                                    title={
+                                        b.pengawas.length === 0
+                                            ? 'Ruang ini belum punya pengawas untuk ditukar.'
+                                            : undefined
+                                    }
+                                    onClick={() => bukaTukar(b.id)}
+                                >
+                                    Tukar
                                 </Tombol>
                             </span>
                         ),

@@ -450,6 +450,13 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/events/{event}/pengawas/otomatis', [ExamPengawasController::class, 'otomatis'])->name('events.pengawas.otomatis');
     Route::post('/events/{event}/pengawas/ruang/{ruang}', [ExamPengawasController::class, 'tugaskan'])->name('events.pengawas.tugaskan');
     Route::delete('/events/{event}/pengawas/{tugas}', [ExamPengawasController::class, 'batalkan'])->name('events.pengawas.batal');
+    // Tukar dua penugasan - ditambahkan 2026-11-14. Alamatnya TIDAK memuat
+    // id baris, karena yang ditukar DUA baris sekaligus: keduanya dikirim di
+    // badan permintaan. Rute yang memuat salah satunya akan menyiratkan yang
+    // lain hanya sebagai pelengkap, dan itu bentuk yang salah untuk operasi
+    // yang setangkup.
+    Route::post('/events/{event}/pengawas/tukar', [ExamPengawasController::class, 'tukar'])
+        ->name('events.pengawas.tukar');
 
     // 18 - token ujian. Pembacaan token MENULIS satu baris riwayat; lihat
     // ExamTokenController.

@@ -118,6 +118,74 @@ class PengawasService
     }
 
     /**
+     * Tukar dua penugasan pengawas - ditambahkan 2026-11-14.
+     *
+     * =====================================================================
+     * Yang ditukar adalah ORANGNYA, bukan ruangnya
+     * =====================================================================
+     * Dua baris `supervision_assignments` bertukar `supervisor_id`. Ruang,
+     * sesi, dan jadwalnya tidak bergerak sama sekali - yang berpindah adalah
+     * siapa yang berdiri di masing-masing ruang.
+     *
+     * =====================================================================
+     * Mengapa satu method, bukan "lepaskan lalu tugaskan dua kali"
+     * =====================================================================
+     * Urutan lepas-tugaskan lewat controller berarti tiga permintaan HTTP,
+     * dan tiga permintaan yang masing-masing memeriksa bentrok bisa gagal di
+     * tengahnya: orang pertama sudah dilepas, orang kedua belum masuk, dan
+     * ruangnya kosong sampai Admin menyelesaikannya dengan tangan. Di sini
+     * seluruh pertukaran ada di satu transaksi, dan bila bentroknya ditolak,
+     * TIDAK ADA satu baris pun yang berubah.
+     *
+     * =====================================================================
+     * Bentrok diperiksa, meski tukar di sesi yang sama tidak mungkin bentrok
+     * =====================================================================
+     * Tukar lintas SESI mungkin - mis. pengawas sesi pagi bertukar dengan
+     * sesi siang karena sakit - dan pada kasus itu orang yang pindah bisa
+     * bertabrakan dengan penugasan lain yang sudah ia pegang. Pemeriksaannya
+     * dijalankan SESUDAH pertukaran sementara, di dalam transaksi yang sama,
+     * sehingga penolakan mengembalikan keduanya ke keadaan semula.
+     *
+     * @throws ValidationException Bila hasil pertukaran membuat salah satu
+     *                             orang punya dua ruang pada jam yang sama.
+     */
+    public function tukar(SupervisionAssignment $a, SupervisionAssignment $b): void
+    {
+        if ((int) $a->id === (int) $b->id) {
+            throw ValidationException::withMessages([
+                'tukar' => 'Dua penugasan yang sama tidak bisa ditukar dengan dirinya sendiri.',
+            ]);
+        }
+
+        DB::transaction(function () use ($a, $b) {
+            $idA = (int) $a->supervisor_id;
+            $idB = (int) $b->supervisor_id;
+
+            // `forceFill` + `save()`, bukan `update()`: `supervisor_id` ada di
+            // fillable, tetapi jalur ini menulis kolom yang menentukan HAK
+            // AKSES, dan mass-assignment dari luar tidak boleh bisa
+            // menyentuhnya.
+            $a->forceFill(['supervisor_id' => $idB])->save();
+            $b->forceFill(['supervisor_id' => $idA])->save();
+
+            // Sesudah kedua barisnya bertukar, baru diperiksa - bentroknya
+            // hanya mungkin terlihat pada keadaan AKHIR. Penolakan di sini
+            // melempar keluar dari transaksi, dan kedua `save()` di atas ikut
+            // dibatalkan.
+            $orangA = $a->supervisor()->first();
+            $orangB = $b->supervisor()->first();
+
+            foreach ([$orangA, $orangB] as $orang) {
+                if ($orang !== null && $this->bentrok($orang)) {
+                    throw ValidationException::withMessages([
+                        'tukar' => "Pertukaran ini membuat {$orang->name} berada di dua ruang pada jam yang sama.",
+                    ]);
+                }
+            }
+        });
+    }
+
+    /**
      * Tugaskan otomatis: SATU pengawas dulu untuk setiap ruang, baru ditambah
      * yang kedua bila pengawasnya masih tersisa.
      *
