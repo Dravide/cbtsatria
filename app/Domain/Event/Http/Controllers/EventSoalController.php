@@ -61,8 +61,14 @@ class EventSoalController
         $cari = trim((string) $request->query('cari', ''));
         $jenis = (string) $request->query('jenis', '');
         $tingkat = (string) $request->query('tingkat', '');
+        $satuMapel = (int) $request->query('mapel', 0);
 
         $kelompok = collect($isi['kelompok'])
+            // Penyaring MAPEL lebih dulu, dan ia menyaring KELOMPOK - bukan
+            // baris. Inilah yang menjawab "mapelnya banyak dan menumpuk ke
+            // bawah": dengan 12 mapel, Admin yang mencari satu mapel tidak
+            // perlu menggulir melewati sebelas blok yang tidak dibacanya.
+            ->when($satuMapel > 0, fn ($k) => $k->where('mapel.id', $satuMapel))
             ->map(function (array $k) use ($cari, $jenis, $tingkat) {
                 // Baris disaring lebih dulu, lalu kelompok yang seluruh
                 // barisnya tersaring keluar DIBUANG. Kelompok kosong yang
@@ -114,7 +120,33 @@ class EventSoalController
             ],
             'kelompok' => $kelompok->all(),
             'angka' => $isi['angka'],
-            'filter' => ['cari' => $cari, 'jenis' => $jenis, 'tingkat' => $tingkat],
+            'filter' => [
+                'cari' => $cari,
+                'jenis' => $jenis,
+                'tingkat' => $tingkat,
+                'mapel' => $satuMapel > 0 ? $satuMapel : null,
+            ],
+
+            // Daftar mapel untuk CHIP PENYARING, dan ia dibaca dari kelompok
+            // yang BELUM tersaring.
+            //
+            // Alasannya sama persis dengan `pilihan` di bawah: chip yang
+            // hilang begitu ia dipakai adalah chip yang tidak bisa
+            // dibatalkan. Sekaligus ia yang menjawab keluhan "mapelnya
+            // banyak, menumpuk ke bawah" - dengan 12 mapel, daftar penuh
+            // berarti 12 blok, dan yang dibutuhkan Admin adalah memilih satu.
+            'mapel' => collect($isi['kelompok'])
+                ->map(fn (array $k) => [
+                    'id' => $k['mapel']['id'],
+                    'kode' => $k['mapel']['kode'],
+                    'nama' => $k['mapel']['nama'],
+                    'butir' => $k['butir'],
+                    'keadaan' => $k['keadaan'],
+                    'perlu_diperiksa' => $k['diarsipkan'] + $k['basi'],
+                ])
+                ->values()
+                ->all(),
+
             'pilihan' => [
                 'jenis' => $semua->pluck('jenis_pendek', 'jenis')->sort()->all(),
                 'tingkat' => $semua->pluck('tingkat')->filter()->unique()->sort()->values()->all(),

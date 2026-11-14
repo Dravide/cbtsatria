@@ -346,3 +346,79 @@ it('menyembunyikan event milik sekolah lain', function () {
         ->get("/admin/events/{$this->event->id}/mapel/soal")
         ->assertNotFound();
 });
+
+/* ==================================================== Penyaring mapel */
+
+it('menyaring satu mapel lewat parameter mapel', function () {
+    // Keluhan yang melahirkan penyaring ini: dengan banyak mapel, seluruh
+    // kelompoknya bertumpuk ke bawah dan Admin yang mencari satu mapel harus
+    // menggulir melewati blok-blok yang tidak dibacanya.
+    $fisika = Subject::factory()->untukSekolah($this->sekolah)->create([
+        'code' => 'FIS',
+        'name' => 'Fisika',
+    ]);
+
+    $barisFisika = EventSubject::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'subject_id' => $fisika->id,
+    ]);
+
+    $paketFisika = paketDuaButir($this->guru, $fisika, 'Paket FIS');
+    $barisFisika->forceFill(['question_package_id' => $paketFisika->id])->save();
+
+    $paketInf = paketDuaButir($this->guru, $this->mapel, 'Paket INF');
+    $this->baris->forceFill(['question_package_id' => $paketInf->id])->save();
+
+    $props = masukSoal($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/mapel/soal?mapel={$fisika->id}")
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($props['kelompok'])->toHaveCount(1)
+        ->and($props['kelompok'][0]['mapel']['kode'])->toBe('FIS')
+        // Angka di atas tetap menjawab "seberapa besar event ini".
+        ->and($props['angka']['mapel'])->toBe(2);
+});
+
+it('mengirim daftar mapel untuk chip dari kelompok yang BELUM tersaring', function () {
+    // Chip yang hilang begitu ia dipakai adalah chip yang tidak bisa
+    // dibatalkan: Admin yang menyaring ke Fisika harus tetap melihat chip
+    // Informatika untuk kembali.
+    $fisika = Subject::factory()->untukSekolah($this->sekolah)->create([
+        'code' => 'FIS',
+        'name' => 'Fisika',
+    ]);
+
+    EventSubject::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'subject_id' => $fisika->id,
+    ]);
+
+    $props = masukSoal($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/mapel/soal?mapel={$fisika->id}")
+        ->viewData('page')['props'];
+
+    expect(collect($props['mapel'])->pluck('kode')->all())->toBe(['FIS', 'INF']);
+});
+
+it('membawa keadaan dan jumlah butir di chip mapel', function () {
+    // Mapel bermasalah harus terlihat dari baris chipnya, tanpa membuka satu
+    // blok pun - pada event dengan empat belas mapel itu satu-satunya cara
+    // Admin menemukan pekerjaannya.
+    $paket = paketDuaButir($this->guru, $this->mapel);
+    $this->baris->forceFill(['question_package_id' => $paket->id])->save();
+
+    Question::query()->where('code', 'Q-PG-1')->update(['status' => StatusSoal::Arsip->value]);
+
+    $props = masukSoal($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/mapel/soal")
+        ->viewData('page')['props'];
+
+    $chip = collect($props['mapel'])->firstWhere('kode', 'INF');
+
+    expect($chip['butir'])->toBe(2)
+        ->and($chip['keadaan'])->toBe('belum_dibekukan')
+        ->and($chip['perlu_diperiksa'])->toBe(1);
+});

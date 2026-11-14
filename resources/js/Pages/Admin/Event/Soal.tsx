@@ -72,7 +72,7 @@ type Kelompok = {
     baris: Baris[];
 };
 
-type Saringan = { cari: string; jenis: string; tingkat: string };
+type Saringan = { cari: string; jenis: string; tingkat: string; mapel: number | null };
 
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
@@ -86,7 +86,18 @@ type Props = {
         basi: number;
     };
     filter: Saringan;
+    mapel: RingkasMapel[];
     pilihan: { jenis: Record<string, string>; tingkat: string[] };
+};
+
+/** Satu chip penyaring mapel - dibaca dari kelompok yang BELUM tersaring. */
+type RingkasMapel = {
+    id: number;
+    kode: string | null;
+    nama: string | null;
+    butir: number;
+    keadaan: Kelompok['keadaan'];
+    perlu_diperiksa: number;
 };
 
 /**
@@ -110,7 +121,14 @@ const WARNA_JENIS: Record<string, string> = {
     media: 'bg-line-2',
 };
 
-export default function EventSoal({ event, kelompok, angka, filter, pilihan }: Props) {
+export default function EventSoal({
+    event,
+    kelompok,
+    angka,
+    filter,
+    mapel,
+    pilihan,
+}: Props) {
     const [terbuka, setTerbuka] = useState<number | null>(kelompok[0]?.mapel.id ?? null);
 
     // `Partial<Saringan>`, bukan `Partial<Props['filter']>`: di berkas .tsx
@@ -121,15 +139,18 @@ export default function EventSoal({ event, kelompok, angka, filter, pilihan }: P
 
         router.get(
             `/admin/events/${event.id}/mapel/soal`,
-            // Nilai kosong TIDAK dikirim. `?cari=&jenis=` yang tertinggal di
-            // alamat membuat tautan yang ditempel ke pesan terbaca seolah
-            // sedang menyaring sesuatu.
-            Object.fromEntries(Object.entries(baru).filter(([, v]) => v !== '')),
+            // Nilai kosong dan `null` TIDAK dikirim. `?cari=&jenis=` yang
+            // tertinggal di alamat membuat tautan yang ditempel ke pesan
+            // terbaca seolah sedang menyaring sesuatu.
+            Object.fromEntries(
+                Object.entries(baru).filter(([, v]) => v !== '' && v !== null),
+            ),
             { preserveState: true, preserveScroll: true, replace: true },
         );
     };
 
-    const menyaring = filter.cari !== '' || filter.jenis !== '' || filter.tingkat !== '';
+    const menyaring =
+        filter.cari !== '' || filter.jenis !== '' || filter.tingkat !== '' || filter.mapel !== null;
 
     return (
         <AdminLayout
@@ -175,6 +196,51 @@ export default function EventSoal({ event, kelompok, angka, filter, pilihan }: P
                 />
             </div>
 
+            {/*
+             * Chip penyaring MAPEL - ditambahkan 2026-11-14.
+             *
+             * Tanpa ini, sepuluh mapel berarti sepuluh blok yang dibuka
+             * bertumpuk ke bawah, dan Admin yang mencari satu mapel harus
+             * menggulir melewati sembilan blok yang tidak dibacanya. Chip
+             * mengubah daftar bertumpuk menjadi pemilih.
+             *
+             * Dimuat dari `mapel` (kelompok yang BELUM tersaring), bukan dari
+             * `kelompok`: chip yang hilang begitu ia dipakai adalah chip yang
+             * tidak bisa dibatalkan.
+             *
+             * Tidak dirender saat hanya ada satu mapel - "Semua (1)" pada
+             * event satu mapel adalah kontrol yang tidak mengubah apa pun.
+             */}
+            {mapel.length > 1 && (
+                <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                    <ChipMapel
+                        aktif={filter.mapel === null}
+                        label="Semua"
+                        jumlah={mapel.reduce((n, m) => n + m.butir, 0)}
+                        onClick={() => saring({ mapel: null })}
+                    />
+
+                    {mapel.map((m) => (
+                        <ChipMapel
+                            key={m.id}
+                            aktif={filter.mapel === m.id}
+                            label={m.kode ?? m.nama ?? 'Tanpa kode'}
+                            jumlah={m.butir}
+                            nada={
+                                m.perlu_diperiksa > 0
+                                    ? 'warn'
+                                    : m.keadaan === 'belum' || m.keadaan === 'kosong'
+                                      ? 'bad'
+                                      : undefined
+                            }
+                            onClick={() =>
+                                saring({ mapel: filter.mapel === m.id ? null : m.id })
+                            }
+                        />
+                    ))}
+                </div>
+            )}
+
             <div className="mb-3 flex flex-wrap items-center gap-2">
                 <input
                     value={filter.cari}
@@ -212,7 +278,7 @@ export default function EventSoal({ event, kelompok, angka, filter, pilihan }: P
                 {menyaring && (
                     <button
                         type="button"
-                        onClick={() => saring({ cari: '', jenis: '', tingkat: '' })}
+                        onClick={() => saring({ cari: '', jenis: '', tingkat: '', mapel: null })}
                         className="text-xs text-accent hover:underline"
                     >
                         Bersihkan
@@ -255,6 +321,51 @@ export default function EventSoal({ event, kelompok, angka, filter, pilihan }: P
 }
 
 /**
+ * Satu chip penyaring mapel.
+ *
+ * `nada` dipakai untuk menandai mapel yang PERLU DIPERIKSA, bukan untuk
+ * menghias. Mapel bermasalah yang terlihat dari baris chipnya membuat Admin
+ * menemukan pekerjaannya tanpa membuka satu blok pun - dan pada event dengan
+ * empat belas mapel, itu satu-satunya cara ia menemukannya.
+ */
+function ChipMapel({
+    aktif,
+    label,
+    jumlah,
+    nada,
+    onClick,
+}: {
+    aktif: boolean;
+    label: string;
+    jumlah: number;
+    nada?: 'warn' | 'bad';
+    onClick: () => void;
+}) {
+    const warna = aktif
+        ? 'border-accent bg-accent-soft text-accent'
+        : nada === 'bad'
+          ? 'border-bad/40 bg-bad-bg text-bad'
+          : nada === 'warn'
+            ? 'border-warn/40 bg-warn-bg text-warn'
+            : 'border-line bg-surface text-ink-2 hover:bg-surface-2';
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-pressed={aktif}
+            className={
+                'rounded-wf border px-2 py-1 text-[11px] font-medium whitespace-nowrap transition-colors duration-150 ' +
+                warna
+            }
+        >
+            {label}
+            <span className="ml-1 font-mono font-normal opacity-70">{jumlah}</span>
+        </button>
+    );
+}
+
+/**
  * Satu kelompok mapel.
  *
  * Kepala kelompok menampilkan SEBARAN JENIS sebagai batang, bukan angka
@@ -274,6 +385,19 @@ function KelompokMapel({
     padaBuka: () => void;
 }) {
     const k = kelompok;
+
+    // Batas baris per kelompok, dan ia ADA karena tanpa itu satu mapel
+    // berisi 40 butir mendorong seluruh mapel di bawahnya keluar layar -
+    // kepala kelompok berikutnya tidak akan pernah ditemukan tanpa
+    // menggulir sepanjang naskah satu ujian.
+    //
+    // Nilai awalnya 10, bukan 40: Admin yang membuka laman ini mencari
+    // "mapel mana yang perlu diperiksa", bukan membaca seluruh naskah.
+    // Yang perlu naskah penuh menekan "Lihat semua".
+    const [penuh, setPenuh] = useState(false);
+    const batas = penuh ? k.baris.length : Math.min(10, k.baris.length);
+    const terlihat = k.baris.slice(0, batas);
+    const tersisa = k.baris.length - batas;
 
     return (
         <section className="overflow-hidden rounded-wf border border-line bg-surface">
@@ -372,7 +496,7 @@ function KelompokMapel({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {k.baris.map((b) => (
+                                    {terlihat.map((b) => (
                                         <tr
                                             key={`${b.nomor}-${b.kode}`}
                                             className={
@@ -407,6 +531,37 @@ function KelompokMapel({
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+
+                    {/* Baris yang tersisa TIDAK disembunyikan tanpa jejak:
+                        jumlahnya disebut, karena "40 butir" di kepala
+                        kelompok dengan sepuluh baris di bawahnya adalah
+                        selisih yang harus bisa dijelaskan layar. */}
+                    {tersisa > 0 && (
+                        <div className="flex items-center gap-2 border-t border-line px-3 py-2">
+                            <span className="text-[11px] text-ink-3">
+                                Menampilkan {batas} dari {k.baris.length} butir
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setPenuh(true)}
+                                className="ml-auto text-xs font-medium text-accent hover:underline"
+                            >
+                                Lihat semua {k.baris.length}
+                            </button>
+                        </div>
+                    )}
+
+                    {penuh && k.baris.length > 10 && (
+                        <div className="border-t border-line px-3 py-2">
+                            <button
+                                type="button"
+                                onClick={() => setPenuh(false)}
+                                className="text-xs text-ink-2 hover:text-ink"
+                            >
+                                Ringkas kembali
+                            </button>
                         </div>
                     )}
                 </>
