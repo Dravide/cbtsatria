@@ -625,3 +625,112 @@ it('pengawas ruang lain tidak bisa menjajak pengakuan ruang ini', function () {
     $this->getJson("/pengawas/ruang/{$r01->id}/presensi/pengakuan")->assertNotFound();
     $this->getJson("/pengawas/ruang/{$r02->id}/presensi/pengakuan")->assertOk();
 });
+
+/* ======================== Pengakuan ditutup oleh pencatatan presensi */
+
+/*
+ * Cacat yang dilaporkan 2026-11-15: kotak "1 siswa memindai" tetap berdiri
+ * sesudah siswa itu dicatat hadir, dan kalimatnya berbunyi "Sisanya menunggu
+ * Anda" untuk orang yang sudah selesai.
+ *
+ * Sebabnya: pengakuan hanya ditutup oleh tombol "Tinjau N pengakuan". Dua
+ * jalur yang jauh lebih sering dipakai - tombol "Hadir" per baris kursi, dan
+ * "Tandai sisa hadir" - menulis presensi tanpa menyentuh pengakuannya.
+ *
+ * Tiga test, satu per jalur, karena ketiganya menempuh method yang berbeda:
+ * `catat()`, `verifikasiMassal()`, dan `KodePindai::konfirmasi()`.
+ */
+
+it('mencatat hadir dari baris kursi menutup pengakuannya', function () {
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
+    $ruang = $data['ruang'][0];
+    $siswa = $data['siswa'][0];
+
+    bukaSesi($ruang);
+
+    $kode = kodeUntuk($ruang);
+
+    masukSebagai($this, $siswa);
+    $this->post("/hadir/{$kode}")->assertRedirect();
+
+    $peserta = ExamParticipant::query()->where('student_id', $siswa->id)->firstOrFail();
+    $record = AttendanceRecord::query()->where('exam_participant_id', $peserta->id)->firstOrFail();
+
+    expect(AttendanceAcknowledgement::query()->where('status', StatusPengakuan::Menunggu)->count())->toBe(1);
+
+    // Jalur "Hadir" per baris di laman presensi pengawas.
+    masukSebagai($this, $this->admin);
+    app(KehadiranService::class)->catat($record, StatusPresensi::Hadir, KonteksRuang::dari($ruang));
+
+    expect(AttendanceAcknowledgement::query()->where('status', StatusPengakuan::Menunggu)->count())->toBe(0);
+    expect(AttendanceAcknowledgement::query()->firstOrFail()->confirmed_at)->not->toBeNull();
+});
+
+it('tandai massal menutup pengakuan meski statusnya sudah sama', function () {
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
+    $ruang = $data['ruang'][0];
+    $siswa = $data['siswa'][0];
+
+    bukaSesi($ruang);
+
+    $kode = kodeUntuk($ruang);
+
+    masukSebagai($this, $siswa);
+    $this->post("/hadir/{$kode}")->assertRedirect();
+
+    $peserta = ExamParticipant::query()->where('student_id', $siswa->id)->firstOrFail();
+    $record = AttendanceRecord::query()->where('exam_participant_id', $peserta->id)->firstOrFail();
+
+    masukSebagai($this, $this->admin);
+
+    // Baris presensi dibuat `pending`, dan pengakuan tidak menyentuhnya.
+    expect($record->refresh()->attendance_status)->toBe(StatusPresensi::Pending);
+
+    // Statusnya disamakan LEBIH DULU lewat jalur lain, tetapi pengakuannya
+    // sengaja dikembalikan ke `menunggu` - supaya `verifikasiMassal()` di
+    // bawah benar-benar diuji pada cabang "statusnya sudah sama, tidak ada
+    // yang berubah". Tanpa ini tesnya hijau karena `catat()` yang menutup,
+    // bukan karena massal.
+    app(KehadiranService::class)->catat($record, StatusPresensi::Hadir, KonteksRuang::dari($ruang));
+
+    AttendanceAcknowledgement::query()->update([
+        'status' => StatusPengakuan::Menunggu,
+        'confirmed_at' => null,
+    ]);
+
+    app(KehadiranService::class)->verifikasiMassal(
+        $ruang, [$record->id], StatusPresensi::Hadir, KonteksRuang::dari($ruang),
+    );
+
+    expect(AttendanceAcknowledgement::query()->where('status', StatusPengakuan::Menunggu)->count())->toBe(0);
+});
+
+it('mengembalikan presensi ke pending tidak membuka pengakuan yang sudah dijawab', function () {
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
+    $ruang = $data['ruang'][0];
+    $siswa = $data['siswa'][0];
+
+    bukaSesi($ruang);
+
+    $kode = kodeUntuk($ruang);
+
+    masukSebagai($this, $siswa);
+    $this->post("/hadir/{$kode}")->assertRedirect();
+
+    $peserta = ExamParticipant::query()->where('student_id', $siswa->id)->firstOrFail();
+    $record = AttendanceRecord::query()->where('exam_participant_id', $peserta->id)->firstOrFail();
+
+    masukSebagai($this, $this->admin);
+
+    app(KehadiranService::class)->catat($record, StatusPresensi::Hadir, KonteksRuang::dari($ruang));
+
+    $pengakuan = AttendanceAcknowledgement::query()->firstOrFail();
+    $dijawab = $pengakuan->confirmed_at;
+
+    app(KehadiranService::class)->kembalikan($record, KonteksRuang::dari($ruang), 'Salah tandai.');
+
+    // Fakta bahwa siswa pernah memindai dan pengawasnya pernah menjawab tidak
+    // dibatalkan oleh koreksi presensi. Yang dibatalkan hanya keputusannya.
+    expect($pengakuan->refresh()->status)->toBe(StatusPengakuan::Dikonfirmasi);
+    expect($pengakuan->refresh()->confirmed_at->eq($dijawab))->toBeTrue();
+});

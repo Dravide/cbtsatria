@@ -496,19 +496,22 @@ class KodePindai
 
                 $sebelum = $record->attendance_status;
 
+                // `catat()` yang menutup pengakuannya - sejak 2026-11-15
+                // penutupan itu pindah ke sana supaya jalur mana pun yang
+                // mencatat presensi (baris kursi, tandai massal, dan tombol
+                // "Tinjau" ini) sekaligus menjawab permintaan siswanya.
+                // Menutupnya lagi di sini berarti dua tempat yang mengurus
+                // satu hal, dan yang kedua cepat atau lambat akan berbeda.
+                //
+                // Termasuk saat statusnya kebetulan sudah sama: yang ditandai
+                // adalah KEPUTUSAN pengawas atas baris itu, bukan selisih
+                // status presensi - dan `catat()` menutupnya sebelum cabang
+                // "tidak berubah" itu.
                 $this->kehadiran->catat($record, $status, $konteks);
 
                 if ($record->attendance_status !== $sebelum) {
                     $berubah++;
                 }
-
-                // Pengakuan tetap ditandai dikonfirmasi meski statusnya
-                // kebetulan sudah sama: yang ditandai adalah KEPUTUSAN
-                // pengawas atas baris itu, bukan selisih status presensi.
-                $pengakuan->forceFill([
-                    'status' => StatusPengakuan::Dikonfirmasi,
-                    'confirmed_at' => now(),
-                ])->save();
             }
 
             return ['berubah' => $berubah, 'dilewati' => $dilewati];

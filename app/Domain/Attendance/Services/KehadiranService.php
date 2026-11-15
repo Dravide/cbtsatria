@@ -2,7 +2,9 @@
 
 namespace App\Domain\Attendance\Services;
 
+use App\Domain\Attendance\Enums\StatusPengakuan;
 use App\Domain\Attendance\Enums\StatusPresensi;
+use App\Domain\Attendance\Models\AttendanceAcknowledgement;
 use App\Domain\Attendance\Models\AttendanceLog;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Exam\Models\ExamParticipant;
@@ -55,6 +57,40 @@ class KehadiranService
         return DB::transaction(function () use ($record, $status, $konteks, $alasan) {
             $lama = $record->attendance_status;
 
+            // ------------------------------------------------------------------
+            // Pengakuan pindai ditutup DI SINI, bukan hanya oleh `konfirmasi()`
+            // ------------------------------------------------------------------
+            // Sampai 2026-11-15 pengakuan hanya berubah status lewat
+            // `KodePindai::konfirmasi()` - tombol "Tinjau N pengakuan" di laman
+            // presensi. Padahal pengawas jauh lebih sering mencatat lewat
+            // daftar kursi: tombol "Hadir" per baris, atau "Tandai sisa hadir".
+            // Keduanya memanggil method ini, dan keduanya meninggalkan
+            // pengakuannya berstatus `menunggu` selamanya.
+            //
+            // Akibatnya persis yang terlihat di layar: kotak "1 siswa
+            // memindai" tetap berdiri sesudah siswa itu dicatat hadir, dan
+            // kalimatnya berbunyi "Sisanya menunggu Anda" untuk orang yang
+            // sudah selesai. Pengawas yang mempercayainya akan mencari satu
+            // anak yang sebenarnya sudah beres - di depan pintu, saat ujian
+            // berjalan.
+            //
+            // Menutupnya di sini membuat SATU tempat: siapa pun yang mencatat
+            // presensi peserta ini, dari jalur mana pun, sekaligus menjawab
+            // pengakuannya. Pengakuan tetap tidak menulis presensi - arahnya
+            // hanya satu, dan itu batas yang dijaga sejak Fase 6.
+            //
+            // `Pending` DIKECUALIKAN, dan itu bukan detail: `kembalikan()`
+            // memakai method ini untuk membatalkan salah tandai. Pengakuan
+            // yang sudah dijawab TETAP dijawab - yang dibatalkan adalah
+            // keputusan presensinya, bukan fakta bahwa siswa itu pernah
+            // memindai dan pengawasnya pernah menjawab. Membuka kembali
+            // pengakuannya akan memunculkan kotak "menunggu konfirmasi" untuk
+            // permintaan yang sudah pernah dijawab, dan itu undangan menekan
+            // tombol yang sama dua kali.
+            if ($status !== StatusPresensi::Pending) {
+                $this->tutupPengakuan($record);
+            }
+
             if ($lama === $status) {
                 return $record;
             }
@@ -70,6 +106,30 @@ class KehadiranService
 
             return $record;
         });
+    }
+
+    /**
+     * Tandai pengakuan pindai peserta ini `dikonfirmasi`.
+     *
+     * Tidak menulis log presensi: yang dicatat di sini adalah bahwa
+     * PERMINTAAN siswa sudah dijawab, dan jawabannya adalah perubahan status
+     * yang ditulis pemanggilnya - satu baris log untuk satu perubahan, sama
+     * seperti janji kelas ini.
+     *
+     * `update()` bersyarat, bukan `save()`: pengakuan yang SUDAH dikonfirmasi
+     * tidak boleh kehilangan `confirmed_at` aslinya hanya karena presensinya
+     * dikoreksi belakangan. Yang ditutup hanya yang masih menunggu.
+     */
+    private function tutupPengakuan(AttendanceRecord $record): void
+    {
+        AttendanceAcknowledgement::query()
+            ->where('exam_participant_id', $record->exam_participant_id)
+            ->where('status', StatusPengakuan::Menunggu)
+            ->update([
+                'status' => StatusPengakuan::Dikonfirmasi,
+                'confirmed_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 
     /**
@@ -99,6 +159,15 @@ class KehadiranService
             $berubah = 0;
 
             foreach ($records as $record) {
+                // Ditutup SEBELUM cabang "statusnya sama" di bawah, dan itu
+                // bukan urutan yang bisa ditukar: pengawas yang menekan
+                // "Tandai sisa hadir" pada siswa yang barisnya sudah `hadir`
+                // tetapi pengakuannya masih menunggu tidak menghasilkan
+                // perubahan status - jadi tanpa baris ini pengakuannya
+                // menggantung selamanya, dan kotak "N siswa memindai" terus
+                // berdiri untuk orang yang sudah beres.
+                $this->tutupPengakuan($record);
+
                 $lama = $record->attendance_status;
 
                 if ($lama === $status) {
