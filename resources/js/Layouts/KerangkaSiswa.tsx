@@ -88,17 +88,18 @@ const TAB = [
  * Tiga sel tabbar: tab kiri, tab Main di TENGAH, tab kanan.
  *
  * =====================================================================
- * Tab Main muncul dan hilang, dan itu memang perilakunya
+ * Tab Main hilang HANYA saat anak itu sedang ujian
  * =====================================================================
- * Ia hanya dirender bila server mengirim `luang` yang tidak null - yaitu saat
- * siswa benar-benar punya jeda (attempt sudah ditutup, sesi berikutnya belum
- * dibuka). Jumlah kolomnya karena itu 4 atau 5, dan tab lain bergeser
- * setengah sel saat ia muncul.
+ * Sejak 2026-11-15 server mengirim `luang` bernilai true untuk hampir semua
+ * keadaan - siswa tanpa ujian, siswa di sela ujian, dan siswa yang baru
+ * mengumpulkan ujian terakhirnya. Yang membuatnya false hanya satu: attempt
+ * yang belum ditutup.
  *
- * Pergeseran itu disengaja dan bukan kelalaian: alternatifnya adalah
- * menyediakan tempat kosong permanen di tengah tabbar, dan tombol yang
- * kadang-kadang tidak melakukan apa pun lebih membingungkan daripada tab
- * yang kadang-kadang tidak ada.
+ * Jumlah kolomnya karena itu 4 atau 5, dan tab lain bergeser setengah sel
+ * saat ia muncul. Pergeseran itu disengaja: alternatifnya adalah menyediakan
+ * tempat kosong permanen di tengah tabbar, dan tombol yang kadang-kadang
+ * tidak melakukan apa pun lebih membingungkan daripada tab yang
+ * kadang-kadang tidak ada.
  *
  * =====================================================================
  * Mengapa ikon, bukan label seperti tiga tab lain
@@ -185,8 +186,8 @@ type Props = {
      * Apakah tab "Main" dirender - dikirim server lewat prop `luang`.
      *
      * Bawaannya `false`, dan itu sisi yang aman: tab yang muncul padahal
-     * jedanya sudah habis membawa anak ke laman yang langsung mengalihkannya
-     * kembali, sementara tab yang hilang pada jeda yang nyata hanya
+     * anaknya sedang ujian membawa anak ke laman yang langsung mengalihkannya
+     * kembali, sementara tab yang hilang pada saat yang salah hanya
      * menyembunyikan satu tombol.
      */
     luang?: boolean;

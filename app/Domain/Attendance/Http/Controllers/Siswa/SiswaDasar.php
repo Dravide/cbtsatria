@@ -116,20 +116,27 @@ abstract class SiswaDasar
      * Apakah tab "Main" di tabbar harus muncul di laman ini.
      *
      * ---------------------------------------------------------------------
+     * Sejak 2026-11-15 jawabannya HAMPIR SELALU ya
+     * ---------------------------------------------------------------------
+     * Aturannya kini satu saja: tab ini disembunyikan bila siswa sedang
+     * mengerjakan ujian. Siswa tanpa ujian, siswa di sela ujian, dan siswa
+     * yang baru mengumpulkan ujian terakhirnya semuanya melihatnya - lihat
+     * `JendelaLuang` tentang mengapa syarat "ada ujian berikutnya" dibuang.
+     *
+     * ---------------------------------------------------------------------
      * Mengapa boolean, bukan seluruh jendelanya
      * ---------------------------------------------------------------------
      * Tabbar hanya perlu tahu AKAN ADA atau TIDAK. Mengirim jam berakhirnya
      * ke setiap laman berarti setiap laman siswa ikut membawa data yang hanya
-     * dibaca satu laman, dan setiap laman yang membawanya harus ikut
-     * menyegarkannya pula saat jedanya habis.
+     * dibaca satu laman.
      *
      * ---------------------------------------------------------------------
      * Dipanggil per laman, bukan dari shared props
      * ---------------------------------------------------------------------
      * `HandleInertiaRequests` mengirim props ke SETIAP permintaan, termasuk
      * laman pengerjaan - yang justru paling sensitif terhadap kueri
-     * tambahan, karena denyutnya berjalan selama ujian. Memeriksa jeda di
-     * sana berarti setiap ketukan denyut membayar dua kueri yang jawabannya
+     * tambahan, karena denyutnya berjalan selama ujian. Memeriksa jendela di
+     * sana berarti setiap ketukan denyut membayar kueri yang jawabannya
      * tidak dipakai siapa pun: laman itu tidak punya tabbar.
      */
     protected function luangTerbuka(Request $request): bool

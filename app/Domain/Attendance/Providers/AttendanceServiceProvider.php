@@ -19,6 +19,7 @@ use App\Domain\Attendance\Services\JawabanService;
 use App\Domain\Attendance\Services\JendelaLuang;
 use App\Domain\Attendance\Services\KehadiranService;
 use App\Domain\Attendance\Services\KelayakanUjian;
+use App\Domain\Attendance\Services\KuotaPermainan;
 use App\Domain\Attendance\Services\LaporanSesiService;
 use App\Domain\Attendance\Services\MesinUjian;
 use App\Domain\Attendance\Services\PapanPeringkatLuang;
@@ -97,6 +98,7 @@ class AttendanceServiceProvider extends ServiceProvider
         $this->app->singleton(JendelaLuang::class);
         $this->app->singleton(PenjagaSkorLuar::class);
         $this->app->singleton(PapanPeringkatLuang::class);
+        $this->app->singleton(KuotaPermainan::class);
 
         // Kontrak Exam dijawab Attendance. Satu arah - lihat catatan kelas ini.
         $this->app->singleton(PencatatKehadiran::class, PencatatKehadiranService::class);

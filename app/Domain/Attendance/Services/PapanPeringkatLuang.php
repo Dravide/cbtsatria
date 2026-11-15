@@ -51,11 +51,17 @@ final class PapanPeringkatLuang
     /**
      * Mencatat satu kiriman, apa pun hasilnya.
      *
+     * `$peserta` boleh null sejak 2026-11-15: skor milik ANAK, bukan milik
+     * penempatan, dan siswa yang belum ditempatkan di ujian mana pun tetap
+     * boleh bermain. Yang hilang tanpanya hanyalah dua kolom jejak
+     * (`exam_participant_id` dan `class_id`) - dan papan peringkat kelasnya
+     * lalu jatuh ke papan sekolah.
+     *
      * @return LeisureGameScore baris yang tersimpan, diterima atau tidak.
      */
     public function catat(
         User $siswa,
-        ExamParticipant $peserta,
+        ?ExamParticipant $peserta,
         int $distance,
         int $durationMs,
     ): LeisureGameScore {
@@ -68,9 +74,9 @@ final class PapanPeringkatLuang
             // Kelas saat skor ini dicetak, DISALIN - lihat catatan migrasi
             // tentang mengapa papan peringkat kelas tidak boleh membaca
             // kelas lewat join.
-            'class_id' => $peserta->pesertaEvent?->class_id,
+            'class_id' => $peserta?->pesertaEvent?->class_id,
 
-            'exam_participant_id' => $peserta->id,
+            'exam_participant_id' => $peserta?->id,
             'distance' => $distance,
             'duration_ms' => $durationMs,
             // Skor yang DIHITUNG di sini. Kiriman yang ditolak tetap diberi

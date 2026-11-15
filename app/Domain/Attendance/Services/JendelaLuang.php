@@ -9,172 +9,173 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
- * Apakah siswa ini sedang punya JEDA, dan sampai kapan - wireframe-waktu-luang
- * plate 01 dan 06.
+ * Apakah siswa ini boleh memainkan permainan waktu luang, dan sampai kapan -
+ * wireframe-waktu-luang.html.
  *
  * =====================================================================
- * Jendela luang itu KESIMPULAN, bukan pengaturan
+ * Aturannya DILONGGARKAN 2026-11-15: satu syarat, bukan dua
  * =====================================================================
- * Tidak ada tombol "izinkan main sekarang" dan tidak ada jam main yang
- * diketik siapa pun. Jendelanya lahir dari keadaan yang sudah ada:
+ * Versi pertama kelas ini menuntut DUA hal sekaligus:
  *
- *   ADA      attempt hari ini yang SUDAH ditutup (dikirim atau kedaluwarsa),
- *   DAN      sesi berikutnya belum dibuka.
+ *   ada attempt yang sudah ditutup  DAN  ada sesi berikutnya yang belum
+ *   dibuka.
  *
- * Kalimat itu sengaja dibaca apa adanya. Kalau syarat pertamanya dilonggarkan
- * - "sudah pernah mengerjakan apa saja" - maka anak yang belum mengerjakan
- * apa pun pagi itu bisa membuka permainan sebelum ujian pertamanya, dan
- * seluruh alasan fitur ini ada (mengisi jeda yang membosankan, BUKAN jalan
- * keluar sebelum ujian) hilang di hari pertama.
+ * Aturan itu benar menurut desainnya sendiri, dan salah menurut pemakaiannya.
+ * Ia membuat ikon permainan tidak muncul untuk dua keadaan yang paling sering
+ * dialami siswa:
+ *
+ *   - siswa yang tidak punya ujian sama sekali (kelas lain, hari lain, atau
+ *     siswa yang penempatannya belum dibuat), dan
+ *   - siswa yang baru saja mengumpulkan ujian TERAKHIRNYA.
+ *
+ * Pada keduanya, pintu yang seharusnya menjadi jeda justru tertutup - dan
+ * tidak ada satu pun kalimat di layar yang menjelaskan mengapa.
+ *
+ * Aturan yang berlaku sekarang hanya SATU, dan ia berupa larangan:
+ *
+ *   TIDAK BOLEH ada attempt yang sedang berjalan.
+ *
+ * Selebihnya bebas. Alasannya tetap sama dengan versi pertama, hanya dibaca
+ * dari sisi sebaliknya: yang berbahaya bukan "bermain sebelum ujian pertama",
+ * melainkan "bermain DI TENGAH ujian" - dan itu dilarang oleh attempt, bukan
+ * oleh ketiadaan attempt. Siswa yang belum mulai mengerjakan apa pun memang
+ * sedang menunggu; menahannya dari permainan tidak membuatnya mengerjakan
+ * ujian lebih cepat.
+ *
+ * ---------------------------------------------------------------------
+ * Konsekuensi yang disengaja: `sekarang` tidak lagi menentukan boleh/tidak
+ * ---------------------------------------------------------------------
+ * Karena syaratnya kini hanya "tidak sedang ujian", jendelanya tidak pernah
+ * tertutup oleh jam. `berakhir_pada` tetap dikirim, tetapi artinya berubah:
+ * ia bukan "sampai kapan kamu boleh main", melainkan "kapan ujianmu berikutnya
+ * dibuka, kalau ada". Panggungnya memakainya sebagai hitung mundur, bukan
+ * sebagai tenggat.
+ *
+ * Satu-satunya yang masih bergantung waktu adalah `hard_end_at` sesi yang
+ * sedang dipakai - dan itu tetap dikirim, karena sesi yang masih terbuka
+ * untuk anak lain memang batas yang nyata: ia tidak boleh bermain-main di
+ * kursinya sementara temannya masih mengerjakan.
  *
  * =====================================================================
- * Batas akhirnya dua, dan yang lebih dulu menang
+ * Kuota harian BUKAN urusan kelas ini
  * =====================================================================
- * Jendelanya ditutup oleh:
- *
- *   1. `access_opens_at` sesi berikutnya yang BELUM dicoba anak itu - saat
- *      pintunya dibuka, permainan berhenti.
- *   2. `hard_end_at` sesi yang sedang berjalan - batas yang lebih jarang,
- *      tetapi nyata bila anak mengirim attempt-nya lalu sesi yang sama masih
- *      dibuka untuk anak lain. Ia tidak boleh bermain-main di kursinya
- *      sementara temannya masih mengerjakan.
- *
- * Yang TIDAK dipakai sebagai batas: jam dinding peramban. Seluruh waktu di
- * sini dihitung server, dengan alasan yang sama seperti hitung mundur di
- * `JadwalSiswaController` - ponsel yang jamnya meleset setengah jam akan
- * memberi anak dua puluh menit tambahan main.
- *
- * =====================================================================
- * `exam_status` tidak dibaca di sini
- * =====================================================================
- * Event yang diarsipkan memang tidak menampilkan jadwal, tetapi memeriksa
- * status event di sini berarti kelas ini harus menyentuh kolom milik modul
- * Event lewat kueri sendiri - dan jadwal siswanya sudah menyaring itu lebih
- * dulu. Yang dijaga kelas ini adalah JEDA, bukan kelayakan ujian.
+ * Batas sepuluh permainan per hari diperiksa dan dicatat oleh
+ * `KuotaPermainan`, karena ia menyangkut JUMLAH yang sudah dimainkan - bukan
+ * keadaan jadwal. Memasukkannya ke sini berarti kelas ini membaca tabel skor,
+ * dan batas yang hidup di dua tempat adalah batas yang suatu hari berbeda.
  */
 final class JendelaLuang
 {
     /**
-     * Batas aman, supaya anak tidak ditawari jeda sepanjang tiga jam bila
-     * sesi berikutnya masih besok.
+     * Status attempt yang berarti anak itu MASIH mengerjakan.
      *
-     * Angka ini bukan aturan produk - ia penjaga tata letak. Nama sesi
-     * berikutnya dan hitung mundurnya tetap ditampilkan; yang dipotong
-     * hanyalah janji "main selama mungkin". Bermain dalam jendela yang
-     * sebenarnya tidak ada membuat fitur ini terasa seperti hadiah yang
-     * ditarik kembali.
+     * `dikunci` ikut di sini: ujian yang terkunci bukan ujian yang selesai.
+     * Anaknya masih punya laman terkunci yang bisa ia buka kembali lewat
+     * pengawas, dan membiarkannya bermain sambil menunggu adalah satu-satunya
+     * keadaan yang benar-benar ingin dicegah aturan ini.
      */
-    public const MENIT_MAKS = 180;
+    private const STATUS_MENGERJAKAN = [
+        ExamAttempt::STATUS_BERJALAN,
+        ExamAttempt::STATUS_DIKUNCI,
+    ];
 
     /**
-     * Jendela waktu luang siswa ini pada saat `$sekarang`, atau null.
+     * Jendela permainan siswa ini, atau null bila ia sedang ujian.
      *
      * @param  Collection<int, ExamParticipant>  $penempatan  penempatan MILIK siswa ini
-     * @return array{berakhir_pada: string, sesi_berikut: array{label: string, mapel: string|null, dibuka: string}|null}|null
+     * @return array{berakhir_pada: ?string, sesi_berikut: array{label: string, mapel: string|null, dibuka: string}|null}|null
      */
     public function untukSiswa(Collection $penempatan, CarbonInterface $sekarang): ?array
     {
-        if ($penempatan->isEmpty()) {
-            return null;
-        }
-
+        // ------------------------------------------------------------------
+        // Satu-satunya larangan: attempt yang belum ditutup
+        // ------------------------------------------------------------------
+        // Diperiksa untuk SELURUH penempatan anak ini, bukan per sesi: satu
+        // ujian yang sedang dikerjakan sudah cukup untuk menutup pintunya,
+        // dan anak yang punya dua ujian di hari yang sama tidak boleh bermain
+        // karena ujian keduanya kebetulan belum dimulai.
         $idPenempatan = $penempatan->pluck('id');
 
-        // `whereIn` atas penempatan, bukan atas siswa: attempt milik penempatan
-        // di ujian anak itu, dan satu siswa boleh punya dua ujian di satu
-        // event.
-        $attempt = ExamAttempt::query()
+        if ($idPenempatan->isNotEmpty() && ExamAttempt::query()
             ->whereIn('exam_participant_id', $idPenempatan)
-            ->orderByDesc('attempt_number')
-            ->get()
-            ->groupBy('exam_participant_id')
-            ->map(fn (Collection $baris) => $baris->first());
-
-        // Syarat pertama: ada attempt yang SUDAH ditutup hari ini.
-        $sudahMenutup = $attempt->contains(
-            fn (ExamAttempt $a) => in_array(
-                $a->status,
-                [ExamAttempt::STATUS_DIKIRIM, ExamAttempt::STATUS_KEDALUWARSA],
-                true,
-            ),
-        );
-
-        if (! $sudahMenutup) {
+            ->whereIn('status', self::STATUS_MENGERJAKAN)
+            ->exists()) {
             return null;
         }
 
+        // ------------------------------------------------------------------
+        // Sesi yang masih terbuka - satu-satunya batas yang tersisa
+        // ------------------------------------------------------------------
+        // `hard_end_at` sesi yang ruangnya masih dibuka. Bila ada, permainan
+        // berhenti di situ: anak yang sudah mengumpulkan tidak boleh bermain
+        // di kursinya sementara teman sebelahnya masih mengerjakan.
         $sesi = $penempatan
             ->map(fn (ExamParticipant $p) => $p->session)
             ->filter()
             ->unique('id')
             ->values();
 
-        // Sesi yang attempt-nya sudah ada - anak ini sudah mengerjakannya.
-        $sesiTercoba = $penempatan
-            ->filter(fn (ExamParticipant $p) => $attempt->has($p->id))
-            ->pluck('exam_session_id')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        $masihTerbuka = $sesi
+            ->filter(fn (ExamSession $s) => $s->hard_end_at !== null && $s->hard_end_at->gt($sekarang))
+            ->sortBy(fn (ExamSession $s) => $s->hard_end_at)
+            ->first();
 
         // ------------------------------------------------------------------
-        // Sesi berikutnya MENENTUKAN, dan ia dicari dari seluruh sesi yang
-        // belum dicoba - bukan hanya yang pintunya belum dibuka
+        // Ujian berikutnya, untuk hitung mundur di layar
         // ------------------------------------------------------------------
-        // Versi pertama kelas ini menyaring `isFuture()` di sini, dan itu
-        // salah dengan cara yang tidak berbunyi: begitu jamnya lewat, sesi
-        // berikutnya berhenti dianggap "berikutnya", lalu sesi ITU SENDIRI
-        // terbaca sebagai "sedang berjalan" dan menyumbang `hard_end_at`-nya
-        // sebagai batas - sehingga jendelanya justru TERBUKA selama ujian
-        // berikutnya berlangsung. Persis kebalikan dari yang dijanjikan
-        // plate 06.
-        //
-        // Yang benar: sesi berikutnya adalah yang paling awal di antara yang
-        // belum dicoba, tanpa peduli jamnya sudah lewat atau belum. Bila
-        // jamnya sudah lewat, jendelanya memang sudah tutup - lihat
-        // pemeriksaan `lte($sekarang)` di bawah.
+        // Hanya yang belum dicoba dan pintunya belum dibuka. `null` berarti
+        // anak ini tidak punya ujian lagi - dan itu BUKAN alasan menutup
+        // pintunya, hanya alasan layar tidak menyebut nama mapel apa pun.
+        $sesiTercoba = $this->sesiSudahDicoba($penempatan, $sekarang);
+
         $berikut = $sesi
-            ->reject(fn (ExamSession $s) => in_array($s->id, $sesiTercoba, true))
-            ->filter(fn (ExamSession $s) => $s->access_opens_at !== null)
+            ->filter(fn (ExamSession $s) => $s->access_opens_at !== null
+                && $sekarang->lt($s->access_opens_at)
+                && ! in_array($s->id, $sesiTercoba, true))
             ->sortBy(fn (ExamSession $s) => $s->access_opens_at)
             ->first();
 
-        if ($berikut === null) {
-            // Tidak ada ujian lagi yang menunggu: seluruh ujian anak ini
-            // sudah selesai. Jeda yang tidak berujung pada ujian bukan jeda -
-            // ia waktu pulang, dan menawarkan permainan di sana adalah
-            // menahan anak di ruang yang sudah bukan urusannya.
-            return null;
-        }
-
-        // Batas akhir: pintu sesi berikutnya. Sesi yang BARU SAJA
-        // dikerjakan tidak ikut menentukan meski `hard_end_at`-nya belum
-        // lewat - anak itu sudah mengumpulkan, dan yang membatasi waktunya
-        // adalah ujian berikutnya, bukan sisa jam ruang ujian yang sudah ia
-        // tinggalkan.
-        $berakhir = $berikut->access_opens_at->copy();
-
-        // Jendela yang lebih panjang dari `MENIT_MAKS` tetap dilaporkan,
-        // tetapi berakhir lebih cepat: lihat catatan konstanta.
-        $plafon = $sekarang->copy()->addMinutes(self::MENIT_MAKS);
-
-        if ($berakhir->gt($plafon)) {
-            $berakhir = $plafon;
-        }
-
-        // Sudah lewat berarti jendelanya tertutup - dan inilah satu-satunya
-        // jawaban null yang bergantung waktu.
-        if ($berakhir->lte($sekarang)) {
-            return null;
-        }
-
         return [
-            'berakhir_pada' => $berakhir->toIso8601String(),
-            'sesi_berikut' => [
+            // Deadline sesi yang masih terbuka, atau null bila tidak ada.
+            // Panggungnya memakai ini sebagai batas keras, dan `null` berarti
+            // "main sampai kuota harianmu habis".
+            'berakhir_pada' => $masihTerbuka?->hard_end_at?->toIso8601String(),
+
+            'sesi_berikut' => $berikut === null ? null : [
                 'label' => $berikut->label(),
                 'mapel' => $berikut->exam?->subject?->name,
                 'dibuka' => $berikut->access_opens_at->toIso8601String(),
             ],
         ];
+    }
+
+    /**
+     * Id sesi yang attempt-nya sudah ada - anak ini sudah mengerjakannya.
+     *
+     * @param  Collection<int, ExamParticipant>  $penempatan
+     * @return array<int, int>
+     */
+    private function sesiSudahDicoba(Collection $penempatan, CarbonInterface $sekarang): array
+    {
+        $idPenempatan = $penempatan->pluck('id');
+
+        if ($idPenempatan->isEmpty()) {
+            return [];
+        }
+
+        // Attempt apa pun yang sudah ada berarti sesi itu sudah disentuh -
+        // termasuk yang `batal`, karena percobaan yang dibatalkan bukan
+        // percobaan yang belum terjadi.
+        $sudahDikerjakan = ExamAttempt::query()
+            ->whereIn('exam_participant_id', $idPenempatan)
+            ->pluck('exam_participant_id');
+
+        return $penempatan
+            ->filter(fn (ExamParticipant $p) => $sudahDikerjakan->contains($p->id))
+            ->pluck('exam_session_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
     }
 }

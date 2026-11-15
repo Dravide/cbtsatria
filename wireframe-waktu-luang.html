@@ -253,26 +253,34 @@ footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display
   <section class="group">
     <header>
       <h2><em>A</em> Batas yang membentuk seluruh desainnya</h2>
-      <p>Empat aturan ini bukan tambahan — mereka yang menentukan kapan permainan boleh dibuka, kapan ia harus berhenti, apa yang boleh dicatat, dan mengapa pemain tidak bisa memalsukan skornya. Setiap plate di bawah adalah akibat dari keempatnya.</p>
+      <p>Enam aturan ini bukan tambahan — mereka yang menentukan kapan permainan boleh dibuka, kapan ia harus berhenti, berapa kali, apa yang boleh dicatat, dan mengapa pemain tidak bisa memalsukan skornya. Setiap plate di bawah adalah akibat dari keenamnya.</p>
     </header>
 
     <div class="shots">
       <figure class="shot" style="margin:0">
         <div class="note bad">
-          <b>Tidak boleh ada saat ujian berlangsung.</b>
-          Selama attempt siswa masih terbuka, tombol main tidak dirender sama sekali — bukan dirender lalu dimatikan. Permainan yang bisa dibuka di tengah ujian adalah jalan keluar dari layar penuh yang justru dipantau sistem, dan pemantauan itu menjadi tidak masuk akal bila ada satu jalan yang dilegalkan.
+          <b>Tidak boleh ada saat ujian berlangsung — dan itu SATU-SATUNYA larangan.</b>
+          Selama attempt siswa masih terbuka, tab main tidak dirender sama sekali — bukan dirender lalu dimatikan. Permainan yang bisa dibuka di tengah ujian adalah jalan keluar dari layar penuh yang justru dipantau sistem, dan pemantauan itu menjadi tidak masuk akal bila ada satu jalan yang dilegalkan.
+        </div>
+        <div class="note">
+          <b>Di luar itu, pintunya terbuka.</b>
+          Siswa yang tidak punya ujian sama sekali, siswa di sela dua ujian, dan siswa yang baru mengumpulkan ujian terakhirnya semuanya melihat tab <b>Main</b>. Syarat "harus sudah mengumpulkan satu ujian <em>dan</em> masih ada ujian berikutnya" dibuang 2026-11-15: ia menutup pintu untuk dua keadaan yang paling sering dialami siswa, tanpa satu pun kalimat di layar yang menjelaskan mengapa.
         </div>
         <div class="note">
           <b>Skor diperiksa server, bukan dipercaya dari peramban.</b>
-          Peramban mengirim <code>jarak</code> dan <code>durasi</code>; server menolak yang mustahil — jarak yang lebih jauh daripada yang mungkin dalam durasi itu, kiriman lebih cepat daripada satu permainan yang wajar, atau dua kiriman bertumpuk. Yang tersimpan adalah hasil hitung ulang server.
+          Peramban mengirim <code>jarak</code> dan <code>durasi</code>; server menolak yang mustahil — jarak yang lebih jauh daripada yang mungkin dalam durasi itu, atau kiriman lebih cepat daripada satu bingkai permainan. Yang tersimpan adalah hasil hitung ulang server.
+        </div>
+        <div class="note gap">
+          <b>Jatahnya sepuluh permainan per hari.</b>
+          Yang dibatasi berapa kali <em>main</em>, bukan berapa kali menang — kiriman yang ditolak ikut dihitung, karena kalau tidak, anak yang sepuluh kali terbentur seketika bisa bermain tanpa batas. Kuotanya dipotong pada tengah malam jam server, dan permainan ke-11 ditolak sebelum barisnya ditulis.
         </div>
         <div class="note gap">
           <b>Tidak menyentuh nilai, tidak menjadi syarat.</b>
           Permainan tidak memberi poin tambahan, tidak membuka apa pun, dan tidak pernah dibaca oleh modul penilaian. Bila papan skornya dihapus seluruhnya, tidak satu pun nilai siswa berubah — dan itulah ujian tentang apakah fitur ini memang hanya untuk waktu luang.
         </div>
-        <div class="note bad">
-          <b>Permainan menutup dirinya saat sesi berikutnya dibuka.</b>
-          Jendela waktu luangnya ditentukan server, dan server pula yang memutuskan kapan jendela itu habis — bukan pewaktu di peramban yang bisa ditahan anak yang sedang asyik. Begitu sesi berikutnya dibuka, panggungnya berhenti, tirai "sesi sudah dibuka" muncul, dan tidak ada tombol main lagi. Skor yang sedang berjalan tetap disimpan: yang dihentikan permainannya, bukan hasilnya.
+        <div class="note">
+          <b>Permainan menutup dirinya saat ruang ujiannya ditutup.</b>
+          Batas kerasnya <code>hard_end_at</code> sesi yang masih terpakai: anak yang sudah mengumpulkan tidak boleh bermain-main di kursinya sementara teman sebelahnya masih mengerjakan. Bukan jam buka sesi berikutnya — itu hanya keterangan hitung mundur di layar.
         </div>
       </figure>
     </div>

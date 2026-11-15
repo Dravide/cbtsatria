@@ -45,18 +45,49 @@ use App\Domain\Attendance\Models\LeisureGameScore;
  */
 final class PenjagaSkorLuar
 {
-    /** Di bawah ini, permainannya belum mungkin menyentuh rintangan kedua. */
-    public const DURASI_MINIMAL_MS = 3_000;
+    /**
+     * Durasi minimal yang dianggap mustahil.
+     *
+     * ---------------------------------------------------------------------
+     * Dikalibrasi ulang 2026-11-15, dari 3.000 menjadi 400
+     * ---------------------------------------------------------------------
+     * Nilai pertama (tiga detik) dipilih dengan mengira-ngira, dan ia menolak
+     * SETIAP permainan jujur yang berakhir cepat. Data sungguhan dari
+     * panggung yang benar-benar dimainkan: sepuluh kiriman berturut-turut
+     * berdurasi 592-1.738 ms, semuanya ditolak.
+     *
+     * Rintangan pertama bisa tiba kurang dari satu detik setelah mulai, dan
+     * anak yang terbentur di situ memang belum bermain lama - bukan berarti
+     * kirimannya karangan. Batas 400 ms hanya menangkap kiriman yang lebih
+     * pendek dari waktu yang dibutuhkan satu bingkai penuh untuk dihitung.
+     */
+    public const DURASI_MINIMAL_MS = 400;
 
     /**
      * Satuan jarak per detik.
      *
-     * Angka ini SENGAJA jauh di atas permainan normal: kecepatan awal
-     * panggung menghasilkan sekitar 40 unit/detik, dan batas ini 4x lipatnya.
-     * Yang ditangkap bukan pemain hebat, melainkan kiriman yang mengarang
-     * angka.
+     * ---------------------------------------------------------------------
+     * Dikalibrasi ulang 2026-11-15, dari 160 menjadi 900
+     * ---------------------------------------------------------------------
+     * Nilai pertamanya dipilih dengan mengira-ngira, dan ia menolak SETIAP
+     * permainan jujur. Buktinya dari data sungguhan: kiriman berturut-turut
+     * dari panggung yang benar-benar dimainkan menghasilkan laju 373-376
+     * satuan per detik - konsisten, bukan acak - dan semuanya ditolak.
+     *
+     * Sebabnya, jarak dihitung dari GERAK RINTANGAN di panggungnya: satu
+     * bingkai menggeser rintangan sebesar `kecepatan × skala`, dan jaraknya
+     * ditambah `geser / skala` - sehingga `skala` saling menghapus dan yang
+     * tersisa adalah `kecepatan × 60` per detik. Kecepatan awalnya 6,2, jadi
+     * 372 satuan per detik, dan itulah angka yang terlihat di data. Angka
+     * 160 adalah tebakan tanpa menghitungnya, dan tebakan itu salah lebih
+     * dari dua kali lipat.
+     *
+     * Batas 900 karena itu 2,4x laju awal - dan panggungnya mempercepat
+     * sangat pelan (`PERCEPATAN` 0,0012 per bingkai), sehingga permainan
+     * yang berlangsung dua menit pun tidak mendekatinya. Yang ditangkap
+     * tetap kiriman yang mengarang angka, bukan pemain hebat.
      */
-    public const UNIT_PER_DETIK_MAKS = 160;
+    public const UNIT_PER_DETIK_MAKS = 900;
 
     /**
      * Skor dari jarak dan durasi.

@@ -19,15 +19,27 @@ import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
  * ditulis apa adanya ("diperiksa server"), bukan disembunyikan.
  *
  * =====================================================================
- * Jendela waktunya milik SERVER
+ * Tiga pintu yang bisa menutup panggung, dan ketiganya berbeda
  * =====================================================================
- * `jendela.berakhir_pada` datang dari server, dan panggung menghitung sisa
- * detiknya sendiri sejak prop itu diterima - sama seperti hitung mundur di
- * beranda. Jam peramban tidak pernah dipakai untuk memutuskan apa pun.
+ * Sejak 2026-11-15 permainan tidak lagi hanya terbuka di sela ujian - ia
+ * terbuka setiap kali anak itu TIDAK sedang mengerjakan ujian. Yang
+ * menutupnya tinggal tiga, dan masing-masing punya kalimatnya sendiri karena
+ * yang bisa dilakukan anak itu berbeda:
  *
- * Saat sisanya habis, panggung BERHENTI dan menutup dirinya (plate 06):
- * tidak ada tombol "main lagi", tidak ada dialog. Yang tersisa hanya skor
- * dan tautan masuk ujian - karena tujuan jendela ini memang berakhir.
+ *   1. RUANG UJIANNYA DITUTUP (`habis`) - sesi yang masih terpakai berakhir.
+ *      Tidak ada tombol "main lagi"; tautannya menuju ujian.
+ *   2. KUOTANYA HABIS (`habisKuota`) - sepuluh permainan hari ini terpakai.
+ *      Bukan kesalahan, bukan hukuman: besok terbuka lagi.
+ *   3. IA TERBENTUR (`berakhir`) - permainan selesai dengan sendirinya.
+ *      Inilah satu-satunya yang punya "main lagi".
+ *
+ * Menggabungkan ketiganya menjadi satu tirai berarti satu kalimat untuk tiga
+ * keadaan yang butuh tindakan berbeda - dan anak yang kuotanya habis akan
+ * mencari tombol yang memang tidak ada.
+ *
+ * Batas kerasnya tetap milik SERVER: `jendela.berakhir_pada` dan sisa kuota
+ * datang dari sana. Jam peramban hanya dipakai menghitung mundur tampilannya,
+ * tidak pernah untuk memutuskan apa pun.
  *
  * =====================================================================
  * Mengapa panggungnya canvas, bukan DOM
@@ -39,12 +51,14 @@ import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 
 type Props = {
     jendela: {
-        berakhir_pada: string;
+        /** Batas keras sesi yang masih terbuka, atau null bila tidak ada. */
+        berakhir_pada: string | null;
         sesi_berikut: { label: string; mapel: string | null; dibuka: string } | null;
     };
     rekor: number | null;
     peringkat: { peringkat: number | null; pemain: number; rekor: number | null };
     kelas: string | null;
+    kuota: { terpakai: number; sisa: number; batas: number; boleh: boolean };
 };
 
 /** Satu bingkai permainan. */
@@ -64,7 +78,7 @@ const KECEPATAN_AWAL = 6.2;
 /** Kecepatan bertambah sangat pelan - lihat catatan `KECEPATAN_AWAL`. */
 const PERCEPATAN = 0.0012;
 
-export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
+export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props) {
     const panggung = useRef<HTMLDivElement | null>(null);
     const kanvas = useRef<HTMLCanvasElement | null>(null);
     const keadaan = useRef<Keadaan>({
@@ -79,15 +93,26 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
     const terakhir = useRef<number>(0);
 
     const [bermain, setBermain] = useState(false);
-    // `habis` = jendelanya tutup (plate 06). `berakhir` = anak terbentur
-    // (plate 05). Dua keadaan yang berbeda, dan tombolnya pun berbeda:
-    // yang pertama TIDAK punya "main lagi".
+    // `habis` = batas kerasnya tempus (sesi yang masih terbuka ditutup).
+    // `berakhir` = anak terbentur. Dua keadaan berbeda, dan tombolnya pun
+    // berbeda: yang pertama TIDAK punya "main lagi".
     const [habis, setHabis] = useState(false);
     const [berakhir, setBerakhir] = useState(false);
 
     const [jarakAkhir, setJarakAkhir] = useState(0);
 
-    const [sisa, setSisa] = useState(() => sisaDetik(jendela.berakhir_pada));
+    // Sisa kuota hari ini. Dikirim server, dan diperbarui setiap kiriman -
+    // angka yang dihitung peramban sendiri akan berbeda dari yang menolak
+    // kirimannya.
+    const [sisaKuota, setSisaKuota] = useState(kuota.sisa);
+    const habisKuota = sisaKuota <= 0;
+
+    // Hitung mundur ke pembukaan sesi berikutnya. `null` berarti tidak ada
+    // ujian lain - dan itu bukan tenggat, hanya keterangan.
+    const [sisaWaktu, setSisaWaktu] = useState<number | null>(() =>
+        jendela.sesi_berikut === null ? null : sisaDetik(jendela.sesi_berikut.dibuka),
+    );
+
     const [menyimpan, setMenyimpan] = useState(false);
     const [pesan, setPesan] = useState<string | null>(null);
     const [tercatat, setTercatat] = useState<number | null>(rekor);
@@ -95,22 +120,29 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
     // Prop `rekor` berganti setiap kali halaman dimuat ulang; state di atas
     // hanya nilai awalnya.
     useEffect(() => setTercatat(rekor), [rekor]);
+    useEffect(() => setSisaKuota(kuota.sisa), [kuota.sisa]);
 
     /* ------------------------------------------------------- Jam jendela */
 
     useEffect(() => {
+        if (jendela.berakhir_pada === null) {
+            // Tidak ada sesi yang masih terbuka - tidak ada yang perlu
+            // dihitung. `berakhir_pada` null berarti batasnya hanya kuota
+            // harian, dan itu tidak berjalan dengan waktu.
+            return;
+        }
+
         if (habis) {
             return;
         }
 
         const tiap = window.setInterval(() => {
-            const s = sisaDetik(jendela.berakhir_pada);
-            setSisa(s);
+            const s = sisaDetik(jendela.berakhir_pada as string);
 
             if (s <= 0) {
-                // Jendelanya tutup. Permainannya dihentikan di sini, bukan
-                // menunggu bingkai berikutnya - dan skornya TIDAK dikirim,
-                // karena server akan menolaknya (409) dan pesan penolakan
+                // Ruang ujiannya ditutup. Permainannya dihentikan di sini,
+                // bukan menunggu bingkai berikutnya - dan skornya TIDAK
+                // dikirim, karena server akan menolaknya dan pesan penolakan
                 // hanya membingungkan anak yang permainannya memang baru
                 // dipotong.
                 hentikan();
@@ -122,6 +154,26 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
         return () => window.clearInterval(tiap);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [jendela.berakhir_pada, habis]);
+
+    /*
+     * Hitung mundur ke sesi berikutnya - keterangan, BUKAN tenggat.
+     *
+     * Sejak 2026-11-15 permainan tidak ditutup oleh jam buka sesi berikutnya;
+     * yang ditutup adalah ruang ujian yang masih terpakai (lihat efek di
+     * atas). Angka ini tetap ditampilkan karena anak yang menunggu memang
+     * ingin tahu berapa lama lagi ia punya waktu.
+     */
+    useEffect(() => {
+        if (jendela.sesi_berikut === null) {
+            return;
+        }
+
+        const tiap = window.setInterval(() => {
+            setSisaWaktu(sisaDetik(jendela.sesi_berikut!.dibuka));
+        }, 1000);
+
+        return () => window.clearInterval(tiap);
+    }, [jendela.sesi_berikut]);
 
     /* ------------------------------------------------------ Bingkai canvas */
 
@@ -251,7 +303,7 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
 
             gambar();
 
-            if (sisaDetik(jendela.berakhir_pada) <= 0) {
+            if (jendela.berakhir_pada !== null && sisaDetik(jendela.berakhir_pada) <= 0) {
                 return;
             }
 
@@ -270,7 +322,10 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
     }
 
     function mulai() {
-        if (habis) {
+        // Dua pintu, dan keduanya harus tertutup di sini - bukan hanya di
+        // tombolnya: panggungnya juga bisa dimulai lewat ketukan di
+        // area mana pun (lihat penangan pointerdown).
+        if (habis || habisKuota) {
             return;
         }
 
@@ -324,10 +379,26 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
             });
 
             if (respon.status === 409) {
-                // Jendelanya tutup di antara bingkai terakhir dan kiriman
-                // ini. Panggungnya menutup diri seperti plate 06 - bukan
-                // menampilkan galat, karena tidak ada yang bisa diperbaiki.
+                // Ujiannya dimulai di antara bingkai terakhir dan kiriman
+                // ini. Panggungnya menutup diri - bukan menampilkan galat,
+                // karena tidak ada yang bisa diperbaiki anak itu.
                 setHabis(true);
+                return;
+            }
+
+            if (respon.status === 429) {
+                // Kuota hariannya habis. Kiriman ini TIDAK tersimpan, dan
+                // angka di layar harus ikut berubah - kalau tidak, anak itu
+                // akan menekan "Main lagi" berkali-kali dan setiap kali
+                // ditolak dengan kalimat yang sama.
+                const tolak = (await respon.json()) as {
+                    pesan: string;
+                    kuota: { sisa: number };
+                };
+
+                setSisaKuota(tolak.kuota.sisa);
+                setPesan(tolak.pesan);
+                setBermain(false);
                 return;
             }
 
@@ -337,10 +408,12 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
                 rekor: number | null;
                 peringkat: number | null;
                 pesan: string;
+                kuota: { sisa: number };
             };
 
             setTercatat(data.rekor);
             setPesan(data.pesan);
+            setSisaKuota(data.kuota.sisa);
         } catch {
             // Jaringan putus. Yang dikatakan laman ini hanya satu: skornya
             // tidak tercatat - bukan "terjadi kesalahan", yang tidak
@@ -405,30 +478,43 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
                 <div className="pointer-events-none absolute inset-x-0 top-0 flex items-baseline gap-2 px-2 py-1.5 font-mono text-[11px] text-ink-3">
                     <span>skor</span>
                     <b className="text-ink tabular-nums">{skorSekarang.toLocaleString('id-ID')}</b>
-                    <span className="ml-auto">sisa</span>
-                    <b className="text-ink tabular-nums">{formatSisa(sisa)}</b>
+                    <span className="ml-auto">sisa main</span>
+                    <b className="text-ink tabular-nums">{sisaKuota}</b>
                 </div>
 
-                {/* Tirai jendela habis - plate 06. Tombol "main lagi" TIDAK
-                    ada di sini, dan ketiadaannya adalah pesannya. */}
+                {/* Tirai ruang ujian ditutup. Tombol "main lagi" TIDAK ada di
+                    sini, dan ketiadaannya adalah pesannya. */}
                 {habis && (
                     <div className="absolute inset-0 grid place-content-center justify-items-center gap-1.5 bg-warn-bg/90 px-3 text-center">
                         <b className="font-display text-sm text-warn">
                             {jendela.sesi_berikut?.mapel
                                 ? jendela.sesi_berikut.mapel + ' sudah dibuka'
-                                : 'Waktu luangnya sudah habis'}
+                                : 'Sesi ujiannya sudah ditutup'}
                         </b>
                         <span className="text-[11px] text-ink-2">
                             {jarakAkhir > 0
                                 ? 'Skor terakhir ' + jarakAkhir.toLocaleString('id-ID') + ' tersimpan.'
-                                : 'Permainan ditutup.'}{' '}
-                            Waktunya masuk ujian.
+                                : 'Permainan ditutup.'}
                         </span>
                     </div>
                 )}
 
-                {/* Tirai permainan berakhir - plate 05. */}
-                {berakhir && !habis && (
+                {/* Kuota harian habis - keadaan ketiga, dan kalimatnya sendiri.
+                    Ia BUKAN "terbentur" dan bukan "sesi ditutup": yang habis
+                    adalah jatahnya hari ini, dan besok ia bisa main lagi. */}
+                {habisKuota && !habis && (
+                    <div className="absolute inset-0 grid place-content-center justify-items-center gap-1.5 bg-surface/80 px-3 text-center">
+                        <b className="font-display text-sm">
+                            Sisa {kuota.batas} permainan hari ini sudah dipakai
+                        </b>
+                        <span className="text-[11px] text-ink-2">
+                            Besok jatahnya terbuka lagi. Rekormu hari ini tetap dihitung.
+                        </span>
+                    </div>
+                )}
+
+                {/* Tirai permainan berakhir. */}
+                {berakhir && !habis && !habisKuota && (
                     <div className="absolute inset-0 grid place-content-center justify-items-center gap-1.5 bg-surface/70 px-3 text-center">
                         <b className="font-display text-lg tabular-nums">
                             {jarakAkhir.toLocaleString('id-ID')}
@@ -450,7 +536,7 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
                 )}
 
                 {/* Tirai awal - hanya saat panggungnya belum pernah dimulai. */}
-                {!bermain && !berakhir && !habis && (
+                {!bermain && !berakhir && !habis && !habisKuota && (
                     <div className="absolute inset-0 grid place-content-center justify-items-center gap-1.5 bg-surface/60 px-3 text-center">
                         <b className="font-display text-sm">Ketuk untuk mulai</b>
                         <span className="text-[11px] text-ink-3">
@@ -494,10 +580,30 @@ export default function Luang({ jendela, rekor, peringkat, kelas }: Props) {
                         </span>
                     </p>
                 </div>
+                <div className="flex-1 border border-line bg-surface px-2.5 py-2">
+                    <p className="text-[11px] text-ink-3">Sisa main</p>
+                    <p className={'angka text-lg ' + (habisKuota ? 'text-bad' : '')}>
+                        {sisaKuota}
+                        <span className="ml-1 text-[11px] text-ink-3">dari {kuota.batas}</span>
+                    </p>
+                </div>
             </div>
 
+            {/* Hitung mundut ke sesi berikutnya - keterangan, bukan tenggat.
+                Tidak dirender sama sekali bila anak itu tidak punya ujian
+                lagi, karena "tidak ada sesi berikutnya" bukan hal yang perlu
+                diberitahukan sebagai angka. */}
+            {jendela.sesi_berikut !== null && sisaWaktu !== null && (
+                <p className="text-[11px] leading-relaxed text-ink-3">
+                    {jendela.sesi_berikut.mapel ?? 'Ujian berikutnya'} dibuka dalam{' '}
+                    <b className="text-ink-2 tabular-nums">{formatSisa(sisaWaktu)}</b>. Setelah
+                    itu permainan tetap bisa dibuka selama kamu belum mulai mengerjakan.
+                </p>
+            )}
+
             <p className="text-[11px] leading-relaxed text-ink-3">
-                Permainan berhenti sendiri bila sesi berikutnya dibuka. Skor diperiksa server
+                Permainan tertutup selama kamu mengerjakan ujian, dan saat ruang ujian yang masih
+                terpakai ditutup. Jatahnya {kuota.batas} permainan per hari. Skor diperiksa server
                 sebelum dicatat, jadi angka di papan bisa lebih rendah daripada yang tampil di
                 panggung.
             </p>
