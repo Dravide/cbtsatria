@@ -5,6 +5,8 @@ use App\Domain\Academic\Models\ClassEnrollment;
 use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Academic\Models\Semester;
 use App\Domain\Academic\Models\Subject;
+use App\Domain\Attendance\Models\AttendanceAcknowledgement;
+use App\Domain\Attendance\Models\AttendanceScanCode;
 use App\Domain\Attendance\Models\ExamIncident;
 use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Event\Enums\EventStatus;
@@ -866,6 +868,58 @@ it('membatalkan sesi yang berita acaranya sudah final - satu-satunya jalan kelua
         // Berita acaranya TETAP ADA. Itu seluruh gunanya: sesi yang batal
         // bukan berarti ruangannya tidak pernah kejadian apa-apa.
         ->and(SessionReport::query()->where('exam_session_room_id', $data['ruang']->first()->id)->exists())->toBeTrue();
+});
+
+it('menghapus sesi yang kode pindainya sudah punya pengakuan siswa', function () {
+    // Regresi 2026-11-15. Rantai FK-nya menjebak dengan cara yang tidak
+    // terbaca dari kode mana pun:
+    //
+    //   exam_sessions        CASCADE  -> exam_session_rooms
+    //   exam_session_rooms   CASCADE  -> attendance_scan_codes
+    //   attendance_scan_codes RESTRICT -> attendance_acknowledgements
+    //
+    // `PembersihRuangSesiService` membersihkan berita acara dan insiden,
+    // tetapi tidak kedua tabel Fase 6 itu - sehingga penghapusan berhenti di
+    // pengakuannya dengan galat 1451 yang menyebut `pengakuan_kode`, tanpa
+    // menyebut kode pindai sama sekali.
+    //
+    // Kode pindai terbit sendiri setiap laman presensi dimuat, TANPA syarat
+    // status sesi - jadi pengakuan bisa ada untuk ujian yang belum pernah
+    // berjalan. Menahannya berarti jadwal yang salah tidak bisa dibuang.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $ruang = $data['ruang']->first();
+    $peserta = ExamParticipant::query()
+        ->where('exam_session_id', $data['sesi']->id)
+        ->firstOrFail();
+
+    $kode = AttendanceScanCode::create([
+        'school_id' => $this->sekolah->id,
+        'exam_session_room_id' => $ruang->id,
+        'code_hash' => hash_hmac('sha256', 'uji-regresi', (string) config('app.key')),
+        'issued_at' => now(),
+        'expires_at' => now()->addMinute(),
+    ]);
+
+    AttendanceAcknowledgement::create([
+        'school_id' => $this->sekolah->id,
+        'attendance_scan_code_id' => $kode->id,
+        'exam_participant_id' => $peserta->id,
+        'scanned_at' => now(),
+        'status' => 'menunggu',
+    ]);
+
+    masukSebagai($this, $this->admin)
+        ->delete("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}/sesi/{$data['sesi']->id}")
+        ->assertSessionHas('sukses');
+
+    expect(ExamSession::query()->find($data['sesi']->id))->toBeNull()
+        // Kode pindainya ikut hilang - ia tidak bermakna di luar ruangnya.
+        ->and(AttendanceScanCode::query()->where('id', $kode->id)->exists())->toBeFalse()
+        // Dan pengakuannya juga, karena RESTRICT-nya menuntut urutan itu.
+        // Ia lahir dari tindakan siswa memindai, bukan dari pengamatan
+        // pengawas - sehingga berbeda dari insiden, yang tetap MEMBLOKIR.
+        ->and(AttendanceAcknowledgement::query()->where('exam_participant_id', $peserta->id)->exists())->toBeFalse();
 });
 
 it('mengirim alasan pembatalan di baris jadwal', function () {
