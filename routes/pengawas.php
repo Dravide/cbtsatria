@@ -40,6 +40,17 @@ Route::middleware('pengawas')->prefix('pengawas')->name('pengawas.')->group(func
 
     // Plate 12-13, 17
     Route::get('/ruang/{ruang}/presensi', [PresensiController::class, 'index'])->name('presensi');
+
+    // Pengakuan yang menunggu konfirmasi, sebagai JSON - dipanggil berkala
+    // oleh laman presensi.
+    //
+    // WAJIB di atas `presensi/{peserta}` di bawah. Keduanya `GET`, dan
+    // `{peserta}` adalah binding implisit: tanpa urutan ini, permintaan ke
+    // `/presensi/pengakuan` lebih dulu cocok ke `{peserta} = "pengakuan"`,
+    // gagal menemukan barisnya, dan menjawab 404 - kotak pengakuan yang
+    // diam-diam tidak pernah terisi, tanpa satu pun galat yang terlihat.
+    Route::get('/ruang/{ruang}/presensi/pengakuan', [PresensiController::class, 'pengakuanJson'])->name('presensi.pengakuan');
+
     Route::get('/ruang/{ruang}/presensi/{peserta}', [PresensiController::class, 'satu'])->name('presensi.satu');
     Route::post('/ruang/{ruang}/presensi/verifikasi', [PresensiController::class, 'verifikasi'])->name('presensi.verifikasi');
     Route::post('/ruang/{ruang}/presensi/massal', [PresensiController::class, 'massal'])->name('presensi.massal');

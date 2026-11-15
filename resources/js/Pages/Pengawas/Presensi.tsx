@@ -4,6 +4,9 @@ import KerangkaPonsel from '@/Layouts/KerangkaPonsel';
 import { Chip, Inbox, Modal } from '@/Components/ui';
 import { BarisKursi, KpiPonsel, KotakPonsel } from '@/Components/ponsel';
 
+/** Selang penyegaran pengakuan - sama dengan laman siswa yang menunggu. */
+const SELANG_PENGAKUAN_MS = 15_000;
+
 /**
  * Plate 12 - presensi ruang, daftar kursi.
  *
@@ -249,11 +252,77 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
         };
     }, [kode, sisa, ruang.id]);
 
+    /* ------------------------------------------------ Pengakuan yang masuk */
+
+    // Pengakuan datang dari ponsel SISWA, di peramban lain. Tanpa penyegaran,
+    // kotak "N siswa memindai" hanya muncul kalau pengawas menekan muat ulang
+    // sendiri - dan pengawas yang berdiri di depan pintu sambil memegang ponsel
+    // tidak akan melakukannya. Akibatnya paling buruk: siswa sudah memindai,
+    // menunggu, dan pengawas tidak tahu ada yang perlu dikonfirmasi.
+    //
+    // Yang diminta adalah endpoint JSON tipis, BUKAN `router.reload`. Reload
+    // Inertia menjalankan `index()` utuh, dan `payloadPindai()` di dalamnya
+    // menerbitkan kode pindai BARU setiap kali - kode yang sah 60 detik akan
+    // berganti tiap 15 detik, tepat saat siswa mengangkat kameranya.
+    //
+    // Lembar konfirmasi yang sedang terbuka menghentikannya: daftar yang
+    // berubah di bawah jari orang yang sedang mencentang adalah daftar yang
+    // dicentang pada baris yang salah.
+    const [daftar, setDaftar] = useState<Pengakuan[]>(pengakuan);
+    const menyegar = useRef(false);
+
+    // Prop tetap sumber kebenaran setiap kali laman dimuat ulang oleh aksi
+    // pengawas sendiri (menandai hadir, mengonfirmasi). Tanpa ini, daftar
+    // hasil jajak akan bertahan melewati aksi yang justru mengubahnya.
+    useEffect(() => {
+        setDaftar(pengakuan);
+    }, [pengakuan]);
+
+    useEffect(() => {
+        if (lembar || kirim) {
+            return;
+        }
+
+        const jajak = () => {
+            if (menyegar.current) {
+                return;
+            }
+
+            menyegar.current = true;
+
+            fetch(`/pengawas/ruang/${ruang.id}/presensi/pengakuan`, {
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then((r) => (r.ok ? r.json() : null))
+                .then((isi: { pengakuan: Pengakuan[] } | null) => {
+                    if (isi) {
+                        setDaftar(isi.pengakuan);
+                    }
+                })
+                // Jaringan putus: percobaan berikutnya menyusul. Tidak ada
+                // pesan galat - kotak yang tetap menampilkan daftar lama
+                // lebih jujur daripada layar yang berkedip merah di depan
+                // pintu karena sinyal sekolah.
+                .catch(() => {})
+                .finally(() => {
+                    menyegar.current = false;
+                });
+        };
+
+        const jam = window.setInterval(jajak, SELANG_PENGAKUAN_MS);
+
+        return () => window.clearInterval(jam);
+    }, [lembar, kirim, ruang.id]);
+
     // Lembar konfirmasi: centang bawaan HANYA yang masih di dalam batas
     // masuk. Kalau semua tercentang sejak awal, tombol massalnya berubah
     // menjadi "catat apa pun yang datang" - plate A3.
     const bukaLembar = () => {
-        setCentang(pengakuan.filter((p) => p.tepat).map((p) => p.id));
+        setCentang(daftar.filter((p) => p.tepat).map((p) => p.id));
         setLembar(true);
     };
 
@@ -282,7 +351,7 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
 
     // Yang akan tercatat, dihitung dari centang - bukan dari seluruh daftar.
     // Angka di lembar ini adalah janji tentang apa yang akan ditulis.
-    const akan = pengakuan.filter((p) => centang.includes(p.id));
+    const akan = daftar.filter((p) => centang.includes(p.id));
     const akanHadir = akan.filter((p) => p.akan === 'hadir').length;
     const akanTelat = akan.filter((p) => p.akan === 'terlambat').length;
 
@@ -325,10 +394,10 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
                     berdiri. Yang memindai punya kolomnya sendiri. */}
                 <KpiPonsel label="Belum" nilai={rekap.pending} />
                 <KpiPonsel
-                    label={pengakuan.length > 0 ? 'Memindai' : 'Izin/alpa'}
+                    label={daftar.length > 0 ? 'Memindai' : 'Izin/alpa'}
                     nilai={
-                        pengakuan.length > 0
-                            ? pengakuan.length
+                        daftar.length > 0
+                            ? daftar.length
                             : `${rekap.izin}/${rekap.tidak_hadir}`
                     }
                     nada="warn"
@@ -380,25 +449,33 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
                 </KotakPonsel>
             )}
 
-            {pengakuan.length > 0 && (
+            {daftar.length > 0 && (
                 <div className="rounded-wf border border-warn/45 bg-warn-bg/60 px-3 py-2">
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-warn">
-                            {pengakuan.length} siswa memindai
+                            {daftar.length} siswa memindai
                         </span>
                         <span className="ml-auto shrink-0">
                             <Chip nada="warn">menunggu konfirmasi</Chip>
                         </span>
                     </div>
+                    {/* Kalimat ini dulu berbunyi "Belum ada satu pun yang
+                        tercatat hadir" tanpa syarat - dan itu menjadi tidak
+                        benar begitu satu pengakuan dikonfirmasi sementara
+                        yang lain masih menunggu, karena kotaknya tetap
+                        tampil. Yang dihitung di sini adalah keadaan
+                        sesungguhnya. */}
                     <p className="mt-0.5 text-[11px] leading-snug text-warn">
-                        Belum ada satu pun yang tercatat hadir. Yang mencatat tetap Anda.
+                        {rekap.hadir + rekap.terlambat === 0
+                            ? 'Belum ada satu pun yang tercatat hadir. Yang mencatat tetap Anda.'
+                            : `${rekap.hadir + rekap.terlambat} sudah tercatat hadir. Sisanya menunggu Anda.`}
                     </p>
                     <button
                         type="button"
                         onClick={bukaLembar}
                         className="mt-1.5 inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-accent px-3 text-[11px] font-medium text-on-accent"
                     >
-                        Tinjau {pengakuan.length} pengakuan
+                        Tinjau {daftar.length} pengakuan
                     </button>
                 </div>
             )}
@@ -617,8 +694,8 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
              * lama adalah centang pada baris yang sudah dikonfirmasi.
              */}
             <Modal
-                key={`lembar-${pengakuan.length}`}
-                judul={`${pengakuan.length} siswa memindai`}
+                key={`lembar-${daftar.length}`}
+                judul={`${daftar.length} siswa memindai`}
                 terbuka={lembar}
                 padaTutup={() => setLembar(false)}
                 gelap
@@ -630,7 +707,7 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
                     </Inbox>
 
                     <div className="rounded-wf border border-line bg-surface">
-                        {pengakuan.map((p) => (
+                        {daftar.map((p) => (
                             <label
                                 key={p.id}
                                 className="flex min-h-11 cursor-pointer items-center gap-2 border-b border-line/60 px-3 py-2 last:border-0"

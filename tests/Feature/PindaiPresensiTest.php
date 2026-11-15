@@ -444,3 +444,112 @@ it('konfirmasi tidak menyentuh pengakuan ruang lain', function () {
     expect($hasil['berubah'])->toBe(0);
     expect($pengakuan->refresh()->status)->toBe(StatusPengakuan::Menunggu);
 });
+
+/* ====================================== Jajak pengakuan (laman pengawas) */
+
+/*
+ * Kotak "N siswa memindai" di laman presensi pengawas disegarkan berkala
+ * lewat endpoint JSON sendiri, bukan `router.reload` Inertia. Dua hal yang
+ * dibuktikan di sini, dan keduanya adalah kegagalan yang tidak terlihat dari
+ * layar:
+ *
+ *   1. Reload Inertia menjalankan `index()` utuh, dan `payloadPindai()` di
+ *      dalamnya MENERBITKAN kode pindai baru. Menyegarkan tiap 15 detik akan
+ *      mengganti QR yang sah 60 detik tepat saat siswa mengangkat kameranya.
+ *      Jadi endpoint ini tidak boleh menulis baris kode apa pun.
+ *   2. Isinya hanya pengakuan `menunggu` milik ruang itu - bukan milik ruang
+ *      lain, dan bukan yang sudah dikonfirmasi.
+ */
+
+it('jajak pengakuan tidak menerbitkan kode pindai baru', function () {
+    $pengawas = User::factory()->pengawas()->untukSekolah($this->sekolah)->create([
+        'username' => 'pengawas.jajak.kode',
+    ]);
+
+    $data = siapkanPresensi(
+        $this->sekolah, $this->tahun, $this->semester, $this->admin,
+        ['R-01'], 2, [$pengawas],
+    );
+
+    $ruang = $data['ruang'][0];
+
+    bukaSesi($ruang);
+
+    $sebelum = AttendanceScanCode::query()->count();
+
+    masukSebagai($this, $pengawas);
+
+    // Lima kali, seperti lima menit laman pengawas dibiarkan terbuka.
+    foreach (range(1, 5) as $_) {
+        $this->getJson("/pengawas/ruang/{$ruang->id}/presensi/pengakuan")->assertOk();
+    }
+
+    expect(AttendanceScanCode::query()->count())->toBe($sebelum);
+});
+
+it('jajak pengakuan mengembalikan yang menunggu di ruang itu saja', function () {
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01', 'R-02'], 4);
+
+    foreach ($data['ruang'] as $r) {
+        bukaSesi($r);
+    }
+
+    $ruangSatu = $data['ruang'][0];
+    $ruangDua = $data['ruang'][1];
+
+    // Dua siswa memindai di ruang SATU, satu di ruang DUA.
+    foreach ($data['ruang'] as $r) {
+        $peserta = ExamParticipant::query()
+            ->where('exam_session_room_id', $r->id)
+            ->pluck('student_id')
+            ->take($r->id === $ruangSatu->id ? 2 : 1);
+
+        $kode = kodeUntuk($r);
+
+        foreach ($peserta as $id) {
+            masukSebagai($this, User::query()->findOrFail($id));
+            $this->post("/hadir/{$kode}")->assertRedirect();
+        }
+    }
+
+    masukSebagai($this, $this->admin);
+
+    $isi = $this->getJson("/pengawas/ruang/{$ruangSatu->id}/presensi/pengakuan")
+        ->assertOk()
+        ->json('pengakuan');
+
+    expect($isi)->toHaveCount(2);
+
+    // Yang dikirim hanya yang dibutuhkan kotaknya - dan `akan` dihitung dari
+    // jam PINDAI, bukan jam konfirmasi.
+    expect(array_keys($isi[0]))->toContain('nama', 'kursi', 'jam', 'akan_label', 'tepat');
+
+    // Baris yang sudah dikonfirmasi tidak lagi muncul di lembar ini.
+    $satu = AttendanceAcknowledgement::query()->firstOrFail();
+    app(KodePindai::class)->konfirmasi($ruangSatu, [$satu->id], KonteksRuang::dari($ruangSatu));
+
+    $sesudah = $this->getJson("/pengawas/ruang/{$ruangSatu->id}/presensi/pengakuan")
+        ->json('pengakuan');
+
+    expect($sesudah)->toHaveCount(1);
+});
+
+it('pengawas ruang lain tidak bisa menjajak pengakuan ruang ini', function () {
+    $pengawas = collect(range(1, 2))->map(
+        fn (int $i) => User::factory()->pengawas()->untukSekolah($this->sekolah)->create([
+            'username' => 'pengawas.jajak'.$i,
+        ]),
+    );
+
+    $data = siapkanPresensi(
+        $this->sekolah, $this->tahun, $this->semester, $this->admin,
+        ['R-01', 'R-02'], 4, $pengawas->all(),
+    );
+
+    [$r01, $r02] = [$data['ruang'][0], $data['ruang'][1]];
+
+    masukSebagai($this, $pengawas[1]);
+
+    $this->getJson("/pengawas/ruang/{$r01->id}/presensi/pengakuan")->assertNotFound();
+    $this->getJson("/pengawas/ruang/{$r02->id}/presensi/pengakuan")->assertOk();
+});

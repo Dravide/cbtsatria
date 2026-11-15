@@ -534,6 +534,34 @@ class PresensiController
     }
 
     /**
+     * Pengakuan yang menunggu konfirmasi, sebagai JSON - dipanggil berkala
+     * oleh laman presensi pengawas.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa endpoint sendiri, bukan `router.reload` Inertia
+     * ---------------------------------------------------------------------
+     * Reload Inertia menjalankan `index()` UTUH, dan `payloadPindai()` di
+     * dalamnya memanggil `KodePindai::terbitkan()` - yang MENULIS baris kode
+     * baru setiap kali dipanggil. Menyegarkan laman tiap 15 detik karena itu
+     * menerbitkan kode baru tiap 15 detik, sementara kode yang sah berlaku 60
+     * detik: QR yang sedang dipindai siswa di depan pintu berganti di tengah
+     * jalan, dan pindaiannya ditolak sebagai kode kedaluwarsa.
+     *
+     * Jawaban di sini hanya memuat yang dibutuhkan kotak pengakuan. Ia TIDAK
+     * menerbitkan kode, tidak menyentuh presensi, dan tidak menulis apa pun.
+     */
+    public function pengakuanJson(ExamSessionRoom $ruang): JsonResponse
+    {
+        KonteksRuang::dari($ruang);
+
+        $nomor = $this->kehadiran->nomorKursiRuang($ruang);
+
+        return response()->json([
+            'pengakuan' => $this->daftarPengakuan($ruang, $nomor),
+        ]);
+    }
+
+    /**
      * Konfirmasi sekelompok pengakuan - plate A3.
      *
      * Status tiap baris DITURUNKAN dari jam pindainya sendiri, sehingga satu
