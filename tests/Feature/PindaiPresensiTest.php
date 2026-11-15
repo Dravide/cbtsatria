@@ -203,7 +203,7 @@ it('menolak saat sesinya belum dibuka', function () {
     expect($props['penolakan']['judul'])->toBe('Sesi belum dibuka');
 });
 
-it('menjawab pindai kedua dengan tenang, bukan galat merah', function () {
+it('pindai ulang sesudah dicatat mengarahkan siswa ke gerbang, bukan ke jadwal', function () {
     $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
     $ruang = $data['ruang'][0];
     $siswa = $data['siswa'][0];
@@ -227,6 +227,40 @@ it('menjawab pindai kedua dengan tenang, bukan galat merah', function () {
 
     app(KehadiranService::class)
         ->catat($record, StatusPresensi::Hadir, KonteksRuang::dari($ruang));
+
+    masukSebagai($this, $siswa);
+
+    // Sebelum 2026-11-15 laman ini menjawab halaman "Sudah tercatat hadir"
+    // yang hanya punya satu tombol, "Kembali ke jadwal". Siswa yang
+    // pengawasnya baru saja mengonfirmasi harus menemukan jalan ke kolom
+    // token, bukan jalan pulang.
+    $this->get("/hadir/{$kode}")
+        ->assertRedirect("/siswa/ujian/{$peserta->id}/gerbang");
+});
+
+it('menjawab pindai kedua dengan tenang saat gerbangnya memang belum terbuka', function () {
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
+    $ruang = $data['ruang'][0];
+    $siswa = $data['siswa'][0];
+
+    bukaSesi($ruang);
+
+    $kode = kodeUntuk($ruang);
+
+    masukSebagai($this, $siswa);
+    $this->post("/hadir/{$kode}")->assertRedirect();
+
+    $peserta = ExamParticipant::query()->where('student_id', $siswa->id)->firstOrFail();
+    $record = AttendanceRecord::query()->where('exam_participant_id', $peserta->id)->firstOrFail();
+
+    masukSebagai($this, $this->admin);
+
+    // `tidak_hadir` adalah status yang TIDAK membuka gerbang. Pengalihan ke
+    // gerbang hanya boleh terjadi saat gerbangnya benar-benar akan menerima
+    // siswa itu - dan yang menentukannya `KelayakanUjian`, bukan tebakan
+    // laman ini.
+    app(KehadiranService::class)
+        ->catat($record, StatusPresensi::TidakHadir, KonteksRuang::dari($ruang));
 
     masukSebagai($this, $siswa);
 
@@ -306,6 +340,44 @@ it('halaman tunggu tetap terbuka sesudah kodenya mati', function () {
 
     expect($props['keadaan'])->toBe('tunggu');
     expect($props['tunggu']['dikonfirmasi'])->toBeFalse();
+});
+
+it('laman tunggu hanya bilang gerbang terbuka bila gerbangnya benar-benar menerima', function () {
+    $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 2);
+    $ruang = $data['ruang'][0];
+    $siswa = $data['siswa'][0];
+
+    bukaSesi($ruang);
+
+    $kode = kodeUntuk($ruang);
+
+    masukSebagai($this, $siswa);
+    $this->post("/hadir/{$kode}")->assertRedirect();
+
+    // Belum dikonfirmasi siapa pun: pintunya tertutup, dan laman harus
+    // mengatakannya. Sebelum 2026-11-15 baris ini dihitung dari status
+    // presensi saja, sehingga `hadir` yang `verified_at`-nya kosong sudah
+    // membuatnya berbunyi "terbuka" - untuk pintu yang kemudian menolak.
+    masukSebagai($this, $siswa);
+    expect(propsHadir($this, $kode)['tunggu']['gerbang'])->toBeFalse();
+
+    // Pengawas mengonfirmasi lewat jalur yang sama dengan tombol di laman
+    // presensinya.
+    $pengakuan = AttendanceAcknowledgement::query()->firstOrFail();
+
+    masukSebagai($this, $this->admin);
+    app(KodePindai::class)->konfirmasi($ruang, [$pengakuan->id], KonteksRuang::dari($ruang));
+
+    // Sesudah dikonfirmasi, laman tunggu tidak lagi dirender sama sekali:
+    // siswa langsung diarahkan ke gerbang, tempat kolom tokennya berada.
+    // Itulah yang membuat baris "Gerbang ujian: terbuka" tidak pernah
+    // sempat dibaca - dan memang tidak perlu dibaca lagi.
+    $peserta = ExamParticipant::query()->where('student_id', $siswa->id)->firstOrFail();
+
+    masukSebagai($this, $siswa);
+
+    $this->get("/hadir/{$kode}")
+        ->assertRedirect("/siswa/ujian/{$peserta->id}/gerbang");
 });
 
 /* ============================================================ Konfirmasi */

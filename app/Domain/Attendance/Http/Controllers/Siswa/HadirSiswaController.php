@@ -5,6 +5,7 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 use App\Domain\Attendance\Enums\StatusPengakuan;
 use App\Domain\Attendance\Models\AttendanceAcknowledgement;
 use App\Domain\Attendance\Models\AttendanceRecord;
+use App\Domain\Attendance\Services\KelayakanUjian;
 use App\Domain\Attendance\Services\KodePindai;
 use App\Domain\Attendance\Support\HasilPindai;
 use App\Domain\Attendance\Support\PenolakanPindai;
@@ -53,14 +54,40 @@ use Inertia\Response;
  */
 class HadirSiswaController extends SiswaDasar
 {
-    public function __construct(private readonly KodePindai $pindai) {}
+    public function __construct(
+        private readonly KodePindai $pindai,
+        private readonly KelayakanUjian $kelayakan,
+    ) {}
 
     /** Plate B4/B5/B6 - dipilih oleh keadaan, bukan oleh URL. */
-    public function tampilkan(string $kode): Response
+    public function tampilkan(string $kode): Response|RedirectResponse
     {
         $siswa = $this->siswa();
 
         $hasil = $this->pindai->periksa($kode, $siswa);
+
+        // ------------------------------------------------------------------
+        // Sudah dicatat DAN gerbangnya benar-benar terbuka: langsung ke gerbang
+        // ------------------------------------------------------------------
+        // Ini keadaan yang paling sering terjadi pada ponsel yang tertinggal
+        // terbuka di laman tunggu: siswa menunggu, pengawas mengonfirmasi,
+        // laman menyegar 15 detik kemudian - dan dulu siswa MEDAPAT halaman
+        // "Sudah tercatat hadir" yang hanya punya satu tombol, "Kembali ke
+        // jadwal". Untuk mengetik token ia harus kembali ke jadwal lalu masuk
+        // lagi lewat tautan gerbang. Dua ketukan tambahan pada momen paling
+        // menentukan, di depan kursinya sendiri.
+        //
+        // Pemeriksaannya memakai `KelayakanUjian` - kelas yang SAMA dengan
+        // yang dipakai laman gerbang dan `MesinUjian::mulai()`. Menyalin
+        // syaratnya di sini akan menghasilkan satu tempat yang bilang "boleh"
+        // dan satu tempat yang menolak.
+        if (! $hasil->diterima() && $hasil->ditolakDenganTenang() && $hasil->peserta !== null) {
+            $layak = $this->kelayakan->periksa($hasil->peserta);
+
+            if ($layak->boleh) {
+                return redirect()->route('siswa.gerbang', ['peserta' => $hasil->peserta->id]);
+            }
+        }
 
         if (! $hasil->diterima()) {
             return $this->halamanTolak($hasil);
@@ -152,9 +179,17 @@ class HadirSiswaController extends SiswaDasar
                 // Baris "Gerbang ujian" ada di plate B5 karena itulah yang
                 // sebenarnya ditunggu siswa. Tanpa baris itu mereka akan
                 // menekan "Mulai" berulang kali dan mengira tokennya salah.
-                'gerbang' => $record?->attendance_status?->membukaGerbang(
-                    (bool) $peserta?->exam?->allow_late_entry,
-                ) ?? false,
+                //
+                // Yang ditanyakan adalah KELAYAKAN, bukan status presensi.
+                // Dulu di sini hanya `membukaGerbang()`, dan itu berbohong
+                // pada satu keadaan yang justru paling sering: status
+                // `hadir` yang `verified_at`-nya masih kosong lolos dari
+                // pemeriksaan status, sehingga laman menulis "terbuka" - lalu
+                // gerbangnya menolak. `KelayakanUjian::periksa()` adalah
+                // pemeriksaan yang SAMA dengan yang dipakai gerbang itu
+                // sendiri, jadi yang tertulis di sini tidak bisa berbeda dari
+                // yang akan dialami siswa.
+                'gerbang' => $peserta !== null && $this->kelayakan->periksa($peserta)->boleh,
                 'status' => $record?->attendance_status?->pendek(),
                 'peserta_id' => $peserta?->id,
             ],

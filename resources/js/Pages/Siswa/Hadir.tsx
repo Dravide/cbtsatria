@@ -222,14 +222,20 @@ export default function Hadir({ keadaan, kode, ruang, siswa, penolakan, tunggu }
                         >
                             Muat ulang
                         </button>
-                        {tunggu.gerbang && tunggu.peserta_id !== null && (
-                            <Link
-                                href={`/siswa/ujian/${tunggu.peserta_id}/gerbang`}
-                                className="rounded-wf border border-accent bg-accent px-3 py-1.5 text-[11px] font-medium text-on-accent"
-                            >
-                                Buka gerbang ujian
-                            </Link>
-                        )}
+                        {/* TIDAK ada tautan "Buka gerbang ujian" di sini, dan
+                            itu hasil pemeriksaan, bukan kelalaian.
+
+                            Laman tunggu hanya dirender selama presensinya
+                            masih `pending` - di luar itu `periksa()` menjawab
+                            "sudah tercatat". Dan `pending` tidak pernah lolos
+                            `StatusPresensi::membukaGerbang()`, sehingga baris
+                            "Gerbang ujian" di atas SELALU berbunyi "tertutup".
+
+                            Tautan ke gerbang karena itu tidak akan pernah
+                            tampil. Yang benar-benar membawa siswa ke kolom
+                            token adalah server: begitu pengawas mengonfirmasi,
+                            `HadirSiswaController::tampilkan` mengalihkannya ke
+                            gerbang - lihat keadaan "sudah tercatat" di sana. */}
                     </div>
                 </>
             )}
