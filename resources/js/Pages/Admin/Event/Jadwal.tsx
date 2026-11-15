@@ -8,7 +8,6 @@ import {
     Inbox,
     Kotak,
     Peringatan,
-    Tabel,
     Tombol,
     kelasInput,
     nadaStatus,
@@ -118,19 +117,49 @@ export default function EventJadwal({
     const [panelSesi, setPanelSesi] = useState(false);
     const [pesanUjian, setPesanUjian] = useState<string | null>(null);
 
-    // Ujian yang sedang diubah. Sama polanya dengan `sesiDiubah`: SALINAN
-    // barisnya, bukan idnya, supaya panelnya tetap utuh walau tabelnya dimuat
-    // ulang di belakang.
     const [ujianDiubah, setUjianDiubah] = useState<Ujian | null>(null);
-
-    // Baris yang sedang diubah. Disimpan sebagai SALINAN baris (bukan id),
-    // karena panel ubah memuat ulang seluruh nilai jendela dan ruang dari
-    // situ - dan salinan itu tetap utuh walau tabel dimuat ulang di belakang.
     const [sesiDiubah, setSesiDiubah] = useState<Baris | null>(null);
+
+    // Penyaring tabel. Sebelumnya tidak ada satu pun, sehingga event dengan
+    // enam ujian menampilkan seluruh sesinya sekaligus dan Admin menggulir
+    // untuk menemukan satu sesi. Ketiganya bekerja bersama.
+    const [saringUjian, setSaringUjian] = useState(0);
+    const [saringStatus, setSaringStatus] = useState('semua');
+    const [cari, setCari] = useState('');
+
+    // Sesi yang dibuka barisnya untuk melihat kenapa ia bentrok / dibatalkan.
+    // Satu id pada satu waktu: membuka semuanya sekaligus mengembalikan
+    // masalah yang justru ingin dihilangkan penyaring.
+    const [terbuka, setTerbuka] = useState<number | null>(null);
 
     const jalur = `/admin/events/${event.id}`;
 
     const barisBentrok = temuan.filter((t) => t.sesi_id !== null).length;
+
+    const tersaring = baris.filter((b) => {
+        if (saringUjian !== 0 && b.ujian_id !== saringUjian) {
+            return false;
+        }
+        if (saringStatus !== 'semua' && b.status !== saringStatus) {
+            return false;
+        }
+        if (cari.trim() !== '') {
+            const q = cari.trim().toLowerCase();
+            const teks = `${b.label} ${b.ujian} ${b.ruang_kode.join(' ')}`.toLowerCase();
+            if (!teks.includes(q)) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    const grup = kelompokkan(tersaring);
+    const sesiTampil = tersaring.length;
+
+    // Status sesi yang tersedia untuk mengisi pilihan penyaring - diambil dari
+    // data, bukan didaftar tetap: pilihan yang tidak pernah muncul di tabel
+    // adalah pilihan yang menuntun ke layar kosong.
+    const statusAda = [...new Set(baris.map((b) => b.status))].sort();
 
     return (
         <AdminLayout
@@ -138,9 +167,6 @@ export default function EventJadwal({
             breadcrumb={`/admin/events · ${event.kode} · Jadwal & sesi`}
             aksi={
                 <>
-                    {/* Pemilih event, seperti plate 16. Ia memuat ulang laman
-                        event yang sedang dibuka; yang dipilih adalah event,
-                        bukan daftar sesi. */}
                     <PemilihEvent event={event} />
 
                     <Tombol
@@ -150,21 +176,8 @@ export default function EventJadwal({
                         Deteksi konflik
                     </Tombol>
 
-                    {/* Ujian perlu tempat lahir, dan plate ini yang punya:
-                        tabelnya mengelompokkan per ujian, dan sesi tidak bisa
-                        ada sebelum ujiannya ada. Tombolnya sekunder karena
-                        plate 16 sendiri menandai "Tambah sesi" sebagai aksi
-                        utama - yang ditambahkan di sini adalah pintu masuk
-                        ujiannya, bukan pengganti aksi platnya. */}
                     <Tombol onClick={() => setPanelUjian(true)}>Tambah ujian</Tombol>
 
-                    {/* Nada `pri` diambil dari platenya sendiri: pada
-                        `wireframe-admin.html:903` tombol ini berbunyi
-                        `<span class="btn pri">Tambah sesi</span>`, sementara
-                        "Deteksi konflik" di sebelahnya hanya `btn` biasa.
-                        Menjadwalkan sesi memang pekerjaan utamanya; memeriksa
-                        konflik adalah pemeriksaan yang menemani, bukan
-                        tindakan yang menghasilkan sesuatu. */}
                     <Tombol
                         nada="pri"
                         disabled={ujian.length === 0}
@@ -182,7 +195,12 @@ export default function EventJadwal({
         >
             <Head title={`Jadwal & sesi · ${event.nama}`} />
 
-            <div className="mb-3 grid gap-3 sm:grid-cols-4">
+            {/* ------------------------------------------------ ringkasan */}
+            {/* Empat angka tetap, tetapi lebih rapat: satu baris tipis, bukan
+                empat kartu setinggi 100px. Angka yang selalu nol (konflik,
+                belum ditempatkan) tetap tampil - nol yang berwarna hijau
+                adalah jawaban "jadwal ini aman", dan itu justru yang dicari. */}
+            <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <KPI label="Ujian" nilai={angka.ujian} />
                 <KPI label="Sesi" nilai={angka.sesi} />
                 <KPI
@@ -197,82 +215,15 @@ export default function EventJadwal({
                 />
             </div>
 
-            {/* Kotak "Tambah ujian" hanya muncul saat diminta: plate 16 tidak
-                punya panel itu, dan menampilkan form penuh §9.2 di laman
-                jadwal sepanjang waktu akan mengubur tabelnya. */}
-            {panelUjian && (
-                <div className="mb-4">
-                    <FormUjian
-                        jalur={jalur}
-                        mapel={mapel}
-                        kelas={kelas}
-                        jenisEvent={event.jenis}
-                        padaTutup={() => setPanelUjian(false)}
-                        padaGalat={setPesanUjian}
-                    />
-                </div>
-            )}
+            {/* Hasil validasi dipindah ke ATAS tabel sebagai satu strip tipis.
+                Dulu ia kotak tersendiri di bawah, bersebelahan dengan daftar
+                ujian - dan pada event satu-ujian keduanya menjadi dua kotak
+                besar yang isinya tiga baris. Strip di sini menjawab
+                "apakah jadwal ini aman" sebelum Admin membaca tabelnya. */}
+            <ValidasiStrip validasi={validasi} adaTemuan={temuan.length > 0} />
 
-            {/* Panel ubah ujian. Satu kotak di ATAS tabel, sama seperti panel
-                tambah dan panel sesi - bukan modal per baris. */}
-            {ujianDiubah && (
-                <div className="mb-4">
-                    <FormUjian
-                        // `key` bukan hiasan: berpindah dari satu ujian ke ujian
-                        // lain tanpa menutup panelnya memakai ULANG state form
-                        // yang sama, sehingga yang tampil adalah nilai ujian
-                        // yang pertama - dan menyimpannya menimpa ujian kedua
-                        // dengan isi ujian pertama.
-                        key={ujianDiubah.id}
-                        jalur={jalur}
-                        ujianAwal={ujianDiubah}
-                        mapel={mapel}
-                        kelas={kelas}
-                        jenisEvent={event.jenis}
-                        padaTutup={() => setUjianDiubah(null)}
-                        padaGalat={setPesanUjian}
-                    />
-                </div>
-            )}
-
-            {panelSesi && (
-                <div className="mb-4">
-                    <FormSesi
-                        jalur={jalur}
-                        ujian={ujian}
-                        ruang={ruang}
-                        padaTutup={() => setPanelSesi(false)}
-                    />
-                </div>
-            )}
-
-            {/* Panel ubah sesi. Satu kotak di ATAS tabel, sama seperti panel
-                tambah - bukan modal per baris: jendela tiga waktu dan daftar
-                ruang butuh lebar, dan kotak di dalam tabel akan terjepit.
-                Galatnya tampil di dalam panel itu sendiri. */}
-            {sesiDiubah && (
-                <div className="mb-4">
-                    <FormSesi
-                        jalur={jalur}
-                        ujian={ujian}
-                        ruang={ruang}
-                        sesiAwal={sesiDiubah}
-                        padaTutup={() => setSesiDiubah(null)}
-                    />
-                </div>
-            )}
-
-            {pesanUjian && (
-                <div className="mb-4">
-                    <Peringatan>{pesanUjian}</Peringatan>
-                </div>
-            )}
-
-            {/* Kalimat bentrok ditulis di atas tabel, seperti plate 16.
-                Ia menyebut sesi dan ruangnya, bukan sekadar jumlah - angka
-                "3 konflik" tidak memberi tahu Admin apa yang harus digeser. */}
             {temuan.length > 0 && (
-                <div className="mb-3 space-y-2">
+                <div className="mt-2 space-y-2">
                     {temuan.slice(0, 4).map((t, i) => (
                         <div
                             key={`${t.jenis}-${i}`}
@@ -289,175 +240,249 @@ export default function EventJadwal({
                 </div>
             )}
 
-            <Tabel<Baris>
-                hal={{ data: baris, total: baris.length }}
-                kunci={(b) => b.id}
-                kosong="Belum ada sesi. Buat ujian, lalu tambahkan sesinya."
-                kolom={[
-                    {
-                        judul: 'Sesi',
-                        kelas: 'w-20',
-                        render: (b) => (
-                            <span className="font-mono text-xs font-medium text-ink">{b.label}</span>
-                        ),
-                    },
-                    {
-                        judul: 'Tanggal',
-                        kelas: 'w-24',
-                        render: (b) => (
-                            <span className="font-mono text-xs text-ink-2">{b.tanggal ?? '—'}</span>
-                        ),
-                    },
-                    {
-                        judul: 'Jam',
-                        kelas: 'w-32',
-                        render: (b) => (
-                            <span className="font-mono text-xs text-ink-2">
-                                {b.jam ?? '—'}
-                                {b.selesai && <span className="text-ink-3">–{b.selesai}</span>}
-                            </span>
-                        ),
-                    },
-                    {
-                        judul: 'Ujian',
-                        render: (b) => <span className="text-sm text-ink">{b.ujian}</span>,
-                    },
-                    {
-                        judul: 'Ruang',
-                        kelas: 'w-40',
-                        render: (b) =>
-                            b.bentrok.length > 0 ? (
-                                // Baris bentrok ditandai DI SINI, bukan hanya di
-                                // panel bawah - anotasi plate 16 menuntutnya,
-                                // dan dialah satu-satunya tanda yang menempel
-                                // pada baris yang harus diperbaiki.
-                                <span className="flex items-center gap-2">
-                                    <Chip nada="bad">bentrok</Chip>
-                                    <span className="font-mono text-[11px] text-ink-3">
-                                        {b.ruang} ruang
-                                    </span>
-                                </span>
-                            ) : (
-                                <span className="font-mono text-xs text-ink-2">
-                                    {b.ruang_kode.length > 0 ? b.ruang_kode.join(', ') : '—'}
-                                </span>
-                            ),
-                    },
-                    {
-                        judul: 'Peserta',
-                        kelas: 'w-20',
-                        render: (b) => (
-                            <span className="font-mono text-xs text-ink-2">{b.peserta}</span>
-                        ),
-                    },
-                    {
-                        judul: 'Status',
-                        kelas: 'w-28',
-                        render: (b) => (
-                            <span className="flex items-center gap-1.5">
-                                {/* Alasannya dibawa di `title`, bukan sebagai
-                                    baris sendiri: kolom ini 7rem, dan satu
-                                    kalimat pembatalan akan mendorong Status
-                                    sesi lain keluar dari kolomnya. Yang
-                                    selalu terbaca adalah chip-nya; yang
-                                    ingin tahu mengapa mengarahkan penunjuk. */}
-                                <span
-                                    title={
-                                        b.alasan_batal ??
-                                        (b.status === 'batal' ? 'Dibatalkan tanpa keterangan.' : undefined)
-                                    }
-                                >
-                                    <Chip nada={nadaStatus(b.status)}>{b.status_label}</Chip>
-                                </span>
-                            </span>
-                        ),
-                    },
-                    {
-                        judul: '',
-                        kelas: 'w-72',
-                        render: (b) => <AksiSesi jalur={jalur} baris={b} padaUbah={setSesiDiubah} />,
-                    },
-                ]}
-            />
-
-            {/* Temuan yang menempel pada baris, ditulis di bawah tabel. Ia
-                mengulang pesan yang sudah ada di panel validasi dengan sengaja:
-                panel menyebut JENIS temuan, yang ini menyebut barisnya. */}
-            {barisBentrok > 0 && (
-                <div className="mt-2 space-y-1">
-                    {baris
-                        .filter((b) => b.bentrok.length > 0)
-                        .map((b) => (
-                            <p key={b.id} className="text-xs text-bad">
-                                <span className="font-mono">{b.label}</span>{' '}
-                                {b.bentrok[0].pesan}
-                            </p>
-                        ))}
+            {/* -------------------------------------------------- panel form */}
+            {panelUjian && (
+                <div className="mt-4">
+                    <FormUjian
+                        jalur={jalur}
+                        mapel={mapel}
+                        kelas={kelas}
+                        jenisEvent={event.jenis}
+                        padaTutup={() => setPanelUjian(false)}
+                        padaGalat={setPesanUjian}
+                    />
                 </div>
             )}
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <Kotak judul="Validasi jadwal">
-                    <div className="space-y-2">
-                        {validasi.map((v) => (
-                            <div key={v.kunci} className="flex items-start gap-2 text-xs">
-                                <span
-                                    className={
-                                        'mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-wf border text-[10px] ' +
-                                        (v.lulus
-                                            ? 'border-ok/40 bg-ok-bg text-ok'
-                                            : 'border-line bg-surface-2 text-ink-3')
-                                    }
-                                >
-                                    {v.lulus ? '✓' : ''}
-                                </span>
-                                <span className={v.lulus ? 'text-ink-2' : 'text-ink'}>
-                                    {v.label}
-                                    {!v.lulus && v.jumlah > 0 && (
-                                        <span className="ml-1 text-bad">({v.jumlah})</span>
-                                    )}
-                                </span>
-                            </div>
+            {ujianDiubah && (
+                <div className="mt-4">
+                    <FormUjian
+                        key={ujianDiubah.id}
+                        jalur={jalur}
+                        ujianAwal={ujianDiubah}
+                        mapel={mapel}
+                        kelas={kelas}
+                        jenisEvent={event.jenis}
+                        padaTutup={() => setUjianDiubah(null)}
+                        padaGalat={setPesanUjian}
+                    />
+                </div>
+            )}
+
+            {panelSesi && (
+                <div className="mt-4">
+                    <FormSesi
+                        jalur={jalur}
+                        ujian={ujian}
+                        ruang={ruang}
+                        padaTutup={() => setPanelSesi(false)}
+                    />
+                </div>
+            )}
+
+            {sesiDiubah && (
+                <div className="mt-4">
+                    <FormSesi
+                        jalur={jalur}
+                        ujian={ujian}
+                        ruang={ruang}
+                        sesiAwal={sesiDiubah}
+                        padaTutup={() => setSesiDiubah(null)}
+                    />
+                </div>
+            )}
+
+            {pesanUjian && (
+                <div className="mt-4">
+                    <Peringatan>{pesanUjian}</Peringatan>
+                </div>
+            )}
+
+            {/* ------------------------------------------------- penyaring */}
+            {/* Satu baris, bukan tiga kontrol bertumpuk. Muncul hanya bila ada
+                sesuatu untuk disaring - pada event satu-sesi, penyaring adalah
+                tiga kontrol yang tidak menyaring apa pun. */}
+            {baris.length > 1 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-wf border border-line bg-surface px-3 py-2">
+                    <input
+                        value={cari}
+                        onChange={(e) => setCari(e.target.value)}
+                        placeholder="Cari sesi, ujian, atau ruang"
+                        className="min-w-0 flex-1 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink outline-none placeholder:text-ink-3 focus:border-accent focus:ring-2 focus:ring-accent/15 sm:max-w-xs"
+                    />
+
+                    <select
+                        value={saringUjian}
+                        onChange={(e) => setSaringUjian(Number(e.target.value))}
+                        className="rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink outline-none focus:border-accent"
+                        aria-label="Saring menurut ujian"
+                    >
+                        <option value={0}>Semua ujian</option>
+                        {ujian.map((u) => (
+                            <option key={u.id} value={u.id}>
+                                {u.kode} · {u.mapel ?? u.judul}
+                            </option>
                         ))}
-                    </div>
+                    </select>
 
-                    <p className="mt-3 border-t border-line pt-3 text-[11px] leading-relaxed text-ink-3">
-                        Pemeriksaan ini berjalan setiap laman dimuat. <em>Deteksi konflik</em>{' '}
-                        menyatakannya dalam kalimat supaya Anda yang baru kembali ke laman ini
-                        tahu angkanya masih yang terakhir.
+                    <select
+                        value={saringStatus}
+                        onChange={(e) => setSaringStatus(e.target.value)}
+                        className="rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink outline-none focus:border-accent"
+                        aria-label="Saring menurut status"
+                    >
+                        <option value="semua">Semua status</option>
+                        {statusAda.map((s) => (
+                            <option key={s} value={s}>
+                                {labelStatus(s)}
+                            </option>
+                        ))}
+                    </select>
+
+                    {(cari !== '' || saringUjian !== 0 || saringStatus !== 'semua') && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCari('');
+                                setSaringUjian(0);
+                                setSaringStatus('semua');
+                            }}
+                            className="text-xs text-ink-3 underline-offset-2 hover:text-ink hover:underline"
+                        >
+                            Bersihkan
+                        </button>
+                    )}
+
+                    <span className="ml-auto text-[11px] text-ink-3">
+                        {sesiTampil === baris.length
+                            ? `${baris.length} sesi`
+                            : `${sesiTampil} dari ${baris.length} sesi`}
+                    </span>
+                </div>
+            )}
+
+            {/* ---------------------------------------------------- tabel */}
+            <div className="mt-3 overflow-hidden rounded-wf border border-line bg-surface">
+                {baris.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-sm text-ink-3">
+                        Belum ada sesi. Buat ujian, lalu tambahkan sesinya.
                     </p>
-                </Kotak>
+                ) : grup.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-sm text-ink-3">
+                        Tidak ada sesi yang cocok dengan penyaring ini.
+                    </p>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[44rem] text-sm">
+                            <thead>
+                                <tr className="border-b border-line bg-surface-2/50 text-left">
+                                    {['Ujian', 'Ruang', 'Peserta', 'Status', ''].map((h, i) => (
+                                        <th
+                                            key={h || i}
+                                            className={
+                                                'px-3 py-2 text-[11px] font-medium text-ink-3 ' +
+                                                ['', 'w-32', 'w-20', 'w-28', 'w-16'][i]
+                                            }
+                                        >
+                                            {h}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            {grup.map((g) => (
+                                <tbody key={g.kunci}>
+                                    {/* Kepala kelompok = SATU slot waktu. Inilah
+                                        yang menghilangkan pengulangan: tanggal
+                                        dan jam yang sama dulu ditulis ulang di
+                                        setiap baris, padahal ia milik waktunya,
+                                        bukan milik sesinya. */}
+                                    <tr className="border-b border-line bg-surface-2/30">
+                                        <td colSpan={5} className="px-3 py-1.5">
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                {g.label && (
+                                                    <span className="text-xs font-medium text-ink">
+                                                        {g.label}
+                                                    </span>
+                                                )}
+                                                <span className="font-mono text-xs font-medium text-ink">
+                                                    {g.tanggal ?? '—'}
+                                                </span>
+                                                <span className="font-mono text-xs text-ink-2">
+                                                    {g.jam ?? '—'}
+                                                    {g.selesai && (
+                                                        <span className="text-ink-3"> – {g.selesai}</span>
+                                                    )}
+                                                </span>
+                                                <span className="text-[11px] text-ink-3">
+                                                    {g.sesi.length} sesi · {g.peserta} peserta
+                                                </span>
+                                                {g.konflik > 0 && (
+                                                    <Chip nada="bad">{g.konflik} bentrok</Chip>
+                                                )}
+                                                {!g.final && <Chip nada="mute">belum lengkap</Chip>}
+                                            </div>
+                                        </td>
+                                    </tr>
 
-                <Kotak judul="Ujian di event ini">
+                                    {g.sesi.map((b) => (
+                                        <BarisSesi
+                                            key={b.id}
+                                            jalur={jalur}
+                                            baris={b}
+                                            terbuka={terbuka === b.id}
+                                            padaBuka={() =>
+                                                setTerbuka(terbuka === b.id ? null : b.id)
+                                            }
+                                            padaUbah={setSesiDiubah}
+                                        />
+                                    ))}
+                                </tbody>
+                            ))}
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* Temuan yang menempel pada baris dibaca dari barisnya sendiri
+                (tombol di kolom paling kanan membuka keterangannya). Yang di
+                sini hanya ringkasannya, supaya jumlahnya tidak hilang. */}
+            {barisBentrok > 0 && (
+                <p className="mt-2 text-xs text-ink-3">
+                    {barisBentrok} sesi bertanda <span className="text-bad">bentrok</span> &mdash;
+                    tekan <em>Rincian</em> pada barisnya untuk melihat penyebabnya.
+                </p>
+            )}
+
+            {/* -------------------------------------------------- kelola ujian */}
+            {/* Dulu panel "Ujian di event ini" berdiri di kolom kanan
+                bersebelahan dengan validasi. Isinya kini ikut kelompok waktu
+                di tabel, jadi satu-satunya yang tersisa di sini adalah
+                PENGELOLAAN ujiannya - dan itu jarang dipakai, sehingga
+                dilipat. */}
+            <details className="group mt-4 rounded-wf border border-line bg-surface">
+                <summary className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-xs text-ink-2 hover:text-ink">
+                    <span className="font-medium">Kelola ujian</span>
+                    <span className="text-ink-3">({ujian.length})</span>
+                    <span className="ml-auto text-[11px] text-ink-3 group-open:hidden">
+                        judul, durasi, kelas sasaran
+                    </span>
+                </summary>
+
+                <div className="border-t border-line">
                     {ujian.length === 0 ? (
-                        <p className="text-xs text-ink-3">
+                        <p className="px-3 py-3 text-xs text-ink-3">
                             Belum ada ujian. Tekan <em>Tambah ujian</em> untuk membuatnya.
                         </p>
                     ) : (
                         <ul className="divide-y divide-line">
                             {ujian.map((u) => (
-                                <li key={u.id} className="flex items-center gap-3 py-2 text-sm">
+                                <li key={u.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
                                     <span className="font-mono text-xs text-ink-3">{u.kode}</span>
                                     <span className="text-ink">{u.mapel ?? u.judul}</span>
                                     <span className="ml-auto font-mono text-xs text-ink-3">
                                         {u.durasi} mnt
                                     </span>
-                                    <span className="font-mono text-xs text-ink-3">
-                                        {u.sesi} sesi
-                                    </span>
-                                    {/* Tidak ada chip status ujian di sini.
-                                        Kolomnya dijatuhkan 2026-11-07: satu
-                                        penulis, nol pembaca logika, sehingga
-                                        chipnya mustahil berbunyi selain
-                                        "draft". Status yang berarti ada di
-                                        tabel sesi di bawah, per sesi. */}
-
-                                    {/* Ujian lahir di laman ini, jadi ia juga
-                                        harus bisa diperbaiki di laman ini.
-                                        Tanpa tombol ini, salah ketik durasi
-                                        hanya bisa ditambal dengan menghapus
-                                        ujiannya - dan menghapusnya berarti
-                                        kehilangan sesinya. */}
+                                    <span className="font-mono text-xs text-ink-3">{u.sesi} sesi</span>
                                     <Tombol
                                         nada="sek"
                                         title="Ubah judul, durasi, kelas sasaran, dan perilaku ujian"
@@ -465,12 +490,6 @@ export default function EventJadwal({
                                     >
                                         Ubah
                                     </Tombol>
-                                    {/* Ujian lahir di laman ini, jadi salah
-                                        pilih mapel juga harus bisa dibatalkan
-                                        di laman ini. Sesi yang sudah berjalan
-                                        menolak di server dan pesannya muncul
-                                        sebagai galat - lihat
-                                        `hapusUjian()` di controller. */}
                                     <Tombol
                                         nada="bahaya"
                                         title="Hapus ujian beserta jadwalnya"
@@ -497,8 +516,8 @@ export default function EventJadwal({
                             ))}
                         </ul>
                     )}
-                </Kotak>
-            </div>
+                </div>
+            </details>
 
             <div className="mt-3">
                 <Inbox>
@@ -510,6 +529,419 @@ export default function EventJadwal({
                 </Inbox>
             </div>
         </AdminLayout>
+    );
+}
+
+/* ------------------------------------------------------- Kelompokkan per waktu */
+
+type Grup = {
+    kunci: string;
+    /** Label sesi yang berlaku di slot ini, mis. "Sesi 1". */
+    label: string | null;
+    tanggal: string | null;
+    jam: string | null;
+    selesai: string | null;
+    sesi: Baris[];
+    konflik: number;
+    peserta: number;
+    final: boolean;
+};
+
+/**
+ * Mengelompokkan sesi menurut slot waktunya.
+ *
+ * Urutan kelompok mengikuti urutan `baris` yang datang dari server - sudah
+ * diurutkan `access_opens_at` di sana. Mengurutkan ulang di sini berarti dua
+ * tempat yang harus sepakat soal urutan, dan yang di layar selalu yang
+ * terakhir ditulis.
+ *
+ * Label sesi ikut jadi kunci kelompok, bukan kolom tersendiri. Dalam satu slot
+ * waktu labelnya memang seragam; kalau sekolah menjadwalkan sesi berbeda di
+ * jam yang sama, keduanya berdiri sebagai kelompok terpisah dan labelnya
+ * terbaca di kepala masing-masing - lebih jelas daripada angka telanjang yang
+ * berulang di setiap baris.
+ */
+function kelompokkan(baris: Baris[]): Grup[] {
+    const peta = new Map<string, Grup>();
+
+    for (const b of baris) {
+        const kunci = `${b.tanggal ?? '—'}|${b.jam ?? '—'}|${b.label}`;
+        let g = peta.get(kunci);
+
+        if (!g) {
+            g = {
+                kunci,
+                label: b.label,
+                tanggal: b.tanggal,
+                jam: b.jam,
+                // Jam selesai terakhir pada slot ini, supaya rentangnya utuh
+                // ketika dua sesi di slot yang sama berakhir berbeda.
+                selesai: b.selesai,
+                sesi: [],
+                konflik: 0,
+                peserta: 0,
+                final: true,
+            };
+            peta.set(kunci, g);
+        }
+
+        g.sesi.push(b);
+        g.konflik += b.bentrok.length;
+        g.peserta += b.peserta;
+
+        if (b.selesai && (!g.selesai || b.selesai > g.selesai)) {
+            g.selesai = b.selesai;
+        }
+
+        // "Final" hanya bila SELURUH sesi di slot itu sudah selesai/batal -
+        // satu sesi yang masih Draft berarti jadwal slot ini belum lengkap.
+        if (b.status !== 'selesai' && b.status !== 'batal') {
+            g.final = false;
+        }
+    }
+
+    return [...peta.values()];
+}
+
+/* ------------------------------------------------------------- Satu baris sesi */
+
+function BarisSesi({
+    jalur,
+    baris,
+    terbuka,
+    padaBuka,
+    padaUbah,
+}: {
+    jalur: string;
+    baris: Baris;
+    terbuka: boolean;
+    padaBuka: () => void;
+    padaUbah: (baris: Baris) => void;
+}) {
+    // Sesi yang sudah Selesai atau Batal bersifat final: jendela dan ruangnya
+    // tidak bisa diubah lagi, karena peserta mungkin sudah mengerjakan.
+    const final = baris.status === 'selesai' || baris.status === 'batal';
+
+    return (
+        <>
+            <tr className="border-b border-line last:border-0 align-top">
+                <td className="px-3 py-2">
+                    <span className="text-sm text-ink">
+                        {baris.ujian.replace(/\s*·\s*semua kelas$/, '')}
+                    </span>
+                    {/·\s*semua kelas$/.test(baris.ujian) && (
+                        <span className="ml-1.5 text-[11px] text-ink-3">semua kelas</span>
+                    )}
+                </td>
+
+                <td className="px-3 py-2">
+                    {baris.bentrok.length > 0 ? (
+                        <span className="flex items-center gap-2">
+                            <Chip nada="bad">bentrok</Chip>
+                            <span className="font-mono text-[11px] text-ink-3">
+                                {baris.ruang} ruang
+                            </span>
+                        </span>
+                    ) : (
+                        <span className="font-mono text-xs text-ink-2">
+                            {baris.ruang_kode.length > 0 ? baris.ruang_kode.join(', ') : '—'}
+                        </span>
+                    )}
+                </td>
+
+                <td className="px-3 py-2">
+                    <span className="font-mono text-xs text-ink-2">{baris.peserta}</span>
+                </td>
+
+                <td className="px-3 py-2">
+                    <span
+                        title={
+                            baris.alasan_batal ??
+                            (baris.status === 'batal' ? 'Dibatalkan tanpa keterangan.' : undefined)
+                        }
+                    >
+                        <Chip nada={nadaStatus(baris.status)}>{baris.status_label}</Chip>
+                    </span>
+                </td>
+
+                {/* Satu tombol utama (langkah berikutnya) + satu menu. Dulu
+                    empat tombol sejajar selalu tampil; di event dua belas sesi
+                    itu empat puluh delapan tombol, dan yang paling sering
+                    dibutuhkan - "langkah berikutnya" - tenggelam di antaranya. */}
+                <td className="px-3 py-2">
+                    <div className="flex justify-end gap-1.5">
+                        <LangkahBerikut jalur={jalur} baris={baris} />
+                        <AksiLainnya
+                            jalur={jalur}
+                            baris={baris}
+                            final={final}
+                            terbuka={terbuka}
+                            padaBuka={padaBuka}
+                            padaUbah={padaUbah}
+                        />
+                    </div>
+                </td>
+            </tr>
+
+            {terbuka && (
+                <tr className="border-b border-line bg-surface-2/20 last:border-0">
+                    <td colSpan={5} className="px-3 py-2">
+                        <div className="space-y-1 text-xs leading-relaxed">
+                            {baris.bentrok.length > 0 ? (
+                                baris.bentrok.map((t, i) => (
+                                    <p key={i} className="text-bad">
+                                        <span className="font-medium">{t.jenis}</span> {t.pesan}
+                                    </p>
+                                ))
+                            ) : (
+                                <p className="text-ok">Tidak ada konflik pada sesi ini.</p>
+                            )}
+
+                            {baris.alasan_batal && (
+                                <p className="text-ink-2">
+                                    <span className="font-medium">Dibatalkan:</span>{' '}
+                                    {baris.alasan_batal}
+                                    {baris.dibatalkan_pada && (
+                                        <span className="text-ink-3">
+                                            {' '}
+                                            · {baris.dibatalkan_pada.slice(0, 16).replace('T', ' ')}
+                                        </span>
+                                    )}
+                                </p>
+                            )}
+
+                            <p className="text-ink-3">
+                                Ruang:{' '}
+                                {baris.ruang_kode.length > 0 ? baris.ruang_kode.join(', ') : 'belum ada'}
+                                {' · '}Peserta: {baris.peserta}
+                            </p>
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </>
+    );
+}
+
+/**
+ * Tombol "langkah berikutnya" sesi - satu saja, dan yang benar untuk statusnya.
+ *
+ * Graf StatusSesi memaksa urutannya (Draft -> Siap -> Berjalan -> Selesai), dan
+ * menampilkan tiga tombol sekaligus berarti dua di antaranya selalu mati.
+ */
+function LangkahBerikut({ jalur, baris }: { jalur: string; baris: Baris }) {
+    const kirim = (aksi: string) =>
+        router.post(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/${aksi}`, {}, { preserveScroll: true });
+
+    if (baris.status === 'draft') {
+        // Nada `sek`, bukan `pri`. Ini langkah yang WAJIB, tetapi pada jadwal
+        // dua belas sesi ia muncul dua belas kali - dan dua belas tombol biru
+        // pekat dalam satu layar berhenti menandai apa pun. Yang menandai
+        // prioritas di laman ini adalah kolom Status: mata mencari chip Draft.
+        return (
+            <Tombol
+                nada="sek"
+                title="Tandai jendela sesi sudah final, supaya sesi bisa dibuka."
+                onClick={() => kirim('siapkan')}
+            >
+                Siapkan
+            </Tombol>
+        );
+    }
+
+    if (baris.status === 'siap') {
+        return (
+            <Tombol nada="pri" title="Buka sesi supaya siswa bisa masuk." onClick={() => kirim('mulai')}>
+                Buka
+            </Tombol>
+        );
+    }
+
+    if (baris.status === 'berjalan') {
+        return (
+            <Tombol nada="sek" title="Tutup sesi: pengerjaan dihentikan." onClick={() => kirim('tutup')}>
+                Tutup
+            </Tombol>
+        );
+    }
+
+    // Selesai / batal: tidak ada langkah berikutnya. Yang tersisa hanya
+    // keterangan, dan itu ada di menu.
+    return null;
+}
+
+/**
+ * Menu tindakan yang jarang dipakai: Ubah, Batalkan, Hapus, Rincian.
+ *
+ * Memakai <details> supaya tertutup sendiri dan tidak menuntut JavaScript
+ * penutup - klik di luar tidak menutupnya, tetapi Escape dan memilih satu
+ * tindakan menutupnya, dan itu cukup untuk menu sel baris.
+ */
+function AksiLainnya({
+    jalur,
+    baris,
+    final,
+    terbuka,
+    padaBuka,
+    padaUbah,
+}: {
+    jalur: string;
+    baris: Baris;
+    final: boolean;
+    terbuka: boolean;
+    padaBuka: () => void;
+    padaUbah: (baris: Baris) => void;
+}) {
+    return (
+        <details className="relative">
+            <summary
+                className="grid size-8 cursor-pointer place-items-center rounded-wf border border-line text-xs text-ink-2 hover:bg-surface-2 hover:text-ink"
+                title="Tindakan lain"
+                aria-label="Tindakan lain"
+            >
+                ⋯
+            </summary>
+
+            <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-wf border border-line bg-surface shadow-wf">
+                <button
+                    type="button"
+                    onClick={() => {
+                        padaBuka();
+                    }}
+                    className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink"
+                >
+                    {terbuka ? 'Tutup rincian' : 'Rincian'}
+                </button>
+
+                <button
+                    type="button"
+                    disabled={final}
+                    title={final ? 'Sesi yang sudah selesai atau batal tidak bisa diubah lagi.' : undefined}
+                    onClick={() => padaUbah(baris)}
+                    className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink-3/50"
+                >
+                    Ubah jendela &amp; ruang
+                </button>
+
+                {!final && (
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            const alasan = await tanyaTeks({
+                                judul: `Batalkan ${baris.label}?`,
+                                pesan: 'Token sesi ini dicabut, dan sesi tidak dihitung lagi di jadwal.',
+                                label: 'Alasan pembatalan (boleh dikosongkan)',
+                                petunjuk: 'Alasan ini dibaca Admin berikutnya yang menyusun ulang jadwal.',
+                                wajib: false,
+                                maksimal: 200,
+                                labelYa: 'Batalkan sesi',
+                                labelTidak: 'Jangan',
+                            });
+
+                            if (alasan === null) {
+                                return;
+                            }
+
+                            router.post(
+                                `${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/batal`,
+                                { alasan },
+                                { preserveScroll: true },
+                            );
+                        }}
+                        className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink"
+                    >
+                        Batalkan sesi
+                    </button>
+                )}
+
+                <button
+                    type="button"
+                    onClick={async () => {
+                        const setuju = await konfirmasi({
+                            judul: `Hapus ${baris.label}?`,
+                            pesan: 'Pesertanya dilepas dari ruang ini dan harus ditempatkan ulang. Berita acara yang sudah dikirim atau insiden yang tercatat akan menolak penghapusan.',
+                            labelYa: 'Hapus sesi',
+                            nada: 'bahaya',
+                        });
+
+                        if (!setuju) {
+                            return;
+                        }
+
+                        router.delete(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}`, {
+                            preserveScroll: true,
+                        });
+                    }}
+                    className="block w-full border-t border-line px-3 py-2 text-left text-xs text-bad hover:bg-bad-bg"
+                >
+                    Hapus sesi
+                </button>
+            </div>
+        </details>
+    );
+}
+
+/* ------------------------------------------------------------- Strip validasi */
+
+function ValidasiStrip({
+    validasi,
+    adaTemuan,
+}: {
+    validasi: Props['validasi'];
+    adaTemuan: boolean;
+}) {
+    const gagal = validasi.filter((v) => !v.lulus).length;
+
+    return (
+        <div
+            className={
+                'rounded-wf border px-3 py-2 ' +
+                (gagal > 0 || adaTemuan
+                    ? 'border-warn/40 bg-warn-bg'
+                    : 'border-ok/30 bg-ok-bg')
+            }
+        >
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                <span
+                    className={
+                        'font-medium ' + (gagal > 0 || adaTemuan ? 'text-warn' : 'text-ok')
+                    }
+                >
+                    {gagal > 0 || adaTemuan ? 'Perlu diperiksa' : 'Jadwal aman'}
+                </span>
+
+                {validasi.map((v) => (
+                    <span key={v.kunci} className="flex items-center gap-1.5">
+                        <span
+                            className={
+                                'inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] ' +
+                                (v.lulus ? 'bg-ok text-on-accent' : 'bg-warn/20 text-warn')
+                            }
+                        >
+                            {v.lulus ? '✓' : '!'}
+                        </span>
+                        <span className={v.lulus ? 'text-ink-2' : 'text-ink'}>
+                            {v.label}
+                            {!v.lulus && v.jumlah > 0 && (
+                                <span className="ml-1 font-medium text-bad">({v.jumlah})</span>
+                            )}
+                        </span>
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function labelStatus(status: string): string {
+    return (
+        {
+            draft: 'Draft',
+            siap: 'Siap',
+            berjalan: 'Berjalan',
+            selesai: 'Selesai',
+            batal: 'Batal',
+        }[status] ?? status
     );
 }
 
@@ -1011,140 +1443,6 @@ function FormSesi({
     );
 }
 
-/* ---------------------------------------------------------------- Aksi baris */
-
-function AksiSesi({
-    jalur,
-    baris,
-    padaUbah,
-}: {
-    jalur: string;
-    baris: Baris;
-    padaUbah: (baris: Baris) => void;
-}) {
-    const kirim = (aksi: string) =>
-        router.post(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/${aksi}`, {}, { preserveScroll: true });
-
-    // Sesi yang sudah Selesai atau Batal bersifat final (StatusSesi): jendela
-    // dan ruangnya tidak bisa diubah lagi, karena peserta mungkin sudah
-    // mengerjakan. Menawarkan "Ubah" yang pasti ditolak lebih buruk daripada
-    // tombol yang mati beserta alasannya.
-    const final = baris.status === 'selesai' || baris.status === 'batal';
-
-    return (
-        <span className="flex justify-end gap-1.5">
-            <Tombol
-                nada="sek"
-                disabled={final}
-                title={
-                    final
-                        ? 'Sesi yang sudah selesai atau batal tidak bisa diubah lagi.'
-                        : 'Ubah jendela waktu dan ruang sesi'
-                }
-                onClick={() => padaUbah(baris)}
-            >
-                Ubah
-            </Tombol>
-
-            {/* Siapkan HANYA muncul pada sesi Draft, dan itu bukan sekadar
-                penghematan tempat: graf StatusSesi menolak Siap dari status
-                lain, jadi tombol pada sesi Siap/Berjalan/Selesai pasti gagal.
-                Langkah ini wajib - tanpanya "Buka" selalu ditolak dengan
-                "berstatus Draft dan tidak bisa dibuka". */}
-            {baris.status === 'draft' && (
-                <Tombol
-                    nada="sek"
-                    title="Tandai jendela sesi sudah final, supaya sesi bisa dibuka."
-                    onClick={() => kirim('siapkan')}
-                >
-                    Siapkan
-                </Tombol>
-            )}
-
-            {baris.status === 'berjalan' ? (
-                <Tombol nada="sek" onClick={() => kirim('tutup')}>
-                    Tutup
-                </Tombol>
-            ) : (
-                <Tombol
-                    nada="sek"
-                    disabled={final || baris.status === 'draft'}
-                    title={
-                        baris.status === 'selesai'
-                            ? 'Sesi ini sudah ditutup.'
-                            : baris.status === 'draft'
-                              ? 'Siapkan dulu sesinya. Graf status menolak Draft langsung ke Berjalan.'
-                              : 'Buka sesi supaya siswa bisa masuk.'
-                    }
-                    onClick={() => kirim('mulai')}
-                >
-                    Buka
-                </Tombol>
-            )}
-
-            {/* Batalkan - dan ia HANYA muncul selama sesinya belum final.
-                Alasannya ditanyakan lebih dulu dan dikirim bersama
-                permintaannya: baris "batal" tanpa keterangan membuat Admin
-                berikutnya menyusun ulang jadwal yang sudah sengaja
-                dibatalkan. Batal pada dialog berarti tidak ada permintaan
-                sama sekali - pola yang sama dengan buka kunci di papan
-                monitoring. */}
-            {!final && (
-                <Tombol
-                    nada="bahaya"
-                    title="Batalkan sesi: tokennya dicabut, dan sesi ini tidak dihitung lagi di jadwal."
-                    onClick={async () => {
-                        const alasan = await tanyaTeks({
-                            judul: `Batalkan ${baris.label}?`,
-                            pesan: 'Token sesi ini dicabut, dan sesi tidak dihitung lagi di jadwal.',
-                            label: 'Alasan pembatalan (boleh dikosongkan)',
-                            petunjuk: 'Alasan ini dibaca Admin berikutnya yang menyusun ulang jadwal.',
-                            wajib: false,
-                            maksimal: 200,
-                            labelYa: 'Batalkan sesi',
-                            labelTidak: 'Jangan',
-                        });
-
-                        if (alasan === null) {
-                            return;
-                        }
-
-                        router.post(
-                            `${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/batal`,
-                            { alasan },
-                            { preserveScroll: true },
-                        );
-                    }}
-                >
-                    Batalkan
-                </Tombol>
-            )}
-
-            <Tombol
-                nada="bahaya"
-                onClick={async () => {
-                    const setuju = await konfirmasi({
-                        judul: `Hapus ${baris.label}?`,
-                        pesan: 'Pesertanya dilepas dari ruang ini dan harus ditempatkan ulang. Berita acara yang sudah dikirim atau insiden yang tercatat akan menolak penghapusan.',
-                        labelYa: 'Hapus sesi',
-                        nada: 'bahaya',
-                    });
-
-                    if (!setuju) {
-                        return;
-                    }
-
-                    router.delete(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}`, {
-                        preserveScroll: true,
-                    });
-                }}
-            >
-                Hapus
-            </Tombol>
-        </span>
-    );
-}
-
 function KPI({
     label,
     nilai,
@@ -1164,9 +1462,9 @@ function KPI({
                 : 'text-ink';
 
     return (
-        <div className="rounded-wf border border-line bg-surface px-4 py-3">
+        <div className="flex items-baseline justify-between gap-3 rounded-wf border border-line bg-surface px-3 py-2">
             <p className="text-xs text-ink-3">{label}</p>
-            <p className={'mt-1 font-mono text-2xl font-medium ' + warna}>
+            <p className={'font-mono text-lg leading-none font-medium ' + warna}>
                 {nilai.toLocaleString('id-ID')}
             </p>
         </div>
