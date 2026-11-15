@@ -76,6 +76,7 @@ type Props = {
     kelas: string | null;
     sandi_bawaan: boolean;
     tempat_ujian: TempatUjian | null;
+    luang: boolean;
 };
 
 export default function Akun({
@@ -87,6 +88,7 @@ export default function Akun({
     kelas,
     sandi_bawaan,
     tempat_ujian,
+    luang,
 }: Props) {
     const [denah, setDenah] = useState(false);
 
@@ -94,6 +96,7 @@ export default function Akun({
         <KerangkaSiswa
             judul="Akun saya"
             tabbarAktif="akun"
+            luang={luang}
             kiri={<span className="truncate text-[12px] font-medium text-ink">Akun · {nama}</span>}
             kanan={
                 kelas ? (

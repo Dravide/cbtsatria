@@ -87,6 +87,7 @@ type Props = {
     nilai_keluar: boolean;
     pengumuman: Pengumuman[];
     kemajuan: { total: number; selesai: number; terlewat: number; menunggu: number };
+    luang: boolean;
 };
 
 /**
@@ -126,6 +127,7 @@ export default function Jadwal({
     nilai_keluar,
     pengumuman,
     kemajuan,
+    luang,
 }: Props) {
     // Baris yang sudah tampil sebagai pita TIDAK diulang di daftar di
     // bawahnya. Dua kali menyebut ujian yang sama membuat anak menghitungnya
@@ -136,6 +138,7 @@ export default function Jadwal({
         <KerangkaSiswa
             judul="Jadwal ujian saya"
             tabbarAktif="ujian"
+            luang={luang}
             kiri={<span className="truncate text-[12px] font-medium text-ink">Halo, {nama}</span>}
             kanan={
                 kelas ? (

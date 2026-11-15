@@ -145,6 +145,9 @@ class PelanggaranSiswaController extends SiswaDasar
                     : round($v->duration_ms / 1000, 1).' detik',
                 'tindakan_pengawas' => in_array($v->violation_type, ExamViolation::JENIS_PENGAWAS, true),
             ])->all(),
+
+            // Tab "Main" di tabbar - lihat `SiswaDasar::luangTerbuka()`.
+            'luang' => $this->luangTerbuka($request),
         ]);
     }
 

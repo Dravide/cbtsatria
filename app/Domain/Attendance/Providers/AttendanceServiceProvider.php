@@ -16,13 +16,16 @@ use App\Domain\Attendance\Policies\AttendancePolicy;
 use App\Domain\Attendance\Services\DenyutService;
 use App\Domain\Attendance\Services\InsidenService;
 use App\Domain\Attendance\Services\JawabanService;
+use App\Domain\Attendance\Services\JendelaLuang;
 use App\Domain\Attendance\Services\KehadiranService;
 use App\Domain\Attendance\Services\KelayakanUjian;
 use App\Domain\Attendance\Services\LaporanSesiService;
 use App\Domain\Attendance\Services\MesinUjian;
+use App\Domain\Attendance\Services\PapanPeringkatLuang;
 use App\Domain\Attendance\Services\PembersihRuangSesiService;
 use App\Domain\Attendance\Services\PencatatKehadiranService;
 use App\Domain\Attendance\Services\PencatatPelanggaran;
+use App\Domain\Attendance\Services\PenjagaSkorLuar;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -85,6 +88,15 @@ class AttendanceServiceProvider extends ServiceProvider
         $this->app->singleton(PencatatPelanggaran::class);
         $this->app->singleton(JawabanService::class);
         $this->app->singleton(DenyutService::class);
+
+        // Permainan waktu luang. Ketiganya singleton dengan alasan yang sama
+        // seperti di atas: satu permintaan siswa menyentuh jendelanya,
+        // papannya, dan penjaganya - dan ketiganya harus membaca keadaan yang
+        // sama. `PenjagaSkorLuar` khususnya: dua instance berarti dua
+        // kesempatan memutuskan dengan ambang yang berbeda.
+        $this->app->singleton(JendelaLuang::class);
+        $this->app->singleton(PenjagaSkorLuar::class);
+        $this->app->singleton(PapanPeringkatLuang::class);
 
         // Kontrak Exam dijawab Attendance. Satu arah - lihat catatan kelas ini.
         $this->app->singleton(PencatatKehadiran::class, PencatatKehadiranService::class);

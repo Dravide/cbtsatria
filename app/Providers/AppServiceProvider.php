@@ -178,5 +178,24 @@ class AppServiceProvider extends ServiceProvider
                     ->route('siswa.jadwal')
                     ->with('galat', PembatasLaju::PESAN_PINDAI)),
         ]);
+
+        // ----------------------------------------------------------------
+        // Kiriman skor permainan waktu luang - POST /siswa/luang/skor
+        // ----------------------------------------------------------------
+        // Per AKUN, tanpa pasangan per-IP - alasannya sama dengan ganti
+        // sandi dan AI: seluruh sekolah keluar lewat satu NAT, dan yang
+        // memiliki skornya adalah akun.
+        //
+        // Jawabannya JSON 429, bukan redirect. Endpoint ini dipanggil
+        // `fetch` dari panggungnya, dan redirect akan diterima sebagai HTML
+        // yang lalu gagal diurai - panggungnya akan menampilkan "gagal
+        // menyimpan" tanpa sebab, padahal yang terjadi hanyalah anak itu
+        // menekan "Main lagi" terlalu cepat.
+        RateLimiter::for(PembatasLaju::LUANG, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::LUANG_PER_SISWA)
+                ->by(PembatasLaju::kunciLuang((int) $request->user()?->id))
+                ->response(fn () => response()
+                    ->json(['pesan' => PembatasLaju::PESAN_LUANG], 429)),
+        ]);
     }
 }

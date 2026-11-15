@@ -105,6 +105,9 @@ class AkunSiswaController extends SiswaDasar
             // Bentuk payload-nya milik `TempatUjianSiswa`, bukan laman ini -
             // beranda memakai bentuk yang sama untuk kartu utamanya.
             'tempat_ujian' => $tempatUjian->terdekat((int) $user->id),
+
+            // Tab "Main" di tabbar - lihat `SiswaDasar::luangTerbuka()`.
+            'luang' => $this->luangTerbuka($request),
         ]);
     }
 
@@ -126,6 +129,7 @@ class AkunSiswaController extends SiswaDasar
         return Inertia::render('Siswa/Sandi', [
             'nama' => $user->name,
             'sandi_bawaan' => Hash::check(User::SANDI_BAWAAN, (string) $user->password),
+            'luang' => $this->luangTerbuka($request),
         ]);
     }
 

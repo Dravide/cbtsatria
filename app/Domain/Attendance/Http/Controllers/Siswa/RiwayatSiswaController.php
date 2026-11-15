@@ -7,6 +7,7 @@ use App\Domain\Attendance\Models\AttemptQuestion;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Support\RingkasJawaban;
 use App\Domain\Exam\Models\ExamParticipant;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -65,7 +66,7 @@ class RiwayatSiswaController extends SiswaDasar
         private readonly RingkasJawaban $ringkas,
     ) {}
 
-    public function tampilkan(ExamParticipant $peserta): Response
+    public function tampilkan(Request $request, ExamParticipant $peserta): Response
     {
         $peserta = $this->milikSaya($peserta);
 
@@ -138,6 +139,9 @@ class RiwayatSiswaController extends SiswaDasar
             // kueri kedua: dua kueri atas tabel yang sama adalah dua jawaban
             // yang bisa berbeda.
             'ringkasan' => $this->ringkasan($butir),
+
+            // Tab "Main" di tabbar - lihat `SiswaDasar::luangTerbuka()`.
+            'luang' => $this->luangTerbuka($request),
         ]);
     }
 

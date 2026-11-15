@@ -121,6 +121,9 @@ class NilaiSiswaController extends SiswaDasar
                 ->map(fn (array $b) => ['mapel' => $b['mapel'], 'nilai' => $b['nilai']])
                 ->values()
                 ->all(),
+
+            // Tab "Main" di tabbar - lihat `SiswaDasar::luangTerbuka()`.
+            'luang' => $this->luangTerbuka($request),
         ]);
     }
 

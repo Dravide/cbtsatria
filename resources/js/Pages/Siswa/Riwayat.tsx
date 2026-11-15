@@ -93,6 +93,7 @@ type Props = {
     boleh_pembahasan: boolean;
     butir: Butir[];
     ringkasan: { benar: number; salah: number; dinilai: number; belum: number };
+    luang: boolean;
 };
 
 export default function Riwayat({
@@ -102,6 +103,7 @@ export default function Riwayat({
     boleh_pembahasan,
     butir,
     ringkasan,
+    luang,
 }: Props) {
     const crumb = [ujian.mapel, ujian.dikumpulkan_label].filter(Boolean).join(' · ');
 
@@ -109,6 +111,7 @@ export default function Riwayat({
         <KerangkaSiswa
             judul="Riwayat jawaban"
             tabbarAktif="nilai"
+            luang={luang}
             kiri={<span className="truncate text-[12px] text-ink">{crumb || 'Riwayat jawaban'}</span>}
             kanan={
                 <span className="angka border border-line-2 px-1.5 py-0.5 text-[11px] text-ink-2">

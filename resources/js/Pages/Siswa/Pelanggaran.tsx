@@ -77,6 +77,7 @@ type Props = {
     terpilih: number | null;
     angka: { total: number; terberat: number; pernah_dikunci: number };
     riwayat: Riwayat[];
+    luang: boolean;
 };
 
 /** Nada sel angka - dipetakan di satu tempat, sama seperti SelStatus di beranda. */
@@ -86,7 +87,7 @@ const NADA_ANGKA: Record<string, string> = {
     bad: 'text-bad',
 };
 
-export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: Props) {
+export default function Pelanggaran({ nama, event, terpilih, angka, riwayat, luang }: Props) {
     const ganti = (id: number | null) => {
         // Penyaringan dikerjakan server, bukan di peramban: daftar
         // pelanggaran satu sekolah bisa panjang, dan menyaringnya di sini
@@ -99,6 +100,7 @@ export default function Pelanggaran({ nama, event, terpilih, angka, riwayat }: P
         <KerangkaSiswa
             judul="Riwayat pelanggaran"
             tabbarAktif="pelanggaran"
+            luang={luang}
             kiri={<span className="truncate text-[12px] text-ink">Riwayat · {nama}</span>}
             kanan={
                 <span className="border border-line-2 px-1.5 py-0.5 text-[11px] text-ink-2">

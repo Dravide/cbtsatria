@@ -46,9 +46,10 @@ import { Field, Peringatan, kelasInput } from '@/Components/ui';
 type Props = {
     nama: string;
     sandi_bawaan: boolean;
+    luang: boolean;
 };
 
-export default function Sandi({ nama, sandi_bawaan }: Props) {
+export default function Sandi({ nama, sandi_bawaan, luang }: Props) {
     const form = useForm({
         current_password: '',
         password: '',
@@ -73,6 +74,7 @@ export default function Sandi({ nama, sandi_bawaan }: Props) {
         <KerangkaSiswa
             judul="Ganti sandi"
             tabbarAktif="akun"
+            luang={luang}
             kiri={<span className="truncate text-[12px] font-medium text-ink">Sandi · {nama}</span>}
             kanan={
                 <Link href="/siswa/akun" className="text-[11px] text-ink-2 hover:text-ink">

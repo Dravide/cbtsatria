@@ -78,6 +78,7 @@ type Props = {
     ada_nilai: boolean;
     menunggu_terbit: boolean;
     remedial: { mapel: string | null; nilai: number }[];
+    luang: boolean;
 };
 
 export default function Nilai({
@@ -88,11 +89,13 @@ export default function Nilai({
     ada_nilai,
     menunggu_terbit,
     remedial,
+    luang,
 }: Props) {
     return (
         <KerangkaSiswa
             judul="Nilai saya"
             tabbarAktif="nilai"
+            luang={luang}
             kiri={<span className="truncate text-[12px] text-ink">Nilai · {nama}</span>}
             kanan={
                 kelas ? (

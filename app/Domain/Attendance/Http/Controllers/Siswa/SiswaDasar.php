@@ -3,6 +3,7 @@
 namespace App\Domain\Attendance\Http\Controllers\Siswa;
 
 use App\Domain\Attendance\Models\ExamAttempt;
+use App\Domain\Attendance\Services\JendelaLuang;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Services\NomorKursi;
 use Illuminate\Http\Request;
@@ -109,5 +110,36 @@ abstract class SiswaDasar
         return [
             'ip' => $request->ip(),
         ];
+    }
+
+    /**
+     * Apakah tab "Main" di tabbar harus muncul di laman ini.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa boolean, bukan seluruh jendelanya
+     * ---------------------------------------------------------------------
+     * Tabbar hanya perlu tahu AKAN ADA atau TIDAK. Mengirim jam berakhirnya
+     * ke setiap laman berarti setiap laman siswa ikut membawa data yang hanya
+     * dibaca satu laman, dan setiap laman yang membawanya harus ikut
+     * menyegarkannya pula saat jedanya habis.
+     *
+     * ---------------------------------------------------------------------
+     * Dipanggil per laman, bukan dari shared props
+     * ---------------------------------------------------------------------
+     * `HandleInertiaRequests` mengirim props ke SETIAP permintaan, termasuk
+     * laman pengerjaan - yang justru paling sensitif terhadap kueri
+     * tambahan, karena denyutnya berjalan selama ujian. Memeriksa jeda di
+     * sana berarti setiap ketukan denyut membayar dua kueri yang jawabannya
+     * tidak dipakai siapa pun: laman itu tidak punya tabbar.
+     */
+    protected function luangTerbuka(Request $request): bool
+    {
+        return app(JendelaLuang::class)->untukSiswa(
+            ExamParticipant::query()
+                ->where('student_id', $request->user()->id)
+                ->with('session')
+                ->get(),
+            now(),
+        ) !== null;
     }
 }

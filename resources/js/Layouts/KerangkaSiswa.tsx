@@ -84,23 +84,93 @@ const TAB = [
     { label: 'Akun', segmen: 'akun', href: '/siswa/akun' },
 ] as const;
 
-export function TabbarSiswa({ aktif }: { aktif: string }) {
+/**
+ * Tiga sel tabbar: tab kiri, tab Main di TENGAH, tab kanan.
+ *
+ * =====================================================================
+ * Tab Main muncul dan hilang, dan itu memang perilakunya
+ * =====================================================================
+ * Ia hanya dirender bila server mengirim `luang` yang tidak null - yaitu saat
+ * siswa benar-benar punya jeda (attempt sudah ditutup, sesi berikutnya belum
+ * dibuka). Jumlah kolomnya karena itu 4 atau 5, dan tab lain bergeser
+ * setengah sel saat ia muncul.
+ *
+ * Pergeseran itu disengaja dan bukan kelalaian: alternatifnya adalah
+ * menyediakan tempat kosong permanen di tengah tabbar, dan tombol yang
+ * kadang-kadang tidak melakukan apa pun lebih membingungkan daripada tab
+ * yang kadang-kadang tidak ada.
+ *
+ * =====================================================================
+ * Mengapa ikon, bukan label seperti tiga tab lain
+ * =====================================================================
+ * Ia bukan tujuan yang dicari anak - ia pengisi jeda. Label kelima di tabbar
+ * 26rem memaksa tiga label lain memendek, dan seluruh tabbarnya menjadi
+ * deretan kata yang berdesakan. Ikonnya menggambar bentuk yang sama dengan
+ * pemain di panggungnya (kotak di atas garis tanah), supaya anak yang sudah
+ * pernah membukanya mengenalinya tanpa membaca apa pun.
+ */
+function TabMain() {
     return (
-        <nav className="tabbar grid grid-cols-4">
-            {TAB.map((t) => {
-                const on = t.segmen === aktif;
+        <Link
+            href="/siswa/luang"
+            className="flex min-h-[3rem] flex-col items-center justify-center gap-1 text-ink-3 transition-colors duration-150 hover:text-ink"
+            aria-label="Waktu luang - main"
+            title="Waktu luang"
+        >
+            <span className="relative grid size-6 place-items-center rounded-md border border-line bg-surface">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                        d="M2 12.5h12"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        strokeLinecap="round"
+                    />
+                    <rect x="3.2" y="7" width="3.4" height="5.5" rx="0.6" fill="currentColor" />
+                    <rect
+                        x="9.4"
+                        y="5"
+                        width="2.6"
+                        height="7.5"
+                        rx="0.6"
+                        fill="currentColor"
+                        opacity=".55"
+                    />
+                </svg>
+                {/* Titik penanda: "ada jeda, dan pintunya terbuka". Dibaca
+                    sekali sebagai sinyal, bukan sebagai label. */}
+                <span className="absolute -top-1 -right-1 size-1.5 rounded-full bg-accent ring-1 ring-surface" />
+            </span>
+            <span className="text-[10px] font-medium">Main</span>
+        </Link>
+    );
+}
 
-                return (
-                    <Link
-                        key={t.segmen}
-                        href={t.href}
-                        aria-current={on ? 'page' : undefined}
-                        className={on ? 'sel-hidup' : undefined}
-                    >
-                        {t.label}
-                    </Link>
-                );
-            })}
+export function TabbarSiswa({ aktif, luang = false }: { aktif: string; luang?: boolean }) {
+    // Tiga tab pertama dan terakhir tetap; tab Main disisipkan di tengah
+    // hanya bila ada jeda - lihat catatan `TabMain`.
+    const kiri = TAB.slice(0, 2);
+    const kanan = TAB.slice(2);
+
+    const sel = (t: (typeof TAB)[number]) => {
+        const on = t.segmen === aktif;
+
+        return (
+            <Link
+                key={t.segmen}
+                href={t.href}
+                aria-current={on ? 'page' : undefined}
+                className={on ? 'sel-hidup' : undefined}
+            >
+                {t.label}
+            </Link>
+        );
+    };
+
+    return (
+        <nav className={'tabbar grid ' + (luang ? 'grid-cols-5' : 'grid-cols-4')}>
+            {kiri.map(sel)}
+            {luang && <TabMain />}
+            {kanan.map(sel)}
         </nav>
     );
 }
@@ -111,6 +181,15 @@ type Props = {
     kanan?: ReactNode;
     /** Segmen tab yang sedang menyala; tidak diisi berarti tabbarnya disembunyikan. */
     tabbarAktif?: string;
+    /**
+     * Apakah tab "Main" dirender - dikirim server lewat prop `luang`.
+     *
+     * Bawaannya `false`, dan itu sisi yang aman: tab yang muncul padahal
+     * jedanya sudah habis membawa anak ke laman yang langsung mengalihkannya
+     * kembali, sementara tab yang hilang pada jeda yang nyata hanya
+     * menyembunyikan satu tombol.
+     */
+    luang?: boolean;
     /** Bilah atas disembunyikan pada laman yang menggambar kepalanya sendiri. */
     bilah?: boolean;
     /** Rangka ujian - lihat catatan berkas ini. */
@@ -129,6 +208,7 @@ export default function KerangkaSiswa({
     bilah = true,
     gelap = false,
     tanpaKeluar = false,
+    luang = false,
     children,
     aksiBawah,
 }: Props) {
@@ -202,7 +282,7 @@ export default function KerangkaSiswa({
                         // baris terakhir daftar di ponsel layar pendek.
                         <div className="sticky bottom-0 z-20 px-3 pb-3 pt-1">
                             <div className="overflow-hidden rounded-wf border border-line bg-surface shadow-lg">
-                                <TabbarSiswa aktif={tabbarAktif} />
+                                <TabbarSiswa aktif={tabbarAktif} luang={luang} />
                             </div>
                         </div>
                     )}

@@ -4,6 +4,7 @@ use App\Domain\Attendance\Http\Controllers\Siswa\AkunSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\GerbangSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\JadwalSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\KerjakanSiswaController;
+use App\Domain\Attendance\Http\Controllers\Siswa\LuangSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\NilaiSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\PelanggaranSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\RiwayatSiswaController;
@@ -115,4 +116,31 @@ Route::middleware(['auth', 'siswa'])->prefix('siswa')->name('siswa.')->group(fun
     // App\Support\PembatasLaju.
     Route::put('/akun/sandi', [AkunSiswaController::class, 'gantiSandi'])
         ->middleware('throttle:ganti-sandi')->name('akun.sandi.simpan');
+
+    /*
+    |----------------------------------------------------------------------
+    | Permainan waktu luang - wireframe-waktu-luang.html
+    |----------------------------------------------------------------------
+    | Ketiga rute ini TIDAK memuat {peserta}, berbeda dari seluruh konsol
+    | siswa lainnya. Itu disengaja: permainan ini milik ANAK, bukan milik
+    | satu penempatan - rekor Ahmad sama di Matematika dan di Fisika - dan
+    | alamat yang memuat penempatan akan menampilkan rekor yang berbeda
+    | untuk anak yang sama pada dua jeda di hari yang sama.
+    |
+    | Jendela waktunya diperiksa controller, bukan route middleware: yang
+    | diperiksa bukan IZIN melainkan KEADAAN yang berubah setiap menit, dan
+    | middleware yang membaca jadwal ujian untuk tiga rute berarti tiga
+    | kueri penempatan di setiap permintaan - termasuk permintaan yang
+    | memang tidak membuka permainan.
+    */
+    Route::get('/luang', [LuangSiswaController::class, 'tampilkan'])->name('luang');
+    Route::get('/luang/peringkat', [LuangSiswaController::class, 'peringkat'])->name('luang.peringkat');
+
+    // `throttle:luang-skor` - satu kiriman per permainan yang wajar, dengan
+    // kelonggaran untuk anak yang menekan "Main lagi" lalu segera terbentur.
+    // Yang dijaga bukan tebakan kredensial melainkan tabel yang tumbuh
+    // sepanjang jeda: tanpa batas, satu peramban bisa menulis ribuan baris
+    // dalam satu menit.
+    Route::post('/luang/skor', [LuangSiswaController::class, 'kirim'])
+        ->middleware('throttle:luang-skor')->name('luang.skor');
 });

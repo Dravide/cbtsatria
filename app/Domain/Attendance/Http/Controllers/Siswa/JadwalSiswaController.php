@@ -131,6 +131,12 @@ class JadwalSiswaController extends SiswaDasar
             'nilai_keluar' => $this->adaNilaiKeluar($request->user()->id),
             'pengumuman' => $this->pengumumanBerlaku($penempatan),
 
+            // Tab "Main" di tabbar - lihat `SiswaDasar::luangTerbuka()`.
+            // Dikirim sebagai boolean karena tabbar hanya perlu tahu AKAN ADA
+            // atau TIDAK, bukan jam berapa jedanya berakhir (itu urusan laman
+            // permainannya sendiri).
+            'luang' => $this->luangTerbuka($request),
+
             // Ringkasan kemajuan ujian anak ini - dihitung dari baris yang
             // SAMA dengan daftar di bawahnya. Angka di atas daftar yang
             // dihitung dengan cara lain adalah angka yang suatu hari berbeda

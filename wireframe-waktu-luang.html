@@ -1,0 +1,840 @@
+<title>Wireframe Waktu Luang · Game &amp; Papan Skor Siswa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   Wireframe School CBT — waktu luang siswa, game & papan skor
+   Primitif disalin dari wireframe-peran.html dan
+   wireframe-publik-kursi.html supaya terbaca sebagai satu
+   sistem. Yang baru hanya SUSUNAN, kecuali `.lari` (panggung
+   permainan) yang memang belum pernah ada.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:70ch}
+
+.group{margin-bottom:38px;display:grid;gap:18px}
+.group>header{display:grid;gap:6px}
+.group>header h2{font-size:1.15rem;display:flex;gap:9px;align-items:baseline}
+.group>header h2 em{font-family:var(--font-mono);font-style:normal;font-size:12px;color:var(--accent);letter-spacing:.1em}
+.group>header p{color:var(--ink-2);max-width:72ch;font-size:13.5px}
+.shots{display:grid;gap:22px}
+.shots.phones{grid-template-columns:1fr}
+@media (min-width:600px){.shots.phones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1060px){.shots.phones{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.shot{display:grid;gap:10px;min-width:0}
+.cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cap .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.08em}
+.cap h3{font-size:.95rem}
+.cap .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;display:grid;gap:5px;font-size:13.5px;color:var(--ink-2)}
+.note.gap{border-left-color:var(--warn)}
+.note.bad{border-left-color:var(--bad)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+
+/* --- primitif ponsel (.wd), disalin dari wireframe-publik-kursi --- */
+.wd{position:relative;width:238px;max-width:100%;height:auto;min-height:318px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--wf-bg);box-shadow:var(--shadow);color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;font-size:9.5px;line-height:1.35;min-width:0}
+.wd .notch{position:relative;height:15px;background:var(--wf-head);border-bottom:1px solid var(--wf-hair)}
+.wd .notch::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:4px;width:46px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wd .scr{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
+.wd .hd{display:flex;gap:6px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);min-width:0;flex-wrap:wrap}
+.wd .hd b{font-family:var(--font-display);font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd .hd .sp{margin-left:auto}
+.wd .bd{padding:8px;display:grid;gap:7px;align-content:start;overflow:hidden;min-width:0}
+.wd .tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--wf-hair);background:var(--wf-head)}
+.wd .tabbar>span{font:500 7.5px/1 var(--font-mono);color:var(--wf-dim);text-align:center;padding:8px 2px 9px;min-width:0;overflow:hidden;white-space:nowrap}
+.wd .tabbar>span.on{color:var(--accent);box-shadow:inset 0 2px 0 var(--accent)}
+
+/*
+ * Tab permainan - satu-satunya pintu masuk, dan bentuknya ikon.
+ *
+ * Tab ini BUKAN tab biasa: ia hanya dirender bila jendela waktu luangnya
+ * nyata, jadi jumlah kolom tabbar berubah antara 4 dan 5. Itu disengaja
+ * dan terlihat (tab lain bergeser sedikit), karena tab yang tiba-tiba
+ * muncul di tengah tidak boleh terasa seperti tombol tersembunyi.
+ *
+ * Ikonnya kotak yang melayang di atas garis tanah - bentuk yang sama
+ * dengan pemain di panggungnya, supaya anak yang sudah pernah main
+ * mengenalinya tanpa membaca label.
+ */
+.wd .tabbar .tb{display:grid;justify-items:center;gap:2px;padding:5px 2px 6px;min-width:0;color:var(--wf-dim)}
+.wd .tabbar .tb .ik{position:relative;display:grid;place-items:center;width:19px;height:19px;border-radius:6px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-dim)}
+.wd .tabbar .tb .ik svg{display:block}
+.wd .tabbar .tb.on{color:var(--accent)}
+.wd .tabbar .tb.on .ik{background:var(--accent);border-color:var(--accent);color:var(--on-accent);box-shadow:0 2px 6px -2px color-mix(in srgb,var(--accent) 60%,transparent)}
+.wd .tabbar .tb .lbl{font:500 7px/1 var(--font-mono);letter-spacing:.02em}
+/* Titik kecil: penanda "ada waktu luang" yang dibaca sekali, bukan label. */
+.wd .tabbar .tb .ik::after{content:"";position:absolute;top:-2px;right:-2px;width:5px;height:5px;border-radius:99px;background:var(--accent);border:1px solid var(--wf-head)}
+.wd .tabbar .tb.on .ik::after{background:var(--ok);border-color:var(--wf-head)}
+.wd .home{height:17px;background:var(--wf-head);display:grid;place-items:center}
+.wd .home::after{content:"";width:56px;height:4px;border-radius:99px;background:var(--wf-line)}
+.wd.lg{min-height:470px}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.big{font-size:11px;padding:6px 14px}
+.btn.off{opacity:.5}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.wd .list{border:1px solid var(--wf-hair);border-radius:8px;overflow:hidden;min-width:0}
+.wd .lrow{display:grid;gap:6px;align-items:center;padding:6px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.wd .lrow:last-child{border-bottom:0}
+.wd .lrow.th{background:var(--wf-head);font:500 7.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim);padding:5px 7px}
+.wd .lrow .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.wd .sel,.wd .btn,.wd .chip{font-size:8px;padding:2px 5px}
+.wd .sub{font-size:8.5px;color:var(--wf-dim)}
+.wd .card2{display:grid;gap:5px;border:1px solid var(--wf-hair);border-radius:8px;background:var(--wf-bg);padding:7px;min-width:0}
+.wd .big{font-family:var(--font-display);font-size:13px}
+.wd .kpi{display:grid;gap:2px;border:1px solid var(--wf-hair);border-radius:5px;padding:5px;background:var(--wf-bg);min-width:0}
+.wd .kpi .lb{font:500 7px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.wd .kpi b{font-family:var(--font-display);font-size:12px;font-variant-numeric:tabular-nums}
+.wd .cols{display:grid;gap:6px;min-width:0}
+.wd .cols.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.wd .cols.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* --- primitif baru: panggung permainan --- */
+/*
+ * Panggungnya 16:10 dan memakai `aspect-ratio`, bukan tinggi tetap: game ini
+ * dimainkan di ponsel dengan orientasi apa pun, dan tinggi tetap berarti
+ * garis tanahnya melompat saat perangkat diputar.
+ *
+ * Latarnya sengaja KOSONG - hanya garis tanah dan siluet. Tanah berlari
+ * adalah permainan yang dibaca lewat gerak, dan latar yang ramai membuat
+ * rintangan pertama tidak terlihat sampai terlambat.
+ */
+.lari{position:relative;aspect-ratio:16/10;border:1px solid var(--wf-line);border-radius:8px;background:var(--wf-soft);overflow:hidden;touch-action:manipulation;cursor:pointer}
+.lari canvas{display:block;width:100%;height:100%}
+.lari .hud{position:absolute;top:6px;left:8px;right:8px;display:flex;gap:8px;align-items:baseline;font:500 9px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim);pointer-events:none}
+.lari .hud b{font-family:var(--font-display);font-size:13px;letter-spacing:0;color:var(--wf-ink);font-variant-numeric:tabular-nums}
+.lari .hud .sp{margin-left:auto}
+/*
+ * Tirai menutupi panggung saat belum dimulai dan saat permainan berakhir.
+ *
+ * Kemalutannya 58%, dan angka itu dipilih dengan melihat hasilnya: pada 82%
+ * - nilai pertamanya - garis tanah dan pemainnya hilang sama sekali, dan
+ * panggungnya terbaca sebagai kotak kosong yang rusak, bukan sebagai
+ * permainan yang sedang berhenti. Yang perlu tetap terbaca di baliknya
+ * justru frame terakhirnya.
+ */
+.lari .tirai{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:7px;text-align:center;padding:10px;background:color-mix(in srgb,var(--wf-bg) 58%,transparent);backdrop-filter:blur(1px)}
+.lari .tirai[hidden]{display:none}
+.lari .tirai b{font-family:var(--font-display);font-size:12px}
+.lari .tirai span{font-size:8.5px;color:var(--wf-dim);max-width:19ch}
+.lari .tirai .tombol{font:500 9px/1 var(--font-mono);letter-spacing:.04em;text-transform:uppercase;padding:6px 12px;border-radius:5px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer}
+.medali{display:grid;place-items:center;width:22px;height:22px;border-radius:99px;font:500 9px/1 var(--font-mono);background:var(--wf-soft);color:var(--wf-dim);border:1px solid var(--wf-hair)}
+.medali.g{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+.medali.s{background:var(--surface-2);color:var(--ink-2);border-color:var(--line)}
+.medali.b{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 22%,transparent)}
+
+/* --- tabel kelapa (.wf) untuk laman admin --- */
+.wf{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--wf-bg);color:var(--wf-ink);box-shadow:var(--shadow);min-width:0}
+.wf .hd{display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head);font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.wf .bd{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.wf .lrow{display:grid;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.wf .lrow:last-child{border-bottom:0}
+.wf .lrow.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.wf .lrow .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px}
+.wf .list{border:1px solid var(--wf-hair);border-radius:6px;overflow:hidden;min-width:0}
+.wf .kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:6px;padding:7px;background:var(--wf-bg);min-width:0}
+.wf .kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.wf .kpi b{font-family:var(--font-display);font-size:16px;font-variant-numeric:tabular-nums}
+.wf .cols{display:grid;gap:8px;min-width:0}
+.wf .cols.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.wf .inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:7px 9px;border-radius:0 5px 5px 0;font-size:10px}
+.wf .inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.wf .inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ wireframe waktu luang siswa</span></div>
+    <div class="r">
+      <span>7 laman · 1 permainan</span><span>draft 2026-11-15</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Waktu luang, satu permainan, satu papan skor</div>
+    <h1>Menunggu itu membosankan — dan anak yang bosan mengobrol</h1>
+    <p class="lede">Siswa yang sudah selesai mengerjakan tidak boleh menutup ujiannya, dan pengawas tidak dapat menyuruhnya duduk diam selama empat puluh menit. Permainan kecil di sela ujian memberi mereka sesuatu yang lain untuk dilakukan selain berbicara. Skornya masuk ke papan peringkat sekolah supaya ada alasan memainkannya dengan sungguh-sungguh — tetapi <b>tidak pernah</b> menyentuh nilai ujian, dan tidak pernah menjadi syarat apa pun.</p>
+  </div>
+
+  <!-- ============================================================ A -->
+  <section class="group">
+    <header>
+      <h2><em>A</em> Batas yang membentuk seluruh desainnya</h2>
+      <p>Empat aturan ini bukan tambahan — mereka yang menentukan kapan permainan boleh dibuka, kapan ia harus berhenti, apa yang boleh dicatat, dan mengapa pemain tidak bisa memalsukan skornya. Setiap plate di bawah adalah akibat dari keempatnya.</p>
+    </header>
+
+    <div class="shots">
+      <figure class="shot" style="margin:0">
+        <div class="note bad">
+          <b>Tidak boleh ada saat ujian berlangsung.</b>
+          Selama attempt siswa masih terbuka, tombol main tidak dirender sama sekali — bukan dirender lalu dimatikan. Permainan yang bisa dibuka di tengah ujian adalah jalan keluar dari layar penuh yang justru dipantau sistem, dan pemantauan itu menjadi tidak masuk akal bila ada satu jalan yang dilegalkan.
+        </div>
+        <div class="note">
+          <b>Skor diperiksa server, bukan dipercaya dari peramban.</b>
+          Peramban mengirim <code>jarak</code> dan <code>durasi</code>; server menolak yang mustahil — jarak yang lebih jauh daripada yang mungkin dalam durasi itu, kiriman lebih cepat daripada satu permainan yang wajar, atau dua kiriman bertumpuk. Yang tersimpan adalah hasil hitung ulang server.
+        </div>
+        <div class="note gap">
+          <b>Tidak menyentuh nilai, tidak menjadi syarat.</b>
+          Permainan tidak memberi poin tambahan, tidak membuka apa pun, dan tidak pernah dibaca oleh modul penilaian. Bila papan skornya dihapus seluruhnya, tidak satu pun nilai siswa berubah — dan itulah ujian tentang apakah fitur ini memang hanya untuk waktu luang.
+        </div>
+        <div class="note bad">
+          <b>Permainan menutup dirinya saat sesi berikutnya dibuka.</b>
+          Jendela waktu luangnya ditentukan server, dan server pula yang memutuskan kapan jendela itu habis — bukan pewaktu di peramban yang bisa ditahan anak yang sedang asyik. Begitu sesi berikutnya dibuka, panggungnya berhenti, tirai "sesi sudah dibuka" muncul, dan tidak ada tombol main lagi. Skor yang sedang berjalan tetap disimpan: yang dihentikan permainannya, bukan hasilnya.
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============================================================ B -->
+  <section class="group">
+    <header>
+      <h2><em>B</em> Permukaan siswa</h2>
+      <p>Enam plate, semuanya di dalam rangka ponsel yang sama dengan laman siswa lain. Pintu masuknya satu: tab <b>Main</b> di tengah tabbar, dan tab itu tidak dirender sama sekali saat tidak ada jeda. Permainan memakai panggung selebar layar, bukan jendela terpisah: jendela baru di ponsel adalah tab yang tidak bisa ditutup anak yang panik.</p>
+    </header>
+
+    <div class="shots phones">
+
+      <!-- B1 ---------------------------------------------------- -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">01</span><h3>Kartu waktu luang di beranda</h3><span class="path">/siswa</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Halo, Ahmad</span><span class="sp" style="margin-left:auto"></span><span class="sel">X-1</span></div>
+            <div class="bd">
+              <div class="box solid" style="border-left:3px solid var(--wf-line)">
+                <div class="hd" style="padding:0;border:0;background:none"><b>Matematika</b><span class="sp"><span class="chip ok">selesai</span></span></div>
+                <span class="sub">Dikumpulkan 08:42 · 38 dari 40 terjawab</span>
+              </div>
+
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:1fr 60px 54px 54px"><span>Mata pelajaran</span><span>Tanggal</span><span>Jam</span><span>Status</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 60px 54px 54px"><span class="c">Bahasa Indonesia</span><span class="c">03 Nov</span><span class="c">09:30</span><span class="chip warn">presensi belum</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 60px 54px 54px"><span class="c">Fisika</span><span class="c">04 Nov</span><span class="c">07:30</span><span class="chip mute">besok</span></div>
+              </div>
+
+              <div class="inbox">Ujian berikutnya 09:30. Selama menunggu, tab <b>Main</b> di bawah terbuka.</div>
+            </div>
+          </div>
+          <!--
+            Tab permainan di TENGAH, dan hanya di sini pintu masuknya.
+
+            Kartu besar di badan beranda sudah dihapus: kartu "main game"
+            selebar konten beranda membuat permainan terlihat seperti
+            pekerjaan yang harus dituntaskan, padahal ia pengisi jeda.
+            Tab tengah juga menaruhnya di tempat ibu jari anak berhenti
+            saat menggulir tanpa sengaja - dan itu memang tujuannya.
+          -->
+          <div class="tabbar">
+            <span class="on">Ujian</span><span>Nilai</span>
+            <span class="tb"><span class="ik">
+              <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" fill="none">
+                <path d="M2 12.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="3.2" y="7" width="3.4" height="5.5" rx="0.6" fill="currentColor"/>
+                <rect x="9.4" y="5" width="2.6" height="7.5" rx="0.6" fill="currentColor" opacity=".55"/>
+              </svg>
+            </span><span class="lbl">Main</span></span>
+            <span>Pelanggaran</span><span>Akun</span>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Pintu masuknya hanya tab <b>Main</b> di tengah tabbar, dan tab itu <em>tidak dirender</em> bila tidak ada jeda yang nyata: attempt siswa sudah tertutup dan sesi berikutnya belum dibuka. Kartu besar di badan beranda sengaja tidak ada — ia membuat pengisi jeda terbaca sebagai tugas.</p>
+      </figure>
+
+      <!-- B2 ---------------------------------------------------- -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">02</span><h3>Panggung permainan</h3><span class="path">/siswa/luang</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Waktu luang</span><span class="sel">Rekor 1.284</span><span class="sp" style="margin-left:auto"></span><span class="chip info">bermain</span></div>
+            <div class="bd">
+              <div class="lari" data-lari>
+                <canvas width="640" height="400" aria-label="Permainan lari: lompati rintangan dengan mengetuk layar atau menekan spasi"></canvas>
+                <div class="hud"><span>skor</span><b data-skor>0</b><span class="sp"></span><span>rekor</span><b>1.284</b></div>
+                <div class="tirai" data-tirai>
+                  <b>Ketuk untuk mulai</b>
+                  <span>Ketuk layar atau tekan Spasi untuk melompat.</span>
+                  <button class="tombol" type="button" data-mulai>Mulai</button>
+                </div>
+              </div>
+              <div class="inbox">Permainan berhenti sendiri bila sesi berikutnya dibuka. Skor yang sedang berjalan tetap disimpan bila Anda keluar.</div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <span>Ujian</span><span>Nilai</span>
+            <span class="tb on"><span class="ik">
+              <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" fill="none">
+                <path d="M2 12.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="3.2" y="7" width="3.4" height="5.5" rx="0.6" fill="currentColor"/>
+                <rect x="9.4" y="5" width="2.6" height="7.5" rx="0.6" fill="currentColor" opacity=".55"/>
+              </svg>
+            </span><span class="lbl">Main</span></span>
+            <span>Pelanggaran</span><span>Akun</span>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Panggungnya <em>dimainkan</em>, bukan digambar — ketuk atau tekan Spasi. Itu disengaja: kecepatan, jarak lompat, dan tinggi rintangan hanya bisa dinilai dengan mencobanya, dan wireframe yang hanya memotret permainan akan menyembunyikan apakah ia terasa adil.</p>
+      </figure>
+
+      <!-- B3 ---------------------------------------------------- -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">03</span><h3>Papan peringkat kelas</h3><span class="path">/siswa/luang/peringkat</span></div>
+        <div class="wd lg">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Papan peringkat</span><span class="sel">X-1</span><span class="sp" style="margin-left:auto"></span><span class="chip mute">mingguan</span></div>
+            <div class="bd">
+              <div class="cols c3">
+                <div class="kpi"><span class="lb">Rekor saya</span><b>1.284</b></div>
+                <div class="kpi"><span class="lb">Peringkat</span><b>4</b></div>
+                <div class="kpi"><span class="lb">Pemain</span><b>31</b></div>
+              </div>
+
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:22px 1fr 54px"><span>#</span><span>Siswa</span><span style="text-align:right">Rekor</span></div>
+                <div class="lrow" style="grid-template-columns:22px 1fr 54px"><span class="medali g">1</span><span class="c">Nabila P.</span><span class="c" style="text-align:right;font-variant-numeric:tabular-nums">2.940</span></div>
+                <div class="lrow" style="grid-template-columns:22px 1fr 54px"><span class="medali s">2</span><span class="c">Rizky A.</span><span class="c" style="text-align:right;font-variant-numeric:tabular-nums">2.115</span></div>
+                <div class="lrow" style="grid-template-columns:22px 1fr 54px"><span class="medali b">3</span><span class="c">Devi K.</span><span class="c" style="text-align:right;font-variant-numeric:tabular-nums">1.902</span></div>
+                <div class="lrow" style="grid-template-columns:22px 1fr 54px;background:var(--accent-soft)"><span class="medali" style="background:var(--accent);color:var(--on-accent);border-color:var(--accent)">4</span><span class="c"><b>Ahmad (Anda)</b></span><span class="c" style="text-align:right;font-variant-numeric:tabular-nums">1.284</span></div>
+                <div class="lrow" style="grid-template-columns:22px 1fr 54px"><span class="medali">5</span><span class="c">Yusuf H.</span><span class="c" style="text-align:right;font-variant-numeric:tabular-nums">1.140</span></div>
+                <div class="lrow" style="grid-template-columns:22px 1fr 54px"><span class="medali">6</span><span class="c">Sari M.</span><span class="c" style="text-align:right;font-variant-numeric:tabular-nums">980</span></div>
+              </div>
+
+              <div class="inbox">Peringkat dihitung dari rekor <b>tertinggi</b>, bukan total. Bedanya besar: total membuat anak yang bermain paling lama selalu menang, dan permainan berhenti menjadi soal keterampilan.</div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <span>Ujian</span><span>Nilai</span>
+            <span class="tb on"><span class="ik">
+              <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" fill="none">
+                <path d="M2 12.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="3.2" y="7" width="3.4" height="5.5" rx="0.6" fill="currentColor"/>
+                <rect x="9.4" y="5" width="2.6" height="7.5" rx="0.6" fill="currentColor" opacity=".55"/>
+              </svg>
+            </span><span class="lbl">Main</span></span>
+            <span>Pelanggaran</span><span>Akun</span>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Baris pemain sendiri selalu ditandai dan selalu terlihat — bila ia berada di luar sepuluh teratas, barisnya ditempel di bawah daftar. Papan peringkat yang membuat pemain tidak menemukan namanya sendiri adalah papan peringkat yang berhenti dibuka.</p>
+      </figure>
+
+      <!-- B4 ---------------------------------------------------- -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">04</span><h3>Ujian berjalan — tidak ada jalan masuk</h3><span class="path">/siswa/ujian/{id}/kerjakan</span></div>
+        <div class="wd dark" style="background:var(--wf-bg)">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Soal <b>12</b> dari 40</span><span class="sp" style="margin-left:auto"></span><span class="timer">01:12:44</span></div>
+            <div class="bd">
+              <span class="sub" style="font-size:9.5px">Himpunan penyelesaian dari persamaan 2x + 5 = 17 adalah…</span>
+              <div class="opt on"><i></i><span>A · x = 6</span></div>
+              <div class="opt"><i></i><span>B · x = 11</span></div>
+              <div class="opt"><i></i><span>C · x = 12</span></div>
+              <div class="opt"><i></i><span>D · x = 22</span></div>
+              <div class="inbox bad" style="margin-top:2px">Tidak ada permainan selama ujian berlangsung. Kosongkan jawaban yang tidak Anda yakini, lalu tekan Selesai.</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note bad">Tombol dan tautan permainan TIDAK dirender di dalam rangka ujian — bukan dirender lalu dinonaktifkan. Siswa yang sedang mengerjakan tidak boleh punya satu pun jalan keluar dari layar soal, karena layar itu dipantau justru untuk alasan ini.</p>
+      </figure>
+
+      <!-- B5 ---------------------------------------------------- -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">05</span><h3>Permainan selesai · skor terkirim</h3><span class="path">/siswa/luang</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Waktu luang</span><span class="sp" style="margin-left:auto"></span><span class="chip ok">tersimpan</span></div>
+            <div class="bd">
+              <div class="lari" style="aspect-ratio:16/10">
+                <!--
+                  Frame terakhir digambar diam, bukan dibiarkan kosong.
+                  Panggung yang putih kosong di bawah tirai terbaca sebagai
+                  "permainannya rusak", bukan sebagai "permainannya baru
+                  berakhir" - dan justru frame yang berhenti itu yang
+                  menjelaskan kenapa skornya berhenti di angka itu.
+                -->
+                <canvas width="640" height="400" aria-hidden="true" data-beku></canvas>
+                <div class="tirai">
+                  <b style="font-size:17px;font-variant-numeric:tabular-nums">1.412</b>
+                  <span style="color:var(--ok);font-size:9px">Rekor baru · peringkat 3 dari 31</span>
+                  <span>Terbentur pada rintangan ke-9.</span>
+                  <div style="display:flex;gap:5px;margin-top:2px">
+                    <button class="tombol" type="button">Main lagi</button>
+                    <button class="tombol" type="button" style="background:var(--wf-bg);color:var(--wf-ink);border-color:var(--wf-dash)">Lihat papan</button>
+                  </div>
+                </div>
+              </div>
+              <div class="inbox" style="border-left-color:var(--ok);background:var(--ok-bg);color:var(--ok)">Skor diperiksa server sebelum dicatat. Waktu main Anda 41 detik, dan itu wajar untuk jarak ini.</div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <span>Ujian</span><span>Nilai</span>
+            <span class="tb on"><span class="ik">
+              <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" fill="none">
+                <path d="M2 12.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="3.2" y="7" width="3.4" height="5.5" rx="0.6" fill="currentColor"/>
+                <rect x="9.4" y="5" width="2.6" height="7.5" rx="0.6" fill="currentColor" opacity=".55"/>
+              </svg>
+            </span><span class="lbl">Main</span></span>
+            <span>Pelanggaran</span><span>Akun</span>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Pesan "diperiksa server" ditulis apa adanya, bukan disembunyikan — siswa yang tahu skornya diperiksa tidak mencoba memalsukannya, dan yang mencoba tidak mengira sistemnya rusak ketika skornya ditolak. Kalimatnya juga menyebut angka yang masuk akal, supaya penolakan nanti tidak terasa sewenang-wenang.</p>
+      </figure>
+
+      <!-- B6 ---------------------------------------------------- -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">06</span><h3>Sesi dibuka saat sedang main — tertutup sendiri</h3><span class="path">/siswa/luang · sesi berikutnya dibuka</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Waktu luang</span><span class="sp" style="margin-left:auto"></span><span class="chip warn">ditutup</span></div>
+            <div class="bd">
+              <div class="lari" style="aspect-ratio:16/10">
+                <!--
+                  Panggung yang sama, tetapi tirai yang kali ini bukan
+                  "selesai" - dan tombol main lagi TIDAK ada di sini.
+                  Frame terakhir dibiarkan tergambar supaya anak itu
+                  melihat permainannya berhenti, bukan hilang.
+                -->
+                <canvas width="640" height="400" aria-hidden="true" data-beku></canvas>
+                <div class="tirai" style="background:color-mix(in srgb,var(--warn-bg) 82%,transparent);backdrop-filter:blur(2px)">
+                  <b style="font-size:11px;color:var(--warn)">Bahasa Indonesia sudah dibuka</b>
+                  <span style="color:var(--wf-ink)">Skor terakhir <b style="font-variant-numeric:tabular-nums">648</b> tersimpan. Permainan ditutup di tengah sesi.</span>
+                  <span style="font-size:8px">Tidak ada tombol "main lagi".</span>
+                </div>
+              </div>
+
+              <div class="box solid" style="border-left:3px solid var(--accent)">
+                <div class="hd" style="padding:0;border:0;background:none"><b>Bahasa Indonesia</b><span class="sp"><span class="chip info">dibuka</span></span></div>
+                <span class="sub">Presensi Anda sudah dikonfirmasi. Masukkan token untuk memulai.</span>
+                <span class="btn pri big" style="justify-self:start;margin-top:1px">Masuk ujian</span>
+              </div>
+
+              <div class="inbox warn">Permainan berhenti di rintangan ke-4. Waktunya masuk ujian.</div>
+            </div>
+          </div>
+          <!--
+            Tab Main masih ada dan masih aktif - dan itu memang disengaja:
+            yang tertutup adalah pintunya ke permainan, bukan tabnya. Tab
+            yang berkedip hilang di detik itu juga menggeser tiga tab lain
+            tepat saat anak membaca, jadi ia baru hilang saat halaman ini
+            ditinggalkan.
+          -->
+          <div class="tabbar">
+            <span>Ujian</span><span>Nilai</span>
+            <span class="tb on"><span class="ik">
+              <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" fill="none">
+                <path d="M2 12.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="3.2" y="7" width="3.4" height="5.5" rx="0.6" fill="currentColor"/>
+                <rect x="9.4" y="5" width="2.6" height="7.5" rx="0.6" fill="currentColor" opacity=".55"/>
+              </svg>
+            </span><span class="lbl">Main</span></span>
+            <span>Pelanggaran</span><span>Akun</span>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note bad">Sesi dibuka saat permainan sedang berjalan, dan permainan <b>menutup dirinya</b> — tidak menunggu anak itu selesai, tidak menanyakan apa-apa. Pemeriksanya server, bukan pewaktu di peramban: setiap skor yang dikirim membawa tanda waktu, dan server menolak kiriman yang dibuat setelah sesi berikutnya dibuka. Skor yang sedang berjalan <em>tetap</em> disimpan, karena yang dihentikan adalah permainannya, bukan hasilnya.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============================================================ C -->
+  <section class="group">
+    <header>
+      <h2><em>C</em> Sisi Admin — satu laman, dan hanya bila perlu</h2>
+      <p>Admin tidak mengelola permainan. Yang ia butuhkan hanya dua hal: mematikan permainan bila sekolah menganggapnya mengganggu, dan tahu papan mana yang mencurigakan. Keduanya muat di satu laman.</p>
+    </header>
+
+    <div class="shots">
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">06</span><h3>Pengaturan waktu luang</h3><span class="path">/admin/pengaturan/luang</span></div>
+        <div class="wf">
+          <div class="hd">Pengaturan · waktu luang</div>
+          <div class="bd">
+            <div class="cols c4">
+              <div class="kpi"><span class="lb">Pemain</span><b>128</b></div>
+              <div class="kpi"><span class="lb">Rekor tertinggi</span><b>2.940</b></div>
+              <div class="kpi"><span class="lb">Ditolak server</span><b>3</b></div>
+              <div class="kpi"><span class="lb">Minggu ini</span><b>412</b></div>
+            </div>
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:1fr 90px 70px 74px"><span>Siswa</span><span>Rekor</span><span>Durasi</span><span>Keadaan</span></div>
+              <div class="lrow" style="grid-template-columns:1fr 90px 70px 74px"><span class="c">Nabila P. · X-1</span><span class="c">2.940</span><span class="c">96 dtk</span><span><span class="chip ok">wajar</span></span></div>
+              <div class="lrow" style="grid-template-columns:1fr 90px 70px 74px"><span class="c">Rizky A. · X-1</span><span class="c">2.115</span><span class="c">71 dtk</span><span><span class="chip ok">wajar</span></span></div>
+              <div class="lrow" style="grid-template-columns:1fr 90px 70px 74px"><span class="c">Bayu S. · X-2</span><span class="c">9.400</span><span class="c">12 dtk</span><span><span class="chip bad">ditolak</span></span></div>
+            </div>
+            <div class="inbox warn">Perbedaan antara rekor tertinggi dan durasi yang dicatat adalah satu-satunya cara membedakan pemain hebat dari kiriman palsu. Baris yang ditolak tetap terlihat supaya Admin dapat menanyakannya, bukan menghapusnya diam-diam.</div>
+          </div>
+        </div>
+        <p class="note">Satu sakelar mematikan permainan untuk seluruh sekolah. Bila dimatikan, kartu waktu luang hilang dari beranda siswa dan rute permainannya menjawab 404 — bukan hanya menonaktifkan tombol. Skor yang sudah tercatat tetap tersimpan; sekolah yang mematikan permainan tidak menghapus riwayat, dan tidak perlu menghapusnya.</p>
+      </figure>
+    </div>
+  </section>
+
+  <footer>
+    <span>School CBT · wireframe waktu luang siswa</span>
+    <span>7 laman · 1 permainan yang bisa dimainkan</span>
+    <span>sumber: wireframe-peran.html plate 19–29</span>
+  </footer>
+
+</div>
+
+<script>
+/*
+ * Permainan lari. Ditulis apa adanya, tanpa pustaka, karena wireframe ini
+ * harus bisa dibuka dari berkas lokal tanpa jaringan.
+ *
+ * Semua angka di bawah adalah USULAN, bukan keputusan final - dan itu
+ * memang gunanya wireframe yang bisa dimainkan: kecepatan 6,2 px/frame dan
+ * gravitasi 0,62 hanya bisa dinilai dengan mencoba melewati sepuluh
+ * rintangan, bukan dengan membaca dokumen ini.
+ */
+(function () {
+  var panggung = document.querySelector('[data-lari]');
+  if (!panggung) { return; }
+
+  var kanvas = panggung.querySelector('canvas');
+  var konteks = kanvas.getContext('2d');
+  var labelSkor = panggung.querySelector('[data-skor]');
+  var tirai = panggung.querySelector('[data-tirai]');
+  var tombolMulai = panggung.querySelector('[data-mulai]');
+
+  /*
+   * Ukuran kanvas mengikuti UKURAN TAMPILNYA, bukan angka tetap 640×400.
+   *
+   * Panggung ini hanya selebar ~220px di dalam rangka ponsel, dan kanvas
+   * 640px yang diperkecil 3x membuat garis tanah 2px menjadi 0,6px -
+   * hilang sama sekali, dan panggungnya terbaca kosong. Menyamakan ukuran
+   * buffer dengan ukuran CSS membuat satu unit gambar = satu piksel layar.
+   *
+   * `devicePixelRatio` tetap dipakai supaya tidak kabur di layar rapat;
+   * yang dijaga adalah RASIO, bukan angka mutlaknya.
+   */
+  function ukur() {
+    var kotak = panggung.getBoundingClientRect();
+    var rasio = Math.min(window.devicePixelRatio || 1, 2);
+
+    kanvas.width = Math.round(kotak.width * rasio);
+    kanvas.height = Math.round(kotak.height * rasio);
+    konteks.setTransform(rasio, 0, 0, rasio, 0, 0);
+
+    return { lebar: kotak.width, tinggi: kotak.height };
+  }
+
+  var ukuran = ukur();
+  var L = ukuran.lebar, T = ukuran.tinggi;
+  var TANAH = T - 22;
+
+  /*
+   * Keadaan awal didefinisikan DI SINI, bukan hanya di dalam `segarkan()`.
+   * Gambar pertama dipanggil sebelum permainan dimulai, dan `gambar()`
+   * membaca `pemain.y` - tanpa nilai awal itu, panggilan pertama melempar
+   * "Cannot read properties of undefined" dan panggungnya tampil kosong
+   * sampai tombol Mulai ditekan.
+   */
+  var pemain = { y: 0, v: 0, di_tanah: true };
+  var rintangan = [];
+  var skor = 0;
+  var waktu = 0;
+  var kecepatan = 6.2;
+  var berjalan = false;
+  var selesai = false;
+
+  /*
+   * Semua ukuran diturunkan dari TINGGI panggung, bukan ditulis sebagai
+   * piksel tetap. Panggung ini bisa ~150px di layar sempit dan ~220px di
+   * layar lebar, dan angka tetap membuat pemainnya setinggi hampir seluruh
+   * layar pada yang pertama.
+   */
+  var SKALA = T / 150;
+
+  var TINGGI_PEMAIN = 22 * SKALA;
+  var LEBAR_PEMAIN = 14 * SKALA;
+  var KAKI_PEMAIN = 14 * SKALA;
+  var GRAVITASI = 0.62 * SKALA;
+  var LOMPAT = -11.6 * SKALA;
+
+  function segarkan() {
+    pemain = { y: 0, v: 0, di_tanah: true };
+    rintangan = [];
+    skor = 0;
+    waktu = 0;
+    kecepatan = 6.2;
+    selesai = false;
+    berjalan = true;
+    tirai.hidden = true;
+    labelSkor.textContent = '0';
+  }
+
+  function lompat() {
+    if (!berjalan) { return; }
+    if (pemain.di_tanah) {
+      pemain.v = LOMPAT;
+      pemain.di_tanah = false;
+    }
+  }
+
+  function jatuhkan() {
+    pemain.v += GRAVITASI;
+    pemain.y += pemain.v;
+
+    if (pemain.y >= 0) {
+      pemain.y = 0;
+      pemain.v = 0;
+      pemain.di_tanah = true;
+    }
+  }
+
+  function gambar() {
+    konteks.clearRect(0, 0, L, T);
+
+    // Garis tanah. Satu garis, bukan lanskap: yang perlu dilihat pemain
+    // hanyalah di mana kakinya mendarat.
+    konteks.strokeStyle = '#a9b5c5';
+    konteks.lineWidth = Math.max(1, 1.5 * SKALA);
+    konteks.beginPath();
+    konteks.moveTo(0, TANAH);
+    konteks.lineTo(L, TANAH);
+    konteks.stroke();
+
+    // Pemain.
+    konteks.fillStyle = '#1e4fa3';
+    konteks.fillRect(KAKI_PEMAIN, TANAH - TINGGI_PEMAIN + pemain.y, LEBAR_PEMAIN, TINGGI_PEMAIN);
+
+    // Rintangan.
+    konteks.fillStyle = '#77808f';
+    rintangan.forEach(function (r) {
+      konteks.fillRect(r.x, TANAH - r.h, r.w, r.h);
+    });
+  }
+
+  function langkah() {
+    if (!berjalan) { return; }
+
+    waktu += 1 / 60;
+    skor += 1;
+    labelSkor.textContent = String(Math.floor(skor / 2));
+
+    jatuhkan();
+
+    // Rintangan baru, dengan jarak acak yang selalu bisa dijangkau.
+    var terakhir = rintangan[rintangan.length - 1];
+    if (!terakhir || terakhir.x < L - 120 * SKALA) {
+      if (Math.random() < 0.03) {
+        rintangan.push({ x: L, w: 10 * SKALA, h: (16 + Math.random() * 13) * SKALA });
+      }
+    }
+
+    rintangan.forEach(function (r) { r.x -= kecepatan * SKALA; });
+    rintangan = rintangan.filter(function (r) { return r.x + r.w > -10; });
+
+    // Bentrok: kotak pemain terhadap kotak rintangan.
+    for (var i = 0; i < rintangan.length; i++) {
+      var r = rintangan[i];
+      if (r.x < KAKI_PEMAIN + LEBAR_PEMAIN && r.x + r.w > KAKI_PEMAIN
+          && TANAH - TINGGI_PEMAIN + pemain.y + TINGGI_PEMAIN > TANAH - r.h) {
+        berjalan = false;
+        selesai = true;
+        tirai.hidden = false;
+        tirai.innerHTML =
+          '<b style="font-size:17px;font-variant-numeric:tabular-nums">' +
+          Math.floor(skor / 2) + '</b>' +
+          '<span>Terbentur pada rintangan. Ketuk atau tekan Spasi untuk mencoba lagi.</span>';
+        return;
+      }
+    }
+
+    kecepatan += 0.0012;
+    gambar();
+    requestAnimationFrame(langkah);
+  }
+
+  function mulai() {
+    segarkan();
+    gambar();
+    requestAnimationFrame(langkah);
+  }
+
+  panggung.addEventListener('pointerdown', function (e) {
+    if (selesai) { mulai(); return; }
+    if (!berjalan) { return; }
+    e.preventDefault();
+    lompat();
+  });
+
+  panggung.addEventListener('keydown', function (e) {
+    if (e.code !== 'Space' && e.code !== 'ArrowUp') { return; }
+    e.preventDefault();
+    if (selesai) { mulai(); return; }
+    lompat();
+  });
+
+  panggung.setAttribute('tabindex', '0');
+  tombolMulai.addEventListener('click', function (e) {
+    e.stopPropagation();
+    mulai();
+  });
+
+  gambar();
+}());
+
+/*
+ * Frame beku untuk plate 05 dan 06. Keduanya memang tidak dimainkan - ia
+ * memotret keadaan SESUDAH permainan berhenti, dan tanpa gambar apa pun di
+ * kanvasnya ia terbaca sebagai permainan yang rusak.
+ *
+ * Dipilih dengan `querySelectorAll`, bukan `querySelector`: plate 06
+ * memakai panggung yang sama, dan satu kanvas yang terlewat akan tampil
+ * putih kosong di sebelah yang terisi.
+ */
+(function () {
+  var kanvasSemua = document.querySelectorAll('canvas[data-beku]');
+
+  kanvasSemua.forEach(function (kanvas) {
+    var panggung = kanvas.parentElement;
+    var k = kanvas.getContext('2d');
+
+    function gambar() {
+      var kotak = panggung.getBoundingClientRect();
+      var rasio = Math.min(window.devicePixelRatio || 1, 2);
+
+      kanvas.width = Math.round(kotak.width * rasio);
+      kanvas.height = Math.round(kotak.height * rasio);
+      k.setTransform(rasio, 0, 0, rasio, 0, 0);
+
+      var L = kotak.width, T = kotak.height;
+      var TANAH = T - 22;
+      var S = T / 150;
+
+      k.clearRect(0, 0, L, T);
+
+      k.strokeStyle = '#a9b5c5';
+      k.lineWidth = Math.max(1, 1.5 * S);
+      k.beginPath();
+      k.moveTo(0, TANAH);
+      k.lineTo(L, TANAH);
+      k.stroke();
+
+      // Jejak rintangan yang sudah terlewati, makin pudar ke kiri - yang
+      // memberi tahu bahwa ia baru saja berhenti, bukan baru saja mulai.
+      k.fillStyle = '#77808f';
+      k.globalAlpha = 0.35;
+      k.fillRect(10 * S, TANAH - 20 * S, 10 * S, 20 * S);
+      k.fillRect((L * 0.28), TANAH - 26 * S, 10 * S, 26 * S);
+      k.globalAlpha = 1;
+
+      // Rintangan yang membuatnya berhenti, tepat di depan pemain.
+      k.fillRect(L * 0.46, TANAH - 22 * S, 10 * S, 22 * S);
+      k.fillRect(L * 0.70, TANAH - 30 * S, 10 * S, 30 * S);
+      k.fillRect(L * 0.94, TANAH - 18 * S, 10 * S, 18 * S);
+
+      // Pemain, tepat di titik benturan.
+      k.fillStyle = '#1e4fa3';
+      k.fillRect(14 * S, TANAH - 22 * S, 14 * S, 22 * S);
+    }
+
+    gambar();
+    window.addEventListener('resize', gambar);
+  });
+}());
+</script>

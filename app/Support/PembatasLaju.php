@@ -104,6 +104,9 @@ final class PembatasLaju
     /** Nama limiter untuk laman pindai presensi `/hadir/{kode}`. */
     public const PINDAI = 'pindai-presensi';
 
+    /** Nama limiter untuk kiriman skor permainan waktu luang. */
+    public const LUANG = 'luang-skor';
+
     /**
      * Permintaan AI per Guru, per menit.
      *
@@ -241,6 +244,32 @@ final class PembatasLaju
     /** Pesan saat satu jaringan melampaui batas percobaan pindainya. */
     public const PESAN_PINDAI = 'Terlalu banyak pindai dari jaringan ini. Tunggu satu menit, lalu coba lagi.';
 
+    /**
+     * Kiriman skor permainan per SISWA, per menit.
+     *
+     * ---------------------------------------------------------------------
+     * Enam, dan angkanya dipilih dari cara permainannya dimainkan
+     * ---------------------------------------------------------------------
+     * Satu permainan yang jujur berlangsung belasan sampai ratusan detik, dan
+     * setiap permainan menghasilkan SATU kiriman. Enam per menit sudah jauh
+     * lebih cepat daripada bermain sungguhan - ia hanya tercapai oleh anak
+     * yang terbentur seketika lalu menekan "Main lagi" berulang, dan itu pun
+     * masih muat.
+     *
+     * Yang benar-benar dijaga bukan kredensial melainkan tabel yang tumbuh
+     * sepanjang jeda: tanpa batas, satu peramban dapat menulis ribuan baris
+     * dalam satu menit, dan papan peringkat yang dipenuhi kiriman satu orang
+     * berhenti bermakna bagi seluruh kelas.
+     *
+     * Kuncinya per AKUN, bukan per IP - alasannya sama dengan `kunciAi()`:
+     * satu sekolah keluar lewat satu NAT, dan yang memiliki skornya adalah
+     * akun.
+     */
+    public const LUANG_PER_SISWA = 6;
+
+    /** Pesan saat kiriman skor melampaui batas. */
+    public const PESAN_LUANG = 'Terlalu banyak kiriman skor. Tunggu satu menit, lalu coba lagi.';
+
     public static function kunciPintuPasangan(string $slug, string $ip): string
     {
         return "pintu:{$slug}|{$ip}";
@@ -293,6 +322,12 @@ final class PembatasLaju
     public static function kunciSandi(int|string $userId): string
     {
         return "sandi:{$userId}";
+    }
+
+    /** Kunci pembatas kiriman skor: per AKUN - lihat `LUANG_PER_SISWA`. */
+    public static function kunciLuang(int|string $userId): string
+    {
+        return "luang:{$userId}";
     }
 
     /**
