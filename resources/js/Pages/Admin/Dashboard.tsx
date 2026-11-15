@@ -25,6 +25,18 @@ type Props = {
         pengawas: number;
         ruang: number;
     };
+    /**
+     * Yang perlu diperhatikan pada ujian yang waktunya sudah dekat atau
+     * sedang berjalan. KOSONG berarti tidak ada yang perlu dikerjakan - dan
+     * itulah keadaan yang paling sering.
+     */
+    peringatan: {
+        kunci: string;
+        judul: string;
+        pesan: string;
+        nada: string;
+        href: string;
+    }[];
 };
 
 const KPI: { kunci: keyof Props['ringkasan']; label: string; ikon: NamaIkon; href: string }[] = [
@@ -39,7 +51,7 @@ const KPI: { kunci: keyof Props['ringkasan']; label: string; ikon: NamaIkon; hre
     { kunci: 'ruang', label: 'Ruang aktif', ikon: 'ruang', href: '/admin/ruang' },
 ];
 
-export default function Dashboard({ sekolah, ringkasan }: Props) {
+export default function Dashboard({ sekolah, ringkasan, peringatan }: Props) {
     // Kedua prop ini sudah dikirim server ke SETIAP laman konsol; membaca
     // keduanya di sini lebih murah daripada menambah satu query untuk
     // pertanyaan yang jawabannya sudah ada.
@@ -69,6 +81,57 @@ export default function Dashboard({ sekolah, ringkasan }: Props) {
                     </Link>
                 ))}
             </div>
+
+            {/* Peringatan hari-H berdiri DI ATAS "Event berjalan", dan
+                urutannya disengaja: kartu di bawahnya menjawab "event mana",
+                panel ini menjawab "apa yang menghambatnya sekarang". Admin
+                yang membuka beranda pada hari-H datang untuk jawaban kedua.
+
+                Panelnya HILANG sepenuhnya saat tidak ada peringatan - bukan
+                kosong dengan judul. Kotak "tidak ada masalah" mengajari orang
+                melewatinya, dan yang dilewati adalah kotak yang sama. */}
+            {peringatan.length > 0 && (
+                <section className="mt-3 rounded-wf border border-warn/40 bg-warn-bg/40 p-4">
+                    <div className="flex items-center gap-2">
+                        <Ikon nama="denyut" ukuran={16} className="text-warn" />
+                        <h2 className="font-display text-sm font-semibold text-ink">
+                            Perlu perhatian sebelum ujian berjalan
+                        </h2>
+                        <Chip nada="warn">{peringatan.length}</Chip>
+                    </div>
+
+                    <ul className="mt-3 space-y-2">
+                        {peringatan.map((p) => (
+                            <li
+                                key={p.kunci}
+                                className="rounded-wf border border-line bg-surface px-3 py-2.5"
+                            >
+                                <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
+                                    <div className="min-w-0 flex-1">
+                                        <p
+                                            className={
+                                                'text-sm font-medium ' +
+                                                (p.nada === 'bad' ? 'text-bad' : 'text-ink')
+                                            }
+                                        >
+                                            {p.judul}
+                                        </p>
+                                        <p className="mt-0.5 text-xs leading-relaxed text-ink-2">
+                                            {p.pesan}
+                                        </p>
+                                    </div>
+                                    <Link
+                                        href={p.href}
+                                        className="shrink-0 rounded-wf border border-line px-2.5 py-1.5 text-xs font-medium text-accent transition-colors duration-150 hover:border-accent/50 hover:bg-accent-soft/40"
+                                    >
+                                        Perbaiki
+                                    </Link>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
 
             <div className="mt-3 grid gap-3 lg:grid-cols-2">
                 <section className="rounded-wf border border-line bg-surface p-4">

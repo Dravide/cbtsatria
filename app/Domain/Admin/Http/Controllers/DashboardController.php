@@ -2,6 +2,7 @@
 
 namespace App\Domain\Admin\Http\Controllers;
 
+use App\Domain\Exam\Services\PeringatanHariH;
 use App\Domain\Facility\Models\Room;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
@@ -18,9 +19,19 @@ use Inertia\Response;
  * konsol belum muncul, dan aksi utama adalah membuat event. Event dulu,
  * komponen menyusul. Fase 1 menampilkan angkanya apa adanya; kartu "Buat
  * event" baru punya tujuan di Fase 3.
+ *
+ * ---------------------------------------------------------------------
+ * Peringatan hari-H, dan mengapa di sini
+ * ---------------------------------------------------------------------
+ * Beranda adalah satu-satunya laman konsol yang dibuka Admin tanpa alasan
+ * tertentu - laman lain dibuka karena ia sudah tahu ada yang harus
+ * dikerjakan di sana. Karena itu hal-hal yang TIDAK diketahuinya ditaruh di
+ * sini, dan hanya saat waktunya dekat: lihat `PeringatanHariH`.
  */
 class DashboardController
 {
+    public function __construct(private readonly PeringatanHariH $peringatan) {}
+
     public function __invoke(Request $request): Response
     {
         $user = $request->user();
@@ -28,6 +39,16 @@ class DashboardController
         Gate::authorize('viewAny', User::class);
 
         $school = School::findOrFail($user->school_id);
+
+        // Event yang peringatannya diperiksa adalah event AKTIF di sesi -
+        // bukan seluruh event sekolah. Memeriksa semuanya berarti beranda
+        // mengerjakan pekerjaan panel tersendiri untuk data yang sudah
+        // disaring di tempat lain.
+        //
+        // Yang diserahkan ke service adalah ID-nya, bukan barisnya: modul
+        // Admin tidak boleh menyentuh `SchoolEvent` - lihat catatan
+        // `PeringatanHariH::untukEventAktif()`.
+        $aktif = $request->session()->get('event_aktif');
 
         return Inertia::render('Admin/Dashboard', [
             'sekolah' => [
@@ -46,6 +67,11 @@ class DashboardController
                 // menyumbang kesiapan apa pun.
                 'ruang' => Room::query()->where('status', 'aktif')->count(),
             ],
+
+            // Kosong berarti tidak ada yang perlu dikerjakan - dan beranda
+            // merender tidak ada apa-apa. Panel yang selalu berbunyi akan
+            // berhenti dibaca.
+            'peringatan' => $this->peringatan->untukEventAktif($aktif === null ? null : (int) $aktif),
         ]);
     }
 }
