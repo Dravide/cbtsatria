@@ -86,6 +86,11 @@ final class PenjagaSkorLuar
      * sangat pelan (`PERCEPATAN` 0,0012 per bingkai), sehingga permainan
      * yang berlangsung dua menit pun tidak mendekatinya. Yang ditangkap
      * tetap kiriman yang mengarang angka, bukan pemain hebat.
+     *
+     * Catatan 2026-11-15: `PERCEPATAN` di panggung NAIK menjadi 0,15 per
+     * bingkai per detik (mulai pelan, makin cepat), dan batas ini masih
+     * aman karena panggungnya menahan lajunya di `KECEPATAN_MAKS` 14 per
+     * bingkai = 840 satuan/detik - di bawah 900.
      */
     public const UNIT_PER_DETIK_MAKS = 900;
 

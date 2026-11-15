@@ -72,11 +72,93 @@ type Keadaan = {
 };
 
 const GRAVITASI = 0.62;
-const LOMPAT = -11.6;
+
+/**
+ * Kekuatan lompat, dalam satuan per bingkai 60Hz.
+ *
+ * Dinaikkan 2026-11-15 dari -11,6 setelah pemainnya berganti dari kotak 22
+ * satuan menjadi alien 26 satuan: tinggi lompatan harus melewati rintangan
+ * TERTINGGI (29 satuan), bukan tinggi badannya. Dengan gaya lama, alien
+ * setinggi itu hanya melewati rintangan pendek - dan permainannya menjadi
+ * tidak adil tanpa satu pun angkanya terlihat salah.
+ */
+const LOMPAT = -13.2;
+
+/**
+ * Kecepatan awal, dalam satuan per bingkai 60Hz.
+ *
+ * Satuannya BINGKAI, bukan detik, karena gerak rintangan dikalikan `dt*60` -
+ * dan pada 6,2 itu berarti 372 satuan per detik. Angka itulah yang dikirim ke
+ * server sebagai `distance`, dan `PenjagaSkorLuar` menolak di atas 900.
+ */
 const KECEPATAN_AWAL = 6.2;
 
-/** Kecepatan bertambah sangat pelan - lihat catatan `KECEPATAN_AWAL`. */
-const PERCEPATAN = 0.0012;
+/**
+ * Pertambahan kecepatan, dalam satuan per bingkai, PER DETIK bermain.
+ *
+ * ---------------------------------------------------------------------
+ * Perlahan dulu, lalu naik - dan pagarnya dihitung, bukan dirasa
+ * ---------------------------------------------------------------------
+ * Versi pertama memakai 0,0012 per bingkai per bingkai, yang berarti
+ * kecepatannya bertambah begitu lambat sehingga dua menit bermain pun tidak
+ * terasa berbeda. Yang diminta adalah sebaliknya: mulai pelan, makin lama
+ * makin cepat.
+ *
+ * Angkanya 0,15 per bingkai per detik, jadi:
+ *
+ *   detik ke-0    6,2  (372/detik)
+ *   detik ke-20   9,2  (552/detik)
+ *   detik ke-55  14,5  (870/detik)
+ *
+ * `KECEPATAN_MAKS` di bawah menahannya tepat sebelum batas server (900/detik
+ * = 15 per bingkai). Tanpa pagar itu, permainan yang berjalan lama akan
+ * menghasilkan jarak yang ditolak `PenjagaSkorLuar` - dan anak yang bermain
+ * paling lama justru yang skornya hilang.
+ */
+const PERCEPATAN_PER_DETIK = 0.15;
+
+/** Pagar kecepatan: 14 per bingkai = 840 per detik, di bawah batas 900. */
+const KECEPATAN_MAKS = 14;
+
+/**
+ * Bentuk pemain - `pixelated-alien.svg`.
+ *
+ * Digambar sebagai `Path2D`, bukan `<img>`, karena panggungnya canvas dan
+ * gambar yang dimuat belakangan membuat beberapa bingkai pertama tampil
+ * kosong. Path-nya disalin apa adanya dari berkas SVG; `viewBox`-nya
+ * 587.52 persegi, jadi skalanya satu angka untuk lebar dan tinggi.
+ */
+const ALIEN_VIEWBOX = 587.52;
+
+const ALIEN_PATH = [
+    'M483.896,444.868c0,0.031,0,0.062,0,0.092l0.122-0.092C483.981,444.868,483.938,444.868,483.896,444.868z',
+    'M484.013,444.875c0.006-0.007-0.116,0.085-0.116,0.085c0.036,0,0.079,0,0.116,0C484.013,444.936,484.013,444.905,484.013,444.875z',
+    'M103.501,444.868l0.122,0.092c0-0.03,0-0.061,0-0.092C103.581,444.868,103.538,444.868,103.501,444.868z',
+    'M483.479,91.8c-18.359,0-36.72,0-55.08,0c0,18.36,0,30.6,0,48.96c18.36,0,36.721,0,55.08,0C483.479,122.399,483.479,110.16,483.479,91.8z',
+    'M532.439,244.799c-12.239,0-30.6,0-48.96,0c0-18.36,0-36.72,0-55.08c-18.359,0-36.72,0-55.08,0c0-12.24,0-30.6,0-48.96c-18.359,0-36.72,0-55.079,0c0,18.36,0,36.72,0,48.96c-24.48,0-52.981,0-79.561,0c-24.48,0-55.08,0-79.56,0c0-12.24,0-30.6,0-48.96c-18.36,0-36.72,0-55.08,0c0,18.36,0,36.72,0,48.96c-18.36,0-36.72,0-55.08,0c0,18.36,0,36.72,0,55.08c-18.36,0-36.72,0-48.96,0c0-36.72,0-67.32,0-104.04c-18.36,0-36.72,0-55.08,0c0,67.32,0,134.64,0,201.96c18.36,0,30.6,0,48.96,0c0,18.359,0,36.72,0,55.08c18.36,0,36.72,0,55.08,0c0,11.224,0,29.522,0,47.393c-13.941,0.196-27.155,0.178-41.102,0.367c-2.956,0.037-7.858,0.007-7.858,0.007c0,16.793,0,31.793,0,50.153c12.24,0,31.64,0,48.439,0c0-17.778,0.686-32.896,0.729-48.96h0.006c18.293,0,36.58,0,54.866,0c0-18.36,0-36.721,0-48.96c48.96,0,91.8,0,134.64,0c44.297,0,85.68,0,134.64,0c0,12.239,0,30.6,0,48.96c18.293,0,36.58,0,54.866,0c0,0,0.006,0,0.013,0c0.036,16.064,0.728,31.182,0.728,48.96c16.794,0,36.194,0,48.434,0c0-18.36,0-33.36,0-50.153c0,0-4.901,0.03-7.857-0.007c-13.947-0.184-27.161-0.165-41.103-0.367c0-17.87,0-36.169,0-47.393c18.36,0,36.721,0,55.08,0c0-18.36,0-36.721,0-55.08c18.36,0,30.601,0,48.96,0c0-67.32,0-134.64,0-201.96c-18.359,0-36.72,0-55.08,0C532.439,177.479,532.439,208.08,532.439,244.799zM214.2,293.76c0,9.425,0,19.994,0,30.6c-18.36,0-36.72,0-55.08,0c0-10.605,0-21.175,0-30.6c0-6.206,0-12.393,0-18.36c18.36,0,36.72,0,55.08,0C214.2,281.367,214.2,287.554,214.2,293.76zM428.399,293.76c0,9.425,0,19.994,0,30.6c-18.359,0-36.72,0-55.079,0c0-10.605,0-21.175,0-30.6c0-6.206,0-12.393,0-18.36c18.359,0,36.72,0,55.079,0C428.399,281.367,428.399,287.554,428.399,293.76z',
+    'M104.04,91.8c0,18.36,0,30.6,0,48.96c18.36,0,36.72,0,55.08,0c0-18.36,0-30.6,0-48.96C140.76,91.8,122.4,91.8,104.04,91.8z',
+    'M103.507,444.967c0.037,0,0.08,0,0.116,0c0,0-0.122-0.092-0.116-0.086C103.507,444.905,103.507,444.936,103.507,444.967z',
+];
+
+/** Bentuk alien, disiapkan sekali - bukan setiap bingkai. */
+const alien: Path2D | null = (() => {
+    if (typeof Path2D === 'undefined') {
+        return null;
+    }
+
+    try {
+        return new Path2D(ALIEN_PATH.join(' '));
+    } catch {
+        // `Path2D` ada tetapi path-nya ditolak: panggungnya jatuh ke kotak
+        // biasa, dan permainannya tetap bisa dimainkan.
+        return null;
+    }
+})();
+
+/** Ukuran pemain di panggung, dalam satuan sebelum dikali `skala`. */
+const PEMAIN_TINGGI = 26;
+const PEMAIN_LEBAR = 26;
+const KAKI_PEMAIN = 14;
 
 export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props) {
     const panggung = useRef<HTMLDivElement | null>(null);
@@ -219,8 +301,31 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
         k.lineTo(L, tanah);
         k.stroke();
 
-        k.fillStyle = '#1e4fa3';
-        k.fillRect(14 * skala, tanah - 22 * skala + s.pemainY, 14 * skala, 22 * skala);
+        // Pemain - si alien. Digambar dari `Path2D` yang sudah disiapkan,
+        // diskalakan dari `viewBox` 587.52 persegi milik SVGitunya.
+        //
+        // `fillStyle` sengaja bukan biru kotak lama: alien ini punya mata
+        // yang dilubangi, dan warna gelap membuat lubangnya terbaca sebagai
+        // mata, bukan sebagai bayangan.
+        const tinggi = PEMAIN_TINGGI * skala;
+        const lebar = PEMAIN_LEBAR * skala;
+        const kiri = KAKI_PEMAIN * skala;
+        const atas = tanah - tinggi + s.pemainY;
+
+        if (alien !== null) {
+            k.save();
+            k.translate(kiri, atas);
+            k.scale(tinggi / ALIEN_VIEWBOX, tinggi / ALIEN_VIEWBOX);
+            k.fillStyle = '#1e4fa3';
+            k.fill(alien);
+            k.restore();
+        } else {
+            // Cadangan bila `Path2D` tidak ada: kotak yang sama dengan
+            // pemain versi lama. Bentuknya berbeda, tetapi permainannya tidak
+            // pernah kosong.
+            k.fillStyle = '#1e4fa3';
+            k.fillRect(kiri, atas, lebar, tinggi);
+        }
 
         k.fillStyle = '#77808f';
         s.rintangan.forEach((r) => k.fillRect(r.x, tanah - r.h, r.w, r.h));
@@ -260,7 +365,15 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                 s.diTanah = true;
             }
 
-            const kecepatan = KECEPATAN_AWAL + PERCEPATAN * s.detik * 60;
+            // Kecepatan menaik PER DETIK, lalu ditahan `KECEPATAN_MAKS`.
+            // Lihat catatan `PERCEPATAN_PER_DETIK` tentang mengapa pagarnya
+            // ada: tanpa itu permainan panjang menghasilkan jarak yang
+            // ditolak server, dan anak yang bermain paling lama justru yang
+            // skornya hilang.
+            const kecepatan = Math.min(
+                KECEPATAN_AWAL + PERCEPATAN_PER_DETIK * s.detik,
+                KECEPATAN_MAKS,
+            );
             const geser = kecepatan * skala * (dt * 60);
 
             s.jarak += geser / skala;
@@ -282,9 +395,13 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
             });
             s.rintangan = s.rintangan.filter((r) => r.x + r.w > -10);
 
-            const kakiPemain = 14 * skala;
-            const lebarPemain = 14 * skala;
-            const tinggiPemain = 22 * skala;
+            // Kotak tabrakan pemain, memakai konstanta yang SAMA dengan
+            // gambarnya. Dua set angka yang berbeda - satu untuk menggambar,
+            // satu untuk menabrak - berarti pemain yang terlihat lewat
+            // rintangan, atau terbentur di udara kosong.
+            const kakiPemain = KAKI_PEMAIN * skala;
+            const lebarPemain = PEMAIN_LEBAR * skala;
+            const tinggiPemain = PEMAIN_TINGGI * skala;
 
             for (const r of s.rintangan) {
                 if (

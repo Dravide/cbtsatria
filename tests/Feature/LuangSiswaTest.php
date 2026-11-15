@@ -280,6 +280,35 @@ it('menerima permainan singkat yang jujur - regresi kalibrasi 2026-11-15', funct
     expect(LeisureGameScore::query()->firstOrFail()->rejected_reason)->toBeNull();
 });
 
+it('menerima permainan panjang saat kecepatannya sudah mentok di pagar', function () {
+    $data = siapkanJeda($this);
+
+    // Sejak 2026-11-15 panggungnya mempercepat sampai `KECEPATAN_MAKS` 14
+    // per bingkai = 840 satuan/detik, dan menahannya di situ. Kiriman dari
+    // permainan panjang karena itu mendekati 840/s - angka ini diambil dari
+    // pagar itu sendiri, bukan dikarang.
+    //
+    // Tanpa `KECEPATAN_MAKS`, laju akan terus naik dan pada detik ke-60
+    // melewati 900 - artinya anak yang bermain PALING LAMA justru yang
+    // skornya ditolak. Tes ini menjaga pagar itu tetap di bawah batas server.
+    $jawab = masukUji($this, $data['siswa'][0])
+        ->postJson('/siswa/luang/skor', ['distance' => 84_000, 'duration_ms' => 100_000])
+        ->assertOk()
+        ->json();
+
+    expect($jawab['diterima'])->toBeTrue();
+
+    // Dan laju DI ATAS batas (900/s) ditolak - pagarnya harus benar-benar
+    // melewati, bukan menyentuh. `PenjagaSkorLuar` memakai `>`, jadi 900
+    // tepat masih lolos; 910 tidak.
+    $tepi = masukUji($this, $data['siswa'][0])
+        ->postJson('/siswa/luang/skor', ['distance' => 91_000, 'duration_ms' => 100_000])
+        ->assertOk()
+        ->json();
+
+    expect($tepi['diterima'])->toBeFalse();
+});
+
 it('menyimpan hasil hitung server, bukan angka yang dikirim peramban', function () {
     $data = siapkanJeda($this);
 
