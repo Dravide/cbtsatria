@@ -216,8 +216,8 @@ export const kelasInput =
 
 /* ------------------------------------------------- PilihCari (pilihan cari) */
 
-export type PilihanCari = {
-    id: number;
+export type PilihanCari<T extends string | number = number> = {
+    id: T;
     /** Teks yang dicari dan ditampilkan, mis. "MAT-10 Matematika". */
     label: string;
     /** Keterangan kanan yang ikut dicari, mis. kode mapelnya. */
@@ -246,13 +246,21 @@ export type PilihanCari = {
  * labelnya dirender sebagai teks terpisah dengan `aria-labelledby`.
  *
  * ---------------------------------------------------------------------
+ * Nilai KOSONG, untuk penyaring
+ * ---------------------------------------------------------------------
+ * `izinkanKosong` menambahkan satu baris "Semua …" yang mengembalikan nilai
+ * kosong. Tanpa itu, penyaring yang punya pilihan "semua kelas" harus tetap
+ * memakai `<select>` - dan satu laman yang memakai dua bentuk pemilih untuk
+ * dua isian yang bersebelahan terbaca sebagai dua sistem.
+ *
+ * ---------------------------------------------------------------------
  * Keyboard
  * ---------------------------------------------------------------------
  * Tombol membuka daftar; panah atas/bawah memindahkan sorotan; Enter memilih;
  * Escape menutup tanpa mengubah nilai. Fokus kembali ke tombol setelah
  * dipilih, sehingga pengguna keyboard tidak "jatuh" ke awal halaman.
  */
-export function PilihCari({
+export function PilihCari<T extends string | number = number>({
     label,
     galat,
     petunjuk,
@@ -262,16 +270,22 @@ export function PilihCari({
     disabled = false,
     kosong = 'Belum ada pilihan.',
     placeholder = 'Pilih…',
+    izinkanKosong = false,
+    labelKosong = 'Semua',
 }: {
     label: string;
     galat?: string;
     petunjuk?: string;
-    nilai: number;
-    pilihan: PilihanCari[];
-    padaPilih: (id: number) => void;
+    nilai: T | null;
+    pilihan: PilihanCari<T>[];
+    padaPilih: (id: T | null) => void;
     disabled?: boolean;
     kosong?: string;
     placeholder?: string;
+    /** Tampilkan baris "Semua …" yang mengembalikan `null`. */
+    izinkanKosong?: boolean;
+    /** Teks baris kosong itu, mis. "Semua kelas". */
+    labelKosong?: string;
 }) {
     const idDasar = `pilih-cari-${label.replace(/\W+/g, '-').toLowerCase()}`;
     const [terbuka, setTerbuka] = useState(false);
@@ -282,12 +296,31 @@ export function PilihCari({
     const inputCari = useRef<HTMLInputElement | null>(null);
     const tombol = useRef<HTMLButtonElement | null>(null);
 
+    // Baris "Semua …" ikut di daftar yang sama dengan pilihan lain, supaya
+    // sorotan keyboard dan Enter bekerja untuknya tanpa cabang tersendiri.
+    // Baris itu ditandai `kosongBaris: true`, dan itulah yang membuat
+    // `pilih()` mengembalikan `null`.
+    type Baris = { id: T | null; label: string; ket?: string | null; kosongBaris?: boolean };
+
     const terpilih = pilihan.find((p) => p.id === nilai) ?? null;
 
     const q = cari.trim().toLowerCase();
-    const tersaring = q === ''
+    const cocok = q === ''
         ? pilihan
         : pilihan.filter((p) => `${p.label} ${p.ket ?? ''}`.toLowerCase().includes(q));
+
+    // "Semua …" selalu di paling atas, dan hanya muncul bila kotak cari kosong
+    // atau teksnya memang cocok - menyembunyikannya saat mencari membuat Admin
+    // tidak bisa kembali ke "semua" tanpa menghapus ketikan.
+    const barisKosong: Baris[] =
+        izinkanKosong && (q === '' || labelKosong.toLowerCase().includes(q))
+            ? [{ id: null, label: labelKosong, kosongBaris: true }]
+            : [];
+
+    const tersaring: Baris[] = [
+        ...barisKosong,
+        ...cocok.map((p) => ({ ...p }) as Baris),
+    ];
 
     // Sorotan tidak boleh menunjuk baris yang sudah tidak ada setelah dicari.
     useEffect(() => {
@@ -328,8 +361,8 @@ export function PilihCari({
         setTerbuka(true);
     };
 
-    const pilih = (p: PilihanCari) => {
-        padaPilih(p.id);
+    const pilih = (p: Baris) => {
+        padaPilih(p.kosongBaris ? null : (p.id as T));
         setTerbuka(false);
         // Fokus dikembalikan ke tombol, bukan dibiarkan hilang bersama
         // daftar yang ditutup - pengguna keyboard harus tetap di isian ini.
@@ -419,7 +452,11 @@ export function PilihCari({
                             // cari, sehingga pembaca layar membacakan baris
                             // yang disorot tanpa memindahkan fokus.
                             aria-activedescendant={
-                                tersaring[sorot] ? `${idDasar}-opsi-${tersaring[sorot].id}` : undefined
+                                tersaring[sorot]
+                                    ? `${idDasar}-opsi-${
+                                          tersaring[sorot].kosongBaris ? 'kosong' : tersaring[sorot].id
+                                      }`
+                                    : undefined
                             }
                             className="w-full rounded-wf border border-line bg-surface px-2 py-1 text-sm text-ink outline-none placeholder:text-ink-3/70 focus:border-accent focus:ring-2 focus:ring-accent/15"
                         />
@@ -435,15 +472,19 @@ export function PilihCari({
                             <li className="px-2.5 py-2 text-xs text-ink-3">{kosong}</li>
                         ) : (
                             tersaring.map((p, i) => {
-                                const aktif = p.id === nilai;
+                                // Baris kosong punya `id` null, sehingga id
+                                // DOM-nya tidak boleh dibentuk dari nilainya -
+                                // dua baris akan menjadi "opsi-null" yang sama.
+                                const kunci = p.kosongBaris ? 'kosong' : String(p.id);
+                                const aktif = p.kosongBaris ? nilai === null : p.id === nilai;
                                 const disorot = i === sorot;
 
                                 return (
-                                    <li key={p.id} role="none">
+                                    <li key={kunci} role="none">
                                         <button
                                             type="button"
                                             role="option"
-                                            id={`${idDasar}-opsi-${p.id}`}
+                                            id={`${idDasar}-opsi-${kunci}`}
                                             aria-selected={aktif}
                                             // `onMouseDown` dan bukan `onClick`:
                                             // klik tombol di dalam dropdown

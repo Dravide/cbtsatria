@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Chip, Inbox, Tombol, kelasInput } from '@/Components/ui';
+import { Chip, Inbox, PilihCari, Tombol } from '@/Components/ui';
 import { formatUkuran } from '@/Components/angka';
 
 /**
@@ -224,40 +224,39 @@ export default function Laporan({
             </div>
 
             {/* ----------------------------------------------- Penyaring */}
+            {/* Kelas dan mapel bisa berjumlah puluhan, dan keduanya dulu
+                `<select>` polos yang memaksa menggulir. `PilihCari` menyaring
+                sambil mengetik, dengan baris "Semua …" yang mengembalikan
+                penyaring ke kosong - bentuk yang sama dengan isian mapel di
+                laman Jadwal. */}
             <div className="mb-3 flex flex-wrap items-end gap-2">
-                <label className="block">
-                    <span className="mb-1 block text-[11px] text-ink-3">Kelas</span>
-                    <select
-                        value={filter.kelas}
-                        onChange={(e) => atur('kelas', e.target.value)}
+                <div className="w-56">
+                    <PilihCari<string>
+                        label="Kelas"
+                        nilai={filter.kelas === '' ? null : filter.kelas}
+                        pilihan={pilihan_kelas.map((k) => ({ id: k.id, label: k.label }))}
+                        padaPilih={(id) => atur('kelas', id ?? '')}
                         disabled={pilihan_kelas.length === 0}
-                        className={kelasInput + ' max-w-[14rem]'}
-                    >
-                        <option value="">Semua kelas</option>
-                        {pilihan_kelas.map((k) => (
-                            <option key={k.id} value={k.id}>
-                                {k.label}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                        izinkanKosong
+                        labelKosong="Semua kelas"
+                        placeholder="Semua kelas"
+                        kosong="Tidak ada kelas yang cocok."
+                    />
+                </div>
 
-                <label className="block">
-                    <span className="mb-1 block text-[11px] text-ink-3">Mata pelajaran</span>
-                    <select
-                        value={filter.mapel}
-                        onChange={(e) => atur('mapel', e.target.value)}
+                <div className="w-56">
+                    <PilihCari<string>
+                        label="Mata pelajaran"
+                        nilai={filter.mapel === '' ? null : filter.mapel}
+                        pilihan={pilihan_mapel.map((m) => ({ id: m.id, label: m.label }))}
+                        padaPilih={(id) => atur('mapel', id ?? '')}
                         disabled={pilihan_mapel.length === 0}
-                        className={kelasInput + ' max-w-[14rem]'}
-                    >
-                        <option value="">Semua mapel</option>
-                        {pilihan_mapel.map((m) => (
-                            <option key={m.id} value={m.id}>
-                                {m.label}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                        izinkanKosong
+                        labelKosong="Semua mapel"
+                        placeholder="Semua mapel"
+                        kosong="Tidak ada mapel yang cocok."
+                    />
+                </div>
 
                 {(filter.kelas || filter.mapel) && (
                     <Tombol onClick={() => router.get('/admin/laporan', { jenis }, { replace: true })}>

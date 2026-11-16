@@ -231,6 +231,24 @@ class ExamJadwalController
                     ->map(fn ($id) => (int) $id)
                     ->values()
                     ->all(),
+
+                // Tingkat kelas sasaran - dipakai panel "Kelola ujian" untuk
+                // membedakan dua ujian mapel yang sama di tingkat berbeda.
+                //
+                // Tanpa ini, "MAT-10 Matematika" dan "MAT-11 Matematika" (atau
+                // dua ujian Matematika kelas X dan XI) tampil sebagai dua baris
+                // yang berbunyi sama persis, dan Admin yang memilih ujian saat
+                // menambah sesi bisa menempelkan sesi ke tingkat yang salah.
+                //
+                // Kosong berarti kelas sasarannya mencampur dua tingkat atau
+                // tidak ada sama sekali - dan itu memang bukan satu tingkat.
+                'tingkat' => ($kelasUjian->get($u->id) ?? collect())
+                    ->map(fn ($k) => $k->kelas?->grade_level)
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->all(),
                 'sesi' => (int) $u->sessions_count,
 
                 // Tidak ada `status` di sini sejak 2026-11-07. Kolomnya
@@ -830,7 +848,7 @@ class ExamJadwalController
 
         $kelas = ExamClass::query()
             ->whereIn('exam_id', $ujian->pluck('id'))
-            ->with('kelas:id,name')
+            ->with('kelas:id,name,grade_level')
             ->get()
             ->groupBy('exam_id');
 

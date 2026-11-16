@@ -81,6 +81,12 @@ type Ujian = {
     boleh_terlambat: boolean;
     /** Kelas sasaran yang sedang berlaku - untuk mencentang ulang panel ubah. */
     kelas_id: number[];
+    /**
+     * Tingkat kelas sasaran, mis. `["10"]`. Dipakai untuk membedakan dua
+     * ujian mapel yang sama di tingkat berbeda - tanpa ini, keduanya tampil
+     * sebagai baris yang berbunyi sama persis di "Kelola ujian".
+     */
+    tingkat: string[];
     /** Sudah punya paket soal yang dibekukan; mapelnya tidak boleh diganti lagi. */
     ada_paket: boolean;
     sesi: number;
@@ -376,6 +382,7 @@ export default function EventJadwal({
                         {ujian.map((u) => (
                             <option key={u.id} value={u.id}>
                                 {u.kode} · {u.mapel ?? u.judul}
+                                {u.tingkat.length > 0 ? ` · T${u.tingkat.join(',')}` : ''}
                             </option>
                         ))}
                     </select>
@@ -535,6 +542,21 @@ export default function EventJadwal({
                                 <li key={u.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
                                     <span className="font-mono text-xs text-ink-3">{u.kode}</span>
                                     <span className="text-ink">{u.mapel ?? u.judul}</span>
+                                    {/* Tingkat disebut TERPISAH dari nama mapel,
+                                        dan itu yang dibutuhkan saat memilih ujian
+                                        untuk sesi: dua ujian Matematika di kelas
+                                        X dan XI tampil sebagai baris yang sama
+                                        persis tanpa penanda ini, dan sesi bisa
+                                        tertempel ke tingkat yang salah. */}
+                                    {u.tingkat.length > 0 ? (
+                                        <span className="font-mono text-[11px] text-ink-2">
+                                            {u.tingkat.length === 1
+                                                ? `Tingkat ${u.tingkat[0]}`
+                                                : `Tingkat ${u.tingkat.join(', ')}`}
+                                        </span>
+                                    ) : (
+                                        <span className="text-[11px] text-ink-3">semua kelas</span>
+                                    )}
                                     <span className="ml-auto font-mono text-xs text-ink-3">
                                         {u.durasi} mnt
                                     </span>
@@ -1182,7 +1204,7 @@ function FormUjian({
                         label: `${m.kode ?? ''} ${m.nama ?? ''}`.trim(),
                         ket: m.kode,
                     }))}
-                    padaPilih={(id) => setIsi({ ...isi, subject_id: id })}
+                    padaPilih={(id) => setIsi({ ...isi, subject_id: id ?? isi.subject_id })}
                     disabled={mengubah && ujianAwal.ada_paket}
                     kosong="Tidak ada mata pelajaran yang cocok."
                 />
@@ -1591,25 +1613,38 @@ function FormSesi({
             )}
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Ujian">
-                    <select
-                        value={ujianId}
-                        onChange={(e) => setUjianId(Number(e.target.value))}
-                        disabled={mengubah}
-                        className={kelasInput}
-                        title={
-                            mengubah
-                                ? 'Ujian sesi tidak bisa dipindah; buat sesi baru bila perlu.'
-                                : undefined
+                {/* Pilihan ujian: inilah tempat sesi "tertukar tingkat".
+                    Dua ujian Matematika kelas X dan XI dulu tampil sebagai
+                    baris yang berbunyi sama persis ("UJ-2026-004 · Matematika"),
+                    dan Admin yang menyusun jadwal dua belas ujian memilih salah
+                    satunya tanpa cara membedakan. Tingkatnya kini ikut di label,
+                    dan daftarnya bisa dicari. */}
+                <PilihCari
+                    label="Ujian"
+                    nilai={ujianId}
+                    pilihan={ujian.map((u) => ({
+                        id: u.id,
+                        label: `${u.kode} · ${u.mapel ?? u.judul}`,
+                        ket:
+                            u.tingkat.length === 1
+                                ? `Tingkat ${u.tingkat[0]}`
+                                : u.tingkat.length > 1
+                                  ? `Tingkat ${u.tingkat.join(', ')}`
+                                  : 'semua kelas',
+                    }))}
+                    padaPilih={(id) => {
+                        if (id !== null) {
+                            setUjianId(id);
                         }
-                    >
-                        {ujian.map((u) => (
-                            <option key={u.id} value={u.id}>
-                                {u.kode} · {u.mapel ?? u.judul}
-                            </option>
-                        ))}
-                    </select>
-                </Field>
+                    }}
+                    disabled={mengubah}
+                    petunjuk={
+                        mengubah
+                            ? 'Ujian sesi tidak bisa dipindah; buat sesi baru bila perlu.'
+                            : undefined
+                    }
+                    kosong="Tidak ada ujian yang cocok."
+                />
 
                 {/* Tiga waktu, dan masing-masing menjawab pertanyaan berbeda.
                     Menyatukannya menghilangkan tepat perbedaan yang membuat

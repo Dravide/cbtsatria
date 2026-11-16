@@ -1505,6 +1505,61 @@ it('mengirim nilai ujian untuk panel ubah', function () {
         );
 });
 
+it('mengirim tingkat kelas sasaran pada setiap ujian, supaya tingkat tidak tertukar', function () {
+    // Regresi 2026-11-16. Dua ujian Matematika di kelas X dan XI dulu tampil
+    // sebagai baris yang berbunyi sama persis di "Kelola ujian" DAN di pilihan
+    // ujian form Tambah sesi: "UJ-2026-004 · Matematika". Admin yang menyusun
+    // jadwal memilih salah satunya tanpa cara membedakan, dan sesi tertempel
+    // ke tingkat yang salah - baru ketahuan saat siswa berdiri di depan ruang
+    // ujian yang bukan tingkatnya.
+    //
+    // Yang dikirim adalah DAFTAR tingkat: satu kelas sasaran menghasilkan satu
+    // nilai, dan kelas yang mencampur dua tingkat menghasilkan dua - jangan
+    // disamarkan menjadi satu tebakan.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $kelas = SchoolClass::query()
+        ->where('id', $this->event->classes()->pluck('class_id'))
+        ->firstOrFail();
+
+    $kelas->forceFill(['grade_level' => '10'])->save();
+
+    app(ExamRegistrar::class)->perbarui($data['ujian'], [
+        'title' => $data['ujian']->title,
+        'duration_minutes' => 90,
+        'class_id' => [$kelas->id],
+    ]);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->where('ujian.0.tingkat', ['10'])
+        );
+});
+
+it('mengirim tingkat kosong bila kelas sasarannya mencampur dua tingkat', function () {
+    // Ujian tanpa kelas sasaran berlaku untuk seluruh peserta event, dan itu
+    // bukan "satu tingkat". Menebak satu nilai di sini akan menempelkan label
+    // tingkat pada ujian yang tidak memilikinya.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    app(ExamRegistrar::class)->perbarui($data['ujian'], [
+        'title' => $data['ujian']->title,
+        'duration_minutes' => 90,
+        'class_id' => [],
+    ]);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->where('ujian.0.tingkat', [])
+        );
+});
+
 it('menolak mapel yang tidak ditetapkan di event ini saat ujian diubah', function () {
     $data = jadwalkan($this->event, $this->mapel, $this->admin);
 
