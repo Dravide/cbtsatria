@@ -6,6 +6,7 @@ use App\Domain\Attendance\Contracts\PembersihRuangSesi;
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventRoom;
 use App\Domain\Event\Services\EventStatusService;
+use App\Domain\Exam\Enums\JenisSesi;
 use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamParticipant;
@@ -68,6 +69,7 @@ class SesiService
                 'school_id' => $ujian->school_id,
                 'exam_id' => $ujian->id,
                 'session_number' => $data['session_number'] ?? $this->nomorBerikutnya($ujian),
+                'jenis' => $data['jenis'] ?? JenisSesi::Utama->value,
                 'access_opens_at' => $data['access_opens_at'],
                 'access_closes_at' => $data['access_closes_at'],
                 'hard_end_at' => $data['hard_end_at'],

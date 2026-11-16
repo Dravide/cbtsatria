@@ -404,6 +404,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::delete('/events/{event}/ujian/{ujian}', [ExamJadwalController::class, 'hapusUjian'])->name('events.ujian.hapus');
 
     Route::post('/events/{event}/ujian/{ujian}/sesi', [ExamJadwalController::class, 'simpanSesi'])->name('events.sesi.store');
+    // Sesi susulan: gelombang pengganti pada ujian yang SAMA. Didaftarkan
+    // sebelum `{sesi}` agar segmen statis `susulan` tidak dicoba sebagai id
+    // sesi - pola yang sama dengan blok ruang.
+    Route::post('/events/{event}/ujian/{ujian}/sesi/susulan', [ExamJadwalController::class, 'simpanSesiSusulan'])->name('events.sesi.susulan');
     Route::put('/events/{event}/ujian/{ujian}/sesi/{sesi}', [ExamJadwalController::class, 'ubahSesi'])->name('events.sesi.update');
     // Graf StatusSesi mewajibkan Draft -> Siap -> Berjalan, dan sampai
     // 2026-11-07 tidak ada satu pun rute yang bisa memindahkan sesi ke
@@ -419,6 +423,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // rute ini satu sesi yang batal terselenggara tidak punya jalan keluar
     // sama sekali. Lihat `SesiService::batalkan()`.
     Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/batal', [ExamJadwalController::class, 'batalSesi'])->name('events.sesi.batal');
+    // Pindahkan peserta terpilih ke sesi susulan - reset presensi berlog.
+    Route::post('/events/{event}/ujian/{ujian}/sesi/{sesi}/pindah-susulan', [ExamJadwalController::class, 'pindahSusulan'])->name('events.sesi.pindah-susulan');
     Route::delete('/events/{event}/ujian/{ujian}/sesi/{sesi}', [ExamJadwalController::class, 'hapusSesi'])->name('events.sesi.hapus');
 
     // 16b - penempatan peserta ke ruang (wireframe plate 16b, PRD §9.5).

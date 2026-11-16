@@ -12,6 +12,7 @@ use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Services\ExamRegistrar;
+use App\Domain\Exam\Services\ExamSusulanService;
 use App\Domain\Exam\Services\KonflikJadwal;
 use App\Domain\Exam\Services\PenempatanService;
 use App\Domain\Exam\Services\SesiService;
@@ -66,7 +67,7 @@ use Inertia\Response;
  */
 class ExamJadwalController
 {
-    public function index(SchoolEvent $event, KonflikJadwal $konflik, PenempatanService $penempatan): Response
+    public function index(SchoolEvent $event, KonflikJadwal $konflik, PenempatanService $penempatan, ExamSusulanService $susulan): Response
     {
         Gate::authorize('view', $event);
 
@@ -151,6 +152,11 @@ class ExamJadwalController
                 'peserta' => (int) ($terisi[$s->id] ?? 0),
                 'status' => $s->status->value,
                 'status_label' => $s->status->label(),
+
+                // Jenis sesi: utama atau susulan. Chip "susulan" di baris
+                // membaca ini - lihat `ExamSession::susulan()`.
+                'jenis' => $s->jenis?->value ?? 'utama',
+                'susulan' => $s->susulan(),
 
                 // Pembatalan membawa KAPAN dan MENGAPA di barisnya sendiri.
                 // `status` hanya menjawab "batal"; sesi yang hilang dari
@@ -269,6 +275,13 @@ class ExamJadwalController
                 ])
                 ->filter(fn (array $m) => $m['id'] !== null)
                 ->values()
+                ->all(),
+
+            // Kandidat peserta susulan, per ujian: siswa yang presensi sesi
+            // utamanya sudah diverifikasi `tidak_hadir`/`izin`. Dibaca panel
+            // "Daftarkan peserta susulan" - lihat `PemindahKeSusulan`.
+            'susulan_kandidat' => $ujian
+                ->mapWithKeys(fn (Exam $u) => [$u->id => $susulan->kandidat($u)])
                 ->all(),
 
             'angka' => [
@@ -491,6 +504,77 @@ class ExamJadwalController
         ]);
 
         return back()->with('sukses', "Sesi {$sesi->label()} pada {$ujian->code} dibuat.");
+    }
+
+    /**
+     * Buat sesi susulan pada satu ujian.
+     *
+     * Formnya sama dengan "Tambah sesi" (tiga waktu + ruang); yang berbeda
+     * hanya `jenis = susulan` yang disetel di service. Ditolak bila eventnya
+     * sudah final - lihat `ExamSusulanService::buatSesi()`.
+     */
+    public function simpanSesiSusulan(
+        Request $request,
+        SchoolEvent $event,
+        Exam $ujian,
+        ExamSusulanService $susulan,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('create', Exam::class);
+        $this->pastikanMilikEvent($ujian->event_id, $event);
+
+        try {
+            $sesi = $susulan->buatSesi($ujian, $this->validasiSesi($request));
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $logger->log('Membuat sesi susulan', $event, [
+            'ujian' => $ujian->code,
+            'sesi' => $sesi->label(),
+        ]);
+
+        return back()->with('sukses', "Sesi susulan {$sesi->label()} pada {$ujian->code} dibuat.");
+    }
+
+    /**
+     * Pindahkan peserta terpilih ke sesi susulan.
+     *
+     * Alasan wajib: pemindahan MERESET presensi yang sudah diverifikasi
+     * (koreksi administratif, PRD §10.7), dan koreksi tanpa alasan adalah
+     * catatan yang tidak bisa dipertanggungjawabkan.
+     */
+    public function pindahSusulan(
+        Request $request,
+        SchoolEvent $event,
+        Exam $ujian,
+        ExamSession $sesi,
+        ExamSusulanService $susulan,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $sesi);
+        $this->pastikanMilikEvent($ujian->event_id, $event);
+        $this->pastikanSesiMilikUjian($sesi->exam_id, $ujian);
+
+        $data = $request->validate([
+            'peserta' => ['required', 'array'],
+            'peserta.*' => ['integer'],
+            'alasan' => ['required', 'string', 'max:200'],
+        ]);
+
+        try {
+            $jumlah = $susulan->pindahkan($ujian, $sesi, $data['peserta'], $data['alasan']);
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $logger->log('Memindahkan peserta ke sesi susulan', $event, [
+            'ujian' => $ujian->code,
+            'sesi' => $sesi->label(),
+            'jumlah' => $jumlah,
+        ]);
+
+        return back()->with('sukses', "{$jumlah} peserta dipindahkan ke sesi susulan {$sesi->label()}.");
     }
 
     public function ubahSesi(

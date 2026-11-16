@@ -49,6 +49,9 @@ type Baris = {
     peserta: number;
     status: string;
     status_label: string;
+    /** `utama` atau `susulan` - lihat ExamSession::susulan(). */
+    jenis: string;
+    susulan: boolean;
     /** Kapan sesi dibatalkan, bila memang dibatalkan. */
     dibatalkan_pada: string | null;
     alasan_batal: string | null;
@@ -99,6 +102,18 @@ type Props = {
     ruang: { id: number; kode: string | null; nama: string | null; kapasitas: number; status: string }[];
     kelas: { id: number; nama: string; tingkat: string | null }[];
     mapel: { id: number; kode: string | null; nama: string | null }[];
+    /** Kandidat peserta susulan per ujian: siswa yang alpa/izin di sesi utama. */
+    susulan_kandidat: Record<
+        number,
+        {
+            peserta_id: number;
+            nis: string | null;
+            nama: string;
+            kelas: string | null;
+            status: string;
+            status_label: string;
+        }[]
+    >;
     angka: { ujian: number; sesi: number; konflik: number; belum_ditempatkan: number };
 };
 
@@ -111,14 +126,18 @@ export default function EventJadwal({
     ruang,
     kelas,
     mapel,
+    susulan_kandidat,
     angka,
 }: Props) {
     const [panelUjian, setPanelUjian] = useState(false);
     const [panelSesi, setPanelSesi] = useState(false);
+    const [panelSusulan, setPanelSusulan] = useState(false);
     const [pesanUjian, setPesanUjian] = useState<string | null>(null);
 
     const [ujianDiubah, setUjianDiubah] = useState<Ujian | null>(null);
     const [sesiDiubah, setSesiDiubah] = useState<Baris | null>(null);
+    // Baris sesi susulan yang panel "Daftarkan peserta susulan"-nya dibuka.
+    const [susulanDiisi, setSusulanDiisi] = useState<Baris | null>(null);
 
     // Penyaring tabel. Sebelumnya tidak ada satu pun, sehingga event dengan
     // enam ujian menampilkan seluruh sesinya sekaligus dan Admin menggulir
@@ -189,6 +208,18 @@ export default function EventJadwal({
                         onClick={() => setPanelSesi(true)}
                     >
                         Tambah sesi
+                    </Tombol>
+
+                    <Tombol
+                        disabled={ujian.length === 0}
+                        title={
+                            ujian.length === 0
+                                ? 'Buat ujian terlebih dahulu - sesi susulan menempel pada ujian.'
+                                : 'Gelombang pengganti pada ujian yang sama, di tanggal terpisah'
+                        }
+                        onClick={() => setPanelSusulan(true)}
+                    >
+                        Tambah sesi susulan
                     </Tombol>
                 </>
             }
@@ -276,6 +307,29 @@ export default function EventJadwal({
                         ujian={ujian}
                         ruang={ruang}
                         padaTutup={() => setPanelSesi(false)}
+                    />
+                </div>
+            )}
+
+            {panelSusulan && (
+                <div className="mt-4">
+                    <FormSesi
+                        jalur={jalur}
+                        ujian={ujian}
+                        ruang={ruang}
+                        susulan
+                        padaTutup={() => setPanelSusulan(false)}
+                    />
+                </div>
+            )}
+
+            {susulanDiisi && (
+                <div className="mt-4">
+                    <PanelSusulan
+                        jalur={jalur}
+                        baris={susulanDiisi}
+                        kandidat={susulan_kandidat[susulanDiisi.ujian_id] ?? []}
+                        padaTutup={() => setSusulanDiisi(null)}
                     />
                 </div>
             )}
@@ -434,6 +488,7 @@ export default function EventJadwal({
                                                 setTerbuka(terbuka === b.id ? null : b.id)
                                             }
                                             padaUbah={setSesiDiubah}
+                                            padaSusulan={setSusulanDiisi}
                                         />
                                     ))}
                                 </tbody>
@@ -611,12 +666,14 @@ function BarisSesi({
     terbuka,
     padaBuka,
     padaUbah,
+    padaSusulan,
 }: {
     jalur: string;
     baris: Baris;
     terbuka: boolean;
     padaBuka: () => void;
     padaUbah: (baris: Baris) => void;
+    padaSusulan: (baris: Baris) => void;
 }) {
     // Sesi yang sudah Selesai atau Batal bersifat final: jendela dan ruangnya
     // tidak bisa diubah lagi, karena peserta mungkin sudah mengerjakan.
@@ -631,6 +688,11 @@ function BarisSesi({
                     </span>
                     {/·\s*semua kelas$/.test(baris.ujian) && (
                         <span className="ml-1.5 text-[11px] text-ink-3">semua kelas</span>
+                    )}
+                    {baris.susulan && (
+                        <span className="ml-1.5">
+                            <Chip nada="info">susulan</Chip>
+                        </span>
                     )}
                 </td>
 
@@ -678,6 +740,7 @@ function BarisSesi({
                             terbuka={terbuka}
                             padaBuka={padaBuka}
                             padaUbah={padaUbah}
+                            padaSusulan={padaSusulan}
                         />
                     </div>
                 </td>
@@ -784,6 +847,7 @@ function AksiLainnya({
     terbuka,
     padaBuka,
     padaUbah,
+    padaSusulan,
 }: {
     jalur: string;
     baris: Baris;
@@ -791,6 +855,7 @@ function AksiLainnya({
     terbuka: boolean;
     padaBuka: () => void;
     padaUbah: (baris: Baris) => void;
+    padaSusulan: (baris: Baris) => void;
 }) {
     return (
         <details className="relative">
@@ -822,6 +887,17 @@ function AksiLainnya({
                 >
                     Ubah jendela &amp; ruang
                 </button>
+
+                {baris.susulan && (
+                    <button
+                        type="button"
+                        disabled={final}
+                        onClick={() => padaSusulan(baris)}
+                        className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink-3/50"
+                    >
+                        Daftarkan peserta susulan
+                    </button>
+                )}
 
                 {!final && (
                     <button
@@ -1261,11 +1337,139 @@ function Sakelar({
 
 /* ---------------------------------------------------------------- Panel sesi */
 
+function PanelSusulan({
+    jalur,
+    baris,
+    kandidat,
+    padaTutup,
+}: {
+    jalur: string;
+    baris: Baris;
+    kandidat: Props['susulan_kandidat'][number];
+    padaTutup: () => void;
+}) {
+    const [pilih, setPilih] = useState<number[]>([]);
+    const [alasan, setAlasan] = useState('');
+    const [galat, setGalat] = useState<string | null>(null);
+
+    const simpan = () => {
+        setGalat(null);
+
+        router.post(
+            `${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/pindah-susulan`,
+            { peserta: pilih, alasan },
+            {
+                preserveScroll: true,
+                onSuccess: () => padaTutup(),
+                onError: (e: Record<string, string>) =>
+                    setGalat(Object.values(e)[0] ?? 'Peserta tidak bisa dipindahkan.'),
+            },
+        );
+    };
+
+    return (
+        <Kotak
+            judul={`Daftarkan peserta susulan · ${baris.label}`}
+            aksi={
+                <>
+                    <Tombol nada="sek" onClick={padaTutup}>
+                        Batal
+                    </Tombol>
+                    <Tombol
+                        nada="pri"
+                        disabled={pilih.length === 0 || alasan.trim() === ''}
+                        title={
+                            alasan.trim() === ''
+                                ? 'Alasan wajib: pemindahan mereset presensi yang sudah diverifikasi.'
+                                : undefined
+                        }
+                        onClick={simpan}
+                    >
+                        Pindahkan {pilih.length} peserta
+                    </Tombol>
+                </>
+            }
+        >
+            {galat && (
+                <div className="mb-3">
+                    <Peringatan>{galat}</Peringatan>
+                </div>
+            )}
+
+            {kandidat.length === 0 ? (
+                <p className="text-sm text-ink-3">
+                    Tidak ada siswa yang ditandai tidak hadir atau izin di sesi utama ujian ini.
+                    Sesi susulan hanya untuk siswa yang sudah dipresensi alpa di sesi utama.
+                </p>
+            ) : (
+                <>
+                    <p className="mb-2 text-xs text-ink-2">
+                        Siswa yang tidak hadir di sesi utama. Memindahkan mereka mengoreksi
+                        presensinya ke <strong>pending</strong> (tercatat di log), dan nilai yang
+                        sudah ada tidak berubah.
+                    </p>
+                    <div className="overflow-hidden rounded-wf border border-line">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-line bg-surface-2/50 text-left text-[11px] text-ink-3">
+                                    <th className="w-8 px-3 py-2"></th>
+                                    <th className="px-3 py-2">NIS</th>
+                                    <th className="px-3 py-2">Nama</th>
+                                    <th className="px-3 py-2">Kelas</th>
+                                    <th className="px-3 py-2">Presensi sesi utama</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {kandidat.map((k) => (
+                                    <tr key={k.peserta_id} className="border-b border-line last:border-0">
+                                        <td className="px-3 py-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={pilih.includes(k.peserta_id)}
+                                                onChange={(e) =>
+                                                    setPilih(
+                                                        e.target.checked
+                                                            ? [...pilih, k.peserta_id]
+                                                            : pilih.filter((x) => x !== k.peserta_id),
+                                                    )
+                                                }
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2 font-mono text-xs text-ink-2">{k.nis ?? '—'}</td>
+                                        <td className="px-3 py-2 text-ink">{k.nama}</td>
+                                        <td className="px-3 py-2 text-xs text-ink-2">{k.kelas ?? '—'}</td>
+                                        <td className="px-3 py-2">
+                                            <Chip nada="warn">{k.status_label}</Chip>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-3">
+                        <Field label="Alasan pemindahan" petunjuk="Masuk ke log presensi (wajib)">
+                            <input
+                                value={alasan}
+                                onChange={(e) => setAlasan(e.target.value)}
+                                placeholder="mis. Sakit, mengikuti lomba"
+                                maxLength={200}
+                                className={kelasInput}
+                            />
+                        </Field>
+                    </div>
+                </>
+            )}
+        </Kotak>
+    );
+}
+
 function FormSesi({
     jalur,
     ujian,
     ruang,
     sesiAwal,
+    susulan = false,
     padaTutup,
     padaGalat,
 }: {
@@ -1279,6 +1483,8 @@ function FormSesi({
      * "jadwalnya hilang".
      */
     sesiAwal?: Baris;
+    /** Mode tambah sesi SUSULAN: kirim ke rute susulan, pilih ujian induknya. */
+    susulan?: boolean;
     padaTutup: () => void;
     padaGalat?: (pesan: string | null) => void;
 }) {
@@ -1328,12 +1534,18 @@ function FormSesi({
             return;
         }
 
+        if (susulan) {
+            router.post(`${jalur}/ujian/${ujianId}/sesi/susulan`, isi, opsi);
+
+            return;
+        }
+
         router.post(`${jalur}/ujian/${ujianId}/sesi`, isi, opsi);
     };
 
     return (
         <Kotak
-            judul={mengubah ? `Ubah ${sesiAwal.label}` : 'Tambah sesi'}
+            judul={mengubah ? `Ubah ${sesiAwal.label}` : susulan ? 'Tambah sesi susulan' : 'Tambah sesi'}
             aksi={
                 <>
                     <Tombol nada="sek" onClick={padaTutup}>

@@ -1,0 +1,794 @@
+<title>Ujian Susulan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* ============================================================
+   Ujian susulan — rancangan teknis + wireframe
+   Token, primitif .wf/.wd, dan rangka disalin dari
+   wireframe-admin.html dan wireframe-peran.html supaya berkas
+   ini terbaca sebagai satu sistem dengan keduanya.
+   Yang baru di sini hanya komponen DOKUMEN: .sec, .opt, .traps,
+   .steps, .callout, pre.code.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-in{max-width:1180px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 18px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2.05rem}
+.head .lede{color:var(--ink-2);max-width:76ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+/* ---------- seksi dokumen ---------- */
+.sec{margin-top:34px;display:grid;gap:16px}
+.sec > header{display:grid;gap:6px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.sec > header h2{font-size:1.32rem;display:flex;gap:10px;align-items:baseline}
+.sec > header em{font-style:normal;font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:.08em}
+.sec > header p{color:var(--ink-2);font-size:13.5px;max-width:78ch}
+.prose{display:grid;gap:11px;max-width:82ch;color:var(--ink-2);font-size:14px}
+.prose strong{color:var(--ink);font-weight:600}
+.prose ul{margin:0;padding-left:20px;display:grid;gap:5px}
+.prose li::marker{color:var(--accent)}
+.prose .lead{color:var(--ink)}
+
+/* ---------- kartu dua model ---------- */
+.opt-grid{display:grid;gap:14px;grid-template-columns:1fr}
+@media (min-width:720px){.opt-grid{grid-template-columns:1fr 1fr}}
+.opt{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:14px 15px;display:grid;gap:9px;align-content:start}
+.opt.pick{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));box-shadow:0 0 0 1px var(--accent-soft) inset}
+.opt .oh{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.opt .oh h3{font-size:1rem}
+.opt .oh .badge{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-3)}
+.opt.pick .oh .badge{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.opt p{font-size:13px;color:var(--ink-2)}
+.opt .plus,.opt .minus{display:grid;gap:3px;font-size:12.5px;color:var(--ink-2)}
+.opt .plus b{color:var(--ok)} .opt .minus b{color:var(--bad)}
+.opt .plus div,.opt .minus div{display:grid;grid-template-columns:16px 1fr;gap:6px}
+.opt .plus b::before{content:"+"} .opt .minus b::before{content:"\\2212"}
+
+/* ---------- tabel pembanding ---------- */
+.cmp{width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.cmp th,.cmp td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp thead th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.cmp tbody tr:last-child td{border-bottom:0}
+.cmp td:first-child{color:var(--ink);font-weight:500;white-space:nowrap}
+.cmp .yes{color:var(--ok);font-weight:600}
+.cmp .no{color:var(--bad)}
+.cmp .mid{color:var(--warn)}
+
+/* ---------- langkah bernomor (urutan nyata) ---------- */
+.steps{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.step .num{font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--accent);background:var(--surface-2);display:grid;place-items:center;border-right:1px solid var(--line)}
+.step .cnt{padding:11px 14px;display:grid;gap:4px}
+.step .cnt b{font-family:var(--font-display);font-size:14px}
+.step .cnt p{font-size:13px;color:var(--ink-2)}
+.step .cnt .who{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- callout / inbox dokumen ---------- */
+.callout{border-left:3px solid var(--info);background:var(--info-bg);color:var(--ink-2);padding:11px 14px;border-radius:0 var(--r) var(--r) 0;display:grid;gap:5px;font-size:13.5px}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-bg)}
+.callout.bad{border-left-color:var(--bad);background:var(--bad-bg)}
+.callout.ok{border-left-color:var(--ok);background:var(--ok-bg)}
+.callout b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+
+/* ---------- daftar jebakan ---------- */
+.traps{display:grid;gap:12px}
+.trap{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);display:grid;grid-template-columns:minmax(0,1fr);overflow:hidden}
+@media (min-width:720px){.trap{grid-template-columns:220px minmax(0,1fr)}}
+.trap .t-l{background:var(--surface-2);padding:12px 14px;display:grid;gap:5px;align-content:start;border-bottom:1px solid var(--line)}
+@media (min-width:720px){.trap .t-l{border-bottom:0;border-right:1px solid var(--line)}}
+.trap .t-l .no{font-family:var(--font-mono);font-size:11px;color:var(--bad);letter-spacing:.06em}
+.trap .t-l b{font-family:var(--font-display);font-size:13.5px;line-height:1.25}
+.trap .t-r{padding:12px 14px;display:grid;gap:7px;font-size:13px;color:var(--ink-2)}
+.trap .t-r .fix{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:baseline}
+.trap .t-r .fix .k{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+.trap .t-r code{font-size:12px}
+
+/* ---------- kode ---------- */
+pre.code{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;overflow-x:auto;font-family:var(--font-mono);font-size:12px;line-height:1.55;color:var(--ink)}
+pre.code .cm{color:var(--ink-3)}
+pre.code .kw{color:var(--accent);font-weight:500}
+pre.code .st{color:var(--ok)}
+.code-cap{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- wireframe primitives (dari wireframe-admin) ---------- */
+.wf{position:relative;background:var(--wf-bg);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);color:var(--wf-ink);font-size:10px;line-height:1.35;overflow:hidden;min-width:0}
+.wf.lg{font-size:11.5px}
+.chrome{display:flex;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:6px;height:6px;border-radius:99px;background:var(--wf-dash);flex:none}
+.chrome .url{font-family:var(--font-mono);font-size:9px;color:var(--wf-dim);margin-left:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.chrome .who{margin-left:auto;font-size:9px;color:var(--wf-dim);white-space:nowrap}
+.grid2{display:grid;grid-template-columns:46px minmax(0,1fr);min-height:0}
+.wf.lg .grid2{grid-template-columns:132px minmax(0,1fr)}
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:8px 6px;display:grid;gap:3px;align-content:start;min-width:0}
+.rail .mark{width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);font:700 9px/16px var(--font-display);text-align:center;margin:0 auto 6px}
+.ni{display:flex;gap:6px;align-items:center;padding:4px 5px;border-radius:4px;font-size:9px;color:var(--wf-dim);min-width:0}
+.ni i{width:8px;height:8px;border-radius:2px;background:var(--wf-line);flex:none}
+.ni span{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf.lg .ni{font-size:11px;padding:5px 7px}
+.wf.lg .ni span{display:block}
+.ni.on{background:var(--wf-bg);color:var(--wf-ink);box-shadow:inset 2px 0 0 var(--accent)}
+.ni.on i{background:var(--accent)}
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.sel.ev{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.sp{margin-left:auto}
+.body{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sub{font-size:9px;color:var(--wf-dim)}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.tr{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.tr:last-child{border-bottom:0}
+.tr.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.tr .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.tr .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.chip.vio{background:color-mix(in srgb,var(--accent) 12%,var(--wf-bg));color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.off{opacity:.5}
+.field{display:grid;gap:3px}
+.field .lb{font-size:9px;color:var(--wf-dim)}
+.input{height:16px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-bg)}
+.input.ta{height:34px}
+.check{display:flex;gap:5px;align-items:center;font-size:9px;color:var(--wf-ink)}
+.check i{width:9px;height:9px;border:1px solid var(--wf-dash);border-radius:2px;flex:none}
+.check i.f{background:var(--accent);border-color:var(--accent)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--wf-hair);flex-wrap:wrap}
+.tab{font-size:9px;padding:4px 8px;color:var(--wf-dim);border-bottom:2px solid transparent}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.inbox.ok{border-left-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+
+/* ---------- rangka ponsel (dari wireframe-peran) ---------- */
+.wd{position:relative;width:248px;max-width:100%;height:auto;min-height:320px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--wf-bg);box-shadow:var(--shadow);color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;font-size:9.5px;line-height:1.35;min-width:0}
+.wd .notch{position:relative;height:15px;background:var(--wf-head);border-bottom:1px solid var(--wf-hair)}
+.wd .notch::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:4px;width:46px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wd .scr{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
+.wd .hd{display:flex;gap:6px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);min-width:0;flex-wrap:wrap}
+.wd .hd .crumb{font-size:9px;color:var(--wf-dim)}
+.wd .hd b{font-family:var(--font-display);font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd .hd .sp{margin-left:auto}
+.wd .bd{padding:8px;display:grid;gap:7px;align-content:start;overflow:hidden;min-width:0}
+.wd .tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--wf-hair);background:var(--wf-head)}
+.wd .tabbar span{font:500 7.5px/1 var(--font-mono);color:var(--wf-dim);text-align:center;padding:8px 2px 9px;min-width:0;overflow:hidden;white-space:nowrap}
+.wd .tabbar span.on{color:var(--accent);box-shadow:inset 0 2px 0 var(--accent)}
+.wd .home{height:17px;background:var(--wf-head);display:grid;place-items:center}
+.wd .home::after{content:"";width:56px;height:4px;border-radius:99px;background:var(--wf-line)}
+.wd .sub{font-size:8.5px;color:var(--wf-dim)}
+.wd .sel,.wd .btn,.wd .chip{font-size:8px;padding:2px 5px}
+.wd .btn.big{font-size:11px;padding:6px 12px}
+.wd .card{border:1px solid var(--wf-hair);border-radius:8px;background:var(--wf-bg);padding:7px;display:grid;gap:5px;min-width:0}
+.wd .list{border:1px solid var(--wf-hair);border-radius:8px;overflow:hidden;min-width:0}
+.wd .lrow{display:grid;gap:6px;align-items:center;padding:6px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.wd .lrow:last-child{border-bottom:0}
+.wd .lrow.th{background:var(--wf-head);font:500 7.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim);padding:5px 7px}
+.wd .lrow .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:8.5px}
+
+/* ---------- galeri shot ---------- */
+.shots{display:grid;gap:22px;grid-template-columns:1fr}
+@media (min-width:760px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.shots.phones{grid-template-columns:1fr}
+@media (min-width:560px){.shots.phones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1000px){.shots.phones{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.shot{display:grid;gap:9px;min-width:0;align-content:start;margin:0}
+.shot.wide{grid-column:1/-1}
+.cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cap .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.08em}
+.cap h3{font-size:.95rem}
+.cap .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;font-size:13px;color:var(--ink-2);line-height:1.6}
+.note > * + *{margin-top:5px}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13px}
+
+/* ---------- diagram svg ---------- */
+figure.diagram{margin:0;display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 14px}
+figure.diagram svg{width:100%;height:auto;display:block;color:var(--ink)}
+figure.diagram figcaption{font-size:12.5px;color:var(--ink-2);max-width:80ch}
+figure.diagram .dg-legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+figure.diagram .dg-legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+
+footer{border-top:1px solid var(--line);margin-top:34px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ ujian susulan</span></div>
+    <div class="r">
+      <span>rancangan teknis · 6 laman</span><span>role: Admin · Pengawas · Siswa</span><span>draft 2026-11-15</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Rancangan teknis + wireframe</div>
+    <h1>Ujian susulan untuk siswa yang tidak ikut</h1>
+    <p class="lede">Satu siswa melewatkan satu ujian — sakit, izin, atau ruangnya bentrok. Ia harus tetap bisa mengerjakan, tetapi tanggalnya <b>terpisah</b> dari pelaksanaan utama, tanpa mengacaukan presensi, penempatan, nilai, maupun publikasi hasil yang sudah berjalan. Halaman ini menetapkan model datanya, alur enam langkahnya, enam jebakan yang sudah ada di kode hari ini, dan wireframe laman-lamannya.</p>
+    <div class="scope">
+      <span class="tag">tanpa kolom baru di exam_sessions</span>
+      <span class="tag">satu ujian susulan per siswa</span>
+      <span class="tag">tanggal terpisah</span>
+      <span class="tag">presensi &amp; token sendiri</span>
+      <span class="tag">nilai &amp; laporan tetap utuh</span>
+    </div>
+  </div>
+
+  <!-- ============================ A. KEPUTUSAN INTI ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>A</em> Keputusan inti: sesi baru pada ujian yang sama</h2>
+      <p>Pertanyaan pertama bukan "bagaimana membuat laman", melainkan "apa yang lahir saat susulan dibuat". Satu jawaban yang salah di sini membuat presensi, penempatan, nilai, dan publikasi saling bertabrakan di hari-H.</p>
+    </header>
+    <div class="prose">
+      <p class="lead">Ujian susulan adalah <strong>gelombang kedua dari ujian yang sama</strong> — bukan ujian baru, bukan pula pengulangan attempt. Siswa yang tidak hadir di sesi utama tetap memegang satu baris <code>exam_participants</code> untuk ujian itu; yang berpindah hanyalah <code>exam_session_id</code>-nya, ke sesi susulan yang tanggalnya terpisah.</p>
+      <p>Karena itu model yang dipilih adalah: <strong>satu baris baru di <code>exam_sessions</code></strong> dengan penanda <code>jenis = susulan</code>, pada <code>exam_id</code> yang sama, dengan jendela waktu di tanggal susulan. Sesi itu mendapat ruang, pengawas, dan token sendiri — semuanya sudah didukung hari ini karena token dan penugasan memang menempel pada sesi, bukan pada ujian.</p>
+    </div>
+    <div class="callout ok">
+      <b>Mengapa bukan ujian baru</b>
+      <p>Nilai, analisis butir, laporan, dan publikasi semuanya berkunci pada <code>exam_id</code> dan <code>event_id</code>. Ujian baru untuk mapel yang sama akan memunculkan dua baris "Matematika" di plate 21 dan dua baris di laman nilai siswa, lalu menuntut penggabungan di setiap laporan. Sesi baru pada ujian yang sama menjaga satu baris per mapel tanpa satu pun kode penggabungan.</p>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 900 340" role="img" aria-label="Satu ujian dengan dua sesi: sesi utama 2 November dan sesi susulan 16 November; seorang siswa dipindahkan dari sesi utama ke sesi susulan, presensinya direset, dan nilainya masuk ke ujian yang sama.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+          <marker id="arAcc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+          </marker>
+        </defs>
+
+        <!-- Ujian -->
+        <rect x="24" y="128" width="176" height="84" rx="9" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.5"/>
+        <text x="112" y="154" text-anchor="middle" font-family="Archivo,sans-serif" font-size="13" font-weight="700" fill="currentColor">Ujian</text>
+        <text x="112" y="176" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor">Matematika · X</text>
+        <text x="112" y="194" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".7">UJ-2026-004</text>
+
+        <!-- panah ujian ke dua sesi -->
+        <path d="M200,158 L300,110" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)" opacity=".8"/>
+        <path d="M200,182 L300,246" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)" opacity=".8"/>
+
+        <!-- Sesi utama -->
+        <rect x="302" y="58" width="248" height="100" rx="9" fill="var(--wf-bg)" stroke="currentColor" stroke-width="1.4"/>
+        <text x="320" y="82" font-family="Archivo,sans-serif" font-size="12.5" font-weight="700" fill="currentColor">S-01 · Utama</text>
+        <text x="320" y="102" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor">02 Nov 2026 · 07:30–09:00</text>
+        <text x="320" y="120" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor">240 peserta · R-01…R-06</text>
+        <text x="320" y="140" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".72">token sesi · 6 pengawas</text>
+
+        <!-- Sesi susulan -->
+        <rect x="302" y="198" width="248" height="100" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6"/>
+        <text x="320" y="222" font-family="Archivo,sans-serif" font-size="12.5" font-weight="700" fill="var(--accent)">S-07 · Susulan</text>
+        <text x="320" y="242" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor">16 Nov 2026 · 09:00–11:00</text>
+        <text x="320" y="260" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="currentColor">3 peserta · R-02</text>
+        <text x="320" y="280" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".72">token sesi · 1 pengawas</text>
+
+        <!-- re-point siswa -->
+        <path d="M426,158 C 520,172 520,186 426,198" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arAcc)"/>
+        <text x="536" y="168" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="var(--accent)">re-point</text>
+        <text x="536" y="184" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="var(--accent)">penempatan</text>
+        <text x="536" y="203" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".75">presensi → pending</text>
+        <text x="536" y="218" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".75">(dicatat di log)</text>
+
+        <!-- hasil -->
+        <rect x="668" y="112" width="208" height="120" rx="9" fill="var(--wf-bg)" stroke="currentColor" stroke-width="1.3" stroke-dasharray="4 3"/>
+        <text x="686" y="138" font-family="Archivo,sans-serif" font-size="12" font-weight="700" fill="currentColor">Nilai &amp; laporan</text>
+        <text x="686" y="160" font-family="'IBM Plex Mono',monospace" font-size="10" fill="currentColor">exam_results → ujian</text>
+        <text x="686" y="176" font-family="'IBM Plex Mono',monospace" font-size="10" fill="currentColor">yang SAMA</text>
+        <text x="686" y="198" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".72">satu baris per mapel</text>
+        <text x="686" y="214" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor" opacity=".72">publikasi per event</text>
+
+        <!-- panah sesi -> hasil -->
+        <path d="M550,120 L668,150" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".7" marker-end="url(#ar)"/>
+        <path d="M550,236 L668,196" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".7" marker-end="url(#ar)"/>
+      </svg>
+      <div class="dg-legend">
+        <span><i style="border-color:currentColor"></i>alur normal</span>
+        <span><i style="border-color:var(--accent)"></i>perpindahan siswa (re-point)</span>
+      </div>
+      <figcaption>Satu ujian menampung dua gelombang. Sesi susulan punya tanggal, ruang, pengawas, dan token sendiri; yang dipindahkan hanya penempatan siswa yang tidak hadir, dan nilainya jatuh ke ujian yang sama sehingga laporan tetap satu baris per mapel.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================ B. ALTERNATIF ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>B</em> Tiga jalan, dan mengapa yang ketiga</h2>
+      <p>Sebelum menambah kolom apa pun, tiga bentuk pernah masuk akal. Yang membedakannya bukan kerapian skema, melainkan berapa banyak laporan dan laman yang harus diajari menghitung ulang.</p>
+    </header>
+
+    <div class="opt-grid">
+      <div class="opt">
+        <div class="oh"><h3>Ujian baru untuk susulan</h3><span class="badge">ditolak</span></div>
+        <p>Buat <code>exam</code> kedua untuk mapel yang sama, target kelas susulan, dijadwalkan di tanggal terpisah.</p>
+        <div class="minus">
+          <div><b></b><span>Dua baris "Matematika" di plate 21, laman nilai siswa, dan ekspor laporan.</span></div>
+          <div><b></b><span>Analisis butir terpecah dua; KKM dan ambang pelanggaran dibaca dua kali.</span></div>
+          <div><b></b><span>Setiap laporan butuh kode penggabungan per mapel yang tidak ada hari ini.</span></div>
+        </div>
+      </div>
+      <div class="opt">
+        <div class="oh"><h3>Attempt tambahan di sesi lama</h3><span class="badge">ditolak</span></div>
+        <p>Naikkan <code>max_attempts</code>, atau reset attempt siswa di sesi utama, lalu biarkan ia mengerjakan belakangan.</p>
+        <div class="minus">
+          <div><b></b><span>Sesi lama sudah <code>Selesai</code>; <code>KelayakanUjian</code> menolak lewat batas waktu sesi.</span></div>
+          <div><b></b><span>Presensi sesi lama sudah diverifikasi atau ditandai alpa — tidak bisa dipakai ulang.</span></div>
+          <div><b></b><span>Tanggalnya tidak terpisah: siswa tetap terlihat "telat" di gelombang yang sudah tutup.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt pick">
+      <div class="oh"><h3>Sesi susulan pada ujian yang sama</h3><span class="badge">dipilih</span></div>
+      <p>Satu baris <code>exam_sessions</code> baru bertanda <code>jenis = susulan</code>, jendela waktu di tanggal susulan, ruang/pengawas/token sendiri. Penempatan siswa dipindahkan ke sesi itu.</p>
+      <div class="plus">
+        <div><b></b><span>Nilai, analisis, dan laporan tetap <b>satu baris per mapel</b> — tidak ada kode penggabungan.</span></div>
+        <div><b></b><span>Presensi, token, dan pengawas sudah menempel pada sesi; tidak ada tabel baru.</span></div>
+        <div><b></b><span>Tanggal benar-benar terpisah; sesi susulan punya siklus <code>Draft→Siap→Berjalan→Selesai</code> sendiri.</span></div>
+      </div>
+    </div>
+
+    <table class="cmp">
+      <thead>
+        <tr><th>Kebutuhan</th><th>Ujian baru</th><th>Attempt tambahan</th><th>Sesi susulan</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Tanggal terpisah</td><td class="yes">ya</td><td class="no">tidak</td><td class="yes">ya</td></tr>
+        <tr><td>Satu baris per mapel di laporan</td><td class="no">tidak</td><td class="yes">ya</td><td class="yes">ya</td></tr>
+        <tr><td>Presensi sendiri (diverifikasi pengawas susulan)</td><td class="mid">perlu ujian baru</td><td class="no">pakai presensi lama</td><td class="yes">otomatis</td></tr>
+        <tr><td>Token &amp; pengawas sendiri</td><td class="yes">ya</td><td class="no">token sesi lama</td><td class="yes">ya</td></tr>
+        <tr><td>Perubahan kode laporan/analisis</td><td class="no">banyak</td><td class="mid">sedikit</td><td class="yes">nol</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============================ C. MODEL DATA ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>C</em> Model data: satu kolom, dua aturan</h2>
+      <p>Seluruh kebutuhan dijawab oleh <strong>satu kolom baru</strong> dan <strong>dua aturan</strong> yang menjaga siswa tidak muncul dua kali. Tidak ada tabel baru.</p>
+    </header>
+    <div class="prose">
+      <p>Kolom baru: <code>exam_sessions.jenis</code> — enum <code>utama</code> / <code>susulan</code>, bawaan <code>utama</code>. Yang dibaca darinya hanya tiga tempat: penanda baris di laman Jadwal, penyaring "sesi mana yang boleh dijadwalkan bersamaan" di <code>KonflikJadwal</code>, dan kalimat di laman siswa. Status sesi tidak berubah — susulan tetap melewati <code>Draft→Siap→Berjalan→Selesai</code> yang sama.</p>
+    </div>
+    <div class="code-cap">Migrasi — kolom penanda jenis sesi</div>
+    <pre class="code"><span class="cm">// database/migrations/00xx_.._add_jenis_to_exam_sessions.php</span>
+Schema::table(<span class="st">'exam_sessions'</span>, <span class="kw">function</span> (Blueprint $table) {
+    <span class="cm">// 'utama' | 'susulan'. Bawaan 'utama' supaya seluruh baris lama</span>
+    <span class="cm">// tetap sah tanpa backfill.</span>
+    $table-&gt;string(<span class="st">'jenis'</span>)-&gt;default(<span class="st">'utama'</span>)-&gt;after(<span class="st">'session_number'</span>);
+    $table-&gt;index([<span class="st">'school_id'</span>, <span class="st">'exam_id'</span>, <span class="st">'jenis'</span>]);
+});</pre>
+    <div class="prose">
+      <p><strong>Aturan pertama — satu penempatan aktif per ujian.</strong> Ini sudah ditegakkan skema hari ini: <code>unique(school_id, exam_id, student_id)</code> pada <code>exam_participants</code>. Artinya susulan <em>tidak boleh</em> menambah baris penempatan kedua; ia harus memindahkan baris yang ada ke sesi susulan. Itu justru yang diinginkan — siswa tetap satu baris, hanya sesinya berganti.</p>
+      <p><strong>Aturan kedua — presensi ikut direset.</strong> Baris <code>attendance_records</code> menempel pada penempatan dan unique per penempatan. Saat siswa dipindah ke sesi susulan, presensinya di sesi lama tidak boleh terbawa (kalau tidak, pengawas susulan melihat siswa "sudah diverifikasi" padahal tidak ada yang melihatnya). Karena itu pemindahan memanggil <code>PencatatKehadiran::lupakan()</code> lalu <code>pastikanUntuk()</code> — persis jalur yang sudah dipakai <code>PenempatanService::lepas()</code>.</p>
+    </div>
+    <div class="callout warn">
+      <b>Yang TIDAK ditambah, dan itu keputusan</b>
+      <p>Tidak ada <code>exam_sessions.induk_id</code>, tidak ada <code>is_susulan</code> pada penempatan, tidak ada tabel <code>susulan</code> tersendiri. Setiap tambahan itu menyalin fakta yang sudah bisa dibaca dari <code>jenis</code> dan dari <code>exam_session_id</code> penempatan — dan fakta yang tersalin akan berbeda suatu hari. Yang menjawab "apakah ini susulan" adalah <code>sesi.jenis</code>; yang menjawab "siswa ini ikut gelombang mana" adalah <code>penempatan.exam_session_id</code>.</p>
+    </div>
+  </section>
+
+  <!-- ============================ D. JEBAKAN ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>D</em> Enam jebakan di kode hari ini</h2>
+      <p>Semuanya sudah ada di basis kode sekarang, dan semuanya akan menyala begitu satu sesi susulan ditambahkan tanpa penanganan. Masing-masing dikutip dari berkasnya.</p>
+    </header>
+
+    <div class="traps">
+      <div class="trap">
+        <div class="t-l"><span class="no">JEBAKAN 01</span><b>Presensi "alpa" yang sudah diverifikasi tidak mau dilepas</b></div>
+        <div class="t-r">
+          <p>Siswa tidak hadir → pengawas utama memverifikasi <code>tidak_hadir</code>. Saat dipindah ke sesi susulan, <code>lupakan()</code> <b>menolak</b> menghapus baris yang sudah diverifikasi, dan <code>pastikanUntuk()</code> memakai <code>firstOrCreate</code> sehingga tidak membuat baris baru.</p>
+          <div class="fix"><span class="k">akibat</span><span>Pengawas susulan melihat siswa "tidak hadir (terverifikasi)"; <code>KelayakanUjian</code> menolak gerbangnya.</span></div>
+          <div class="fix"><span class="k">letak</span><span><code>PencatatKehadiranService::lupakan()</code> — <em>“Baris yang sudah diverifikasi TIDAK dihapus.”</em></span></div>
+          <div class="fix"><span class="k">perbaikan</span><span>Pindah susulan memakai jalur <b>koreksi administratif</b> (PRD §10.7): tulis <code>attendance_logs</code> status lama→baru, lalu reset ke <code>pending</code> — bukan <code>lupakan()</code>.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l"><span class="no">JEBAKAN 02</span><b>Menutup sesi terakhir menutup event</b></div>
+        <div class="t-r">
+          <p><code>SesiService::tutup()</code> memindahkan event ke <code>Selesai</code> begitu <code>semuaTuntas()</code> — tidak ada sesi <code>Draft/Siap/Berjalan</code>. Graf <code>EventStatus</code> tidak punya jalan <code>Selesai → Berjalan</code>. Sesi susulan yang dibuat <em>sesudah</em> itu akan berjalan di bawah event yang sistem anggap selesai.</p>
+          <div class="fix"><span class="k">akibat</span><span>Susulan lahir di event <code>Selesai</code>; <code>mulai()</code> diam-diam melewati transisi yang ditolak graf.</span></div>
+          <div class="fix"><span class="k">letak</span><span><code>SesiService::tutup()</code> + <code>semuaTuntas()</code></span></div>
+          <div class="fix"><span class="k">perbaikan</span><span>Sesi susulan harus dibuat <b>sebelum</b> sesi terakhir ditutup (ia <code>Draft</code>, jadi menahan event tetap <code>Berjalan</code>). Bila event terlanjur <code>Selesai</code>, buka lewat <code>Arsip → Berjalan</code> yang sudah diizinkan sejak 2026-11-14.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l"><span class="no">JEBAKAN 03</span><b>Menyiapkan susulan bisa menulis ulang soal yang sudah dikerjakan</b></div>
+        <div class="t-r">
+          <p><code>siapkan()</code> memanggil <code>bekukanPaketMapel()</code>. Bila paket mapel event <em>berubah</em> di antara sesi utama dan susulan, ia menghapus lalu menulis ulang <b>seluruh</b> <code>exam_questions</code> ujian itu — termasuk yang sedang/sudah dikerjakan 240 siswa utama.</p>
+          <div class="fix"><span class="k">akibat</span><span>Snapshot soal berganti di tengah jalan; nilai siswa utama dihitung dari soal yang berbeda.</span></div>
+          <div class="fix"><span class="k">letak</span><span><code>ExamRegistrar::bekukanPaketMapel()</code> → <code>PembekuPaket::bekukan()</code> (delete + insert)</span></div>
+          <div class="fix"><span class="k">perbaikan</span><span>Kunci ganti paket begitu ada attempt; atau buat sesi susulan saat paket belum berubah. Snapshot memang dibekukan sekali — jangan biarkan <code>siapkan()</code> membekukannya ulang untuk ujian yang sudah berjalan.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l"><span class="no">JEBAKAN 04</span><b>"Sebar peserta" menolak ujian yang punya dua sesi</b></div>
+        <div class="t-r">
+          <p><code>sebarEvent()</code> melempar <code>DomainException</code> untuk setiap ujian dengan lebih dari satu sesi: <em>“peta ruang event tidak bisa menentukan siswa mana di sesi mana.”</em> Begitu susulan menambah sesi kedua, menyebar ulang penempatan seluruh event akan gagal.</p>
+          <div class="fix"><span class="k">akibat</span><span>Admin tidak bisa lagi "Sebar peserta" untuk event yang punya susulan.</span></div>
+          <div class="fix"><span class="k">letak</span><span><code>PenempatanKocok::sebarEvent()</code></span></div>
+          <div class="fix"><span class="k">perbaikan</span><span>Penempatan susulan <b>selalu manual per siswa</b> (bukan lewat sebar). <code>sebarEvent()</code> harus melewati sesi <code>jenis=susulan</code> alih-alih menghitungnya sebagai sesi kedua yang memblokir.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l"><span class="no">JEBAKAN 05</span><b>Hasil yang sudah terbit &amp; koreksi yang terkunci</b></div>
+        <div class="t-r">
+          <p>Publikasi adalah satu aksi untuk seluruh event dan mengunci koreksi (<code>gradings_locked</code>). Susulan yang dikerjakan <em>setelah</em> publikasi menghasilkan <code>exam_results</code> baru yang tidak ikut terbit — atau terbit tanpa melewati pemeriksaan uraian.</p>
+          <div class="fix"><span class="k">akibat</span><span>Nilai susulan tidak muncul di laman siswa, atau terbit dengan uraian belum dikoreksi.</span></div>
+          <div class="fix"><span class="k">letak</span><span><code>PublikasiHasil::terbitkan()</code>, <code>bukaKoreksi()</code></span></div>
+          <div class="fix"><span class="k">perbaikan</span><span>Susulan adalah alasan sah membuka koreksi (dengan alasan berlog). Terbitkan ulang setelah nilai susulan final; jangan menganggap publikasi pertama final bila masih ada sesi susulan yang belum tuntas.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l"><span class="no">JEBAKAN 06</span><b>Laman siswa menyebut "terlewat" selamanya</b></div>
+        <div class="t-r">
+          <p><code>bentukBaris()</code> menilai status dari satu sesi: begitu <code>now &gt; hard_end_at</code>, statusnya <code>terlewat</code> bernada <code>bad</code>. Laman itu tidak punya konsep "susulan", sehingga siswa yang seharusnya dijadwalkan ulang justru melihat ujian yang hangus.</p>
+          <div class="fix"><span class="k">akibat</span><span>Siswa mengira tidak ada jalan lagi, padahal susulannya sudah dijadwalkan.</span></div>
+          <div class="fix"><span class="k">letak</span><span><code>JadwalSiswaController::statusBaris()</code></span></div>
+          <div class="fix"><span class="k">perbaikan</span><span>Setelah re-point, baris membaca sesi susulan (tanggal barunya). Sebelum re-point, tampilkan keadaan <b>"susulan dijadwalkan 16 Nov"</b> — bukan "terlewat".</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ E. ALUR ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>E</em> Alur enam langkah, dan siapa yang menekan</h2>
+      <p>Urutannya mengikat: presensi susulan baru bisa diverifikasi setelah penempatan dipindah, dan pemindahan hanya masuk akal setelah sesi susulannya ada. Menukar dua langkah menghasilkan siswa yang kehilangan sesi lamanya tanpa mendapat sesi baru.</p>
+    </header>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <div class="cnt"><span class="who">Pengawas utama · plate 13</span><b>Tandai tidak hadir</b><p>Di sesi utama, pengawas memverifikasi siswa yang tidak datang sebagai <code>tidak_hadir</code> atau <code>izin</code>. Ini satu-satunya sumber daftar siswa yang berhak susulan — bukan pilihan manual dari daftar 240 nama.</p></div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="cnt"><span class="who">Admin · laman Jadwal</span><b>Buat sesi susulan</b><p>Pada ujian yang sama, "Tambah sesi susulan": tanggal terpisah, ruang, pengawas, dan jendela waktu sendiri. Sesi lahir <code>Draft</code>, <code>jenis = susulan</code>. Ia menahan event tetap <code>Berjalan</code> sehingga tidak tertutup lebih dulu.</p></div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="cnt"><span class="who">Admin · panel peserta susulan</span><b>Daftarkan siswa yang alpa</b><p>Pilih dari daftar alpa sesi utama. Sistem memindahkan baris penempatan (<code>exam_session_id</code> → sesi susulan), lalu menulis koreksi presensi ke <code>pending</code> dengan alasan berlog — melewati <code>lupakan()</code> yang menolak baris terverifikasi.</p></div>
+      </div>
+      <div class="step">
+        <div class="num">4</div>
+        <div class="cnt"><span class="who">Admin · laman Jadwal</span><b>Siapkan, lalu buka</b><p><code>Draft → Siap → Berjalan</code> seperti sesi biasa. <code>mulai()</code> menuntut ruang berisi dan tiap ruang punya pengawas. Token sesi susulan diterbitkan di sini.</p></div>
+      </div>
+      <div class="step">
+        <div class="num">5</div>
+        <div class="cnt"><span class="who">Pengawas susulan + Siswa</span><b>Kerjakan di tanggal susulan</b><p>Pengawas ruang susulan memverifikasi presensi yang baru (kini <code>pending</code>). Siswa membuka gerbang, mengetik token sesi susulan, dan attempt baru tercatat pada penempatan yang sama.</p></div>
+      </div>
+      <div class="step">
+        <div class="num">6</div>
+        <div class="cnt"><span class="who">Guru + Admin</span><b>Tutup, nilai, publikasikan</b><p>Sesi ditutup; nilai susulan masuk ke ujian yang sama. Bila hasil sudah terbit, buka koreksi dengan alasan, terbitkan ulang. Laporan tetap satu baris per mapel.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ F. WIREFRAME ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>F</em> Wireframe laman</h2>
+      <p>Enam laman yang tersentuh. Rangka dan primitifnya sama dengan <code>wireframe-admin.html</code> (lebar) dan <code>wireframe-peran.html</code> (ponsel), supaya perubahan yang diusulkan di sini bisa diletakkan langsung pada sistem yang ada.</p>
+    </header>
+
+    <div class="shots">
+
+      <!-- W1: Admin jadwal dengan sesi susulan -->
+      <figure class="shot wide">
+        <div class="cap"><span class="n">W1</span><h3>Jadwal &amp; sesi — sesi susulan menempel pada ujian yang sama</h3><span class="path">/admin/events/{event}/jadwal</span></div>
+        <div class="wf lg">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/EV-2026-001/jadwal</span><span class="who">Admin</span></div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark">E</div>
+              <a class="ni"><i></i><span>Ringkasan</span></a>
+              <a class="ni"><i></i><span>Kelas &amp; peserta</span></a>
+              <a class="ni on"><i></i><span>Jadwal &amp; sesi</span></a>
+              <a class="ni"><i></i><span>Penempatan</span></a>
+              <a class="ni"><i></i><span>Pengawas</span></a>
+              <a class="ni"><i></i><span>Token</span></a>
+            </div>
+            <div class="main">
+              <div class="tbar"><span class="sel ev">Event: UAS Ganjil</span><span class="sp"></span><span class="btn">Deteksi konflik</span><span class="btn">Tambah sesi</span><span class="btn pri">Tambah sesi susulan</span></div>
+              <div class="body">
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:52px 64px 48px 1fr 54px 52px 74px"><span>Sesi</span><span>Tanggal</span><span>Jam</span><span>Ujian</span><span>Ruang</span><span>Peserta</span><span>Status</span></div>
+                  <div class="tr" style="grid-template-columns:52px 64px 48px 1fr 54px 52px 74px"><span class="c">S-01</span><span class="c">02 Nov</span><span class="c">07:30</span><span class="c">Matematika · X</span><span class="c">6</span><span class="c">240</span><span class="chip ok">selesai</span></div>
+                  <div class="tr" style="grid-template-columns:52px 64px 48px 1fr 54px 52px 74px"><span class="c">S-02</span><span class="c">02 Nov</span><span class="c">09:30</span><span class="c">B. Indonesia · X</span><span class="c">6</span><span class="c">240</span><span class="chip ok">selesai</span></div>
+                  <div class="tr" style="grid-template-columns:52px 64px 48px 1fr 54px 52px 74px"><span class="c">S-03</span><span class="c">03 Nov</span><span class="c">07:30</span><span class="c">Fisika · XI</span><span class="c">5</span><span class="c">180</span><span class="chip ok">selesai</span></div>
+                  <div class="tr" style="grid-template-columns:52px 64px 48px 1fr 54px 52px 74px"><span class="c">S-04</span><span class="c">03 Nov</span><span class="c">09:30</span><span class="c">Sejarah · XII</span><span class="c">5</span><span class="c">120</span><span class="chip ok">selesai</span></div>
+                  <div class="tr" style="grid-template-columns:52px 64px 48px 1fr 54px 52px 74px;background:var(--accent-soft)"><span class="c">S-05</span><span class="c">16 Nov</span><span class="c">09:00</span><span class="c">Matematika · X <span class="chip vio">susulan</span></span><span class="c">R-02</span><span class="c">3</span><span class="chip info">siap</span></div>
+                </div>
+                <div class="inbox">S-05 menempel pada ujian Matematika · X yang <b>sama</b> dengan S-01. Nilainya akan masuk ke satu baris Matematika di laporan — bukan ujian kedua.</div>
+                <div class="cols c4">
+                  <div class="kpi"><span class="lb">Peserta susulan</span><b>3</b></div>
+                  <div class="kpi"><span class="lb">Ruang</span><b>R-02</b></div>
+                  <div class="kpi"><span class="lb">Pengawas</span><b>1</b></div>
+                  <div class="kpi"><span class="lb">Token</span><b>—</b></div>
+                </div>
+                <div class="box">
+                  <span class="lb">Validasi sesi susulan</span>
+                  <div class="check"><i class="f"></i><span>Tanggal terpisah dari sesi utama (16 Nov ≠ 02 Nov)</span></div>
+                  <div class="check"><i class="f"></i><span>Ruang R-02 kosong pada 16 Nov 09:00–11:00</span></div>
+                  <div class="check"><i></i><span>Token sesi belum diterbitkan</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Sesi susulan tampil sebagai baris biasa di tabel yang sama, dengan chip <b>susulan</b> sebagai satu-satunya pembeda. Menaruhnya di laman terpisah akan memisahkan "kapan ujian ini berlangsung" menjadi dua tempat yang harus dibaca bersamaan. Tombol "Tambah sesi susulan" adalah pintasan ke form yang sama dengan jenis terisi.</p>
+      </figure>
+
+      <!-- W2: Panel daftarkan peserta susulan -->
+      <figure class="shot">
+        <div class="cap"><span class="n">W2</span><h3>Daftarkan peserta susulan</h3><span class="path">/admin/events/{event}/jadwal · panel S-05</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">…/jadwal · susulan S-05</span></div>
+          <div class="body">
+            <div class="ph"><b>S-05 · Matematika · X</b><span class="sp"><span class="chip vio">susulan</span></span></div>
+            <span class="ph"><span class="sub">Siswa yang tidak hadir di S-01 (02 Nov). Centang untuk dipindahkan.</span></span>
+            <div class="tbl">
+              <div class="tr th" style="grid-template-columns:22px 60px 1fr 46px 66px"><span></span><span>NIS</span><span>Nama</span><span>Kelas</span><span>Presensi S-01</span></div>
+              <div class="tr" style="grid-template-columns:22px 60px 1fr 46px 66px"><span class="check"><i class="f"></i></span><span class="c">2024118</span><span class="c">Cahyo Nugroho</span><span class="c">X-2</span><span class="chip warn">tidak hadir</span></div>
+              <div class="tr" style="grid-template-columns:22px 60px 1fr 46px 66px"><span class="check"><i class="f"></i></span><span class="c">2024155</span><span class="c">Rina Wati</span><span class="c">X-1</span><span class="chip warn">izin</span></div>
+              <div class="tr" style="grid-template-columns:22px 60px 1fr 46px 66px"><span class="check"><i class="f"></i></span><span class="c">2024177</span><span class="c">Yusuf Adi</span><span class="c">X-3</span><span class="chip warn">tidak hadir</span></div>
+              <div class="tr" style="grid-template-columns:22px 60px 1fr 46px 66px"><span class="check"><i></i></span><span class="c">2024002</span><span class="c">Bunga Lestari</span><span class="c">X-1</span><span class="chip ok">hadir</span></div>
+            </div>
+            <div class="inbox warn">Memindahkan 3 siswa: penempatannya pindah ke S-05, presensi lamanya dikoreksi ke <b>pending</b> dan tercatat di log. Nilai S-01 yang sudah ada tidak berubah.</div>
+            <div style="display:flex;gap:6px;justify-content:flex-end"><span class="btn">Batal</span><span class="btn pri">Pindahkan 3 siswa</span></div>
+          </div>
+        </div>
+        <p class="note">Daftarnya <b>hanya</b> siswa berstatus <code>tidak_hadir</code> / <code>izin</code> di sesi utama. Menawarkan seluruh 240 peserta membuat Admin harus mencari tiga nama di antara ratusan, dan berisiko memindahkan siswa yang sudah mengerjakan.</p>
+      </figure>
+
+      <!-- W3: Siswa jadwal setelah susulan -->
+      <figure class="shot">
+        <div class="cap"><span class="n">W3</span><h3>Jadwal saya — susulan terjadwal</h3><span class="path">/siswa</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Halo, Cahyo</span><span class="sp" style="margin-left:auto"></span><span class="sel">X-2</span></div>
+            <div class="bd">
+              <div class="card" style="border-left:3px solid var(--accent)">
+                <div class="ph"><b>Matematika</b><span class="sp"><span class="chip vio">susulan</span></span></div>
+                <span class="sub">Senin, 16 Nov 2026 · 09:00–11:00 · R-02 · Kursi 3</span>
+                <div class="check"><i></i><span>Presensi menunggu verifikasi Pengawas susulan</span></div>
+                <div style="display:flex;gap:6px;margin-top:2px"><span class="btn big off">Mulai ujian</span><span class="btn big">Lihat aturan</span></div>
+              </div>
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:1fr 58px 44px"><span>Mata pelajaran</span><span>Tanggal</span><span>Status</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 58px 44px"><span class="c">B. Indonesia</span><span class="c">02 Nov</span><span class="chip ok">selesai</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 58px 44px"><span class="c">Fisika</span><span class="c">03 Nov</span><span class="chip ok">selesai</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 58px 44px"><span class="c">Sejarah</span><span class="c">03 Nov</span><span class="chip ok">selesai</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar"><span class="on">Ujian</span><span>Nilai</span><span>Pelanggaran</span><span>Akun</span></div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Kartu utama menunjuk tanggal susulan, bukan tanggal yang sudah lewat. Statusnya <b>"susulan"</b>, bukan "terlewat" — jebakan 06. Tombol "Mulai" tetap mati sampai presensi susulan diverifikasi, sama seperti ujian biasa.</p>
+      </figure>
+
+      <!-- W4: Siswa gerbang susulan -->
+      <figure class="shot">
+        <div class="cap"><span class="n">W4</span><h3>Gerbang ujian susulan</h3><span class="path">/siswa/ujian/{id}/gerbang</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="crumb">Matematika · susulan</span><span class="sp" style="margin-left:auto"></span><span class="chip ok">siap</span></div>
+            <div class="bd" style="place-content:center;justify-items:center;text-align:center">
+              <div class="card" style="width:90%;gap:7px;padding:11px">
+                <b style="font-family:var(--font-display);font-size:12px">Ujian Susulan — Matematika</b>
+                <span class="sub">16 Nov 2026 · 09:00–11:00 · R-02 · Kursi 3</span>
+                <div class="check" style="justify-content:center"><i class="f"></i><span>Presensi diverifikasi Pengawas susulan</span></div>
+                <div class="field" style="width:100%"><span class="lb">Token sesi susulan</span><div class="input" style="height:24px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);letter-spacing:.3em;font-size:12px">7 4 1 9 2 0</div></div>
+                <span class="btn pri big" style="text-align:center">Mulai ujian</span>
+              </div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Token yang diminta adalah token <b>sesi susulan</b>, bukan token S-01 yang sudah dicabut bersama sesinya. Siswa yang mencoba token lama ditolak — dan itu benar: token terikat pada sesi, bukan pada ujian.</p>
+      </figure>
+
+      <!-- W5: Pengawas presensi ruang susulan -->
+      <figure class="shot">
+        <div class="cap"><span class="n">W5</span><h3>Presensi ruang susulan</h3><span class="path">/pengawas/ruang/{id}/presensi</span></div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd"><span class="chip info">R-02</span><span class="crumb">Matematika · S-05 · susulan</span><span class="sp" style="margin-left:auto"></span><span class="chip vio">susulan</span></div>
+            <div class="bd">
+              <div class="cols c3">
+                <div class="kpi"><span class="lb">Peserta</span><b>3</b></div>
+                <div class="kpi"><span class="lb">Hadir</span><b>2</b></div>
+                <div class="kpi"><span class="lb">Belum</span><b>1</b></div>
+              </div>
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:1fr 40px 70px"><span>Nama</span><span>Kursi</span><span>Presensi</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 40px 70px"><span class="c">Cahyo Nugroho</span><span class="c">1</span><span class="chip ok">hadir</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 40px 70px"><span class="c">Rina Wati</span><span class="c">2</span><span class="chip ok">hadir</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 40px 70px"><span class="c">Yusuf Adi</span><span class="c">3</span><span class="chip mute">belum</span></div>
+              </div>
+              <div style="display:flex;gap:5px"><span class="btn pri big">Verifikasi semua</span><span class="btn big">Token</span></div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Layar yang sama persis dengan presensi ruang biasa, hanya tiga baris. Tidak ada laman khusus "presensi susulan" — karena sesi susulan adalah sesi biasa dengan <code>jenis</code> berbeda. Inilah imbalan memilih model sesi: seluruh portal pengawas bekerja tanpa satu pun cabang baru.</p>
+      </figure>
+
+      <!-- W6: Laporan satu baris per mapel -->
+      <figure class="shot">
+        <div class="cap"><span class="n">W6</span><h3>Hasil &amp; laporan — tetap satu baris per mapel</h3><span class="path">/admin/events/{event}/hasil</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">…/hasil</span></div>
+          <div class="body">
+            <div class="cols c3">
+              <div class="kpi"><span class="lb">Peserta</span><b>243</b></div>
+              <div class="kpi"><span class="lb">Uraian dinilai</span><b>112/243</b></div>
+              <div class="kpi"><span class="lb">Belum koreksi</span><b>0</b></div>
+            </div>
+            <div class="tbl">
+              <div class="tr th" style="grid-template-columns:1fr 54px 60px 66px"><span>Ujian</span><span>Peserta</span><span>Obj.</span><span>Uraian</span></div>
+              <div class="tr" style="grid-template-columns:1fr 54px 60px 66px"><span class="c">Matematika · X <span class="chip vio">+3 susulan</span></span><span class="c">243</span><span class="c">243</span><span class="c">112/243</span></div>
+              <div class="tr" style="grid-template-columns:1fr 54px 60px 66px"><span class="c">B. Indonesia · X</span><span class="c">240</span><span class="c">240</span><span class="c">90/240</span></div>
+              <div class="tr" style="grid-template-columns:1fr 54px 60px 66px"><span class="c">Fisika · XI</span><span class="c">180</span><span class="c">180</span><span class="c">60/180</span></div>
+            </div>
+            <div class="inbox ok">Tiga peserta susulan masuk ke baris Matematika yang sama. Publikasi ulang setelah nilai susulan final.</div>
+          </div>
+        </div>
+        <p class="note">Inilah alasan utama model ini: <b>243, bukan dua baris 240 + 3.</b> Nilai susulan menyatu ke ujian yang sama, jadi laporan, analisis butir, dan laman nilai siswa tidak perlu satu pun kode penggabungan. Yang perlu diingat hanya satu: publikasi ulang setelah susulan final (jebakan 05).</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============================ G. BIDANG PERUBAHAN ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>G</em> Bidang perubahan</h2>
+      <p>Yang benar-benar disentuh, berurutan dari skema ke layar. Yang tidak ada di daftar ini memang tidak berubah — dan itu sebagian besar sistem.</p>
+    </header>
+    <table class="cmp">
+      <thead>
+        <tr><th>Berkas / area</th><th>Perubahan</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>migrasi baru</td><td>Kolom <code>exam_sessions.jenis</code> + index. Tidak ada tabel baru.</td></tr>
+        <tr><td><code>ExamSession</code> model + <code>StatusSesi</code> tetap</td><td>Tambah cast <code>jenis</code>; helper <code>susulan()</code>. Status sesi tidak berubah.</td></tr>
+        <tr><td><code>SesiService::buat()</code></td><td>Terima <code>jenis</code>; nomor sesi tetap lanjut (S-05 di atas S-04).</td></tr>
+        <tr><td><code>ExamJadwalController</code></td><td>Endpoint <code>POST …/sesi/susulan</code> + endpoint pindahkan-peserta; kirim penanda <code>jenis</code> ke layar.</td></tr>
+        <tr><td><code>PenempatanService</code></td><td>Metode baru <code>pindahKeSusulan()</code>: re-point <code>exam_session_id</code>, koreksi presensi via jalur log (bukan <code>lupakan()</code>).</td></tr>
+        <tr><td><code>PenempatanKocok::sebarEvent()</code></td><td>Lewati sesi <code>jenis=susulan</code> alih-alih menghitungnya sebagai sesi kedua yang memblokir (jebakan 04).</td></tr>
+        <tr><td><code>KonflikJadwal</code></td><td>Tetap: susulan punya jendela sendiri; benturan ruang/pengawas dihitung terhadap jendela susulan, bukan jendela utama.</td></tr>
+        <tr><td><code>JadwalSiswaController::statusBaris()</code></td><td>Kenali <code>jenis=susulan</code>; tampilkan "susulan" (jebakan 06).</td></tr>
+        <tr><td><code>PublikasiHasil</code></td><td>Tidak diubah; cukup alur "buka koreksi → terbitkan ulang" yang sudah ada (jebakan 05).</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <b>Yang sengaja tidak disentuh</b>
+      <p><code>KelayakanUjian</code>, <code>ExamAttempt</code>, portal pengawas, denah, tablo, dan seluruh layar penilaian bekerja apa adanya — karena semuanya sudah membaca "sesi", bukan "ujian". Itu bukti bahwa model sesi adalah tempat yang benar untuk susulan.</p>
+    </div>
+
+    <div class="callout warn">
+      <b>Keputusan yang perlu diambil pemilik produk</b>
+      <p><b>1.</b> Siapa yang boleh mendaftarkan siswa susulan — Admin saja, atau Guru mapel juga? <b>2.</b> Apakah siswa boleh mengajukan susulan sendiri, atau selalu inisiatif sekolah? <b>3.</b> Batas jumlah susulan per siswa per event (mis. maksimal 2 mapel)? <b>4.</b> Apakah susulan boleh dinilai dengan KKM/ambang yang berbeda, atau wajib sama dengan sesi utama? Rekomendasi: sama, karena ambangnya milik event.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>School CBT &middot; ujian susulan</span>
+    <span>rancangan teknis &middot; 6 laman &middot; 6 jebakan</span>
+    <span>sumber: prd.md &sect;9.3&ndash;9.5 &middot; blueprint-cbt.html &middot; kode Fase 5&ndash;8</span>
+  </footer>
+
+</div>

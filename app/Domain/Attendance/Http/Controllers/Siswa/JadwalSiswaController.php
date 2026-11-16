@@ -402,6 +402,14 @@ class JadwalSiswaController extends SiswaDasar
             return 'terlewat';
         }
 
+        // Sesi susulan disebut apa adanya, bukan "terlewat"/"besok". Anak yang
+        // dipindah ke susulan harus tahu bahwa ini ujian pengganti - lihat
+        // jebakan 06 di rancangan: sesi utama yang sudah lewat membuat barisnya
+        // terbaca "terlewat" seolah tidak ada jalan lagi.
+        if ($sesi->susulan()) {
+            return 'susulan';
+        }
+
         // Presensi dibaca di sini, bukan lewat KelayakanUjian: yang
         // dibutuhkan jadwal adalah "apakah anak ini perlu menghubungi
         // pengawas", dan KelayakanUjian menjawab pertanyaan yang berbeda -
@@ -425,7 +433,7 @@ class JadwalSiswaController extends SiswaDasar
 
         return match ($status) {
             'selesai', 'siap', 'siap dimulai' => 'ok',
-            'sedang dikerjakan' => 'info',
+            'sedang dikerjakan', 'susulan' => 'info',
             'presensi belum', 'terkunci' => 'warn',
             'terlewat', 'waktu habis', 'dikecualikan' => 'bad',
             default => 'mute',

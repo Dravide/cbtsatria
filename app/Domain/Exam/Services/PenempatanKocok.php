@@ -502,19 +502,33 @@ class PenempatanKocok
         $perUjian = $this->sesiEvent($event)->groupBy('exam_id');
 
         foreach ($perUjian as $idUjian => $sesiUjian) {
+            // Sesi susulan DILEWATI, bukan dihitung. Ia punya peserta yang
+            // sengaja dipindahkan Admin satu per satu (siswa yang alpa di sesi
+            // utama), dan peta ruang event - satu kursi per siswa untuk seluruh
+            // event - tidak boleh menimpanya. Menghitungnya sebagai "sesi
+            // kedua" akan memblokir seluruh penyebaran event begitu satu
+            // susulan dibuat.
+            $utama = $sesiUjian->reject(fn (ExamSession $s) => $s->susulan());
+
+            // Ujian yang HANYA punya sesi susulan (belum ada sesi utama) tidak
+            // punya apa pun untuk disebar; lewati tanpa menganggapnya masalah.
+            if ($utama->isEmpty()) {
+                continue;
+            }
+
             // Satu baris `exam_participants` hanya bisa menunjuk SATU sesi, dan
-            // peta event tidak tahu siswa mana yang duduk di sesi susulan.
+            // peta event tidak tahu siswa mana yang duduk di sesi utama kedua.
             // Menyebarkannya ke semua sesi akan menulis kursi yang sama berulang
             // kali - yang terakhir menang, diam-diam - sehingga yang menentukan
             // siapa ada di sesi mana adalah urutan query, bukan keputusan Admin.
-            if ($sesiUjian->count() > 1) {
-                $bermasalah[] = "ujian {$idUjian} punya {$sesiUjian->count()} sesi - ".
+            if ($utama->count() > 1) {
+                $bermasalah[] = "ujian {$idUjian} punya {$utama->count()} sesi utama - ".
                     'peta ruang event tidak bisa menentukan siswa mana di sesi mana';
 
                 continue;
             }
 
-            $sesi = $sesiUjian->first();
+            $sesi = $utama->first();
             $peta = $this->petaSesi($event, $sesi, $susunan['per_ruang']);
 
             if (! $peta['lengkap']) {

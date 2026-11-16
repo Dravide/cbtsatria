@@ -2,6 +2,7 @@
 
 namespace App\Domain\Exam\Models;
 
+use App\Domain\Exam\Enums\JenisSesi;
 use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Tenancy\Concerns\BelongsToSchool;
 use App\Domain\Tenancy\Scopes\SchoolScope;
@@ -46,6 +47,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'school_id',
     'exam_id',
     'session_number',
+    'jenis',
     'access_opens_at',
     'access_closes_at',
     'hard_end_at',
@@ -64,6 +66,7 @@ class ExamSession extends Model
     {
         return [
             'session_number' => 'integer',
+            'jenis' => JenisSesi::class,
             'access_opens_at' => 'datetime',
             'access_closes_at' => 'datetime',
             'hard_end_at' => 'datetime',
@@ -116,6 +119,19 @@ class ExamSession extends Model
     public function label(): string
     {
         return 'S-'.$this->session_number;
+    }
+
+    /**
+     * Apakah sesi ini gelombang susulan.
+     *
+     * Dibaca laman jadwal (chip), `PenempatanKocok` (melewati sesi susulan saat
+     * menyebar), dan `KonflikJadwal` (sesi susulan punya jendelanya sendiri,
+     * sehingga benturannya dihitung terhadap jendela itu). Satu method supaya
+     * ketiganya tidak menafsirkan kolomnya sendiri-sendiri.
+     */
+    public function susulan(): bool
+    {
+        return $this->jenis === JenisSesi::Susulan;
     }
 
     /**

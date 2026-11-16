@@ -6,7 +6,10 @@ use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Academic\Models\Semester;
 use App\Domain\Academic\Models\Subject;
 use App\Domain\Attendance\Models\AttendanceAcknowledgement;
+use App\Domain\Attendance\Models\AttendanceLog;
+use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\AttendanceScanCode;
+use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\ExamIncident;
 use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Event\Enums\EventStatus;
@@ -19,6 +22,7 @@ use App\Domain\Event\Services\EventParticipantService;
 use App\Domain\Event\Services\EventReadiness;
 use App\Domain\Event\Services\EventRegistrar;
 use App\Domain\Event\Services\EventStatusService;
+use App\Domain\Exam\Enums\JenisSesi;
 use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Enums\StatusToken;
 use App\Domain\Exam\Models\Exam;
@@ -30,7 +34,9 @@ use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Models\ExamToken;
 use App\Domain\Exam\Models\SupervisionAssignment;
 use App\Domain\Exam\Services\ExamRegistrar;
+use App\Domain\Exam\Services\ExamSusulanService;
 use App\Domain\Exam\Services\KonflikJadwal;
+use App\Domain\Exam\Services\PenempatanKocok;
 use App\Domain\Exam\Services\PenempatanService;
 use App\Domain\Exam\Services\PengawasService;
 use App\Domain\Exam\Services\SesiService;
@@ -2003,4 +2009,204 @@ it('hanya menampilkan baris untuk sesi yang sudah punya peserta', function () {
             // sebagai "sesi tanpa ruang".
             ->where('sesi_tanpa_ruang', [])
         );
+});
+
+/* =========================================================================
+ | Ujian susulan - gelombang pengganti pada ujian yang sama (2026-11-16)
+ | =========================================================================
+ |
+ | Yang dijaga di sini adalah jebakan-jebakan yang menyala begitu satu sesi
+ | susulan ditambahkan tanpa penanganan. Test-nya membuktikan penolakan dan
+ | pemulihan, bukan sekadar jalur bahagia - karena yang pertama itulah yang
+ | membuktikan sistemnya benar-benar memeriksa.
+ */
+
+/** Tandai presensi seorang peserta sebagai terverifikasi pada status tertentu. */
+function tandaiPresensi(ExamParticipant $peserta, string $status): AttendanceRecord
+{
+    $record = AttendanceRecord::query()->firstOrCreate(
+        ['school_id' => $peserta->school_id, 'exam_participant_id' => $peserta->id],
+        ['attendance_status' => 'pending'],
+    );
+
+    $record->forceFill([
+        'attendance_status' => $status,
+        'verified_at' => now(),
+        'pelaku_label' => 'R-01 (uji)',
+    ])->save();
+
+    return $record;
+}
+
+/** Sesi susulan pada ujian yang sama, tanggal terpisah. */
+function buatSesiSusulan(Exam $ujian, SchoolEvent $event, string $buka = '2026-12-16 09:00:00'): ExamSession
+{
+    return app(ExamSusulanService::class)->buatSesi($ujian, [
+        'access_opens_at' => $buka,
+        'access_closes_at' => '2026-12-16 10:30:00',
+        'hard_end_at' => '2026-12-16 11:00:00',
+        'event_room_id' => $event->rooms()->pluck('id')->all(),
+    ]);
+}
+
+it('membuat sesi susulan sebagai sesi KEDUA pada ujian yang sama', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $susulan = buatSesiSusulan($data['ujian'], $this->event);
+
+    expect($susulan->jenis)->toBe(JenisSesi::Susulan)
+        ->and($susulan->susulan())->toBeTrue()
+        ->and((int) $susulan->exam_id)->toBe((int) $data['ujian']->id)
+        // Satu ujian, dua sesi - dan itu yang membuat laporan tetap satu baris.
+        ->and($data['ujian']->sessions()->count())->toBe(2)
+        // Nomor sesi lanjut, tidak menabrak sesi utama.
+        ->and($susulan->session_number)->toBe(2)
+        // Tanggalnya benar-benar terpisah dari sesi utama.
+        ->and($susulan->access_opens_at->toDateString())->toBe('2026-12-16')
+        ->and($data['sesi']->access_opens_at->toDateString())->toBe('2026-12-01');
+});
+
+it('memindahkan siswa alpa ke sesi susulan dan mereset presensinya lewat log', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $susulan = buatSesiSusulan($data['ujian'], $this->event);
+
+    $peserta = ExamParticipant::query()
+        ->where('exam_session_id', $data['sesi']->id)
+        ->firstOrFail();
+
+    // Pengawas utama menandai siswa ini tidak hadir - alasan ia berhak susulan.
+    tandaiPresensi($peserta, 'tidak_hadir');
+
+    $dipindah = app(ExamSusulanService::class)->pindahkan(
+        $data['ujian'], $susulan, [$peserta->id], 'Sakit, surat dokter',
+    );
+
+    expect($dipindah)->toBe(1);
+
+    $peserta->refresh();
+    $record = AttendanceRecord::query()->where('exam_participant_id', $peserta->id)->firstOrFail();
+
+    // Satu baris penempatan tetap (unique exam_id+student_id), hanya sesinya
+    // yang berpindah ke susulan.
+    expect((int) $peserta->exam_session_id)->toBe((int) $susulan->id)
+        ->and(ExamParticipant::query()->where('exam_id', $data['ujian']->id)->count())->toBe(4)
+        // Presensi kembali pending, verifikasinya dikosongkan.
+        ->and($record->attendance_status->value)->toBe('pending')
+        ->and($record->verified_at)->toBeNull()
+        // Jejak koreksi ada di log: tidak_hadir -> pending, dengan alasan.
+        ->and(AttendanceLog::query()
+            ->where('attendance_record_id', $record->id)
+            ->where('old_status', 'tidak_hadir')
+            ->where('new_status', 'pending')
+            ->where('reason', 'Sakit, surat dokter')
+            ->exists())->toBeTrue();
+});
+
+it('menolak memindahkan siswa yang sudah mengerjakan ujian', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $susulan = buatSesiSusulan($data['ujian'], $this->event);
+
+    $peserta = ExamParticipant::query()
+        ->where('exam_session_id', $data['sesi']->id)
+        ->firstOrFail();
+
+    ExamAttempt::create([
+        'school_id' => $this->sekolah->id,
+        'exam_participant_id' => $peserta->id,
+        'attempt_number' => 1,
+        'started_at' => now(),
+        'status' => 'dikirim',
+    ]);
+
+    expect(fn () => app(ExamSusulanService::class)->pindahkan(
+        $data['ujian'], $susulan, [$peserta->id], 'Sakit',
+    ))->toThrow(DomainException::class, 'sudah mengerjakan');
+
+    // Penolakan terjadi SEBELUM sesinya berpindah - tidak ada baris setengah.
+    expect((int) $peserta->refresh()->exam_session_id)->toBe((int) $data['sesi']->id);
+});
+
+it('tidak lagi memblokir sebar peserta event ketika ada sesi susulan', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $susulan = buatSesiSusulan($data['ujian'], $this->event);
+
+    // Sesi susulan belum punya ruang; sebar peserta event TIDAK boleh
+    // menganggapnya "sesi kedua" yang memblokir seluruh penyebaran.
+    $hasil = app(PenempatanKocok::class)->sebarEvent($this->event);
+
+    expect($hasil['sesi'])->toBe(1)
+        ->and(ExamSession::query()->find($susulan->id))->not->toBeNull();
+});
+
+it('menyebut sesi susulan sebagai susulan di jadwal siswa, bukan terlewat', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $susulan = buatSesiSusulan($data['ujian'], $this->event);
+
+    $peserta = ExamParticipant::query()
+        ->where('exam_session_id', $data['sesi']->id)
+        ->firstOrFail();
+
+    app(ExamSusulanService::class)->pindahkan($data['ujian'], $susulan, [$peserta->id], 'Sakit');
+
+    $siswa = User::query()->findOrFail($peserta->student_id);
+
+    masukSebagai($this, $siswa)->get('/siswa')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Siswa/Jadwal')
+            ->where('jadwal.0.status', 'susulan')
+        );
+});
+
+it('menolak membuat sesi susulan ketika event sudah selesai', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    // Yang diuji adalah penjaga `buatSesi()`, bukan graf event - jadi status
+    // event disetel langsung, melewati gerbang kesiapan yang tidak relevan.
+    $this->event->forceFill(['status' => EventStatus::Completed])->save();
+
+    expect(fn () => buatSesiSusulan($data['ujian'], $this->event->refresh()))
+        ->toThrow(DomainException::class, 'tidak bisa menampung sesi susulan');
+});
+
+it('menolak melepas ruang event yang masih dipakai sesi ujian, bukan galat 1451', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    // Ruang event pertama dipakai sesi utama. Kode pindainya sudah punya
+    // pengakuan siswa - itu yang membuat DELETE langsung berhenti di FK
+    // `pengakuan_kode` dengan galat 1451 mentah.
+    $ruang = $data['ruang']->first();
+    $peserta = ExamParticipant::query()->where('exam_session_room_id', $ruang->id)->firstOrFail();
+
+    $kode = AttendanceScanCode::create([
+        'school_id' => $this->sekolah->id,
+        'exam_session_room_id' => $ruang->id,
+        'code_hash' => hash_hmac('sha256', 'uji-susulan-ruang', (string) config('app.key')),
+        'issued_at' => now(),
+        'expires_at' => now()->addMinute(),
+    ]);
+
+    AttendanceAcknowledgement::create([
+        'school_id' => $this->sekolah->id,
+        'attendance_scan_code_id' => $kode->id,
+        'exam_participant_id' => $peserta->id,
+        'scanned_at' => now(),
+        'status' => 'menunggu',
+    ]);
+
+    $ruangDipakai = EventRoom::query()->where('event_id', $this->event->id)->firstOrFail();
+
+    // Minta alokasi ruang TANPA ruang yang sedang dipakai itu.
+    masukSebagai($this, $this->admin)
+        ->put("/admin/events/{$this->event->id}/peserta/ruang", [
+            'id' => EventRoom::query()
+                ->where('event_id', $this->event->id)
+                ->where('id', '!=', $ruangDipakai->id)
+                ->pluck('room_id')
+                ->all(),
+        ])
+        ->assertSessionHas('galat', fn (string $pesan) => str_contains($pesan, 'masih dipakai sesi ujian'));
+
+    // Ruangnya TETAP ada - penolakan terjadi sebelum satu baris pun dihapus.
+    expect(EventRoom::query()->where('id', $ruangDipakai->id)->exists())->toBeTrue();
 });

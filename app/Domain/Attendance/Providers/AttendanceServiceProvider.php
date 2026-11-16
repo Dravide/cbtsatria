@@ -3,6 +3,7 @@
 namespace App\Domain\Attendance\Providers;
 
 use App\Domain\Attendance\Contracts\PembersihRuangSesi;
+use App\Domain\Attendance\Contracts\PemindahKeSusulan;
 use App\Domain\Attendance\Contracts\PencatatKehadiran;
 use App\Domain\Attendance\Models\AttendanceLog;
 use App\Domain\Attendance\Models\AttendanceRecord;
@@ -24,6 +25,7 @@ use App\Domain\Attendance\Services\LaporanSesiService;
 use App\Domain\Attendance\Services\MesinUjian;
 use App\Domain\Attendance\Services\PapanPeringkatLuang;
 use App\Domain\Attendance\Services\PembersihRuangSesiService;
+use App\Domain\Attendance\Services\PemindahKeSusulanService;
 use App\Domain\Attendance\Services\PencatatKehadiranService;
 use App\Domain\Attendance\Services\PencatatPelanggaran;
 use App\Domain\Attendance\Services\PenjagaSkorLuar;
@@ -107,6 +109,12 @@ class AttendanceServiceProvider extends ServiceProvider
         // hanya Attendance yang tahu baris mana yang menahannya. Alasan
         // kontraknya ada di `PembersihRuangSesi`.
         $this->app->singleton(PembersihRuangSesi::class, PembersihRuangSesiService::class);
+
+        // Kontrak kedua Exam -> Attendance: memindahkan peserta ke sesi susulan
+        // harus MERESET presensinya lewat koreksi administratif berlog, bukan
+        // lewat `lupakan()` yang menolak baris terverifikasi. Lihat
+        // `PemindahKeSusulan`.
+        $this->app->singleton(PemindahKeSusulan::class, PemindahKeSusulanService::class);
     }
 
     public function boot(): void

@@ -17,6 +17,7 @@ use App\Domain\Exam\Models\SupervisionAssignment;
 use App\Domain\Exam\Policies\ExamPolicy;
 use App\Domain\Exam\Services\ButirSoalEvent;
 use App\Domain\Exam\Services\ExamRegistrar;
+use App\Domain\Exam\Services\ExamSusulanService;
 use App\Domain\Exam\Services\KesiapanUjian;
 use App\Domain\Exam\Services\KonflikJadwal;
 use App\Domain\Exam\Services\NomorKursi;
@@ -62,6 +63,7 @@ class ExamServiceProvider extends ServiceProvider
         // satu objek lebih murah daripada tiga.
         $this->app->singleton(ExamRegistrar::class);
         $this->app->singleton(SesiService::class);
+        $this->app->singleton(ExamSusulanService::class);
         $this->app->singleton(KonflikJadwal::class);
         $this->app->singleton(PenempatanService::class);
         $this->app->singleton(PengawasService::class);
