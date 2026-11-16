@@ -1814,6 +1814,52 @@ it('mengirim nilai ujian untuk panel ubah', function () {
         );
 });
 
+it('mengirim TINGKAT pada pilihan mapel, supaya varian satu mapel bisa dibedakan', function () {
+    // Regresi 2026-11-16. Sekolah boleh menyusun satu mapel per tingkat:
+    // "Pendidikan Agama" ada sebagai PABK-7, PABK-8, dan PABK-9 - tiga baris
+    // dengan NAMA SAMA PERSIS. Tanpa tingkat di labelnya, pilihan mapel di
+    // form Tambah/Ubah ujian menampilkan tiga baris yang berbunyi sama, dan
+    // Admin tidak punya cara membedakan mana yang ia pilih.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    // Mapel kedua, nama SAMA, kode dan tingkat berbeda - bentuk yang
+    // dihasilkan penyusunan mapel per tingkat.
+    $saudara = Subject::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'code' => 'PABK-8',
+        'name' => 'Pendidikan Agama dan Budi Pekerti',
+        'grade_level' => '8',
+    ]);
+
+    EventSubject::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'subject_id' => $saudara->id,
+    ]);
+
+    $this->mapel->forceFill([
+        'code' => 'PABK-7',
+        'name' => 'Pendidikan Agama dan Budi Pekerti',
+        'grade_level' => '7',
+    ])->save();
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            // Kedua varian dikirim, dan KEDUANYA membawa tingkatnya.
+            ->where('mapel', fn ($m) => collect($m)->contains(
+                fn (array $x) => $x['id'] === $saudara->id && $x['tingkat'] === '8',
+            ))
+            ->where('mapel', fn ($m) => collect($m)->contains(
+                fn (array $x) => $x['id'] === $this->mapel->id && $x['tingkat'] === '7',
+            ))
+        );
+
+    expect($data['ujian']->id)->not->toBeNull();
+});
+
 it('mengirim tingkat kelas sasaran pada setiap ujian, supaya tingkat tidak tertukar', function () {
     // Regresi 2026-11-16. Dua ujian Matematika di kelas X dan XI dulu tampil
     // sebagai baris yang berbunyi sama persis di "Kelola ujian" DAN di pilihan

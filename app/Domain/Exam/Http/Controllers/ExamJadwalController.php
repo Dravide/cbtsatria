@@ -288,11 +288,19 @@ class ExamJadwalController
                 ])
                 ->all(),
 
-            'mapel' => $event->subjects()->with('subject:id,code,name')->get()
+            // Mapel event, beserta TINGKATNYA.
+            //
+            // Tingkat ikut dikirim karena sekolah boleh menyusun satu mapel per
+            // tingkat: "Pendidikan Agama" ada sebagai PABK-7, PABK-8, dan
+            // PABK-9 - tiga baris dengan NAMA SAMA. Tanpa tingkat di labelnya,
+            // pilihan mapel menampilkan tiga baris yang berbunyi persis sama,
+            // dan Admin tidak punya cara membedakan mana yang ia pilih.
+            'mapel' => $event->subjects()->with('subject:id,code,name,grade_level')->get()
                 ->map(fn ($s) => [
                     'id' => $s->subject?->id,
                     'kode' => $s->subject?->code,
                     'nama' => $s->subject?->name,
+                    'tingkat' => $s->subject?->grade_level,
                 ])
                 ->filter(fn (array $m) => $m['id'] !== null)
                 ->values()

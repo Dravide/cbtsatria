@@ -111,7 +111,7 @@ type Props = {
     ujian: Ujian[];
     ruang: { id: number; kode: string | null; nama: string | null; kapasitas: number; status: string }[];
     kelas: { id: number; nama: string; tingkat: string | null }[];
-    mapel: { id: number; kode: string | null; nama: string | null }[];
+    mapel: { id: number; kode: string | null; nama: string | null; tingkat: string | null }[];
     /** Kandidat peserta susulan per ujian: siswa yang alpa/izin di sesi utama. */
     susulan_kandidat: Record<
         number,
@@ -1205,7 +1205,15 @@ function FormUjian({
                     nilai={isi.subject_id}
                     pilihan={mapel.map((m) => ({
                         id: m.id,
-                        label: `${m.kode ?? ''} ${m.nama ?? ''}`.trim(),
+                        // Nama dan kode saja TIDAK cukup: sekolah boleh
+                        // menyusun satu mapel per tingkat, sehingga
+                        // "Pendidikan Agama" muncul tiga kali (PABK-7, PABK-8,
+                        // PABK-9) dengan nama yang sama persis. Tingkatnya
+                        // ikut di label supaya ketiganya bisa dibedakan - dan
+                        // itu yang dimaksud Admin saat memilih.
+                        label:
+                            `${m.kode ?? ''} ${m.nama ?? ''}`.trim() +
+                            (m.tingkat ? ` · Tingkat ${m.tingkat}` : ''),
                         ket: m.kode,
                     }))}
                     padaPilih={(id) => setIsi({ ...isi, subject_id: id ?? isi.subject_id })}
