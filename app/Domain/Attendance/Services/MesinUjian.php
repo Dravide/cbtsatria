@@ -307,6 +307,20 @@ class MesinUjian
             return $attempt;
         }
 
+        // Batas waktu MINIMAL ditolak di sini, bukan hanya di tombolnya.
+        //
+        // Tombol yang dimatikan di peramban hanya mengatur siswa yang memakai
+        // layar seperti biasa; permintaan langsung ke endpoint ini akan
+        // melewatinya. Dan yang dipertaruhkan bukan sekadar tampilan: ujian
+        // yang boleh dikumpulkan pada menit kelima membuat nilai "selesai
+        // cepat" tidak bisa dibedakan dari "berhenti lebih dulu".
+        if ($this->belumMencapaiMinimal($attempt)) {
+            throw new DomainException(
+                'Ujian ini belum boleh dikumpulkan. Waktu minimal pengerjaan belum terpenuhi - '.
+                'gunakan sisa waktu untuk memeriksa jawaban Anda.',
+            );
+        }
+
         $attempt->forceFill([
             'status' => ExamAttempt::STATUS_DIKIRIM,
             'submitted_at' => now(),
@@ -321,6 +335,37 @@ class MesinUjian
         $this->penilai->nilai($attempt);
 
         return $attempt;
+    }
+
+    /**
+     * Detik sampai batas minimal tercapai; 0 berarti sudah boleh mengumpulkan.
+     *
+     * Dipakai tiga tempat dengan jawaban yang harus SAMA: tombol di laman
+     * siswa, endpoint `kumpulkan()`, dan papan monitoring. Satu method, supaya
+     * tombol tidak pernah menjanjikan "boleh" untuk permintaan yang ditolak
+     * server - atau sebaliknya.
+     *
+     * Diukur dari `started_at`, bukan dari jam sesi: yang dituntut adalah
+     * LAMA MENGERJAKAN, dan siswa yang masuk sepuluh menit setelah sesi dibuka
+     * tetap harus mengerjakan selama minimal yang sama.
+     */
+    public function sisaMenujuMinimal(ExamAttempt $attempt): int
+    {
+        $minimal = $attempt->penempatan?->exam?->minimalMenit();
+
+        if ($minimal === null || $minimal <= 0 || $attempt->started_at === null) {
+            return 0;
+        }
+
+        $bolehKumpul = $attempt->started_at->copy()->addMinutes($minimal);
+
+        return max(0, (int) now()->diffInSeconds($bolehKumpul, false));
+    }
+
+    /** Apakah attempt ini BELUM memenuhi batas waktu minimalnya. */
+    private function belumMencapaiMinimal(ExamAttempt $attempt): bool
+    {
+        return $this->sisaMenujuMinimal($attempt) > 0;
     }
 
     /**

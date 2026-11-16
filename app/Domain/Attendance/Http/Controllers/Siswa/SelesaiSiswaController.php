@@ -7,6 +7,7 @@ use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Services\JawabanService;
 use App\Domain\Attendance\Services\MesinUjian;
 use App\Domain\Exam\Models\ExamParticipant;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -94,6 +95,14 @@ class SelesaiSiswaController extends SiswaDasar
                 // `status`, dan laman yang memilih kalimatnya.
                 'kedaluwarsa' => $attempt->status === ExamAttempt::STATUS_KEDALUWARSA,
                 'sisa_detik' => $selesai ? 0 : $this->mesin->sisaDetik($attempt),
+
+                // Batas waktu MINIMAL - PRD §11.7. Tombol Kumpulkan mati
+                // sampai detik ini habis, dan kalimatnya menyebut berapa lama
+                // lagi. Server menegakkannya sendiri di `MesinUjian::kumpulkan()`;
+                // angka ini hanya supaya tombolnya tidak menjanjikan sesuatu
+                // yang akan ditolak.
+                'minimal' => $attempt->penempatan?->exam?->minimalMenit(),
+                'sisa_minimal_detik' => $selesai ? 0 : $this->mesin->sisaMenujuMinimal($attempt),
             ],
 
             // Kosong saat sudah selesai: daftar soal yang belum dijawab tidak
@@ -144,7 +153,14 @@ class SelesaiSiswaController extends SiswaDasar
             return redirect()->route('siswa.gerbang', ['peserta' => $peserta->id]);
         }
 
-        $this->mesin->kumpulkan($attempt);
+        // Batas waktu minimal bisa MENOLAK pengumpulan - lihat
+        // `MesinUjian::kumpulkan()`. Ditangkap di sini supaya siswa menerima
+        // kalimat yang bisa ia tindak lanjuti di laman yang sama, bukan 500.
+        try {
+            $this->mesin->kumpulkan($attempt);
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
 
         return redirect()->route('siswa.selesai', ['peserta' => $peserta->id]);
     }

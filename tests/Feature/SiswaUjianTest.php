@@ -1137,3 +1137,116 @@ it('menyebut nama event pada setiap baris riwayat pelanggaran', function () {
             ->where('riwayat.0.event', $data['event']->name)
         );
 });
+
+/* =====================================================================
+ | Batas waktu MINIMAL - siswa tidak bisa keluar lebih awal
+ |===================================================================== */
+
+it('menolak mengumpulkan sebelum waktu minimal pengerjaan terpenuhi', function () {
+    // Ujian 120 menit dengan minimal 100 menit: siswa yang menekan Kumpulkan
+    // pada menit kelima harus DITOLAK. Tanpa aturan ini, nilai "selesai cepat"
+    // tidak bisa dibedakan dari "berhenti lebih dulu" - dan keduanya sah.
+    $data = siapkanUjianSiswa(
+        $this->sekolah, $this->tahun, $this->semester, $this->admin,
+        ['akhir' => '+3 hours'],
+        2,
+        120,
+    );
+
+    $data['ujian']->forceFill(['min_duration_minutes' => 100])->save();
+
+    $peserta = $data['peserta'][0];
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    masukUji($this, $data['siswa'][0])
+        ->post("/siswa/ujian/{$peserta->id}/selesai")
+        ->assertRedirect()
+        ->assertSessionHas('galat', fn (string $p) => str_contains($p, 'belum boleh dikumpulkan'));
+
+    // Attempt TETAP berjalan - penolakan tidak menutupnya.
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_BERJALAN);
+});
+
+it('mengizinkan mengumpulkan sesudah waktu minimal terlewati', function () {
+    $data = siapkanUjianSiswa(
+        $this->sekolah, $this->tahun, $this->semester, $this->admin,
+        ['akhir' => '+3 hours'],
+        2,
+        120,
+    );
+
+    $data['ujian']->forceFill(['min_duration_minutes' => 100])->save();
+
+    $peserta = $data['peserta'][0];
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    // Majukan jam: attempt dimulai 100 menit lalu, sehingga syaratnya genap.
+    $attempt = attemptBerjalan($peserta);
+    $attempt->forceFill(['started_at' => now()->subMinutes(100)])->save();
+
+    masukUji($this, $data['siswa'][0])
+        ->post("/siswa/ujian/{$peserta->id}/selesai")
+        ->assertRedirect();
+
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_DIKIRIM);
+});
+
+it('mengirim sisa menuju minimal ke laman selesai, supaya tombolnya bisa mati', function () {
+    $data = siapkanUjianSiswa(
+        $this->sekolah, $this->tahun, $this->semester, $this->admin,
+        ['akhir' => '+3 hours'],
+        2,
+        120,
+    );
+
+    $data['ujian']->forceFill(['min_duration_minutes' => 100])->save();
+
+    $peserta = $data['peserta'][0];
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    masukUji($this, $data['siswa'][0])
+        ->get("/siswa/ujian/{$peserta->id}/selesai")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Siswa/Selesai')
+            ->where('attempt.minimal', 100)
+            // Baru dimulai: sisa menuju minimal masih hampir penuh.
+            ->where('attempt.sisa_minimal_detik', fn ($d) => $d > 5900 && $d <= 6000)
+        );
+});
+
+it('tidak menahan pengumpulan bila ujiannya tidak punya batas minimal', function () {
+    // Bawaan: `NULL` berarti tidak ada batas, dan seluruh ujian lama harus
+    // tetap bisa dikumpulkan seketika seperti sebelumnya.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $peserta = $data['peserta'][0];
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta);
+    mulaiAttempt($this, $data['siswa'][0], $peserta, $data['token']);
+
+    expect($data['ujian']->refresh()->minimalMenit())->toBeNull();
+
+    masukUji($this, $data['siswa'][0])
+        ->post("/siswa/ujian/{$peserta->id}/selesai")
+        ->assertRedirect()
+        ->assertSessionMissing('galat');
+
+    expect(attemptBerjalan($peserta)->status)->toBe(ExamAttempt::STATUS_DIKIRIM);
+});
+
+it('memakai durasi sebagai batas minimal bila nilainya lebih besar dari durasi', function () {
+    // Menuntut 100 menit pada ujian 60 menit berarti siswa TIDAK AKAN PERNAH
+    // bisa mengumpulkan - `deadline_at` menutupnya sebagai kedaluwarsa lebih
+    // dulu. Dipatok pada durasi supaya syaratnya mungkin dipenuhi.
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $data['ujian']->forceFill([
+        'duration_minutes' => 60,
+        'min_duration_minutes' => 100,
+    ])->save();
+
+    expect($data['ujian']->refresh()->minimalMenit())->toBe(60);
+});

@@ -72,6 +72,12 @@ type Props = {
         jam_kumpul: string | null;
         kedaluwarsa: boolean;
         sisa_detik: number;
+        /**
+         * Batas waktu MINIMAL pengerjaan, menit - `null` bila tidak ada.
+         * Siswa tidak bisa mengumpulkan sebelum `sisa_minimal_detik` habis.
+         */
+        minimal: number | null;
+        sisa_minimal_detik: number;
     };
     progres: { total: number; terjawab: number; kosong: number; ditandai: number; ringkas: string };
     belum_terjawab: { id: number; nomor: number; ditandai: boolean }[];
@@ -170,6 +176,13 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
     const menitSisa = Math.floor(attempt.sisa_detik / 60);
     const adaKosong = belum_terjawab.length > 0;
 
+    // Batas waktu MINIMAL. Server tetap menegakkannya di
+    // `MesinUjian::kumpulkan()`; angka ini hanya supaya tombolnya tidak
+    // menawarkan sesuatu yang akan ditolak.
+    const sisaMinimal = attempt.sisa_minimal_detik;
+    const belumBolehKumpul = sisaMinimal > 0;
+    const menitMinimalTersisa = Math.ceil(sisaMinimal / 60);
+
     return (
         <KerangkaSiswa
             judul="Selesai ujian"
@@ -185,10 +198,18 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                     <button
                         type="button"
                         onClick={kumpulkan}
-                        disabled={mengirim}
+                        // Tombol MATI, bukan disembunyikan, selama waktu
+                        // minimal belum terpenuhi - alasan yang sama dengan
+                        // tombol gerbang yang mati: siswa harus tahu bahwa
+                        // yang menahan adalah waktu, bukan haknya.
+                        disabled={mengirim || belumBolehKumpul}
                         className="tombol tombol--pri w-full"
                     >
-                        {mengirim ? 'Mengumpulkan…' : 'Kumpulkan jawaban'}
+                        {mengirim
+                            ? 'Mengumpulkan…'
+                            : belumBolehKumpul
+                              ? `Bisa dikumpulkan dalam ${menitMinimalTersisa} menit`
+                              : 'Kumpulkan jawaban'}
                     </button>
                     <a
                         href={`/siswa/ujian/${peserta.peserta_id}/kerjakan`}
@@ -209,6 +230,17 @@ export default function Selesai({ peserta, selesai, attempt, progres, belum_terj
                 <SelAngka label="Ditandai" nilai={String(progres.ditandai)} />
                 <SelAngka label="Sisa" nilai={`${menitSisa}′`} />
             </section>
+
+            {/* Alasan tombolnya mati, ditulis di sini - lihat catatan yang
+                sama pada tombol gerbang: tombol mati tanpa kalimat membuat
+                siswa menduga aplikasinya rusak. */}
+            {belumBolehKumpul && (
+                <Peringatan>
+                    Ujian ini punya <b>waktu minimal {attempt.minimal} menit</b>. Anda masih
+                    mengerjakan, jadi jawaban belum bisa dikumpulkan. Periksa kembali jawaban
+                    Anda - tombol Kumpulkan aktif dalam {menitMinimalTersisa} menit.
+                </Peringatan>
+            )}
 
             {adaKosong && (
                 <Peringatan>

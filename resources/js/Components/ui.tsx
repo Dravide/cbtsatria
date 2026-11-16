@@ -530,7 +530,127 @@ export function PilihCari<T extends string | number = number>({
     );
 }
 
-/* ----------------------------------------------------------------- Kotak */
+/* -------------------------------------- DaftarCentangCari (multi + cari) */
+
+/**
+ * Daftar CENTANG yang bisa dicari - pengganti deretan kotak centang panjang.
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa bukan `PilihCari`
+ * ---------------------------------------------------------------------
+ * `PilihCari` memilih SATU nilai; kelas sasaran ujian memilih BANYAK. Dua
+ * komponen, bukan satu dengan sakelar: bentuk penyimpanannya berbeda
+ * (satu id vs daftar id), dan komponen yang melayani keduanya lewat
+ * percabangan akan lebih panjang daripada keduanya digabung.
+ *
+ * ---------------------------------------------------------------------
+ * Yang dicari adalah nama dan tingkatnya
+ * ---------------------------------------------------------------------
+ * "X-1" dan "XI-1" berbagi awalan, sehingga penyaringan yang hanya mencocokkan
+ * nama mulai akan menyisakan keduanya saat Admin mengetik "X-1". Karena itu
+ * tingkatnya ikut dicocokkan terpisah - dan ditampilkan, supaya dua kelas
+ * bernama sama di tingkat berbeda tidak lagi membingungkan.
+ */
+export function DaftarCentangCari<T extends string | number = number>({
+    label,
+    petunjuk,
+    nilai,
+    pilihan,
+    padaUbah,
+    kosong = 'Belum ada pilihan.',
+}: {
+    label: string;
+    petunjuk?: string;
+    nilai: T[];
+    pilihan: (PilihanCari<T> & { tingkat?: string | null })[];
+    padaUbah: (nilai: T[]) => void;
+    kosong?: string;
+}) {
+    const [cari, setCari] = useState('');
+
+    const q = cari.trim().toLowerCase();
+    const tersaring =
+        q === ''
+            ? pilihan
+            : pilihan.filter((p) =>
+                  `${p.label} ${p.tingkat ?? ''} ${p.ket ?? ''}`.toLowerCase().includes(q),
+              );
+
+    const ubah = (id: T, aktif: boolean) =>
+        padaUbah(aktif ? [...nilai, id] : nilai.filter((x) => x !== id));
+
+    const semuaTersaringDipilih =
+        tersaring.length > 0 && tersaring.every((p) => nilai.includes(p.id));
+
+    return (
+        <div>
+            <p className="mb-1.5 text-xs font-medium text-ink-2">{label}</p>
+            {petunjuk && <p className="mb-2 text-[11px] leading-relaxed text-ink-3">{petunjuk}</p>}
+
+            <div className="overflow-hidden rounded-wf border border-line">
+                <div className="flex items-center gap-2 border-b border-line p-1.5">
+                    <input
+                        value={cari}
+                        onChange={(e) => setCari(e.target.value)}
+                        placeholder="Ketik untuk mencari kelas…"
+                        aria-label={`Cari ${label.toLowerCase()}`}
+                        className="min-w-0 flex-1 rounded-wf border border-line bg-surface px-2 py-1 text-sm text-ink outline-none placeholder:text-ink-3/70 focus:border-accent focus:ring-2 focus:ring-accent/15"
+                    />
+
+                    {tersaring.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() =>
+                                semuaTersaringDipilih
+                                    ? padaUbah(
+                                          nilai.filter((id) => !tersaring.some((p) => p.id === id)),
+                                      )
+                                    : padaUbah([
+                                          ...nilai,
+                                          ...tersaring.map((p) => p.id).filter((id) => !nilai.includes(id)),
+                                      ])
+                            }
+                            className="shrink-0 text-[11px] font-medium text-accent hover:underline"
+                        >
+                            {semuaTersaringDipilih ? 'Batal pilih semua' : 'Pilih semua'}
+                        </button>
+                    )}
+                </div>
+
+                <div className="max-h-44 overflow-y-auto p-1">
+                    {tersaring.length === 0 ? (
+                        <p className="px-2 py-2 text-xs text-ink-3">{kosong}</p>
+                    ) : (
+                        tersaring.map((p) => (
+                            <label
+                                key={p.id}
+                                className="flex cursor-pointer items-center gap-2 rounded-wf px-2 py-1 text-sm hover:bg-surface-2/60"
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={nilai.includes(p.id)}
+                                    onChange={(e) => ubah(p.id, e.target.checked)}
+                                />
+                                <span className="min-w-0 flex-1 truncate text-ink">{p.label}</span>
+                                {p.tingkat && (
+                                    <span className="shrink-0 font-mono text-[11px] text-ink-3">
+                                        {p.tingkat}
+                                    </span>
+                                )}
+                            </label>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {nilai.length > 0 && (
+                <p className="mt-1 text-[11px] text-ink-3">{nilai.length} dipilih</p>
+            )}
+        </div>
+    );
+}
+
+/* ------------------------------------------------- Kotak */
 
 export function Kotak({
     judul,

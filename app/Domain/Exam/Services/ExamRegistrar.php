@@ -100,6 +100,12 @@ class ExamRegistrar
                 'exam_type' => $data['exam_type'] ?? $event->event_type,
                 'instructions' => $data['instructions'] ?? null,
                 'duration_minutes' => (int) ($data['duration_minutes'] ?? 60),
+                // NULL berarti tidak ada batas minimal, dan itu bawaan untuk
+                // ujian baru: menahan siswa di dalam ujian hanya masuk akal
+                // bila Admin menyatakannya.
+                'min_duration_minutes' => isset($data['min_duration_minutes'])
+                    ? (int) $data['min_duration_minutes']
+                    : null,
                 'max_attempts' => (int) ($data['max_attempts'] ?? 1),
                 'shuffle_questions' => (bool) ($data['shuffle_questions'] ?? false),
                 'shuffle_options' => (bool) ($data['shuffle_options'] ?? false),
@@ -152,6 +158,18 @@ class ExamRegistrar
             if (array_key_exists($kunci, $data)) {
                 $kolom[$kunci] = (int) $data[$kunci];
             }
+        }
+
+        // Batas minimal bisa DIKOSONGKAN kembali, dan `array_key_exists` yang
+        // membedakannya dari "tidak dikirim": `null` yang eksplisit berarti
+        // Admin menghapus batasnya, sementara kunci yang tidak ada berarti
+        // form ini tidak mengurusnya. Memakai `isset()` di sini akan membuat
+        // batas yang sudah dihapus tetap berlaku.
+        if (array_key_exists('min_duration_minutes', $data)) {
+            $kolom['min_duration_minutes'] = $data['min_duration_minutes'] === null
+                || $data['min_duration_minutes'] === ''
+                    ? null
+                    : (int) $data['min_duration_minutes'];
         }
 
         foreach ([

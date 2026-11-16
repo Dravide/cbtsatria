@@ -21,6 +21,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -217,6 +218,8 @@ class ExamJadwalController
                 'ada_paket' => $u->question_package_id !== null,
                 'jenis' => $u->exam_type,
                 'durasi' => $u->duration_minutes,
+                // Batas waktu minimal pengerjaan - null berarti tidak ada.
+                'minimal' => $u->min_duration_minutes,
                 'instruksi' => $u->instructions,
                 'percobaan' => $u->max_attempts,
                 'acak_soal' => $u->shuffle_questions,
@@ -337,6 +340,16 @@ class ExamJadwalController
             'exam_type' => ['nullable', 'string', 'max:60'],
             'instructions' => ['nullable', 'string', 'max:2000'],
             'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'],
+            // Batas waktu MINIMAL: boleh kosong, dan bila diisi tidak boleh
+            // melebihi durasi ujiannya - menuntut 100 menit pada ujian 60
+            // menit berarti siswa tidak akan pernah bisa mengumpulkan.
+            'min_duration_minutes' => [
+                'nullable', 'integer', 'min:1', 'max:600',
+                Rule::when(
+                    fn () => $request->filled('duration_minutes'),
+                    ['lte:duration_minutes'],
+                ),
+            ],
             'max_attempts' => ['nullable', 'integer', 'min:1', 'max:10'],
             'class_id' => ['nullable', 'array'],
             'class_id.*' => ['integer'],
@@ -356,6 +369,9 @@ class ExamJadwalController
             // tidak lagi dibaca siapa pun tidak divalidasi: menerimanya diam-
             // diam berarti formulir Admin mengira ia baru saja menyimpan
             // sesuatu.
+        ], [
+            'min_duration_minutes.lte' => 'Waktu minimal tidak boleh melebihi durasi ujian - siswa tidak akan pernah bisa mengumpulkan.',
+            'min_duration_minutes.min' => 'Waktu minimal minimal 1 menit.',
         ]);
 
         // Mapel harus benar-benar milik event ini. Scope menyaring sekolahnya;
@@ -390,6 +406,13 @@ class ExamJadwalController
             'exam_type' => ['nullable', 'string', 'max:60'],
             'instructions' => ['nullable', 'string', 'max:2000'],
             'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'],
+            'min_duration_minutes' => [
+                'nullable', 'integer', 'min:1', 'max:600',
+                Rule::when(
+                    fn () => $request->filled('duration_minutes'),
+                    ['lte:duration_minutes'],
+                ),
+            ],
             'max_attempts' => ['nullable', 'integer', 'min:1', 'max:10'],
             'class_id' => ['nullable', 'array'],
             'class_id.*' => ['integer'],
@@ -397,6 +420,9 @@ class ExamJadwalController
             'shuffle_options' => ['nullable', 'boolean'],
             'allow_back_navigation' => ['nullable', 'boolean'],
             'allow_late_entry' => ['nullable', 'boolean'],
+        ], [
+            'min_duration_minutes.lte' => 'Waktu minimal tidak boleh melebihi durasi ujian - siswa tidak akan pernah bisa mengumpulkan.',
+            'min_duration_minutes.min' => 'Waktu minimal minimal 1 menit.',
         ]);
 
         // Mapel hanya boleh berpindah selama belum ada paket yang dibekukan.

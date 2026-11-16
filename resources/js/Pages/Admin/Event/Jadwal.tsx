@@ -4,6 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { konfirmasi, tanyaTeks } from '@/Components/dialog';
 import {
     Chip,
+    DaftarCentangCari,
     Field,
     Inbox,
     Kotak,
@@ -73,6 +74,8 @@ type Ujian = {
     mapel_id: number;
     jenis: string | null;
     durasi: number;
+    /** Batas waktu minimal pengerjaan, menit. `null` = tanpa batas. */
+    minimal: number | null;
     instruksi: string | null;
     percobaan: number;
     acak_soal: boolean;
@@ -1096,6 +1099,7 @@ function FormUjian({
         // bisa berselisih. Ujian lama yang sudah punya nilai tidak diubah:
         // `perbarui()` hanya menulis kunci yang dikirim.
         duration_minutes: ujianAwal?.durasi ?? 60,
+        min_duration_minutes: ujianAwal?.minimal ?? null,
         max_attempts: ujianAwal?.percobaan ?? 1,
         instructions: ujianAwal?.instruksi ?? '',
         allow_back_navigation: ujianAwal?.boleh_kembali ?? true,
@@ -1257,6 +1261,37 @@ function FormUjian({
                     />
                 </Field>
 
+                {/* Waktu MINIMAL, bukan durasi: menahan siswa di dalam ujian
+                    sebelum ia boleh mengumpulkan. Kosong berarti tidak ada
+                    batas - dan itu bawaan, karena menahan siswa hanya masuk
+                    akal bila Admin menyatakannya. */}
+                <Field
+                    label="Waktu minimal (menit)"
+                    petunjuk="Boleh dikosongkan. Siswa tidak bisa mengumpulkan sebelum waktu ini habis."
+                    galat={
+                        isi.min_duration_minutes !== null &&
+                        isi.min_duration_minutes > isi.duration_minutes
+                            ? 'Tidak boleh melebihi durasi ujian.'
+                            : undefined
+                    }
+                >
+                    <input
+                        type="number"
+                        min={1}
+                        max={isi.duration_minutes}
+                        value={isi.min_duration_minutes ?? ''}
+                        onChange={(e) =>
+                            setIsi({
+                                ...isi,
+                                min_duration_minutes:
+                                    e.target.value === '' ? null : Number(e.target.value),
+                            })
+                        }
+                        className={kelasInput}
+                        placeholder="Tanpa batas"
+                    />
+                </Field>
+
                 <Field label="Maksimal percobaan">
                     <input
                         type="number"
@@ -1279,35 +1314,22 @@ function FormUjian({
             </div>
 
             <div className="mt-4">
-                <p className="mb-1.5 text-xs font-medium text-ink-2">Kelas sasaran</p>
-                <p className="mb-2 text-[11px] text-ink-3">
-                    Kosong berarti <strong>seluruh peserta event</strong>. Itu pilihan yang
-                    disengaja: mencentang setiap kelas satu per satu berarti lupa satu kelas membuat
-                    kelas itu tidak mendapat ujian tanpa satu pun peringatan.
-                </p>
+                <DaftarCentangCari
+                    label="Kelas sasaran"
+                    petunjuk="Kosong berarti seluruh peserta event. Itu pilihan yang disengaja: mencentang setiap kelas satu per satu berarti lupa satu kelas membuat kelas itu tidak mendapat ujian tanpa satu pun peringatan."
+                    nilai={pilihKelas}
+                    pilihan={kelas.map((k) => ({
+                        id: k.id,
+                        label: k.nama,
+                        tingkat: k.tingkat,
+                    }))}
+                    padaUbah={setPilihKelas}
+                    kosong="Tidak ada kelas yang cocok."
+                />
 
-                <div className="flex flex-wrap gap-3">
-                    {kelas.map((k) => (
-                        <label key={k.id} className="flex items-center gap-1.5 text-sm">
-                            <input
-                                type="checkbox"
-                                checked={pilihKelas.includes(k.id)}
-                                onChange={(e) =>
-                                    setPilihKelas(
-                                        e.target.checked
-                                            ? [...pilihKelas, k.id]
-                                            : pilihKelas.filter((x) => x !== k.id),
-                                    )
-                                }
-                            />
-                            <span className="text-ink">{k.nama}</span>
-                        </label>
-                    ))}
-
-                    {kelas.length === 0 && (
-                        <p className="text-xs text-ink-3">Belum ada kelas di event ini.</p>
-                    )}
-                </div>
+                {kelas.length === 0 && (
+                    <p className="mt-2 text-xs text-ink-3">Belum ada kelas di event ini.</p>
+                )}
             </div>
 
             <div className="mt-4 flex flex-wrap gap-4 border-t border-line pt-3">

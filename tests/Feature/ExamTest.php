@@ -1560,6 +1560,63 @@ it('mengirim tingkat kosong bila kelas sasarannya mencampur dua tingkat', functi
         );
 });
 
+it('menyimpan waktu minimal pengerjaan dan mengirimkannya ke laman jadwal', function () {
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)
+        ->put("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}", [
+            'subject_id' => $this->mapel->id,
+            'title' => $data['ujian']->title,
+            'duration_minutes' => 120,
+            'min_duration_minutes' => 100,
+            'class_id' => [],
+        ])
+        ->assertSessionHas('sukses');
+
+    expect($data['ujian']->refresh()->min_duration_minutes)->toBe(100);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/jadwal")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Jadwal')
+            ->where('ujian.0.minimal', 100)
+        );
+});
+
+it('menolak waktu minimal yang melebihi durasi ujian', function () {
+    // Ujian 60 menit dengan minimal 100 menit berarti siswa TIDAK AKAN PERNAH
+    // bisa mengumpulkan: `deadline_at` menutupnya sebagai kedaluwarsa lebih
+    // dulu. Ditolak di form, bukan dibiarkan tersimpan lalu membingungkan.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)
+        ->put("/admin/events/{$this->event->id}/ujian/{$data['ujian']->id}", [
+            'subject_id' => $this->mapel->id,
+            'title' => $data['ujian']->title,
+            'duration_minutes' => 60,
+            'min_duration_minutes' => 100,
+            'class_id' => [],
+        ])
+        ->assertSessionHasErrors('min_duration_minutes');
+
+    expect($data['ujian']->refresh()->min_duration_minutes)->toBeNull();
+});
+
+it('mempertahankan waktu minimal bila form ubah tidak mengirimnya', function () {
+    // `array_key_exists`, bukan `isset`: kunci yang TIDAK ADA berarti form ini
+    // tidak mengurusnya, dan nilainya harus tetap.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+    $data['ujian']->forceFill(['duration_minutes' => 120, 'min_duration_minutes' => 90])->save();
+
+    app(ExamRegistrar::class)->perbarui($data['ujian'], [
+        'title' => 'Judul baru',
+        'duration_minutes' => 120,
+    ]);
+
+    expect($data['ujian']->refresh()->min_duration_minutes)->toBe(90);
+});
+
 it('menolak mapel yang tidak ditetapkan di event ini saat ujian diubah', function () {
     $data = jadwalkan($this->event, $this->mapel, $this->admin);
 

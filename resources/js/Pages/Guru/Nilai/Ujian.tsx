@@ -1,7 +1,16 @@
 import { Head, router } from '@inertiajs/react';
 import { useMemo } from 'react';
 import GuruLayout from '@/Layouts/GuruLayout';
-import { BilahFilter, Chip, Inbox, Paginator, Tabel, Tombol, kelasInput, pakaiFilter } from '@/Components/ui';
+import {
+    BilahFilter,
+    Chip,
+    Inbox,
+    Paginator,
+    PilihCari,
+    Tabel,
+    Tombol,
+    pakaiFilter,
+} from '@/Components/ui';
 import { formatPoin } from '@/Components/angka';
 
 /**
@@ -138,19 +147,24 @@ export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }
 
             <div className="mb-3">
                 <BilahFilter padaKirim={terapkan}>
-                    <select
-                        value={f.nilai.kelas ?? ''}
-                        onChange={(e) => f.ubah('kelas', e.target.value)}
-                        className={kelasInput + ' max-w-[14rem]'}
-                        disabled={!kelasAda}
-                    >
-                        <option value="">Semua kelas</option>
-                        {kelas.map((k) => (
-                            <option key={k.id} value={k.id}>
-                                {k.label}
-                            </option>
-                        ))}
-                    </select>
+                    {/* Kelas bisa puluhan, dan daftar itu yang paling sering
+                        dicari Guru saat menelusuri satu kelas di antara
+                        seluruh kelas yang ia ampu. `PilihCari` menyaring
+                        sambil mengetik, dan baris "Semua kelas" mengembalikan
+                        penyaring ke kosong. */}
+                    <div className="w-56">
+                        <PilihCari<string>
+                            label="Kelas"
+                            nilai={f.nilai.kelas === '' ? null : (f.nilai.kelas ?? null)}
+                            pilihan={kelas.map((k) => ({ id: k.id, label: k.label }))}
+                            padaPilih={(id) => f.ubah('kelas', id ?? '')}
+                            disabled={!kelasAda}
+                            izinkanKosong
+                            labelKosong="Semua kelas"
+                            placeholder="Semua kelas"
+                            kosong="Tidak ada kelas yang cocok."
+                        />
+                    </div>
 
                     <Tombol type="submit" nada="pri">
                         Terapkan

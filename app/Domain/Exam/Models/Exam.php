@@ -101,6 +101,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'exam_type',
     'instructions',
     'duration_minutes',
+    'min_duration_minutes',
     'max_attempts',
     'shuffle_questions',
     'shuffle_options',
@@ -116,6 +117,7 @@ class Exam extends Model
     {
         return [
             'duration_minutes' => 'integer',
+            'min_duration_minutes' => 'integer',
             'max_attempts' => 'integer',
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
@@ -129,6 +131,28 @@ class Exam extends Model
     public function event(): BelongsTo
     {
         return $this->belongsTo(SchoolEvent::class, 'event_id');
+    }
+
+    /**
+     * Batas waktu MINIMAL pengerjaan, dalam menit - atau null bila tidak ada.
+     *
+     * Pertanyaan yang dijawabnya: "berapa lama seorang siswa harus tetap
+     * berada di ujian sebelum ia boleh menekan Kumpulkan?". `null` berarti
+     * tidak ada batas, dan laman siswa tidak menahan apa pun.
+     *
+     * Bila nilainya lebih besar daripada durasi ujian, yang berlaku adalah
+     * durasi: menuntut siswa mengerjakan 100 menit pada ujian 60 menit berarti
+     * ia tidak akan pernah bisa mengumpulkan - dan `deadline_at` menutupnya
+     * sebagai kedaluwarsa sebelum syaratnya terpenuhi. Dipatok di sini supaya
+     * seluruh pemanggil mendapat jawaban yang sama.
+     */
+    public function minimalMenit(): ?int
+    {
+        if ($this->min_duration_minutes === null) {
+            return null;
+        }
+
+        return min((int) $this->min_duration_minutes, (int) $this->duration_minutes);
     }
 
     /** @return BelongsTo<EventActivity, $this> */
