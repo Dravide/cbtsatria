@@ -337,15 +337,10 @@ class ExamPenempatanController
         $peta = $kocok->petaSesi($event, $sesi, $susunan['per_ruang']);
 
         if (! $peta['lengkap']) {
-            $sebab = array_merge(
-                $peta['ruang_hilang'] === [] ? [] : ['ruang event tidak dipakai sesi ini: '.implode(', ', $peta['ruang_hilang'])],
-                $peta['terlalu_penuh'],
-                $peta['tidak_ditempatkan'],
-            );
-
             return back()->with(
                 'galat',
-                "{$sesi->label()} - ".implode('; ', $sebab),
+                "{$sesi->label()} - ".implode('; ', $this->sebabTidakBisa($peta)).'. '
+                .'Tambahkan ruang yang kurang pada sesi itu di laman Jadwal & sesi, lalu sebar lagi.',
             );
         }
 
@@ -631,6 +626,31 @@ class ExamPenempatanController
     }
 
     /**
+     * Sebab-sebab satu sesi tidak bisa memakai peta ruang event.
+     *
+     * Sebab `ruang_hilang` ditulis dengan TINDAKANNYA, bukan hanya gejalanya.
+     * Kalimat lama - "ruang event tidak dipakai sesi ini: R-02; 35 peserta
+     * tanpa kursi" - benar, tetapi Admin membacanya sebagai kerusakan. Yang
+     * sebenarnya terjadi: sesi itu dibuat tanpa mencentang R-02, dan peta
+     * event berlaku untuk seluruh ruang event. Memperbaikinya satu tindakan,
+     * dan kalimat ini menyebutkannya.
+     *
+     * @param  array<string, mixed>  $peta
+     * @return array<int, string>
+     */
+    private function sebabTidakBisa(array $peta): array
+    {
+        return array_merge(
+            ($peta['ruang_hilang'] ?? []) === []
+                ? []
+                : ['sesi ini belum memakai ruang '.implode(', ', $peta['ruang_hilang'])
+                    .' - centang ruang itu di laman Jadwal & sesi'],
+            $peta['terlalu_penuh'] ?? [],
+            $peta['tidak_ditempatkan'] ?? [],
+        );
+    }
+
+    /**
      * Sesi harus benar-benar milik event di URL.
      *
      * Binding implisit menemukan sesi di seluruh sekolah, dan scope tenant
@@ -685,11 +705,7 @@ class ExamPenempatanController
 
             $peta = $kocok->petaSesi($event, $s, $perRuang);
 
-            $sebab = array_merge(
-                $peta['ruang_hilang'] === [] ? [] : ['ruang event tidak dipakai sesi ini: '.implode(', ', $peta['ruang_hilang'])],
-                $peta['terlalu_penuh'],
-                $peta['tidak_ditempatkan'],
-            );
+            $sebab = $this->sebabTidakBisa($peta);
 
             $baris[] = [
                 'sesi_id' => $s->id,

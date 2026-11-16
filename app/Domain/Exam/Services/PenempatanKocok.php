@@ -930,12 +930,29 @@ class PenempatanKocok
      *
      * @return Collection<int, ExamSession>
      */
+    /**
+     * Sesi UTAMA ujian satu event, urut waktu.
+     *
+     * Sesi SUSULAN dikecualikan, dan itu wajib: peta ruang event menyusun
+     * kursi untuk SELURUH peserta ujian, sementara peserta sesi susulan
+     * sengaja dipindahkan Admin satu per satu ke sesi itu. Memasukkannya ke
+     * daftar ini membuat laman penempatan menawarkan "Pakai penempatan" untuk
+     * sesi susulan - dan menekannya akan menarik kembali siswa susulan ke
+     * ruang sesi utama, membatalkan pemindahan yang baru saja dibuat.
+     *
+     * Ia juga akan membuat Sebar seluruh event mustahil: sesi susulan memakai
+     * sebagian ruang, sehingga setiap event yang punya susulan selalu
+     * dilaporkan "tidak bisa memakai peta ruang event".
+     *
+     * @return Collection<int, ExamSession>
+     */
     public function sesiEvent(SchoolEvent $event): Collection
     {
         $idUjian = Exam::query()->where('event_id', $event->id)->pluck('id');
 
         return ExamSession::query()
             ->whereIn('exam_id', $idUjian)
+            ->where('jenis', '!=', 'susulan')
             ->with('exam:id,code,title,subject_id,event_id', 'exam.subject:id,name')
             ->orderBy('access_opens_at')
             ->orderBy('id')

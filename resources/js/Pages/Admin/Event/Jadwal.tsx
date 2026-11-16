@@ -1494,7 +1494,28 @@ function FormSesi({
     const [buka, setBuka] = useState(sesiAwal?.buka_iso ?? '');
     const [tutup, setTutup] = useState(sesiAwal?.tutup_iso ?? '');
     const [akhir, setAkhir] = useState(sesiAwal?.akhir_iso ?? '');
-    const [pilihRuang, setPilihRuang] = useState<number[]>(sesiAwal?.ruang_id ?? []);
+    // Sesi BARU mulai dengan SELURUH ruang event tercentang, bukan kosong.
+    //
+    // Sebelumnya nilai awalnya `[]`, dan Admin yang tidak mencentang satu pun
+    // menyimpan sesi tanpa ruang. Akibatnya baru terlihat di laman Penempatan:
+    // peta disusun untuk seluruh ruang event, lalu diterapkan ke sesi yang
+    // hanya memakai sebagian - dan pesannya berbunyi "ruang event tidak
+    // dipakai sesi ini: R-02; 35 peserta tanpa kursi". Itu penerapan yang
+    // mustahil, bukan kesalahan Admin di laman ini.
+    //
+    // Sesi SUSULAN sengaja TIDAK mendapat semua ruang: pesertanya sedikit, dan
+    // ruang kosong yang terdaftar hanya membuat denah dan tablo mencetak
+    // ruangan yang tidak dipakai siapa pun. Bawaannya satu ruang pertama.
+    //
+    // Ruang yang tercentang tetap bisa DIKURANGI bila memang perlu; yang
+    // berubah hanyalah titik awalnya.
+    const [pilihRuang, setPilihRuang] = useState<number[]>(() => {
+        if (sesiAwal !== undefined) {
+            return sesiAwal.ruang_id;
+        }
+
+        return susulan ? (ruang[0] ? [ruang[0].id] : []) : ruang.map((r) => r.id);
+    });
     const [galat, setGalat] = useState<string | null>(null);
 
     const umumkanGalat = (pesan: string) => {

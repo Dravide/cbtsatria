@@ -3,7 +3,9 @@
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Exam\Models\ExamEventShuffle;
 use App\Domain\Exam\Models\ExamParticipant;
+use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
+use App\Domain\Exam\Services\ExamSusulanService;
 use App\Domain\Exam\Services\PenempatanKocok;
 use App\Domain\Exam\Services\SesiService;
 use App\Domain\Identity\Models\User;
@@ -567,9 +569,11 @@ it('melaporkan ujian yang sesinya tidak memakai seluruh ruang event, tanpa mengg
     // laman jadwal - bukan kerusakan aplikasi. Laman yang gagal seluruhnya
     // karena satu sesi membuat Admin menebak sesi mana yang bermasalah.
     //
-    // Sebabnya disebut lengkap: "ruang event tidak dipakai sesi ini" DAN
+    // Sebabnya disebut lengkap: RUANG mana yang belum dipakai sesi itu, DAN
     // berapa peserta yang jatuh karenanya. Menyebut salah satunya saja membuat
     // Admin memperbaiki ruangnya tanpa tahu berapa orang yang kehilangan kursi.
+    // Sejak 2026-11-16 kalimatnya juga menyebut TINDAKANNYA (centang ruang di
+    // laman Jadwal) - gejalanya saja terbaca sebagai kerusakan.
     $d = siapkanKocok($this->admin, $this->tahun);
     $ruangEvent = $d['event']->rooms()->orderBy('id')->pluck('id')->all();
 
@@ -583,13 +587,51 @@ it('melaporkan ujian yang sesinya tidak memakai seluruh ruang event, tanpa mengg
             ->where('baris.0.bisa', true)
             ->where('baris.1.bisa', false)
             ->where('baris.1.sebab', fn ($s) => is_string($s)
-                && str_contains($s, 'tidak dipakai sesi ini')
+                && str_contains($s, 'belum memakai ruang')
+                && str_contains($s, 'Jadwal & sesi')
                 && str_contains($s, 'peserta tanpa kursi'))
             ->where('laman.bisa_sebar', false)
             ->where('angka.bisa', 1)
         );
 
     expect($sesiSempit->id)->not->toBe($d['sesi']->id);
+});
+
+it('tidak menawarkan sesi susulan di tabel penempatan, dan tidak memblokir Sebar', function () {
+    // Regresi 2026-11-16. Sesi susulan memakai SEBAGIAN ruang event karena
+    // pesertanya dipindahkan satu per satu. Selama ia ikut terdaftar sebagai
+    // "sesi yang harus bisa memakai peta ruang event", setiap event yang punya
+    // susulan SELALU dilaporkan tidak bisa disebar - dan tombol Sebar mati
+    // untuk seluruh event, termasuk sesi utamanya yang sehat.
+    //
+    // Menekan "Pakai penempatan" pada sesi susulan bahkan lebih buruk:
+    // peta event akan menarik kembali siswa susulan ke ruang sesi utama,
+    // membatalkan pemindahan yang baru saja Admin buat.
+    $d = siapkanKocok($this->admin, $this->tahun);
+
+    $susulan = app(ExamSusulanService::class)->buatSesi(
+        $d['ujian'],
+        [
+            'access_opens_at' => '2026-12-16 09:00:00',
+            'access_closes_at' => '2026-12-16 10:30:00',
+            'hard_end_at' => '2026-12-16 11:00:00',
+            'event_room_id' => [$d['event']->rooms()->orderBy('id')->value('id')],
+        ],
+    );
+
+    masukSebagai($this, $this->admin)
+        ->get(jalurPenempatan($d['event']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            // Hanya sesi UTAMA yang muncul - bukan sesi susulan.
+            ->has('baris', 1)
+            ->where('baris.0.sesi_id', $d['sesi']->id)
+            ->where('baris.0.bisa', true)
+            // Dan karena itu Sebar tetap bisa ditekan.
+            ->where('laman.bisa_sebar', true)
+        );
+
+    expect(ExamSession::query()->find($susulan->id))->not->toBeNull();
 });
 
 it('menolak menyebar bila satu sesi tidak memakai seluruh ruang event', function () {
