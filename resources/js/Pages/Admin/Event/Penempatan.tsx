@@ -132,6 +132,17 @@ type Props = {
 export default function EventPenempatan({ event, laman, baris, pratinjau, denah_url, tablo_url, angka }: Props) {
     const jalur = `/admin/events/${event.id}`;
 
+    // Tab, bukan satu halaman panjang.
+    //
+    // Laman ini dulu memuat LIMA blok bertumpuk: pratinjau peta, 33 chip
+    // ruang, rincian 33 ruang, tabel kelayakan sesi, dan kotak "Cara
+    // mengocok". Pada event 33 ruang itu ribuan piksel gulir, dan yang dicari
+    // Admin - "sesi mana yang belum bisa disebar" - tenggelam di tengahnya.
+    //
+    // Tab memisahkan tiga pertanyaan yang memang berbeda: "susunannya
+    // bagaimana", "sesi mana yang siap", dan "siapa di ruang mana".
+    const [tab, setTab] = useState<'peta' | 'sesi' | 'rincian'>('peta');
+
     // Konfirmasi, bukan aksi langsung: kocok ulang membatalkan daftar ruang
     // yang sudah dicetak untuk SETIAP mapel, dan yang membatalkannya harus
     // berupa keputusan yang terlihat.
@@ -248,6 +259,35 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                 />
             </div>
 
+            {/* Tab memisahkan tiga pertanyaan yang memang berbeda. Sebelumnya
+                ketiganya bertumpuk di satu halaman, dan pada event 33 ruang
+                yang dicari Admin tenggelam di antara ribuan piksel. */}
+            <div className="mb-3 flex flex-wrap gap-1 border-b border-line">
+                {[
+                    { kunci: 'peta', label: 'Susunan & sebar' },
+                    {
+                        kunci: 'sesi',
+                        label: `Kelayakan sesi (${baris.length})`,
+                    },
+                    { kunci: 'rincian', label: `Rincian ruang (${pratinjau?.ruang.length ?? 0})` },
+                ].map((t) => (
+                    <button
+                        key={t.kunci}
+                        type="button"
+                        onClick={() => setTab(t.kunci as typeof tab)}
+                        aria-current={tab === t.kunci ? 'page' : undefined}
+                        className={
+                            '-mb-px border-b-2 px-3 py-2 text-xs font-medium transition-colors ' +
+                            (tab === t.kunci
+                                ? 'border-accent text-accent'
+                                : 'border-transparent text-ink-3 hover:text-ink')
+                        }
+                    >
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
             {laman.pesan ? (
                 <div className="mb-3">
                     <Peringatan>{laman.pesan}</Peringatan>
@@ -270,7 +310,8 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                     </p>
                 </div>
             ) : (
-                pratinjau && (
+                pratinjau &&
+                tab === 'peta' && (
                     <div className="mb-3">
                         <Kotak
                             judul="Pratinjau peta ruang · berlaku sepanjang event"
@@ -388,6 +429,10 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                 </span>
                             </div>
 
+                            {/* Ringkasan ruang dalam satu baris chip. Rincian
+                                per ruang - 33 baris yang bisa dibuka satu per
+                                satu - pindah ke tab "Rincian ruang": di sini
+                                ia yang membuat halaman ini memanjang. */}
                             <div className="mb-3 flex flex-wrap gap-2">
                                 {pratinjau.ruang.map((r) => (
                                     <span
@@ -400,39 +445,6 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                 ))}
                             </div>
 
-                            <RincianRuang ruang={pratinjau.ruang} />
-
-                            {/* Rincian kelas berguna di mode `kelas` DAN
-                                `rata`: di `kelas` ia membuktikan satu kelas
-                                satu ruang, di `rata` ia membuktikan tiap kelas
-                                benar-benar tersebar merata - dua klaim yang
-                                tidak bisa dibaca dari angka ruang saja. Di
-                                `campur` daftar ini hanya mengulang apa yang
-                                sudah terbaca. */}
-                            {(mode === 'kelas' || mode === 'rata') && laman.rincian_kelas.length > 0 && (
-                                <div className="mt-3 rounded-wf border border-line">
-                                    <header className="border-b border-line px-2.5 py-1.5">
-                                        <h3 className="text-[11px] font-medium text-ink">
-                                            Kelas dan ruangnya
-                                        </h3>
-                                    </header>
-                                    <div className="divide-y divide-line/60">
-                                        {laman.rincian_kelas.map((k) => (
-                                            <div
-                                                key={k.nama}
-                                                className="flex flex-wrap items-baseline gap-2 px-2.5 py-1.5 text-[11px]"
-                                            >
-                                                <b className="font-mono text-ink">{k.nama}</b>
-                                                <span className="text-ink-3">{k.jumlah} siswa</span>
-                                                <span className="ml-auto font-mono text-ink-2">
-                                                    {k.ruang.join(' · ')}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
                             {mode === 'kelas' && laman.kelas_terbelah.length > 0 && (
                                 <p className="mt-2 text-[11px] leading-relaxed text-warn">
                                     {laman.kelas_terbelah.join('; ')}. Hanya kelas yang lebih besar
@@ -442,31 +454,70 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                 </p>
                             )}
 
-                            <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
-                                Angka tiap ruang di atas adalah penghuninya &mdash; jumlah yang sama
-                                dengan yang digambar laman denah dan dicetak tablo. Peta ini berlaku
-                                untuk <strong className="text-ink-2">seluruh event</strong>: seorang
-                                siswa memegang satu ruang yang sama sepanjang ujian, bukan satu ruang
-                                per mapel. Benih yang sama selalu menghasilkan susunan yang sama,
-                                sehingga siswa tidak berpindah ruang hanya karena halaman ini dibuka
-                                lagi.{' '}
-                                <strong className="text-ink-2">Kocok ulang</strong> membuat benih baru &mdash;
-                                daftar ruang yang sudah dicetak tidak berlaku lagi.
-                                {laman.terkunci && (
-                                    <>
-                                        {' '}
-                                        Kocokan ini dibekukan{' '}
-                                        {laman.dikocok_pada}
-                                        {laman.dikocok_oleh ? ` oleh ${laman.dikocok_oleh}` : ''}.
-                                    </>
-                                )}
-                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <Tombol nada="sek" onClick={() => setTab('rincian')}>
+                                    Lihat rincian {pratinjau.ruang.length} ruang
+                                </Tombol>
+                                <TombolTautan href={denah_url}>Denah kursi</TombolTautan>
+                                <TombolTautan href={tablo_url}>Cetak tablo</TombolTautan>
+                            </div>
                         </Kotak>
                     </div>
                 )
             )}
 
-            <Kotak judul="Sesi ujian - kelayakan memakai peta ruang event">
+            {/* ------------------------------------------ Tab SUSUNAN selesai */}
+
+            {/* Rincian ruang: 33 baris yang bisa dibuka satu per satu. Inilah
+                blok yang paling memanjangkan halaman, dan ia hanya dibaca saat
+                Admin memang ingin memeriksa kursi - bukan setiap kali membuka
+                laman ini. */}
+            {tab === 'rincian' && pratinjau && (
+                <Kotak judul="Siapa di ruang mana">
+                    {/* Rincian kelas berguna di mode `kelas` DAN `rata`: di
+                        `kelas` ia membuktikan satu kelas satu ruang, di `rata`
+                        ia membuktikan tiap kelas benar-benar tersebar merata.
+                        Di `campur` daftar ini hanya mengulang apa yang sudah
+                        terbaca. */}
+                    {(mode === 'kelas' || mode === 'rata') && laman.rincian_kelas.length > 0 && (
+                        <div className="mb-3 rounded-wf border border-line">
+                            <header className="border-b border-line px-2.5 py-1.5">
+                                <h3 className="text-[11px] font-medium text-ink">
+                                    Kelas dan ruangnya
+                                </h3>
+                            </header>
+                            <div className="divide-y divide-line/60">
+                                {laman.rincian_kelas.map((k) => (
+                                    <div
+                                        key={k.nama}
+                                        className="flex flex-wrap items-baseline gap-2 px-2.5 py-1.5 text-[11px]"
+                                    >
+                                        <b className="font-mono text-ink">{k.nama}</b>
+                                        <span className="text-ink-3">{k.jumlah} siswa</span>
+                                        <span className="ml-auto font-mono text-ink-2">
+                                            {k.ruang.join(' · ')}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <RincianRuang ruang={pratinjau.ruang} />
+
+                    <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
+                        Angka tiap ruang adalah penghuninya &mdash; jumlah yang sama dengan yang
+                        digambar laman denah dan dicetak tablo. Peta ini berlaku untuk{' '}
+                        <strong className="text-ink-2">seluruh event</strong>: seorang siswa
+                        memegang satu ruang yang sama sepanjang ujian.
+                    </p>
+                </Kotak>
+            )}
+
+            {/* ------------------------------------------------- tab SESI */}
+            {tab === 'sesi' && (
+                <>
+                    <Kotak judul="Sesi ujian - kelayakan memakai peta ruang event">
                 <Tabel<Baris>
                     hal={{ data: baris, total: baris.length }}
                     kunci={(b) => `${b.sesi_id}`}
@@ -557,6 +608,8 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                     </div>
                 </Kotak>
             </div>
+                </>
+            )}
 
             {/* Konfirmasi kocok ulang. Bukan kehati-hatian berlebihan: satu
                 klik di sini membuat 240 nama berpindah kursi di SETIAP mapel,
