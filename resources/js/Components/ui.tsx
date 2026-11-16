@@ -1,6 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { pesan } from '@/Components/dialog';
+import Ikon from '@/Components/Ikon';
 
 /**
  * Komponen bersama untuk delapan laman master data.
@@ -212,6 +213,281 @@ export const kelasInput =
     'transition-colors duration-150 placeholder:text-ink-3/70 ' +
     'hover:border-ink-3/50 focus:border-accent focus:ring-2 focus:ring-accent/15 ' +
     'disabled:bg-surface-2 disabled:text-ink-3';
+
+/* ------------------------------------------------- PilihCari (pilihan cari) */
+
+export type PilihanCari = {
+    id: number;
+    /** Teks yang dicari dan ditampilkan, mis. "MAT-10 Matematika". */
+    label: string;
+    /** Keterangan kanan yang ikut dicari, mis. kode mapelnya. */
+    ket?: string | null;
+};
+
+/**
+ * Pilihan tunggal yang bisa DICARI - pengganti `<select>` untuk daftar panjang.
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa bukan `select2` atau pustaka combobox
+ * ---------------------------------------------------------------------
+ * `select2` memerlukan jQuery, dan proyek ini tidak memuatnya sama sekali:
+ * menambahkannya berarti satu pustaka baru yang harus hidup berdampingan
+ * dengan React hanya untuk satu isian. Pustaka combobox React menambah
+ * dependensi lain lagi, dengan gayanya sendiri yang harus ditimpa satu per
+ * satu. Komponen ini memakai token yang sudah ada (`--color-line`,
+ * `--color-accent`), jadi ia tidak membawa satu pun warna baru.
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa `<div>`, bukan `<label>` seperti `Field`
+ * ---------------------------------------------------------------------
+ * `Field` membungkus isinya dengan `<label>`, dan `<label>` tidak boleh
+ * memuat tombol - tombol adalah labelable element, dan label hanya boleh
+ * menunjuk satu kontrol. Di sini kontrolnya adalah tombol pembuka, sehingga
+ * labelnya dirender sebagai teks terpisah dengan `aria-labelledby`.
+ *
+ * ---------------------------------------------------------------------
+ * Keyboard
+ * ---------------------------------------------------------------------
+ * Tombol membuka daftar; panah atas/bawah memindahkan sorotan; Enter memilih;
+ * Escape menutup tanpa mengubah nilai. Fokus kembali ke tombol setelah
+ * dipilih, sehingga pengguna keyboard tidak "jatuh" ke awal halaman.
+ */
+export function PilihCari({
+    label,
+    galat,
+    petunjuk,
+    nilai,
+    pilihan,
+    padaPilih,
+    disabled = false,
+    kosong = 'Belum ada pilihan.',
+    placeholder = 'Pilih…',
+}: {
+    label: string;
+    galat?: string;
+    petunjuk?: string;
+    nilai: number;
+    pilihan: PilihanCari[];
+    padaPilih: (id: number) => void;
+    disabled?: boolean;
+    kosong?: string;
+    placeholder?: string;
+}) {
+    const idDasar = `pilih-cari-${label.replace(/\W+/g, '-').toLowerCase()}`;
+    const [terbuka, setTerbuka] = useState(false);
+    const [cari, setCari] = useState('');
+    const [sorot, setSorot] = useState(0);
+
+    const akar = useRef<HTMLDivElement | null>(null);
+    const inputCari = useRef<HTMLInputElement | null>(null);
+    const tombol = useRef<HTMLButtonElement | null>(null);
+
+    const terpilih = pilihan.find((p) => p.id === nilai) ?? null;
+
+    const q = cari.trim().toLowerCase();
+    const tersaring = q === ''
+        ? pilihan
+        : pilihan.filter((p) => `${p.label} ${p.ket ?? ''}`.toLowerCase().includes(q));
+
+    // Sorotan tidak boleh menunjuk baris yang sudah tidak ada setelah dicari.
+    useEffect(() => {
+        setSorot(0);
+    }, [cari, terbuka]);
+
+    // Klik di luar menutup daftar - pola yang sama dengan menu baris jadwal.
+    useEffect(() => {
+        if (!terbuka) {
+            return;
+        }
+
+        const padaKlik = (e: MouseEvent) => {
+            if (akar.current && !akar.current.contains(e.target as Node)) {
+                setTerbuka(false);
+            }
+        };
+
+        document.addEventListener('mousedown', padaKlik);
+
+        return () => document.removeEventListener('mousedown', padaKlik);
+    }, [terbuka]);
+
+    // Fokus pindah ke kotak cari begitu daftar terbuka: pengguna yang menekan
+    // tombol untuk MENCARI tidak perlu satu klik lagi di kotak cari.
+    useEffect(() => {
+        if (terbuka) {
+            inputCari.current?.focus();
+        }
+    }, [terbuka]);
+
+    const buka = () => {
+        if (disabled) {
+            return;
+        }
+
+        setCari('');
+        setTerbuka(true);
+    };
+
+    const pilih = (p: PilihanCari) => {
+        padaPilih(p.id);
+        setTerbuka(false);
+        // Fokus dikembalikan ke tombol, bukan dibiarkan hilang bersama
+        // daftar yang ditutup - pengguna keyboard harus tetap di isian ini.
+        tombol.current?.focus();
+    };
+
+    const padaTombol = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            buka();
+        }
+    };
+
+    const padaKunciCari = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSorot((n) => Math.min(tersaring.length - 1, n + 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSorot((n) => Math.max(0, n - 1));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const p = tersaring[sorot];
+
+            if (p) {
+                pilih(p);
+            }
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setTerbuka(false);
+            tombol.current?.focus();
+        }
+    };
+
+    return (
+        <div ref={akar} className="relative min-w-0">
+            <span id={`${idDasar}-label`} className="mb-1 block text-xs font-medium text-ink-2">
+                {label}
+            </span>
+
+            <button
+                ref={tombol}
+                type="button"
+                role="combobox"
+                aria-expanded={terbuka}
+                aria-controls={`${idDasar}-daftar`}
+                aria-labelledby={`${idDasar}-label`}
+                aria-haspopup="listbox"
+                disabled={disabled}
+                onClick={() => (terbuka ? setTerbuka(false) : buka())}
+                onKeyDown={padaTombol}
+                className={kelasInput + ' flex items-center gap-2 text-left'}
+            >
+                <span
+                    className={
+                        'min-w-0 flex-1 truncate ' + (terpilih ? 'text-ink' : 'text-ink-3')
+                    }
+                >
+                    {terpilih?.label ?? placeholder}
+                </span>
+                {/* Ikon keluarga yang sama dengan sidebar (`Ikon`), bukan
+                    karakter ▲/▼: karakter itu bergantung pada font, dan lebar
+                    glyph-nya berbeda antar sistem. */}
+                <Ikon
+                    nama="panah"
+                    ukuran={12}
+                    className={
+                        'shrink-0 text-ink-3 transition-transform duration-150 ' +
+                        (terbuka ? 'rotate-180' : '')
+                    }
+                />
+            </button>
+
+            {terbuka && (
+                <div className="absolute z-30 mt-1 w-full min-w-0 overflow-hidden rounded-wf border border-line bg-surface shadow-kotak">
+                    <div className="border-b border-line p-1.5">
+                        <input
+                            ref={inputCari}
+                            value={cari}
+                            onChange={(e) => setCari(e.target.value)}
+                            onKeyDown={padaKunciCari}
+                            placeholder="Ketik untuk mencari…"
+                            aria-label={`Cari ${label.toLowerCase()}`}
+                            aria-controls={`${idDasar}-daftar`}
+                            // Sorotan keyboard disampaikan lewat
+                            // `aria-activedescendant`: fokus tetap di kotak
+                            // cari, sehingga pembaca layar membacakan baris
+                            // yang disorot tanpa memindahkan fokus.
+                            aria-activedescendant={
+                                tersaring[sorot] ? `${idDasar}-opsi-${tersaring[sorot].id}` : undefined
+                            }
+                            className="w-full rounded-wf border border-line bg-surface px-2 py-1 text-sm text-ink outline-none placeholder:text-ink-3/70 focus:border-accent focus:ring-2 focus:ring-accent/15"
+                        />
+                    </div>
+
+                    <ul
+                        id={`${idDasar}-daftar`}
+                        role="listbox"
+                        aria-labelledby={`${idDasar}-label`}
+                        className="max-h-56 overflow-y-auto py-1"
+                    >
+                        {tersaring.length === 0 ? (
+                            <li className="px-2.5 py-2 text-xs text-ink-3">{kosong}</li>
+                        ) : (
+                            tersaring.map((p, i) => {
+                                const aktif = p.id === nilai;
+                                const disorot = i === sorot;
+
+                                return (
+                                    <li key={p.id} role="none">
+                                        <button
+                                            type="button"
+                                            role="option"
+                                            id={`${idDasar}-opsi-${p.id}`}
+                                            aria-selected={aktif}
+                                            // `onMouseDown` dan bukan `onClick`:
+                                            // klik tombol di dalam dropdown
+                                            // memicu blur pada kotak cari, dan
+                                            // daftar yang tertutup oleh blur
+                                            // tidak pernah menerima kliknya.
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                pilih(p);
+                                            }}
+                                            onMouseEnter={() => setSorot(i)}
+                                            className={
+                                                'flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm ' +
+                                                (disorot ? 'bg-surface-2 ' : '') +
+                                                (aktif ? 'text-accent' : 'text-ink')
+                                            }
+                                        >
+                                            <span className="min-w-0 flex-1 truncate">{p.label}</span>
+                                            {p.ket && (
+                                                <span className="shrink-0 font-mono text-[11px] text-ink-3">
+                                                    {p.ket}
+                                                </span>
+                                            )}
+                                            {aktif && (
+                                                <span className="shrink-0 text-[11px] text-accent">
+                                                    ✓
+                                                </span>
+                                            )}
+                                        </button>
+                                    </li>
+                                );
+                            })
+                        )}
+                    </ul>
+                </div>
+            )}
+
+            {petunjuk && !galat && (
+                <span className="mt-1 block text-[11px] text-ink-3">{petunjuk}</span>
+            )}
+            {galat && <span className="mt-1 block text-[11px] text-bad">{galat}</span>}
+        </div>
+    );
+}
 
 /* ----------------------------------------------------------------- Kotak */
 

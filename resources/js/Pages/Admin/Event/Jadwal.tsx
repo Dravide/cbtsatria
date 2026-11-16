@@ -8,6 +8,7 @@ import {
     Inbox,
     Kotak,
     Peringatan,
+    PilihCari,
     Tombol,
     kelasInput,
     nadaStatus,
@@ -1159,31 +1160,32 @@ function FormUjian({
             }
         >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <Field
+                {/* Mata pelajaran bisa berjumlah puluhan di event besar
+                    (dua belas mapel per tingkat), dan `<select>` polos
+                    memaksa Admin menggulir daftar untuk menemukan satu mapel.
+                    `PilihCari` menyaring sambil mengetik, dengan keyboard
+                    yang bekerja penuh - lihat docblock komponennya.
+
+                    Penjaga yang TIDAK berubah: mapel yang sudah punya paket
+                    tetap terkunci, karena snapshot soalnya berasal dari mapel
+                    lama. */}
+                <PilihCari
                     label="Mata pelajaran"
                     petunjuk={
                         mengubah && ujianAwal.ada_paket
                             ? 'Soal sudah dibekukan dari mapel ini, jadi mapelnya tidak bisa diganti.'
                             : undefined
                     }
-                >
-                    <select
-                        value={isi.subject_id}
-                        onChange={(e) => setIsi({ ...isi, subject_id: Number(e.target.value) })}
-                        // Mapel yang sudah punya paket terkunci: snapshot soalnya
-                        // berasal dari mapel lama, dan ujian berlabel Fisika
-                        // berisi soal Matematika tidak terlihat di layar mana
-                        // pun sampai siswa membuka soal pertama.
-                        disabled={mengubah && ujianAwal.ada_paket}
-                        className={kelasInput}
-                    >
-                        {mapel.map((m) => (
-                            <option key={m.id} value={m.id}>
-                                {m.kode} {m.nama}
-                            </option>
-                        ))}
-                    </select>
-                </Field>
+                    nilai={isi.subject_id}
+                    pilihan={mapel.map((m) => ({
+                        id: m.id,
+                        label: `${m.kode ?? ''} ${m.nama ?? ''}`.trim(),
+                        ket: m.kode,
+                    }))}
+                    padaPilih={(id) => setIsi({ ...isi, subject_id: id })}
+                    disabled={mengubah && ujianAwal.ada_paket}
+                    kosong="Tidak ada mata pelajaran yang cocok."
+                />
 
                 <Field
                     label="Jenis"
