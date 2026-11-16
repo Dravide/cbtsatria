@@ -3,6 +3,7 @@
 namespace App\Domain\Exam\Services;
 
 use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Exam\Models\ExamClass;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
@@ -63,11 +64,23 @@ class KonflikJadwal
      */
     public function periksa(SchoolEvent $event): array
     {
+        // Cache tingkat dikosongkan di awal setiap pemeriksaan. Instance kelas
+        // ini singleton (lihat ExamServiceProvider), sehingga tanpa ini satu
+        // pemeriksaan memakai tingkat dari pemeriksaan sebelumnya - dan event
+        // yang kelas sasarannya baru diubah akan dinilai dengan tingkat lama.
+        $this->tingkatCache = [];
+
         $sesi = $this->sesiEvent($event);
 
         if ($sesi->isEmpty()) {
             return [];
         }
+
+        // Tingkat seluruh ujian dimuat SEKALI di sini, bukan satu kueri per
+        // sesi. `beririsanTingkat()` dipanggil untuk setiap pasangan sesi, dan
+        // dua belas sesi berarti enam puluh enam pasangan - tanpa ini, enam
+        // puluh enam kueri untuk jawaban yang sama.
+        $this->muatTingkat($sesi);
 
         return array_merge(
             $this->benturanRuang($sesi),
@@ -76,6 +89,39 @@ class KonflikJadwal
             $this->kapasitasRuang($event, $sesi),
             $this->ruangTidakLayak($event, $sesi),
         );
+    }
+
+    /**
+     * Isi `tingkatCache` untuk seluruh ujian yang muncul di daftar sesi.
+     *
+     * Satu kueri untuk SELURUH ujian, lalu dipetakan per `exam_id` - pola yang
+     * sama dengan `ringkasBanyak()` di KoreksiController.
+     *
+     * @param  Collection<int, ExamSession>  $sesi
+     */
+    private function muatTingkat(Collection $sesi): void
+    {
+        $idUjian = $sesi->pluck('exam_id')->unique()->filter()->values()->all();
+
+        if ($idUjian === []) {
+            return;
+        }
+
+        $baris = ExamClass::query()
+            ->whereIn('exam_id', $idUjian)
+            ->with('kelas:id,grade_level')
+            ->get()
+            ->groupBy('exam_id');
+
+        foreach ($idUjian as $id) {
+            $this->tingkatCache[$id] = ($baris->get($id) ?? collect())
+                ->map(fn (ExamClass $k) => $k->kelas?->grade_level)
+                ->filter(fn ($t) => $t !== null && trim((string) $t) !== '')
+                ->map(fn ($t) => trim((string) $t))
+                ->unique()
+                ->values()
+                ->all();
+        }
     }
 
     /**
@@ -221,13 +267,20 @@ class KonflikJadwal
                         continue;
                     }
 
-                    // Benturan RUANG tidak memakai aturan tingkat, dan bedanya
-                    // penting: yang diperebutkan di sini adalah ruangannya,
-                    // bukan siswanya. Satu ruang tidak bisa memuat dua
-                    // rombongan pada jam yang sama, tingkat mana pun.
+                    // Aturan TINGKAT berlaku di sini juga - lihat
+                    // `beririsanTingkat()`.
                     //
-                    // Aturan tingkat berlaku pada `benturanPeserta()` di bawah,
-                    // yang memang bertanya tentang SISWA.
+                    // Satu ruang boleh dipakai dua ujian serentak selama
+                    // tingkatnya BERBEDA: R-01 untuk B. Indonesia kelas 7 dan
+                    // R-01 untuk B. Indonesia kelas 8 adalah dua rombongan
+                    // berbeda di ruangan yang sama, dan sekolah memang
+                    // menjalankannya begitu. Yang tidak boleh adalah dua ujian
+                    // pada TINGKAT yang sama memperebutkan satu ruang - di situ
+                    // ruangnya benar-benar kurang.
+                    if (! $this->beririsanTingkat($sesiA, $sesiB)) {
+                        continue;
+                    }
+
                     $kode = $a->eventRoom?->room?->code ?? 'R-?';
 
                     // Pesannya menyebut sesi lawannya, persis seperti contoh
@@ -562,13 +615,8 @@ class KonflikJadwal
     }
 
     /**
-     * Tingkat kelas sasaran satu sesi, dihitung SEKALI per sesi.
-     *
-     * Di-cache di dalam satu pemeriksaan karena `benturanRuang` dan
-     * `benturanPeserta` sama-sama menanyakannya untuk pasangan yang sama -
-     * dan `Exam::tingkatSasaran()` menjalankan satu kueri. Tanpa cache ini,
-     * satu event dengan dua puluh sesi menjalankan ratusan kueri untuk
-     * jawaban yang sama.
+     * Tingkat kelas sasaran satu sesi, dibaca dari cache yang sudah diisi
+     * `muatTingkat()`.
      *
      * @return array<int, string>
      */
@@ -576,6 +624,8 @@ class KonflikJadwal
     {
         $id = (int) $sesi->exam_id;
 
+        // Cadangan bila `periksa()` tidak dipakai (mis. pemanggilan langsung
+        // `adaBenturanPengawas()`): hitung sekali, lalu simpan.
         if (! isset($this->tingkatCache[$id])) {
             $this->tingkatCache[$id] = $sesi->exam?->tingkatSasaran() ?? [];
         }

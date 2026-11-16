@@ -595,11 +595,138 @@ it('melaporkan benturan peserta untuk dua ujian di TINGKAT YANG SAMA pada jam ya
     expect($temuan)->not->toBeEmpty();
 });
 
+it('TIDAK melaporkan benturan ruang untuk dua ujian tingkat berbeda di ruang yang sama', function () {
+    // Inti aturan yang diminta sekolah: R-01 untuk B. Indonesia kelas 7 dan
+    // R-01 untuk B. Indonesia kelas 8 pada jam yang sama BUKAN benturan.
+    // Ruangnya memang dipakai bergantian oleh dua rombongan berbeda, dan
+    // sekolah menjalankannya begitu.
+    //
+    // Sebelum ini, setiap sesi baru mencentang SELURUH ruang event, sehingga
+    // dua belas sesi menghasilkan enam puluh enam pasangan bentrok - dan panel
+    // validasi menolak menandai event Siap karena jadwal yang sebenarnya sah.
+    $kelas7 = SchoolClass::query()->where('id', $this->event->classes()->pluck('class_id'))->firstOrFail();
+    $kelas7->forceFill(['grade_level' => '7'])->save();
+
+    $kelas8 = SchoolClass::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'academic_year_id' => $this->tahun->id,
+        'name' => 'VIII-2-'.$this->event->id,
+        'grade_level' => '8',
+    ]);
+
+    EventClass::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'class_id' => $kelas8->id,
+    ]);
+
+    // Dua ujian, dua tingkat, RUANG DAN JAM YANG SAMA.
+    $pertama = app(ExamRegistrar::class)->buat($this->event, [
+        'subject_id' => $this->mapel->id,
+        'title' => 'B. Indonesia 7',
+        'duration_minutes' => 90,
+        'class_id' => [$kelas7->id],
+    ], $this->admin->id);
+
+    app(SesiService::class)->buat($pertama, [
+        'access_opens_at' => '2026-12-01 07:30:00',
+        'access_closes_at' => '2026-12-01 09:00:00',
+        'hard_end_at' => '2026-12-01 09:30:00',
+        'event_room_id' => $this->ruang->pluck('id')->all(),
+    ]);
+
+    $mapel2 = Subject::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'code' => 'BIN8R-'.$this->event->id,
+        'name' => 'B. Indonesia 8',
+    ]);
+
+    EventSubject::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'subject_id' => $mapel2->id,
+    ]);
+
+    $kedua = app(ExamRegistrar::class)->buat($this->event, [
+        'subject_id' => $mapel2->id,
+        'title' => 'B. Indonesia 8',
+        'duration_minutes' => 90,
+        'class_id' => [$kelas8->id],
+    ], $this->admin->id);
+
+    app(SesiService::class)->buat($kedua, [
+        'access_opens_at' => '2026-12-01 07:30:00',
+        'access_closes_at' => '2026-12-01 09:00:00',
+        'hard_end_at' => '2026-12-01 09:30:00',
+        'event_room_id' => $this->ruang->pluck('id')->all(),
+    ]);
+
+    $temuan = collect(app(KonflikJadwal::class)->periksa($this->event->refresh()))
+        ->where('jenis', 'benturan-ruang');
+
+    expect($temuan)->toBeEmpty();
+});
+
+it('tetap melaporkan benturan ruang untuk dua ujian di TINGKAT YANG SAMA', function () {
+    // Dua ujian di tingkat yang sama memperebutkan ruang yang sama pada jam
+    // yang sama - di situ ruangnya benar-benar kurang, dan sekolah harus
+    // menambah ruang atau menggeser jam.
+    $kelas8 = SchoolClass::query()
+        ->where('id', $this->event->classes()->pluck('class_id'))
+        ->firstOrFail();
+
+    $kelas8->forceFill(['grade_level' => '8'])->save();
+
+    $pertama = app(ExamRegistrar::class)->buat($this->event, [
+        'subject_id' => $this->mapel->id,
+        'title' => 'B. Indonesia 8',
+        'duration_minutes' => 90,
+        'class_id' => [$kelas8->id],
+    ], $this->admin->id);
+
+    app(SesiService::class)->buat($pertama, [
+        'access_opens_at' => '2026-12-01 07:30:00',
+        'access_closes_at' => '2026-12-01 09:00:00',
+        'hard_end_at' => '2026-12-01 09:30:00',
+        'event_room_id' => $this->ruang->pluck('id')->all(),
+    ]);
+
+    $mapel2 = Subject::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'code' => 'SUNR-'.$this->event->id,
+        'name' => 'Bahasa Sunda',
+    ]);
+
+    EventSubject::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'subject_id' => $mapel2->id,
+    ]);
+
+    $kedua = app(ExamRegistrar::class)->buat($this->event, [
+        'subject_id' => $mapel2->id,
+        'title' => 'Bahasa Sunda 8',
+        'duration_minutes' => 90,
+        'class_id' => [$kelas8->id],
+    ], $this->admin->id);
+
+    app(SesiService::class)->buat($kedua, [
+        'access_opens_at' => '2026-12-01 07:30:00',
+        'access_closes_at' => '2026-12-01 09:00:00',
+        'hard_end_at' => '2026-12-01 09:30:00',
+        'event_room_id' => $this->ruang->pluck('id')->all(),
+    ]);
+
+    $temuan = collect(app(KonflikJadwal::class)->periksa($this->event->refresh()))
+        ->where('jenis', 'benturan-ruang');
+
+    expect($temuan)->not->toBeEmpty();
+});
+
 it('memperlakukan ujian tanpa kelas sasaran sebagai SEMUA tingkat', function () {
     // Ujian tanpa kelas sasaran berlaku untuk seluruh peserta event, sehingga
     // ia bersinggungan dengan setiap tingkat - bukan "tidak punya tingkat".
     $data = jadwalkan($this->event, $this->mapel, $this->admin);
-
     $mapel2 = Subject::factory()->create([
         'school_id' => $this->sekolah->id,
         'code' => 'ALL-'.$this->event->id,
