@@ -124,9 +124,21 @@ class EventParticipantController
                 ->map(fn (SchoolClass $k) => ['id' => $k->id, 'nama' => $k->name])
                 ->all(),
 
+            // `id` di sini adalah id ruang MASTER (`rooms.id`), BUKAN id baris
+            // pivot `event_rooms`. Itu wajib, dan pernah salah: `simpanRuang()`
+            // menerima daftar id ruang master dan membandingkannya dengan
+            // `$event->rooms()->pluck('room_id')`. Selama `id` di sini berisi
+            // `event_rooms.id`, setiap ruang yang sudah teralokasi terbaca
+            // sebagai "tidak ada di kiriman" - sehingga rutenya mengira Admin
+            // hendak MELEPASKANNYA, dan menolak seluruh penyimpanan begitu ada
+            // satu ruang baru ditambahkan ("masih dipakai sesi ujian").
+            //
+            // `ruang_tersedia` di bawah juga mengirim `rooms.id`, jadi kedua
+            // daftar itu kini memakai id yang sama - dan laman boleh
+            // menggabungkannya tanpa mencampur dua ruang id.
             'ruang' => $event->rooms()->with('room:id,code,name,capacity')->get()
                 ->map(fn (EventRoom $r) => [
-                    'id' => $r->id,
+                    'id' => $r->room_id,
                     'kode' => $r->room?->code,
                     'nama' => $r->room?->name,
                     'kapasitas' => $r->kapasitasEfektif(),

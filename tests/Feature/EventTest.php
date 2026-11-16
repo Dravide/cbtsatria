@@ -1260,3 +1260,64 @@ it('membersihkan context event aktif di sesi saat eventnya dihapus', function ()
 
     expect(session('event_aktif'))->toBeNull();
 });
+
+it('mengirim id ruang MASTER pada prop "ruang", bukan id baris event_rooms', function () {
+    // Regresi 2026-11-16. Laman Kelas & peserta menggabungkan prop `ruang`
+    // (sudah teralokasi) dan `ruang_tersedia` (belum) ke SATU daftar centang,
+    // lalu mengirim id yang tercentang ke `PUT /peserta/ruang`. Selama `ruang`
+    // mengirim `event_rooms.id` sementara `ruang_tersedia` mengirim
+    // `rooms.id`, daftar tercentang berisi id yang bercampur dari dua tabel -
+    // dan `simpanRuang()` mengira setiap ruang lama "dilepas", lalu menolak
+    // seluruh penyimpanan begitu satu ruang baru ditambahkan.
+    // Sengaja dibuat berbeda lebih dulu: pada basis data yang bersih, id
+    // ruang pertama dan id baris pivot pertama sama-sama 1 - sehingga keliru
+    // memakai salah satunya tidak akan terlihat. Dua baris pembuang di sini
+    // mendesak keduanya ke angka yang berbeda.
+    Room::factory()->create(['school_id' => $this->sekolah->id]);
+    $eventLain = SchoolEvent::factory()->untukTahun($this->tahun)->create(['school_id' => $this->sekolah->id]);
+    EventRoom::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $eventLain->id,
+        'room_id' => Room::factory()->create(['school_id' => $this->sekolah->id])->id,
+        'status' => 'aktif',
+    ]);
+
+    $event = lengkapi($this->event);
+
+    $eventRoom = $event->rooms()->firstOrFail();
+
+    // Penjaga terhadap test yang diam-diam hampa bila kedua id kebetulan sama.
+    expect($eventRoom->id)->not->toBe($eventRoom->room_id);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$event->id}/peserta")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Peserta')
+            // Id yang dikirim adalah id ruang master...
+            ->where('ruang.0.id', $eventRoom->room_id)
+            // ...dan BUKAN id baris pivotnya.
+            ->whereNot('ruang.0.id', $eventRoom->id)
+        );
+});
+
+it('menambah satu ruang tanpa melepas ruang yang sudah teralokasi', function () {
+    // Kelanjutan regresi di atas: yang benar-benar dilakukan Admin adalah
+    // mencentang satu ruang baru. Ruang lama harus tetap, dan penyimpanan
+    // harus berhasil - bukan menolak dengan "ruang masih dipakai sesi ujian".
+    $event = lengkapi($this->event);
+
+    $sebelum = $event->rooms()->pluck('room_id')->all();
+    $baru = Room::factory()->create(['school_id' => $this->sekolah->id, 'capacity' => 40]);
+
+    // Yang dikirim laman adalah SELURUH yang tercentang: ruang lama plus yang
+    // baru. Itu isi `pilihRuang` - id master, sesuai prop `ruang` yang benar.
+    masukSebagai($this, $this->admin)
+        ->put("/admin/events/{$event->id}/peserta/ruang", ['id' => [...$sebelum, $baru->id]])
+        ->assertSessionHas('sukses');
+
+    $sesudah = $event->refresh()->rooms()->pluck('room_id')->all();
+
+    expect($sesudah)->toContain($baru->id)
+        ->and($sesudah)->toEqualCanonicalizing([...$sebelum, $baru->id]);
+});
