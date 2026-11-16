@@ -55,6 +55,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'mode',
     'shuffled_at',
     'shuffled_by',
+    'locked_at',
+    'locked_by',
     'peserta',
 ])]
 class ExamEventShuffle extends Model
@@ -68,8 +70,22 @@ class ExamEventShuffle extends Model
         return [
             'mode' => ModePenempatan::class,
             'shuffled_at' => 'datetime',
+            'locked_at' => 'datetime',
             'peserta' => 'integer',
         ];
+    }
+
+    /**
+     * Apakah penempatan ini dikunci terhadap perubahan.
+     *
+     * Dibaca `sebarEvent()` dan `kocokUlang()` - keduanya menulis ulang kursi
+     * setiap siswa, dan sesudah daftar ruang dicetak itu berarti daftar yang
+     * tercetak tidak berlaku lagi. Satu method supaya kedua jalur tulis
+     * memakai jawaban yang sama.
+     */
+    public function terkunci(): bool
+    {
+        return $this->locked_at !== null;
     }
 
     /** @return BelongsTo<SchoolEvent, $this> */
@@ -82,5 +98,11 @@ class ExamEventShuffle extends Model
     public function oleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'shuffled_by');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function pengunci(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'locked_by');
     }
 }

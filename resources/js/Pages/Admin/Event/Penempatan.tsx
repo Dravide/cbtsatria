@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Chip, Inbox, Kotak, Modal, Peringatan, Tabel, Tombol, TombolTautan } from '@/Components/ui';
+import { tanyaTeks } from '@/Components/dialog';
 
 /**
  * Laman 16b - Penempatan peserta ke ruang. Wireframe plate 16b, PRD §9.5.
@@ -94,7 +95,14 @@ type Props = {
         mode: string;
         mode_label: string;
         mode_pilihan: Record<string, string>;
+        /** Keterangan tiap mode, dikirim server - lihat ModePenempatan. */
+        mode_keterangan: Record<string, string>;
+        /** Kocokan sudah disebar: mode tidak bisa diganti di layar. */
         terkunci: boolean;
+        /** Penempatan DIKUNCI: tidak ada jalur tulis kursi yang diizinkan. */
+        dikunci: boolean;
+        dikunci_pada: string | null;
+        dikunci_oleh: string | null;
         dikocok_pada: string | null;
         dikocok_oleh: string | null;
         peserta: number;
@@ -255,16 +263,45 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                             aksi={
                                 <>
                                     <Chip nada={laman.terkunci ? 'ok' : 'mute'}>
-                                        {laman.terkunci ? 'terkunci' : 'belum disebar'}
+                                        {laman.terkunci ? 'sudah disebar' : 'belum disebar'}
                                     </Chip>
+                                    {/* Kunci penempatan: penjagaan sesudah
+                                        daftar ruang dicetak. Selama aktif,
+                                        Sebar/Kocok ulang/Pakai penempatan
+                                        ditolak server - lihat
+                                        PenempatanKocok::sebarEvent(). */}
+                                    {laman.dikunci ? (
+                                        <>
+                                            <Chip nada="bad">dikunci</Chip>
+                                            <Tombol
+                                                nada="sek"
+                                                title="Izinkan perubahan kursi lagi - alasannya dicatat"
+                                                onClick={() => mintaBukaKunci(jalur)}
+                                            >
+                                                Buka kunci
+                                            </Tombol>
+                                        </>
+                                    ) : (
+                                        laman.terkunci && (
+                                            <Tombol
+                                                nada="sek"
+                                                title="Kunci kursi supaya tidak bisa disebar ulang setelah daftar dicetak"
+                                                onClick={() => kunci(jalur)}
+                                            >
+                                                Kunci penempatan
+                                            </Tombol>
+                                        )
+                                    )}
                                     <Chip nada="info">benih #{laman.benih}</Chip>
                                     <Tombol
                                         nada="sek"
-                                        disabled={!laman.terkunci}
+                                        disabled={!laman.terkunci || laman.dikunci}
                                         title={
-                                            laman.terkunci
-                                                ? 'Benih baru - daftar ruang yang sudah dicetak tidak berlaku lagi'
-                                                : 'Belum ada kocokan untuk dikocok ulang'
+                                            laman.dikunci
+                                                ? 'Penempatan dikunci - buka kuncinya lebih dulu'
+                                                : laman.terkunci
+                                                  ? 'Benih baru - daftar ruang yang sudah dicetak tidak berlaku lagi'
+                                                  : 'Belum ada kocokan untuk dikocok ulang'
                                         }
                                         onClick={() => setKonfirmasi(true)}
                                     >
@@ -272,11 +309,13 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                     </Tombol>
                                     <Tombol
                                         nada="pri"
-                                        disabled={!laman.bisa_sebar}
+                                        disabled={!laman.bisa_sebar || laman.dikunci}
                                         title={
-                                            laman.bisa_sebar
-                                                ? 'Sebar kocokan ini ke seluruh sesi'
-                                                : 'Belum bisa disebar - lihat daftar sesi di bawah'
+                                            laman.dikunci
+                                                ? 'Penempatan dikunci - buka kuncinya lebih dulu'
+                                                : laman.bisa_sebar
+                                                  ? 'Sebar kocokan ini ke seluruh sesi'
+                                                  : 'Belum bisa disebar - lihat daftar sesi di bawah'
                                         }
                                         onClick={() => sebar(jalur, laman.benih, mode)}
                                     >
@@ -323,9 +362,7 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                 </div>
 
                                 <span className="text-[11px] leading-snug text-ink-3">
-                                    {mode === 'kelas'
-                                        ? 'Kelas berurutan ke ruang berurutan - kelas terbesar mendapat ruang pertama.'
-                                        : 'Satu dari tiap kelas bergiliran, sehingga setiap ruang berisi campuran.'}
+                                    {laman.mode_keterangan[mode] ?? ''}
                                 </span>
                             </div>
 
@@ -343,12 +380,14 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
 
                             <RincianRuang ruang={pratinjau.ruang} />
 
-                            {/* Rincian kelas hanya berguna di mode `kelas`:
-                                di mode `campur` setiap kelas memang tersebar,
-                                dan daftar "9K: R-01, R-02, R-03" hanya
-                                mengulang apa yang sudah terbaca dari daftar
-                                ruang di atas. */}
-                            {mode === 'kelas' && laman.rincian_kelas.length > 0 && (
+                            {/* Rincian kelas berguna di mode `kelas` DAN
+                                `rata`: di `kelas` ia membuktikan satu kelas
+                                satu ruang, di `rata` ia membuktikan tiap kelas
+                                benar-benar tersebar merata - dua klaim yang
+                                tidak bisa dibaca dari angka ruang saja. Di
+                                `campur` daftar ini hanya mengulang apa yang
+                                sudah terbaca. */}
+                            {(mode === 'kelas' || mode === 'rata') && laman.rincian_kelas.length > 0 && (
                                 <div className="mt-3 rounded-wf border border-line">
                                     <header className="border-b border-line px-2.5 py-1.5">
                                         <h3 className="text-[11px] font-medium text-ink">
@@ -635,6 +674,36 @@ function sebar(jalur: string, benih: string, mode: string) {
 
 function kocokUlang(jalur: string, mode: string) {
     router.post(`${jalur}/penempatan/kocok-ulang`, { mode }, { preserveScroll: true });
+}
+
+/** Kunci kursi - penjagaan sesudah daftar ruang dicetak dan ditempel. */
+function kunci(jalur: string) {
+    router.post(`${jalur}/penempatan/kunci`, {}, { preserveScroll: true });
+}
+
+/** Buka kunci - alasannya wajib, dan dicatat di log aktivitas. */
+function bukaKunci(jalur: string, alasan: string) {
+    router.post(`${jalur}/penempatan/buka-kunci`, { alasan }, { preserveScroll: true });
+}
+
+/** Minta alasan, lalu buka kunci. Dialognya sama dengan pembatalan sesi. */
+async function mintaBukaKunci(jalur: string) {
+    const alasan = await tanyaTeks({
+        judul: 'Buka kunci penempatan?',
+        pesan: 'Kursi bisa disebar ulang lagi, dan daftar ruang yang sudah dicetak tidak berlaku lagi.',
+        label: 'Alasan membuka kunci',
+        petunjuk: 'Alasan ini dicatat di log aktivitas - ia dibaca orang yang bertanya mengapa kursi berubah.',
+        wajib: true,
+        maksimal: 200,
+        labelYa: 'Buka kunci',
+        labelTidak: 'Jangan',
+    });
+
+    if (alasan === null) {
+        return;
+    }
+
+    bukaKunci(jalur, alasan);
 }
 
 /** Terapkan peta ruang event ke SATU sesi - tombol "Pakai penempatan". */

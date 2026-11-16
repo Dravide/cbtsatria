@@ -34,11 +34,40 @@ enum ModePenempatan: string
     /** Kelas berurutan ke ruang berurutan - satu ruang sedapat mungkin satu kelas. */
     case Kelas = 'kelas';
 
+    /**
+     * Acak rata per kelas - tiap kelas disebar MERATA ke seluruh ruang.
+     *
+     * Bedanya dengan `Campur` bukan pada pencampurannya, melainkan pada
+     * KAPAN ruang dianggap penuh. `Campur` mengisi ruang pertama sampai penuh
+     * lalu pindah ke berikutnya, sehingga ruang terakhir bisa tinggal separuh.
+     * `Rata` membagi tiap kelas ke semua ruang sekaligus, sehingga setiap
+     * ruang berakhir hampir sama besar - dan itu yang diminta sekolah yang
+     * membagi pengawas berdasarkan jumlah kursi terpakai, bukan jumlah ruang.
+     */
+    case Rata = 'rata';
+
     public function label(): string
     {
         return match ($this) {
             self::Campur => 'Campur antar kelas',
             self::Kelas => 'Berurutan per kelas',
+            self::Rata => 'Acak rata per kelas',
+        };
+    }
+
+    /**
+     * Keterangan satu kalimat yang ditampilkan di samping pilihannya.
+     *
+     * Ditulis di sini, bukan di `Penempatan.tsx`: kalimat yang menjelaskan
+     * sebuah mode adalah bagian dari arti mode itu, dan dua tempat yang
+     * menjelaskannya akan berbeda kata begitu salah satunya disunting.
+     */
+    public function keterangan(): string
+    {
+        return match ($this) {
+            self::Campur => 'Satu dari tiap kelas bergiliran, lalu ruang diisi penuh berurutan.',
+            self::Kelas => 'Kelas berurutan ke ruang berurutan - kelas terbesar mendapat ruang pertama.',
+            self::Rata => 'Tiap kelas disebar merata ke semua ruang, sehingga semua ruang hampir sama besar.',
         };
     }
 
@@ -52,5 +81,26 @@ enum ModePenempatan: string
         }
 
         return $pilihan;
+    }
+
+    /**
+     * Keterangan tiap mode, untuk dibaca di samping pilihannya.
+     *
+     * Dikirim server, bukan ditulis ulang di `Penempatan.tsx`: kalimat yang
+     * menjelaskan sebuah mode adalah bagian dari arti mode itu, dan dua tempat
+     * yang menjelaskannya akan berbeda kata begitu salah satunya disunting -
+     * persis jebakan yang sudah dicatat di `options()`.
+     *
+     * @return array<string, string>
+     */
+    public static function keteranganSemua(): array
+    {
+        $peta = [];
+
+        foreach (self::cases() as $case) {
+            $peta[$case->value] = $case->keterangan();
+        }
+
+        return $peta;
     }
 }

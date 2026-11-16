@@ -455,6 +455,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/events/{event}/penempatan', [ExamPenempatanController::class, 'index'])->name('events.penempatan');
     Route::post('/events/{event}/penempatan', [ExamPenempatanController::class, 'sebar'])->name('events.penempatan.sebar');
     Route::post('/events/{event}/penempatan/kocok-ulang', [ExamPenempatanController::class, 'kocokUlang'])->name('events.penempatan.kocok-ulang');
+    // Kunci penempatan - menutup SELURUH jalur tulis kursi (Sebar, Kocok
+    // ulang, Pakai penempatan) sampai dibuka kembali dengan alasan tercatat.
+    Route::post('/events/{event}/penempatan/kunci', [ExamPenempatanController::class, 'kunci'])->name('events.penempatan.kunci');
+    Route::post('/events/{event}/penempatan/buka-kunci', [ExamPenempatanController::class, 'bukaKunci'])->name('events.penempatan.buka-kunci');
     Route::post('/events/{event}/penempatan/sesi/{sesi}', [ExamPenempatanController::class, 'pakaiSesi'])->name('events.penempatan.sesi');
 
     // 16c - denah tempat duduk (wireframe plate 16c). Menyusul rute

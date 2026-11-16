@@ -184,3 +184,127 @@ it('menolak mode yang tidak dikenal lewat HTTP', function () {
         ->post(jalurPenempatan($this->event).'/kocok-ulang', ['mode' => 'acak'])
         ->assertSessionHasErrors('mode');
 });
+
+/* =====================================================================
+ | Mode `rata` - tiap kelas disebar merata ke semua ruang
+ |===================================================================== */
+
+it('membagi tiap kelas MERATA ke semua ruang pada mode rata', function () {
+    // Empat kelas berisi 6 siswa, empat ruang berkapasitas 6. Mode `campur`
+    // akan mengisi R-01 penuh lalu pindah, sehingga ruang terakhir tinggal
+    // sisa. Mode `rata` harus menghasilkan 6/6/6/6 - dan tiap ruang berisi
+    // empat kelas, bukan satu.
+    $f = siapkanKocok($this->admin, $this->tahun, 6, 6, 6, 2);
+
+    $susunan = $this->kocok->susun($f['event'], 'BENIHR', ModePenempatan::Rata);
+
+    $isi = collect($susunan['per_ruang'])->map(fn ($a) => count($a))->values()->all();
+
+    // Tidak ada ruang yang kosong, dan selisih isi antar ruang paling banyak
+    // satu orang - itulah arti "rata".
+    expect(min($isi))->toBeGreaterThan(0)
+        ->and(max($isi) - min($isi))->toBeLessThanOrEqual(1);
+});
+
+it('mencampur beberapa kelas dalam satu ruang pada mode rata', function () {
+    // Kebalikan dari mode `kelas`: di sini setiap ruang memang berisi lebih
+    // dari satu kelas - itulah tujuannya.
+    $f = siapkanKocok($this->admin, $this->tahun, 6, 6, 6, 2);
+
+    $susunan = $this->kocok->susun($f['event'], 'BENIHR', ModePenempatan::Rata);
+
+    $kelasPerRuang = collect($susunan['per_ruang'])
+        ->map(fn ($anggota) => collect($anggota)->pluck('class_id')->unique()->count());
+
+    expect($kelasPerRuang->max())->toBeGreaterThan(1);
+});
+
+it('tidak menghilangkan peserta pada mode rata', function () {
+    $f = siapkanKocok($this->admin, $this->tahun, 6, 6, 6, 2);
+
+    $susunan = $this->kocok->susun($f['event'], 'BENIHR', ModePenempatan::Rata);
+
+    $ditempatkan = collect($susunan['per_ruang'])->flatten()->count();
+
+    expect($ditempatkan)->toBe($susunan['peserta'])
+        ->and($susunan['kurang'])->toBe(0);
+});
+
+it('tidak melaporkan kelas terbelah pada mode rata', function () {
+    // Di mode `rata` kelas yang tersebar adalah TUJUANNYA - melaporkannya
+    // sebagai temuan membalik arti seluruh laman.
+    $f = siapkanKocok($this->admin, $this->tahun, 6, 6, 6, 2);
+
+    $susunan = $this->kocok->susun($f['event'], 'BENIHR', ModePenempatan::Rata);
+
+    expect($susunan['kelas_terbelah'])->toBeEmpty();
+});
+
+/* =====================================================================
+ | Kunci penempatan
+ |===================================================================== */
+
+it('menolak sebar dan kocok ulang sesudah penempatan dikunci', function () {
+    // Kunci menutup SELURUH jalur tulis kursi. Tanpa ini, satu tekanan tidak
+    // sengaja pada "Sebar ulang" membuat daftar ruang yang sudah dicetak dan
+    // ditempel di pintu tidak berlaku lagi, sementara layarnya terlihat benar.
+    $this->kocok->sebarEvent($this->event, $this->kocok->benihBaru(), null, ModePenempatan::Kelas);
+
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event).'/kunci')
+        ->assertSessionHas('sukses');
+
+    expect($this->kocok->benihTersimpan($this->event)->terkunci())->toBeTrue();
+
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event), ['benih' => 'BARU11'])
+        ->assertSessionHas('galat', fn (string $p) => str_contains($p, 'dikunci'));
+
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event).'/kocok-ulang', ['mode' => 'campur'])
+        ->assertSessionHas('galat', fn (string $p) => str_contains($p, 'dikunci'));
+});
+
+it('membuka kunci dengan alasan, lalu mengizinkan sebar lagi', function () {
+    $this->kocok->sebarEvent($this->event, $this->kocok->benihBaru(), null, ModePenempatan::Kelas);
+
+    $this->actingAs($this->admin)->post(jalurPenempatan($this->event).'/kunci');
+
+    // Alasan WAJIB: membuka kunci berarti mengizinkan daftar tercetak tidak
+    // berlaku lagi, dan yang bertanya "mengapa kursi berubah" harus mendapat
+    // jawaban dari log.
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event).'/buka-kunci', [])
+        ->assertSessionHasErrors('alasan');
+
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event).'/buka-kunci', ['alasan' => 'Ruang R-02 rusak'])
+        ->assertSessionHas('sukses');
+
+    expect($this->kocok->benihTersimpan($this->event)->terkunci())->toBeFalse();
+
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event), ['benih' => 'BARU22'])
+        ->assertSessionHas('sukses');
+});
+
+it('menolak mengunci penempatan yang belum pernah disebar', function () {
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event).'/kunci')
+        ->assertSessionHas('galat', fn (string $p) => str_contains($p, 'Sebar'));
+});
+
+it('mengirim status kunci ke laman penempatan', function () {
+    $this->kocok->sebarEvent($this->event, $this->kocok->benihBaru(), null, ModePenempatan::Kelas);
+    $this->actingAs($this->admin)->post(jalurPenempatan($this->event).'/kunci');
+
+    $this->actingAs($this->admin)
+        ->get(jalurPenempatan($this->event))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/Event/Penempatan')
+            ->where('laman.dikunci', true)
+            ->where('laman.dikunci_oleh', $this->admin->name)
+            ->has('laman.mode_keterangan.rata')
+        );
+});

@@ -409,6 +409,84 @@ class PenempatanKocok
     }
 
     /**
+     * Bagi MERATA: tiap kelas disebar ke seluruh ruang - mode `rata`.
+     *
+     * =====================================================================
+     * Bedanya dengan `bagi()` yang berurutan
+     * =====================================================================
+     * `bagi()` mengisi ruang pertama sampai penuh lalu pindah, sehingga
+     * ruang terakhir bisa tinggal separuh sementara yang pertama penuh.
+     * Sekolah yang membagi pengawas menurut jumlah kursi terpakai - dan yang
+     * mencetak tablo per ruang - meminta kebalikannya: setiap ruang hampir
+     * sama besar.
+     *
+     * Di sini setiap kelas dibagi ke SEMUA ruang sekaligus: sisa baginya
+     * (`intdiv`) ke setiap ruang, dan sisanya dibagikan satu-satu ke ruang
+     * terdepan. Kelas 40 di empat ruang berkapasitas 10 menjadi 10-10-10-10,
+     * bukan 10-10-10-10-0 atau 40-0-0-0.
+     *
+     * ---------------------------------------------------------------------
+     * Kapasitas ruang tetap dihormati
+     * ---------------------------------------------------------------------
+     * Pembagian rata yang mengabaikan kapasitas akan menaruh 12 orang di ruang
+     * 10 kursi. Yang dipakai karena itu adalah kuota hasil pembagian, DIPATOK
+     * pada kapasitas - dan sisa yang tak kebagian mengalir ke ruang lain yang
+     * masih punya tempat.
+     *
+     * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
+     * @param  Collection<int, EventRoom>  $ruangan
+     * @return array<int, array<int, EventParticipant>> Kunci = event_room_id.
+     */
+    public function bagiRata(array $kelompok, Collection $ruangan): array
+    {
+        $idRuang = $ruangan->pluck('id')->all();
+        $kapasitas = $ruangan->mapWithKeys(fn (EventRoom $r) => [$r->id => $r->kapasitasEfektif()])->all();
+        $jumlahRuang = count($idRuang);
+
+        $hasil = array_fill_keys($idRuang, []);
+
+        if ($jumlahRuang === 0) {
+            return $hasil;
+        }
+
+        // Kursor BERPUTAR yang berlanjut antar kelas, dan itu yang membuat
+        // ruangnya benar-benar rata.
+        //
+        // Versi yang selalu mulai dari ruang pertama menumpuk setiap kelas di
+        // R-01: tiga kelas berisi 10 di tiga ruang berkapasitas 10 menghasilkan
+        // 10-9-9 pada satu contoh, tetapi 12-9-9 sebelum kapasitas memotongnya -
+        // dan R-01 selalu yang paling penuh. Dengan kursor yang berputar,
+        // kelas kedua mulai di R-02, kelas ketiga di R-03, sehingga isi ruang
+        // berakhir hampir sama.
+        $pos = 0;
+
+        foreach ($kelompok as $k) {
+            foreach ($k['peserta'] as $orang) {
+                // Cari ruang pertama (mulai dari kursor) yang masih punya
+                // kursi. Ruang yang penuh dilewati, bukan diisi melebihi
+                // kapasitasnya.
+                for ($t = 0; $t < $jumlahRuang; $t++) {
+                    $idx = ($pos + $t) % $jumlahRuang;
+                    $id = $idRuang[$idx];
+
+                    if (count($hasil[$id]) < $kapasitas[$id]) {
+                        $hasil[$id][] = $orang;
+                        $pos = ($idx + 1) % $jumlahRuang;
+
+                        continue 2;
+                    }
+                }
+
+                // Seluruh ruang penuh: kursi benar-benar habis, dan `kurang`
+                // di `susun()` yang melaporkannya - bukan diam-diam.
+                break 2;
+            }
+        }
+
+        return $hasil;
+    }
+
+    /**
      * Seluruh hasil kocokan satu EVENT, siap dipakai layar MAUPUN penyimpanan.
      *
      * Satu method karena keduanya harus sepakat: layar yang menampilkan
@@ -443,13 +521,17 @@ class PenempatanKocok
 
         $kelompok = $this->kelompokKelas($event);
 
-        // Mode `kelas` membagi dari KELOMPOK-nya, bukan dari antrean datar:
-        // batas kelas harus diketahui saat pembagian, dan antrean yang sudah
+        // Dua mode membagi dari KELOMPOK-nya, bukan dari antrean datar: batas
+        // kelas harus diketahui saat pembagian, dan antrean yang sudah
         // diratakan kehilangan batas itu. Urutan orang di dalam tiap kelas
         // tetap diacak menurut benih yang sama dengan mode `campur`.
-        if ($mode === ModePenempatan::Kelas) {
+        if ($mode === ModePenempatan::Kelas || $mode === ModePenempatan::Rata) {
             $kelompokAcak = $this->kelompokAcak($kelompok, $benih);
-            $perRuang = $this->bagiPerKelas($kelompokAcak, $ruangan);
+
+            $perRuang = $mode === ModePenempatan::Kelas
+                ? $this->bagiPerKelas($kelompokAcak, $ruangan)
+                : $this->bagiRata($kelompokAcak, $ruangan);
+
             $antrean = collect($this->antreanPerKelas(array_map(fn (array $k) => $k['peserta'], $kelompokAcak)));
         } else {
             $antrean = $this->antrean($kelompok, $benih, $mode);
@@ -467,6 +549,9 @@ class PenempatanKocok
             'peserta' => $antrean->count(),
             'kurang' => max(0, $antrean->count() - $kapasitas),
             'seisi_satu_kelas' => $this->seisiSatuKelas($perRuang, $ruangan),
+            // Hanya mode `kelas` yang punya temuan ini. Di `campur` DAN `rata`
+            // kelas yang tersebar adalah TUJUANNYA - melaporkannya sebagai
+            // temuan membalik arti seluruh laman.
             'kelas_terbelah' => $mode === ModePenempatan::Kelas
                 ? $this->kelasTerbelah($perRuang, $ruangan)
                 : [],
@@ -610,6 +695,25 @@ class PenempatanKocok
         // tidak diam-diam mengubah susunan: mode yang tidak diberikan diambil
         // dari kocokan tersimpan, bukan dari bawaan `campur`.
         $tersimpan = $this->benihTersimpan($event);
+
+        // Penempatan yang DIKUNCI menolak seluruh penulisan ulang kursi.
+        //
+        // `sebarEvent()` adalah satu-satunya jalur yang dipakai "Sebar" DAN
+        // "Kocok ulang", sehingga penjagaan di sini menutup keduanya sekaligus
+        // - dan keduanya sama-sama menulis ulang kursi setiap siswa. Sesudah
+        // daftar ruang dicetak dan ditempel di pintu, penulisan ulang itu
+        // berarti daftar yang tercetak tidak berlaku lagi sementara layarnya
+        // terlihat benar.
+        //
+        // Penjagaan di service, bukan hanya di controller: seeder, perintah
+        // artisan, dan test memanggil method ini langsung, dan aturan yang
+        // hanya hidup di pintu HTTP adalah aturan yang dilewati jalur lain.
+        if ($tersimpan !== null && $tersimpan->terkunci()) {
+            throw new DomainException(
+                'Penempatan event ini sudah dikunci, sehingga kursi tidak bisa disebar ulang. '.
+                'Buka kuncinya lebih dulu di laman Penempatan bila memang harus diubah.',
+            );
+        }
 
         $benih ??= $tersimpan?->seed;
         $mode ??= $tersimpan?->mode ?? ModePenempatan::Campur;

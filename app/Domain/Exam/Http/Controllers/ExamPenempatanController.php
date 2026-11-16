@@ -129,7 +129,16 @@ class ExamPenempatanController
                 'mode' => $mode->value,
                 'mode_label' => $mode->label(),
                 'mode_pilihan' => ModePenempatan::options(),
+                'mode_keterangan' => ModePenempatan::keteranganSemua(),
                 'terkunci' => $tersimpan !== null,
+                // KUNCI penempatan - berbeda dari `terkunci` di atas.
+                // `terkunci` berarti "kocokan sudah disebar sehingga mode
+                // tidak bisa diganti di layar"; `dikunci` berarti "tidak ada
+                // satu pun jalur yang boleh menulis ulang kursi". Yang kedua
+                // adalah penjagaan sesudah daftar ruang dicetak.
+                'dikunci' => $tersimpan?->terkunci() ?? false,
+                'dikunci_pada' => $tersimpan?->locked_at?->format('d M Y H:i'),
+                'dikunci_oleh' => $tersimpan?->pengunci?->name,
                 'dikocok_pada' => $tersimpan?->shuffled_at?->format('d M Y H:i'),
                 'dikocok_oleh' => $tersimpan?->oleh?->name,
                 'peserta' => $susunan['peserta'] ?? 0,
@@ -270,6 +279,92 @@ class ExamPenempatanController
     }
 
     /**
+     * Kunci penempatan - kursi tidak boleh ditulis ulang lagi.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa kunci TERPISAH dari "sudah disebar"
+     * ---------------------------------------------------------------------
+     * Sesudah disebar, Admin masih boleh menekan "Sebar ulang" dan "Kocok
+     * ulang" - dan keduanya menulis ulang kursi SETIAP siswa. Sebelum daftar
+     * dicetak itu wajar; sesudahnya, satu tekanan yang tidak sengaja membuat
+     * daftar di pintu tidak berlaku lagi sementara layarnya terlihat benar.
+     *
+     * Kunci ini menutup seluruh jalur tulis (Sebar, Kocok ulang, Pakai
+     * penempatan) sampai seseorang MEMBUKANYA dengan sadar.
+     */
+    public function kunci(
+        Request $request,
+        SchoolEvent $event,
+        PenempatanKocok $kocok,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $tersimpan = $kocok->benihTersimpan($event);
+
+        if ($tersimpan === null) {
+            return back()->with('galat', 'Sebar penempatan lebih dulu sebelum dikunci.');
+        }
+
+        if ($tersimpan->terkunci()) {
+            return back()->with('galat', 'Penempatan ini sudah dikunci.');
+        }
+
+        $tersimpan->forceFill([
+            'locked_at' => now(),
+            'locked_by' => $request->user()->id,
+        ])->save();
+
+        $logger->log('Mengunci penempatan peserta', $event, ['benih' => $tersimpan->seed]);
+
+        return back()->with(
+            'sukses',
+            'Penempatan dikunci. Kursi tidak bisa disebar ulang sampai kuncinya dibuka.',
+        );
+    }
+
+    /**
+     * Buka kunci penempatan - dengan alasan yang dicatat.
+     *
+     * Alasannya WAJIB, dan itu bukan formalitas: membuka kunci berarti
+     * mengizinkan daftar ruang yang sudah tercetak tidak berlaku lagi. Yang
+     * bertanya "mengapa penempatan anak saya berubah sesudah dikunci" harus
+     * mendapat jawaban dari log, bukan dari ingatan seseorang.
+     */
+    public function bukaKunci(
+        Request $request,
+        SchoolEvent $event,
+        PenempatanKocok $kocok,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $tersimpan = $kocok->benihTersimpan($event);
+
+        if ($tersimpan === null || ! $tersimpan->terkunci()) {
+            return back()->with('galat', 'Penempatan ini belum dikunci.');
+        }
+
+        $data = $request->validate([
+            'alasan' => ['required', 'string', 'max:200'],
+        ], [
+            'alasan.required' => 'Alasan membuka kunci wajib diisi - ia dicatat di log aktivitas.',
+        ]);
+
+        $tersimpan->forceFill([
+            'locked_at' => null,
+            'locked_by' => null,
+        ])->save();
+
+        $logger->log('Membuka kunci penempatan peserta', $event, [
+            'benih' => $tersimpan->seed,
+            'alasan' => $data['alasan'],
+        ]);
+
+        return back()->with('sukses', 'Kunci penempatan dibuka. Perubahan kursi kini diizinkan lagi.');
+    }
+
+    /**
      * Terapkan peta ruang event ke SATU sesi - tombol "Pakai penempatan".
      *
      * ---------------------------------------------------------------------
@@ -303,6 +398,15 @@ class ExamPenempatanController
         $data = $request->validate([
             'benih' => ['nullable', 'string', 'max:32'],
         ]);
+
+        // Kunci penempatan berlaku untuk SELURUH jalur tulis, termasuk yang
+        // ini - lihat `PenempatanKocok::sebarEvent()`.
+        if ($kocok->benihTersimpan($event)?->terkunci()) {
+            return back()->with(
+                'galat',
+                'Penempatan event ini sudah dikunci. Buka kuncinya lebih dulu di laman Penempatan.',
+            );
+        }
 
         $ujian = $sesi->exam;
 
