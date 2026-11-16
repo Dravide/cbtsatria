@@ -207,7 +207,7 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                         nada={laman.kelas_terbelah.length > 0 ? 'warn' : 'ok'}
                         catatan={
                             laman.kelas_terbelah.length > 0
-                                ? 'kelas yang terbagi ke dua ruang atau lebih'
+                                ? 'kelas yang lebih besar daripada satu ruang'
                                 : 'setiap kelas utuh di satu ruang'
                         }
                     />
@@ -374,10 +374,10 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
 
                             {mode === 'kelas' && laman.kelas_terbelah.length > 0 && (
                                 <p className="mt-2 text-[11px] leading-relaxed text-warn">
-                                    {laman.kelas_terbelah.join('; ')}. Kelas yang lebih besar
-                                    daripada satu ruang memang harus memakai dua ruang - bukan
-                                    kesalahan, tetapi pengawas ruang kedua perlu lembar absen yang
-                                    memuat dua kelas.
+                                    {laman.kelas_terbelah.join('; ')}. Hanya kelas yang lebih besar
+                                    daripada satu ruang yang terbelah &mdash; kelas lain masing-masing
+                                    menempati satu ruang utuh. Pengawas ruang tempat kelas itu
+                                    berlanjut perlu lembar absen yang memuat dua bagian kelas yang sama.
                                 </p>
                             )}
 

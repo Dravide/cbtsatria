@@ -149,12 +149,17 @@ class PenempatanKocok
     }
 
     /**
-     * Urutan peserta hasil rotasi antar kelas, diacak berbenih.
+     * Kelompok dengan isi tiap kelas DIACAK menurut benih - batas kelas tetap.
+     *
+     * Dipisahkan supaya mode `kelas` dan `campur` memakai pengacakan yang
+     * sama: pratinjau di laman penempatan menghitung ulang dari benih yang
+     * sama, dan dua jalur pengacakan akan menghasilkan dua susunan berbeda
+     * dari satu benih.
      *
      * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
-     * @return Collection<int, EventParticipant>
+     * @return array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>
      */
-    public function antrean(array $kelompok, string $benih, ModePenempatan $mode = ModePenempatan::Campur): Collection
+    private function kelompokAcak(array $kelompok, string $benih): array
     {
         mt_srand($this->benihKeAngka($benih));
 
@@ -165,13 +170,10 @@ class PenempatanKocok
         $isi = array_map(function (array $k) {
             $orang = $k['peserta'];
             $this->acakSendiri($orang);
+            $k['peserta'] = $orang;
 
-            return $orang;
+            return $k;
         }, $kelompok);
-
-        $antrean = $mode === ModePenempatan::Kelas
-            ? $this->antreanPerKelas($isi)
-            : $this->antreanRotasi($isi);
 
         // Benih dikembalikan ke keadaan acak. Tanpa ini, permintaan BERIKUTNYA
         // di proses yang sama - penerbitan token, kode pengawas - ikut memakai
@@ -179,7 +181,26 @@ class PenempatanKocok
         // benih yang kebetulan terlihat.
         mt_srand();
 
-        return collect($antrean);
+        return $isi;
+    }
+
+    /**
+     * Antrean DATAR hasil rotasi antar kelas - mode `campur`.
+     *
+     * Mode `kelas` TIDAK lewat sini: ia dibagi dari kelompoknya di `susun()`,
+     * karena antrean yang sudah diratakan kehilangan batas kelas. Parameter
+     * `$mode` tinggal untuk pemanggil lama yang menyebutnya; nilainya tidak
+     * lagi mengubah perilaku.
+     *
+     * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
+     * @return Collection<int, EventParticipant>
+     */
+    public function antrean(array $kelompok, string $benih, ModePenempatan $mode = ModePenempatan::Campur): Collection
+    {
+        return collect($this->antreanRotasi(array_map(
+            fn (array $k) => $k['peserta'],
+            $this->kelompokAcak($kelompok, $benih),
+        )));
     }
 
     /**
@@ -253,6 +274,9 @@ class PenempatanKocok
      * tidak ada ruang yang setengah kosong sementara ruang lain menolak
      * peserta.
      *
+     * Dipakai mode `campur`. Mode `kelas` memakai `bagiPerKelas()`, yang
+     * menghormati batas kelas - lihat docblock-nya.
+     *
      * @param  Collection<int, EventParticipant>  $antrean
      * @param  Collection<int, EventRoom>  $ruangan
      * @return array<int, array<int, EventParticipant>> Kunci = event_room_id.
@@ -269,6 +293,119 @@ class PenempatanKocok
         }
 
         return $hasil;
+    }
+
+    /**
+     * Bagi per KELAS: satu ruang diisi oleh satu kelas saja - mode `kelas`.
+     *
+     * =====================================================================
+     * Mengapa bukan `bagi()` yang berurutan
+     * =====================================================================
+     * `bagi()` mengisi ruang sampai penuh lalu pindah, tanpa peduli batas
+     * kelas. Akibatnya kelas kecil tidak mendapat ruangnya sendiri: ia
+     * menambal sisa kursi ruang sebelumnya, dan kelas berikutnya terbelah ke
+     * dua ruang. Sekolah yang meminta "berurutan per kelas" justru mendapat
+     * susunan yang mencampur dua kelas dalam satu ruang - kebalikan dari yang
+     * ia minta, dan yang paling mahal karena lembar absennya jadi dua kelas.
+     *
+     * Di sini kelas baru SELALU mulai di ruang BARU yang belum terpakai.
+     * Konsekuensi yang disebut apa adanya: kelas yang lebih kecil daripada
+     * kapasitas ruangnya meninggalkan kursi kosong, karena kursi itu tidak
+     * boleh diisi kelas lain. Kelas yang lebih BESAR daripada satu ruang tetap
+     * merambat ke ruang berikutnya - itu satu-satunya cara memuatnya - dan
+     * `kelasTerbelah()` yang melaporkannya.
+     *
+     * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
+     * @param  Collection<int, EventRoom>  $ruangan
+     * @return array<int, array<int, EventParticipant>> Kunci = event_room_id.
+     */
+    public function bagiPerKelas(array $kelompok, Collection $ruangan): array
+    {
+        $idRuang = $ruangan->pluck('id')->all();
+        $kapasitas = $ruangan->mapWithKeys(fn (EventRoom $r) => [$r->id => $r->kapasitasEfektif()])->all();
+        $jumlahRuang = count($idRuang);
+
+        $hasil = array_fill_keys($idRuang, []);
+
+        // Peserta yang tak mendapat ruang BERSIH - kelasnya kehabisan ruang
+        // kosong, atau kelasnya lebih besar daripada sisa ruang yang ada.
+        // Mereka ditempatkan belakangan, di sisa kursi mana pun, supaya tidak
+        // ada siswa yang kehilangan kursi saat kapasitasnya sebenarnya cukup.
+        $sisa = [];
+
+        // Kelompok sudah urut besar-dulu (`kelompokKelas()`), dan urutan itu
+        // penting: kelas terbesar mendapat ruang paling awal, dan kelas yang
+        // harus merambat mendapat prioritas ruang berikutnya.
+        foreach ($kelompok as $k) {
+            $orang = array_values($k['peserta']);
+
+            if ($orang === []) {
+                continue;
+            }
+
+            // Ruang kosong pertama - inilah "satu kelas satu ruang". Kelas
+            // baru tidak pernah menambal sisa kursi kelas sebelumnya.
+            $ke = null;
+
+            for ($i = 0; $i < $jumlahRuang; $i++) {
+                if ($hasil[$idRuang[$i]] === []) {
+                    $ke = $i;
+                    break;
+                }
+            }
+
+            if ($ke === null) {
+                $sisa = [...$sisa, ...$orang];
+
+                continue;
+            }
+
+            foreach ($orang as $satu) {
+                // Kelas yang lebih besar dari satu ruang merambat ke ruang
+                // berikutnya - terbelah, dan itu satu-satunya cara memuatnya.
+                while ($ke < $jumlahRuang && count($hasil[$idRuang[$ke]]) >= $kapasitas[$idRuang[$ke]]) {
+                    $ke++;
+                }
+
+                if ($ke >= $jumlahRuang) {
+                    // Ruang bersih habis; sisanya ditampung, bukan dibuang.
+                    $sisa[] = $satu;
+
+                    continue;
+                }
+
+                $hasil[$idRuang[$ke]][] = $satu;
+            }
+        }
+
+        $this->taruhDiSisa($hasil, $idRuang, $kapasitas, $sisa);
+
+        return $hasil;
+    }
+
+    /**
+     * Tempatkan sisa peserta ke kursi kosong ruang mana pun - jalur darurat.
+     *
+     * Dipakai `bagiPerKelas()` hanya untuk peserta yang tak mendapat ruang
+     * bersih. Ia sengaja MENGABAIKAN batas kelas: tujuan satu-satunya adalah
+     * memastikan tidak ada siswa yang kehilangan kursi saat kapasitasnya
+     * sebenarnya cukup. Peserta yang masih tak kebagian dibiarkan -
+     * `kurang` di `susun()` yang melaporkannya.
+     *
+     * @param  array<int, array<int, EventParticipant>>  $hasil
+     * @param  array<int, string>  $idRuang
+     * @param  array<int, int>  $kapasitas
+     * @param  array<int, EventParticipant>  $sisa
+     */
+    private function taruhDiSisa(array &$hasil, array $idRuang, array $kapasitas, array $sisa): void
+    {
+        $pos = 0;
+
+        foreach ($idRuang as $id) {
+            while ($pos < count($sisa) && count($hasil[$id]) < $kapasitas[$id]) {
+                $hasil[$id][] = $sisa[$pos++];
+            }
+        }
     }
 
     /**
@@ -305,8 +442,20 @@ class PenempatanKocok
         }
 
         $kelompok = $this->kelompokKelas($event);
-        $antrean = $this->antrean($kelompok, $benih, $mode);
-        $perRuang = $this->bagi($antrean, $ruangan);
+
+        // Mode `kelas` membagi dari KELOMPOK-nya, bukan dari antrean datar:
+        // batas kelas harus diketahui saat pembagian, dan antrean yang sudah
+        // diratakan kehilangan batas itu. Urutan orang di dalam tiap kelas
+        // tetap diacak menurut benih yang sama dengan mode `campur`.
+        if ($mode === ModePenempatan::Kelas) {
+            $kelompokAcak = $this->kelompokAcak($kelompok, $benih);
+            $perRuang = $this->bagiPerKelas($kelompokAcak, $ruangan);
+            $antrean = collect($this->antreanPerKelas(array_map(fn (array $k) => $k['peserta'], $kelompokAcak)));
+        } else {
+            $antrean = $this->antrean($kelompok, $benih, $mode);
+            $perRuang = $this->bagi($antrean, $ruangan);
+        }
+
         $kapasitas = $ruangan->sum(fn (EventRoom $r) => $r->kapasitasEfektif());
 
         return [

@@ -59,6 +59,81 @@ it('membagi kelas berurutan ke ruang berurutan pada mode kelas', function () {
     expect($antreanKelas)->not->toBe($antreanCampur);
 });
 
+it('TIDAK mencampur dua kelas dalam satu ruang pada mode kelas', function () {
+    // Regresi 2026-11-16. Perilaku lama mengisi ruang SAMPAI PENUH lalu
+    // pindah, tanpa peduli batas kelas - sehingga kelas kecil menambal sisa
+    // kursi ruang pertama dan kelas berikutnya terbelah. Sekolah yang meminta
+    // "berurutan per kelas" justru mendapat satu ruang berisi dua kelas.
+    //
+    // Fixture-nya sengaja MEMUAT: kelas 3 dan 4 di dua ruang berkapasitas 4.
+    // Dengan ruang yang cukup, janjinya mutlak - satu ruang satu kelas.
+    $f = siapkanKocok($this->admin, $this->tahun, 3, 4, 4, 2);
+
+    $susunan = $this->kocok->susun($f['event'], 'BENIHK', ModePenempatan::Kelas);
+
+    foreach ($susunan['per_ruang'] as $idRuang => $anggota) {
+        $kelas = collect($anggota)->pluck('class_id')->unique()->values();
+
+        expect($kelas)->toHaveCount(1, "Ruang {$idRuang} berisi ".$kelas->count().' kelas.');
+    }
+
+    // Dan tak ada satu pun kelas yang terbelah.
+    expect($susunan['kelas_terbelah'])->toBeEmpty();
+});
+
+it('menempatkan tiap kelas di ruangnya sendiri tanpa memadatkan ke sisa kursi', function () {
+    // Kelas 3 orang di ruang berkapasitas 4 harus MENINGGALKAN satu kursi
+    // kosong, bukan diisi kelas lain. Itu konsekuensi yang sengaja dipilih:
+    // kursi kosong lebih baik daripada lembar absen dua kelas.
+    $f = siapkanKocok($this->admin, $this->tahun, 3, 4, 4, 2);
+
+    $susunan = $this->kocok->susun($f['event'], 'BENIHK', ModePenempatan::Kelas);
+
+    $pemilik = collect($susunan['per_ruang'])->map(
+        fn ($anggota) => collect($anggota)->pluck('class_id')->unique()->first(),
+    );
+
+    // Kedua kelas menempati ruang yang BERBEDA.
+    expect($pemilik->values()->unique())->toHaveCount(2);
+    expect($pemilik->values()->all())
+        ->toContain($f['kelas']['X-1'])
+        ->toContain($f['kelas']['XI-A']);
+
+    // Kelas 3 orang menempati tepat 3 kursi - bukan 4. Kursi keempat dibiarkan
+    // kosong, dan itu yang membedakan mode ini dari mode campur.
+    $ruangX1 = $pemilik->search($f['kelas']['X-1']);
+
+    expect($susunan['per_ruang'][$ruangX1])->toHaveCount(3);
+});
+
+it('tidak menghilangkan peserta saat ruang cukup untuk memisahkan kelas', function () {
+    // Janji yang paling tidak boleh dilanggar: mode `kelas` yang mengubah
+    // susunan tidak boleh menendang seorang siswa keluar dari kursinya.
+    // Fixture ini 7 peserta di 8 kursi - semuanya harus dapat tempat.
+    $f = siapkanKocok($this->admin, $this->tahun, 3, 4, 4, 2);
+
+    $susunan = $this->kocok->susun($f['event'], 'BENIHK', ModePenempatan::Kelas);
+
+    $ditempatkan = collect($susunan['per_ruang'])->flatten()->count();
+
+    expect($ditempatkan)->toBe($susunan['peserta'])
+        ->and($susunan['kurang'])->toBe(0);
+});
+
+it('tetap memuat kelas yang lebih besar daripada satu ruang, dan melaporkannya terbelah', function () {
+    // Batas yang tidak bisa dilampaui: kelas 5 di ruang berkapasitas 4 memang
+    // HARUS memakai dua ruang. Yang penting bukan "tak pernah terbelah" -
+    // itu mustahil - melainkan bahwa TIDAK ADA siswa yang kehilangan kursi,
+    // dan bahwa pembelahannya disebutkan.
+    $susunan = $this->kocok->susun($this->event, 'BENIHK', ModePenempatan::Kelas);
+
+    $ditempatkan = collect($susunan['per_ruang'])->flatten()->count();
+
+    expect($ditempatkan)->toBe($susunan['peserta'])
+        ->and($susunan['kurang'])->toBe(0)
+        ->and($susunan['kelas_terbelah'])->not->toBeEmpty();
+});
+
 it('menghasilkan susunan campur yang sama persis tanpa mode', function () {
     $a = $this->kocok->susun($this->event, 'BENIH1');
     $b = $this->kocok->susun($this->event, 'BENIH1', ModePenempatan::Campur);
