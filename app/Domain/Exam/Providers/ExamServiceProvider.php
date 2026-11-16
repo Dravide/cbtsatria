@@ -4,6 +4,7 @@ namespace App\Domain\Exam\Providers;
 
 use App\Domain\Event\Contracts\ButirKesiapanUjian;
 use App\Domain\Event\Contracts\ButirSoalPerMapel;
+use App\Domain\Event\Contracts\PemakaiRuangEvent;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamClass;
@@ -20,6 +21,7 @@ use App\Domain\Exam\Services\KesiapanUjian;
 use App\Domain\Exam\Services\KonflikJadwal;
 use App\Domain\Exam\Services\NomorKursi;
 use App\Domain\Exam\Services\PapanKursi;
+use App\Domain\Exam\Services\PemakaiRuangEventService;
 use App\Domain\Exam\Services\PenempatanKocok;
 use App\Domain\Exam\Services\PenempatanService;
 use App\Domain\Exam\Services\PengawasService;
@@ -86,6 +88,11 @@ class ExamServiceProvider extends ServiceProvider
         // laman soal per mapel di konsol Admin membaca `exam_questions` dan
         // `questions`, dan keduanya bukan milik modul Event.
         $this->app->singleton(ButirSoalPerMapel::class, ButirSoalEvent::class);
+
+        // Kontrak ketiga, 2026-11-16: Event melepas ruang dari event, dan
+        // harus tahu lebih dulu apakah sesi ujian masih memakainya - karena
+        // penghapusan `event_rooms` merambat ke bukti pindai dan ditolak FK.
+        $this->app->singleton(PemakaiRuangEvent::class, PemakaiRuangEventService::class);
     }
 
     public function boot(): void

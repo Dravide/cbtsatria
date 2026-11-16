@@ -4,6 +4,7 @@ namespace App\Domain\Event\Http\Controllers;
 
 use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Audit\Services\ActivityLogger;
+use App\Domain\Event\Contracts\PemakaiRuangEvent;
 use App\Domain\Event\Models\EventClass;
 use App\Domain\Event\Models\EventParticipant;
 use App\Domain\Event\Models\EventRoom;
@@ -297,8 +298,12 @@ class EventParticipantController
      * belum tahu berapa peserta yang akan hadir tidak boleh dihalangi.
      * Readiness gate yang menolak transisi ke Siap bila kapasitasnya kurang.
      */
-    public function simpanRuang(Request $request, SchoolEvent $event, ActivityLogger $logger): RedirectResponse
-    {
+    public function simpanRuang(
+        Request $request,
+        SchoolEvent $event,
+        ActivityLogger $logger,
+        PemakaiRuangEvent $pemakaiRuang,
+    ): RedirectResponse {
         Gate::authorize('update', $event);
 
         $data = $request->validate([
@@ -313,6 +318,24 @@ class EventParticipantController
 
         $sebelum = $event->rooms()->pluck('room_id');
         $lepas = $sebelum->diff($sah);
+
+        // Ruang yang masih dipakai sesi ujian TIDAK boleh dilepas begitu saja.
+        //
+        // Menghapus `event_rooms` merambat CASCADE ke `exam_session_rooms`,
+        // lalu ke `attendance_scan_codes`, dan DITOLAK `attendance_acknowledgements`
+        // (RESTRICT) - karena pengakuan pindai adalah bukti kehadiran yang tidak
+        // boleh hilang. Tanpa pemeriksaan ini, yang sampai ke Admin adalah galat
+        // integritas 1451 mentah, bukan penjelasan. Yang benar: lepaskan ruang
+        // dari sesinya lebih dulu (batalkan sesi, atau ganti ruangnya).
+        $terpakai = $pemakaiRuang->ruangTerpakaiSesi($event, $lepas->all());
+
+        if ($terpakai !== []) {
+            return back()->with(
+                'galat',
+                'Ruang berikut masih dipakai sesi ujian: '.implode(', ', $terpakai).'. '.
+                'Batalkan sesinya atau ganti ruangnya lebih dulu, baru lepaskan ruangnya dari event.',
+            );
+        }
 
         $event->rooms()->whereIn('room_id', $lepas)->delete();
 
