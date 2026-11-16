@@ -56,6 +56,8 @@ type Props = {
         dinilai_pada: string | null;
     } | null;
     terkunci: boolean;
+    /** Sekolah sudah mengatur AI - tombol usulan hanya muncul bila true. */
+    ai_siap: boolean;
     berikutnya: number | null;
 };
 
@@ -66,6 +68,7 @@ export default function KoreksiJawaban({
     jawaban,
     koreksi,
     terkunci,
+    ai_siap,
     berikutnya,
 }: Props) {
     /**
@@ -104,6 +107,87 @@ export default function KoreksiJawaban({
     const [feedback, setFeedback] = useState(koreksi?.feedback ?? '');
     const [kirim, setKirim] = useState(false);
     const [galat, setGalat] = useState<Record<string, string>>({});
+
+    // Usulan AI - PRATINJAU, tidak disimpan sampai Guru menekan Simpan.
+    //
+    // `usulan` tetap ditampilkan setelah diterapkan, karena yang mengubah
+    // nilai tetap Guru - usulan yang menghilang begitu diterapkan membuatnya
+    // tidak bisa membandingkan hasil ketikan model dengan rubriknya.
+    const [usulan, setUsulan] = useState<{
+        kriteria: { kriteria: string; maks: number; poin: number }[];
+        total: number;
+        bobot: number;
+        catatan: string | null;
+    } | null>(null);
+    const [mintaAi, setMintaAi] = useState(false);
+    const [galatAi, setGalatAi] = useState<string | null>(null);
+    // Indeks kriteria yang poinnya berasal dari usulan AI - untuk penandanya.
+    const [dariAi, setDariAi] = useState<number[]>([]);
+
+    const mintaUsulan = async () => {
+        if (mintaAi || terkunci) {
+            return;
+        }
+
+        setMintaAi(true);
+        setGalatAi(null);
+
+        try {
+            const jawab = await fetch(`/guru/koreksi/jawaban/${jawaban.id}/ai`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN':
+                        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                            ?.content ?? '',
+                    Accept: 'application/json',
+                },
+            });
+
+            const isi = await jawab.json();
+
+            if (!jawab.ok) {
+                setGalatAi(isi.pesan ?? 'Usulan AI tidak bisa diambil.');
+                return;
+            }
+
+            setUsulan(isi.usulan);
+            setDariAi([]);
+        } catch {
+            setGalatAi('Tidak bisa menghubungi server. Periksa sambungan, lalu coba lagi.');
+        } finally {
+            setMintaAi(false);
+        }
+    };
+
+    /** Terapkan usulan ke kotak poin - atas permintaan Guru, per kriteria. */
+    const terapkan = (indeks: number | 'semua') => {
+        if (usulan === null) {
+            return;
+        }
+
+        const baru = [...poin];
+
+        if (indeks === 'semua') {
+            usulan.kriteria.forEach((u, i) => {
+                baru[i] = u.poin;
+            });
+            setDariAi(kriteria.map((_, i) => i));
+        } else {
+            baru[indeks] = usulan.kriteria[indeks]?.poin ?? baru[indeks];
+            setDariAi((lama) => (lama.includes(indeks) ? lama : [...lama, indeks]));
+        }
+
+        setPoin(baru);
+    };
+
+    // Penanda "dari AI" dilepas begitu Guru mengetik sendiri di baris itu.
+    const ubahPoin = (indeks: number, nilai: number) => {
+        const batas = Number(kriteria[indeks]?.maks) || 0;
+        const baru = [...poin];
+        baru[indeks] = Math.min(batas, Math.max(0, nilai || 0));
+        setPoin(baru);
+        setDariAi((lama) => lama.filter((i) => i !== indeks));
+    };
 
     const maksimal = kriteria.reduce((n, k) => n + (Number(k.maks) || 0), 0);
     const total = poin.reduce((n, p) => n + p, 0);
@@ -260,12 +344,61 @@ export default function KoreksiJawaban({
                         <h2 className="text-xs font-medium tracking-wide text-ink-2 uppercase">
                             Rubrik
                         </h2>
+                        {ai_siap && !terkunci && (
+                            <button
+                                type="button"
+                                onClick={mintaUsulan}
+                                disabled={mintaAi || kriteria.length === 0}
+                                title="Minta usulan poin dari AI. Yang tersimpan tetap yang Anda setujui."
+                                className="ml-1 rounded-wf border border-accent/50 bg-accent/5 px-2 py-0.5 text-[11px] font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
+                            >
+                                {mintaAi ? 'Menilai…' : 'Koreksi dengan AI'}
+                            </button>
+                        )}
                         <span className="ml-auto text-[11px] text-ink-3">
                             bobot butir {formatPoin(soal.bobot)}
                         </span>
                     </header>
 
                     <div className="space-y-2 p-4">
+                        {galatAi && (
+                            <div className="rounded-wf border border-bad/30 bg-bad-bg px-3 py-2 text-[11px] text-bad">
+                                {galatAi}
+                            </div>
+                        )}
+
+                        {/* Pratinjau usulan AI - DI ATAS kotak poin, bukan
+                            menggantikannya. Guru membandingkan, menerapkan
+                            yang ia setujui, lalu menyimpan seperti biasa. */}
+                        {usulan && (
+                            <div className="rounded-wf border border-accent/40 bg-accent/5 px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                    <Chip nada="info">usulan AI</Chip>
+                                    <span className="font-mono text-[11px] text-ink-2">
+                                        {formatPoin(usulan.total)} / {formatPoin(usulan.bobot)}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => terapkan('semua')}
+                                        className="ml-auto rounded-wf border border-accent bg-accent px-2 py-0.5 text-[11px] font-medium text-on-accent hover:bg-accent/90"
+                                    >
+                                        Pakai semua
+                                    </button>
+                                </div>
+
+                                {usulan.catatan && (
+                                    <p className="mt-1.5 text-[11px] leading-relaxed text-ink-2">
+                                        {usulan.catatan}
+                                    </p>
+                                )}
+
+                                <p className="mt-1.5 text-[11px] text-ink-3">
+                                    Belum tersimpan. Periksa dulu, lalu tekan{' '}
+                                    <em>Simpan &amp; lanjut</em>.
+                                </p>
+                            </div>
+                        )}
+
                         {kriteria.map((k, i) => {
                             const batas = Number(k.maks) || 0;
 
@@ -278,18 +411,35 @@ export default function KoreksiJawaban({
                                         type="checkbox"
                                         checked={poin[i] >= batas && batas > 0}
                                         disabled={terkunci}
-                                        onChange={(e) => {
-                                            const baru = [...poin];
-                                            baru[i] = e.target.checked ? batas : 0;
-                                            setPoin(baru);
-                                        }}
+                                        onChange={(e) => ubahPoin(i, e.target.checked ? batas : 0)}
                                         className="h-3.5 w-3.5 accent-[var(--color-accent)]"
                                         aria-label={k.kriteria}
                                     />
 
                                     <span className="min-w-0 flex-1 truncate text-xs text-ink">
                                         {k.kriteria}
+                                        {dariAi.includes(i) && (
+                                            <span className="ml-1.5 text-[10px] text-accent">
+                                                dari AI
+                                            </span>
+                                        )}
                                     </span>
+
+                                    {/* Tombol per-kriteria: satu baris boleh
+                                        diterapkan tanpa baris lain - Guru yang
+                                        setuju sebagian saja tidak perlu
+                                        mengetik ulang yang sudah benar. */}
+                                    {usulan && usulan.kriteria[i] && !terkunci && (
+                                        <button
+                                            type="button"
+                                            onClick={() => terapkan(i)}
+                                            title={`Pakai usulan AI: ${formatPoin(usulan.kriteria[i].poin)}`}
+                                            aria-label={`Pakai usulan AI untuk ${k.kriteria}: ${formatPoin(usulan.kriteria[i].poin)} poin`}
+                                            className="rounded-wf border border-accent/40 px-1.5 py-0.5 font-mono text-[10px] text-accent hover:bg-accent/10"
+                                        >
+                                            {formatPoin(usulan.kriteria[i].poin)}
+                                        </button>
+                                    )}
 
                                     {/* Poin sebagian. Guru yang perlu memberi 2
                                         dari 4 mengetiknya di sini; batasnya
@@ -301,12 +451,7 @@ export default function KoreksiJawaban({
                                         step={0.5}
                                         value={poin[i]}
                                         disabled={terkunci}
-                                        onChange={(e) => {
-                                            const isi = Number(e.target.value);
-                                            const baru = [...poin];
-                                            baru[i] = Math.min(batas, Math.max(0, isi || 0));
-                                            setPoin(baru);
-                                        }}
+                                        onChange={(e) => ubahPoin(i, Number(e.target.value))}
                                         className="w-16 rounded-wf border border-line bg-surface px-2 py-1 text-right font-mono text-xs text-ink outline-none focus:border-accent disabled:bg-surface-2"
                                     />
 

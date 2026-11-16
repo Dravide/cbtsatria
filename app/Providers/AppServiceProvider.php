@@ -136,6 +136,20 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         // ----------------------------------------------------------------
+        // Usulan koreksi AI - POST /guru/koreksi/jawaban/{id}/ai
+        // ----------------------------------------------------------------
+        // Batas tersendiri, bukan `ai-soal`: bentuk pemakaiannya berbeda -
+        // satu klik satu jawaban, dan Guru mengoreksi tiga puluh jawaban
+        // berturut-turut. Lihat `PembatasLaju::AI_KOREKSI_PER_GURU`.
+        // Jawabannya JSON karena dipanggil `fetch` dari laman koreksi.
+        RateLimiter::for(PembatasLaju::AI_KOREKSI, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::AI_KOREKSI_PER_GURU)
+                ->by(PembatasLaju::kunciAi((int) $request->user()?->id))
+                ->response(fn () => response()
+                    ->json(['pesan' => PembatasLaju::PESAN_AI], 429)),
+        ]);
+
+        // ----------------------------------------------------------------
         // Ganti sandi - PUT /siswa/akun/sandi
         // ----------------------------------------------------------------
         // Satu limit, per AKUN, tanpa pasangan per-IP. Pelakunya sudah

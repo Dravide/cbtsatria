@@ -7,12 +7,17 @@ use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamQuestion;
 use App\Domain\Grading\Models\EssayGrading;
 use App\Domain\Grading\Services\PenilaiUraian;
+use App\Domain\Grading\Services\PenilaiUraianAi;
 use App\Domain\Grading\Support\UjianGuru;
+use App\Domain\Tenancy\Services\PengaturanAiSekolah;
+use App\Support\Ai\GalatPenyedia;
 use App\Support\TabelQuery;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -47,7 +52,21 @@ use Inertia\Response;
  */
 class KoreksiController
 {
-    public function __construct(private readonly PenilaiUraian $penilai) {}
+    /**
+     * Jawaban terbanyak dalam satu permintaan AI batch.
+     *
+     * Sepuluh, dan angkanya dipilih dari batas waktu: satu jawaban berarti
+     * satu panggilan penyedia sampai 45 detik, sehingga sepuluh jawaban
+     * adalah batas atas yang masih bisa ditunggu Guru di depan layar tanpa
+     * mengira aplikasinya menggantung. "Semua" berarti beberapa batch, bukan
+     * satu permintaan yang tidak pernah kembali.
+     */
+    private const BATAS_AI = 10;
+
+    public function __construct(
+        private readonly PenilaiUraian $penilai,
+        private readonly PengaturanAiSekolah $pengaturanAi,
+    ) {}
 
     /**
      * Daftar ujian yang punya antrean koreksi.
@@ -130,6 +149,20 @@ class KoreksiController
             'ujian' => $this->identitas($ujian),
             'ringkas' => $this->ringkas($ujian),
             'baris' => $halaman->through(fn (StudentAnswer $jawaban) => $this->baris($jawaban, $koreksi->get($jawaban->id))),
+            // Tombol "Koreksi AI" per halaman hanya muncul bila sekolahnya
+            // sudah mengatur AI - lihat `KoreksiController::jawaban()`.
+            'ai_siap' => $this->pengaturanAi->ambil()?->siap() ?? false,
+            // Seluruh id jawaban yang BELUM dikoreksi pada ujian ini, untuk
+            // tombol "AI semua". Dikirim sebagai daftar id - bukan dikerjakan
+            // server dalam satu permintaan - supaya laman bisa memecahnya
+            // menjadi batch dan menampilkan kemajuannya; satu permintaan yang
+            // menilai 300 jawaban akan menggantung sampai timeout.
+            'sisa_id' => $this->jawabanUraian($ujian)
+                ->whereNotIn('id', EssayGrading::query()->select('student_answer_id'))
+                ->orderBy('id')
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all(),
         ]);
     }
 
@@ -192,6 +225,11 @@ class KoreksiController
             // dipublikasikan, Guru masih boleh menyunting; sesudahnya, tidak -
             // kecuali Admin membukanya kembali dengan alasan tercatat.
             'terkunci' => (bool) $ujian->event?->koreksiTerkunci(),
+            // AI hanya ditawarkan bila sekolahnya sudah mengaturnya. Tombol
+            // yang server-nya tolak dengan "belum diatur" mengajari Guru untuk
+            // tidak memercayai layarnya - lihat `KoreksiController::index()`
+            // untuk alasan yang sama pada daftar ujian.
+            'ai_siap' => $this->pengaturanAi->ambil()?->siap() ?? false,
             // Antrean berikutnya, supaya Guru yang selesai mengoreksi satu
             // jawaban tidak perlu kembali ke daftar untuk mencari yang
             // berikutnya - plate 06 menomori antreannya "Antrean 3".
@@ -236,6 +274,197 @@ class KoreksiController
             : redirect()
                 ->route('guru.koreksi.jawaban', $berikutnya)
                 ->with('sukses', 'Koreksi tersimpan. Lanjut ke jawaban berikutnya.');
+    }
+
+    /**
+     * Usulan koreksi dari AI - PRATINJAU saja, tidak menulis apa pun.
+     *
+     * Guru menekan "Koreksi dengan AI", menerima poin per kriteria, menyunting
+     * bila perlu, lalu menyimpannya lewat `simpan()` - jalur yang sama persis
+     * dengan koreksi manual. Endpoint ini karena itu mengembalikan JSON, bukan
+     * redirect, dan tidak pernah menyentuh `essay_gradings`.
+     *
+     * "Semua" dan "per halaman" tidak punya endpoint tersendiri: yang
+     * dikerjakan Guru adalah menekan tombol ini per jawaban, dan yang
+     * membedakan hanyalah berapa kali ia menekannya. Satu endpoint per
+     * jawaban membuat tiap permintaan tetap satu panggilan penyedia yang
+     * bisa gagal sendiri-sendiri tanpa menggagalkan sisanya.
+     */
+    public function ai(Request $request, StudentAnswer $jawaban, PenilaiUraianAi $ai): JsonResponse
+    {
+        Gate::authorize('koreksi');
+
+        $butir = $jawaban->butir;
+        $ujian = $butir?->attempt?->penempatan?->exam;
+
+        abort_if($butir === null || $ujian === null, 404);
+
+        UjianGuru::satu($request->user()->id, $ujian->id);
+
+        abort_unless($butir->soal?->perluKoreksiManual(), 404);
+
+        // Koreksi yang terkunci tidak boleh diusulkan ulang: usulannya hanya
+        // akan ditolak `simpan()` dengan pesan yang sama, setelah satu
+        // permintaan penyedia ditagih.
+        if ($ujian->event?->koreksiTerkunci()) {
+            return response()->json([
+                'pesan' => 'Koreksi sedang dikunci karena hasilnya sudah dipublikasikan. Minta Admin membukanya kembali.',
+            ], 422);
+        }
+
+        try {
+            $usulan = $ai->usul($jawaban);
+        } catch (GalatPenyedia $e) {
+            // Bukan 500: penyedia yang salah dikonfigurasi adalah keadaan yang
+            // bisa diperbaiki Admin dalam satu menit. Sama dengan `SoalAiController`.
+            return response()->json(['pesan' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['usulan' => $usulan]);
+    }
+
+    /**
+     * Usulan AI untuk BEBERAPA jawaban sekaligus - "per halaman" dan "semua".
+     *
+     * Tetap PRATINJAU: tidak menulis apa pun. Guru memilih jawaban (satu
+     * halaman, atau seluruh sisa antrean), menerima usulan tiap jawaban, lalu
+     * menyimpannya lewat `aiSimpan()`.
+     *
+     * Batasnya `BATAS_AI` jawaban per permintaan, dan itu bukan hiasan: satu
+     * jawaban berarti satu panggilan penyedia sampai 45 detik, sehingga
+     * "semua" pada ujian 300 siswa akan menggantung satu permintaan HTTP
+     * selama berjam-jam lalu timeout tanpa hasil. "Semua" karena itu berarti
+     * Guru mengirim batch demi batch - dan yang membatasinya adalah laman,
+     * bukan endpoint ini.
+     */
+    public function aiBatch(Request $request, Exam $ujian, PenilaiUraianAi $ai): JsonResponse
+    {
+        Gate::authorize('koreksi');
+
+        $ujian = UjianGuru::satu($request->user()->id, $ujian->id);
+
+        if ($ujian->event?->koreksiTerkunci()) {
+            return response()->json([
+                'pesan' => 'Koreksi sedang dikunci karena hasilnya sudah dipublikasikan. Minta Admin membukanya kembali.',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'jawaban' => ['required', 'array', 'min:1', 'max:'.self::BATAS_AI],
+            'jawaban.*' => ['integer'],
+        ]);
+
+        // Hanya jawaban uraian MILIK ujian ini, diurutkan seperti antreannya.
+        $daftar = $this->jawabanUraian($ujian)
+            ->whereIn('id', array_map('intval', $data['jawaban']))
+            ->get();
+
+        $hasil = [];
+
+        foreach ($daftar as $jawaban) {
+            $butir = $jawaban->butir;
+
+            try {
+                $usulan = $ai->usul($jawaban);
+
+                $hasil[] = [
+                    'jawaban_id' => $jawaban->id,
+                    'siswa' => $butir?->attempt?->penempatan?->pesertaEvent?->student?->name,
+                    'nomor' => $butir?->display_order,
+                    'usulan' => $usulan,
+                    'galat' => null,
+                ];
+            } catch (GalatPenyedia $e) {
+                // Satu jawaban yang gagal - mis. soalnya tanpa rubrik - tidak
+                // menggagalkan sisanya. Guru melihat barisnya bertanda galat dan
+                // mengoreksinya sendiri.
+                $hasil[] = [
+                    'jawaban_id' => $jawaban->id,
+                    'siswa' => $butir?->attempt?->penempatan?->pesertaEvent?->student?->name,
+                    'nomor' => $butir?->display_order,
+                    'usulan' => null,
+                    'galat' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json(['hasil' => $hasil]);
+    }
+
+    /**
+     * Simpan usulan AI yang DISETUJUI Guru - satu kiriman, banyak jawaban.
+     *
+     * Tiap baris ditulis lewat `PenilaiUraian::koreksi()` - pintu yang sama
+     * dengan koreksi manual, lengkap dengan pemeriksaan bobot dan kuncinya.
+     * Baris yang ditolak dilewati dan dilaporkan; yang lain tetap tersimpan,
+     * karena Guru sudah melihat dan menyetujui masing-masing di pratinjau -
+     * membatalkan seluruh kiriman karena satu baris cacat berarti membuang
+     * usulan yang ia sudah periksa.
+     */
+    public function aiSimpan(Request $request, Exam $ujian): RedirectResponse
+    {
+        Gate::authorize('koreksi');
+
+        $guru = $request->user();
+        $ujian = UjianGuru::satu($guru->id, $ujian->id);
+
+        $data = $request->validate([
+            'koreksi' => ['required', 'array', 'min:1', 'max:'.self::BATAS_AI],
+            'koreksi.*.jawaban_id' => ['required', 'integer'],
+            'koreksi.*.kriteria' => ['array'],
+            'koreksi.*.kriteria.*.kriteria' => ['required', 'string', 'max:200'],
+            'koreksi.*.kriteria.*.poin' => ['required', 'numeric', 'min:0'],
+            'koreksi.*.feedback' => ['nullable', 'string', 'max:'.PenilaiUraian::BATAS_FEEDBACK],
+        ]);
+
+        // Id yang SAH dibatasi ke jawaban uraian ujian ini. Tanpa penyaringan
+        // ini, kiriman yang mengarang id jawaban ujian lain akan tersimpan
+        // lewat jalur yang tidak memeriksa kepemilikannya.
+        $idSah = $this->jawabanUraian($ujian)->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        $tersimpan = 0;
+        $gagal = 0;
+
+        foreach ($data['koreksi'] as $satu) {
+            $id = (int) $satu['jawaban_id'];
+
+            if (! in_array($id, $idSah, true)) {
+                continue;
+            }
+
+            $jawaban = StudentAnswer::query()->find($id);
+
+            if ($jawaban === null) {
+                continue;
+            }
+
+            try {
+                $this->penilai->koreksi(
+                    $jawaban,
+                    $guru,
+                    $satu['kriteria'] ?? [],
+                    $satu['feedback'] ?? null,
+                );
+
+                $tersimpan++;
+            } catch (ValidationException) {
+                // Satu baris yang tidak lolos pemeriksaan bobot/kunci dilewati;
+                // guru melihat barisnya tetap "belum dinilai" di antrean.
+                $gagal++;
+            }
+        }
+
+        if ($tersimpan === 0) {
+            return back()->with('galat', 'Tidak ada usulan yang bisa disimpan. Periksa kembali nilainya.');
+        }
+
+        $pesan = "{$tersimpan} jawaban dikoreksi dari usulan AI.";
+
+        if ($gagal > 0) {
+            $pesan .= " {$gagal} dilewati karena nilainya tidak sah - koreksi manual masih diperlukan.";
+        }
+
+        return back()->with('sukses', $pesan);
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Domain\Question\Http\Controllers\QuestionController;
 use App\Domain\Question\Http\Controllers\QuestionImportController;
 use App\Domain\Question\Http\Controllers\QuestionPackageController;
 use App\Domain\Question\Http\Controllers\SoalAiController;
+use App\Support\PembatasLaju;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -179,6 +180,19 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     Route::get('/koreksi/jawaban/{jawaban}', [KoreksiController::class, 'jawaban'])->name('koreksi.jawaban');
     Route::post('/koreksi/jawaban/{jawaban}', [KoreksiController::class, 'simpan'])->name('koreksi.simpan');
     Route::delete('/koreksi/jawaban/{jawaban}', [KoreksiController::class, 'batalkan'])->name('koreksi.batal');
+    // Usulan koreksi dari AI - pratinjau saja, tidak menulis. Dipanggil `fetch`
+    // dari laman koreksi, jadi jawabannya JSON (galat pun JSON). Jatahnya
+    // tersendiri - lihat `PembatasLaju::AI_KOREKSI_PER_GURU`.
+    Route::post('/koreksi/jawaban/{jawaban}/ai', [KoreksiController::class, 'ai'])
+        ->middleware('throttle:'.PembatasLaju::AI_KOREKSI)
+        ->name('koreksi.ai');
+    // Usulan AI untuk beberapa jawaban sekaligus ("per halaman" / "semua") -
+    // juga pratinjau, dan juga JSON. Didaftarkan sebelum `/koreksi/{ujian}`
+    // karena segmen `ai` statis akan dicoba sebagai id ujian lebih dulu.
+    Route::post('/koreksi/{ujian}/ai', [KoreksiController::class, 'aiBatch'])
+        ->middleware('throttle:'.PembatasLaju::AI_KOREKSI)
+        ->name('koreksi.ai.batch');
+    Route::post('/koreksi/{ujian}/ai/simpan', [KoreksiController::class, 'aiSimpan'])->name('koreksi.ai.simpan');
     Route::get('/koreksi/{ujian}', [KoreksiController::class, 'ujian'])->name('koreksi.ujian');
 
     Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai');

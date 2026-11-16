@@ -1,6 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import GuruLayout from '@/Layouts/GuruLayout';
-import { Chip, Inbox, Paginator, Tabel } from '@/Components/ui';
+import { Chip, Inbox, Paginator, Peringatan, Tabel, Tombol } from '@/Components/ui';
 import { formatPoin } from '@/Components/angka';
 
 /**
@@ -47,12 +48,135 @@ type Props = {
         maksimal: number;
     };
     baris: Paginator<Baris>;
+    /** Sekolah sudah mengatur AI - tombol usulan hanya muncul bila true. */
+    ai_siap: boolean;
+    /** Seluruh id jawaban yang belum dikoreksi pada ujian ini. */
+    sisa_id: number[];
 };
 
-export default function KoreksiUjian({ ujian, ringkas, baris }: Props) {
+/** Satu usulan AI untuk satu jawaban, dalam pratinjau batch. */
+type UsulanBaris = {
+    jawaban_id: number;
+    siswa: string | null;
+    nomor: number | null;
+    usulan: {
+        kriteria: { kriteria: string; maks: number; poin: number }[];
+        total: number;
+        bobot: number;
+        catatan: string | null;
+    } | null;
+    galat: string | null;
+};
+
+export default function KoreksiUjian({ ujian, ringkas, baris, ai_siap, sisa_id }: Props) {
     // Baris pertama yang belum dinilai - tombol "Mulai koreksi" harus membuka
     // SATU jawaban, bukan daftar yang sama dengan yang sedang dilihat.
     const pertama = baris.data.find((b) => !b.sudah_dinilai) ?? baris.data[0];
+
+    // --------------------------------------------------------------- AI batch
+    //
+    // Pratinjau usulan untuk SEKELOMPOK jawaban - satu halaman, atau seluruh
+    // sisa antrean. Tetap pratinjau: yang tersimpan hanya yang dicentang Guru,
+    // lewat `aiSimpan`. Server membatasi sepuluh jawaban per permintaan, jadi
+    // laman mengirim batch sepuluh-sepuluh dan menampilkan kemajuannya.
+    const [minta, setMinta] = useState(false);
+    const [kemajuan, setKemajuan] = useState<{ jadi: number; dari: number } | null>(null);
+    const [galat, setGalat] = useState<string | null>(null);
+    const [usulan, setUsulan] = useState<UsulanBaris[]>([]);
+    const [pilih, setPilih] = useState<number[]>([]);
+
+    const belumDinilaiPage = baris.data.filter((b) => !b.sudah_dinilai);
+
+    const mintaUsulan = async (mode: 'halaman' | 'semua') => {
+        if (minta) {
+            return;
+        }
+
+        // "Halaman" = yang belum dinilai di halaman ini; "Semua" = seluruh
+        // sisa antrean ujian. Keduanya daftar id, dan dikirim per sepuluh.
+        const id = mode === 'halaman' ? belumDinilaiPage.map((b) => b.id) : sisa_id;
+
+        if (id.length === 0) {
+            setGalat('Tidak ada jawaban yang belum dinilai untuk diusulkan.');
+            return;
+        }
+
+        setMinta(true);
+        setGalat(null);
+        setUsulan([]);
+        setPilih([]);
+        setKemajuan({ jadi: 0, dari: id.length });
+
+        try {
+            const kumpulan: UsulanBaris[] = [];
+
+            for (let i = 0; i < id.length; i += 10) {
+                const potong = id.slice(i, i + 10);
+
+                const jawab = await fetch(`/guru/koreksi/${ujian.id}/ai`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN':
+                            document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                                ?.content ?? '',
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                    body: JSON.stringify({ jawaban: potong }),
+                });
+
+                const isi = await jawab.json();
+
+                if (!jawab.ok) {
+                    setGalat(isi.pesan ?? 'Usulan AI tidak bisa diambil.');
+                    // Yang sudah terkumpul tetap ditampilkan: membuang tiga
+                    // batch yang berhasil karena batch keempat kena jatah
+                    // adalah membuang pekerjaan yang sudah ditagih.
+                    setUsulan(kumpulan);
+                    setPilih(kumpulan.filter((u) => u.usulan !== null).map((u) => u.jawaban_id));
+                    return;
+                }
+
+                kumpulan.push(...isi.hasil);
+                setKemajuan({ jadi: kumpulan.length, dari: id.length });
+            }
+
+            setUsulan(kumpulan);
+            // Yang berhasil diusulkan langsung tercentang: Guru membatalkan
+            // yang tidak ia setujui, bukan mencentang yang ia setujui - pada
+            // tiga puluh baris, itu bedanya tiga puluh klik.
+            setPilih(kumpulan.filter((u) => u.usulan !== null).map((u) => u.jawaban_id));
+        } catch {
+            setGalat('Tidak bisa menghubungi server. Periksa sambungan, lalu coba lagi.');
+        } finally {
+            setMinta(false);
+            setKemajuan(null);
+        }
+    };
+
+    const simpan = () => {
+        if (minta || pilih.length === 0) {
+            return;
+        }
+
+        const kiriman = usulan
+            .filter((u) => u.usulan !== null && pilih.includes(u.jawaban_id))
+            .map((u) => ({
+                jawaban_id: u.jawaban_id,
+                kriteria: u.usulan!.kriteria.map((k) => ({ kriteria: k.kriteria, poin: k.poin })),
+                feedback: u.usulan!.catatan,
+            }));
+
+        router.post(`/guru/koreksi/${ujian.id}/ai/simpan`, { koreksi: kiriman }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setUsulan([]);
+                setPilih([]);
+            },
+        });
+    };
+
+    const totalPilih = usulan.filter((u) => pilih.includes(u.jawaban_id)).length;
 
     return (
         <GuruLayout
@@ -105,6 +229,161 @@ export default function KoreksiUjian({ ujian, ringkas, baris }: Props) {
                         pernah masuk antrean ini.
                     </Inbox>
                 </div>
+            )}
+
+            {/* ------------------------------------------------- Koreksi AI */}
+            {/* Pratinjau, bukan tombol ajaib. Guru memilih cakupannya, melihat
+                usulan per jawaban, membatalkan yang tidak ia setujui, lalu
+                menyimpannya - dan yang tersimpan lewat jalur yang sama dengan
+                koreksi manual. */}
+            {ai_siap && ringkas.sisa > 0 && (
+                <section className="mb-3 rounded-wf border border-line bg-surface">
+                    <header className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5">
+                        <h2 className="text-xs font-medium tracking-wide text-ink-2 uppercase">
+                            Koreksi dengan AI
+                        </h2>
+                        <span className="ml-auto flex flex-wrap items-center gap-2">
+                            <Tombol
+                                nada="sek"
+                                disabled={minta || belumDinilaiPage.length === 0}
+                                onClick={() => mintaUsulan('halaman')}
+                            >
+                                Halaman ini ({belumDinilaiPage.length})
+                            </Tombol>
+                            <Tombol
+                                nada="sek"
+                                disabled={minta || sisa_id.length === 0}
+                                onClick={() => mintaUsulan('semua')}
+                            >
+                                Semua ({sisa_id.length})
+                            </Tombol>
+                        </span>
+                    </header>
+
+                    <div className="px-4 py-3">
+                        {minta && (
+                            <p className="text-xs text-ink-2">
+                                Menilai dengan AI…{' '}
+                                {kemajuan && (
+                                    <span className="font-mono">
+                                        {kemajuan.jadi}/{kemajuan.dari}
+                                    </span>
+                                )}
+                            </p>
+                        )}
+
+                        {galat && (
+                            <div className="mt-2">
+                                <Peringatan>{galat}</Peringatan>
+                            </div>
+                        )}
+
+                        {!minta && usulan.length === 0 && !galat && (
+                            <p className="text-xs text-ink-3">
+                                AI mengusulkan poin per kriteria untuk tiap jawaban. Usulan
+                                ditampilkan sebagai pratinjau - <strong>tidak ada</strong> yang
+                                tersimpan sampai Anda menyetujuinya.
+                            </p>
+                        )}
+
+                        {usulan.length > 0 && (
+                            <>
+                                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-ink-2">
+                                    <span>
+                                        {totalPilih} dari {usulan.length} usulan dipilih
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setPilih(
+                                                usulan
+                                                    .filter((u) => u.usulan !== null)
+                                                    .map((u) => u.jawaban_id),
+                                            )
+                                        }
+                                        className="text-ink-3 underline-offset-2 hover:text-ink hover:underline"
+                                    >
+                                        Pilih semua
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPilih([])}
+                                        className="text-ink-3 underline-offset-2 hover:text-ink hover:underline"
+                                    >
+                                        Kosongkan
+                                    </button>
+                                    <span className="ml-auto">
+                                        <Tombol
+                                            nada="pri"
+                                            disabled={pilih.length === 0}
+                                            onClick={simpan}
+                                        >
+                                            Simpan {totalPilih} koreksi
+                                        </Tombol>
+                                    </span>
+                                </div>
+
+                                <div className="overflow-hidden rounded-wf border border-line">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-line bg-surface-2/50 text-left text-[11px] text-ink-3">
+                                                <th className="w-8 px-3 py-2"></th>
+                                                <th className="w-14 px-3 py-2">No</th>
+                                                <th className="px-3 py-2">Siswa</th>
+                                                <th className="px-3 py-2">Usulan poin</th>
+                                                <th className="px-3 py-2">Catatan</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {usulan.map((u) => (
+                                                <tr
+                                                    key={u.jawaban_id}
+                                                    className="border-b border-line last:border-0 align-top"
+                                                >
+                                                    <td className="px-3 py-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            disabled={u.usulan === null}
+                                                            checked={pilih.includes(u.jawaban_id)}
+                                                            onChange={(e) =>
+                                                                setPilih(
+                                                                    e.target.checked
+                                                                        ? [...pilih, u.jawaban_id]
+                                                                        : pilih.filter(
+                                                                              (x) => x !== u.jawaban_id,
+                                                                          ),
+                                                                )
+                                                            }
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 font-mono text-xs text-ink-2">
+                                                        {u.nomor}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-ink">
+                                                        {u.siswa ?? 'Siswa tidak dikenal'}
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        {u.galat ? (
+                                                            <Chip nada="bad">gagal</Chip>
+                                                        ) : (
+                                                            <span className="font-mono text-xs text-ink">
+                                                                {formatPoin(u.usulan!.total)} /{' '}
+                                                                {formatPoin(u.usulan!.bobot)}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-[11px] text-ink-3">
+                                                        {u.galat ?? u.usulan!.catatan ?? '—'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </section>
             )}
 
             <Tabel<Baris>

@@ -98,6 +98,9 @@ final class PembatasLaju
     /** Nama limiter untuk Generate AI di builder soal. */
     public const AI = 'ai-soal';
 
+    /** Nama limiter untuk usulan koreksi AI di laman koreksi uraian. */
+    public const AI_KOREKSI = 'ai-koreksi';
+
     /** Nama limiter untuk ganti sandi mandiri. */
     public const SANDI = 'ganti-sandi';
 
@@ -123,6 +126,20 @@ final class PembatasLaju
 
     /** Pesan saat seorang Guru melampaui batas permintaan AI-nya. */
     public const PESAN_AI = 'Terlalu banyak permintaan AI. Tunggu satu menit, lalu coba lagi.';
+
+    /**
+     * Usulan koreksi AI per Guru, per menit.
+     *
+     * Lebih tinggi dari `AI_PER_GURU` karena bentuk pemakaiannya berbeda:
+     * satu klik "Koreksi dengan AI" mengirim SATU jawaban, dan Guru yang
+     * mengoreksi tiga puluh jawaban berturut-turut menekannya tiga puluh kali.
+     * Batas sepuluh per menit akan menghadangnya di jawaban kesebelas.
+     *
+     * Dua puluh tetap membatasi yang perlu dibatasi: klik ganda, skrip, dan
+     * tab yang tertinggal. Ini pembatas UANG juga - setiap usulan ditagih ke
+     * akun penyedia milik sekolah.
+     */
+    public const AI_KOREKSI_PER_GURU = 20;
 
     /**
      * Percobaan kode pengawas per pasangan tautan + IP, per menit.
