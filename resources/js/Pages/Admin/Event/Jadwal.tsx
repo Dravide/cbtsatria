@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { konfirmasi, tanyaTeks } from '@/Components/dialog';
 import {
@@ -1110,10 +1110,127 @@ function FormUjian({
 
     const [pilihKelas, setPilihKelas] = useState<number[]>(ujianAwal?.kelas_id ?? []);
 
-    // Nama mapel yang sedang dipilih - untuk pratinjau judul. `mapel[0]`
-    // adalah nilai awalnya, sama dengan `subject_id` di atas.
-    const namaMapelTerpilih =
-        mapel.find((m) => m.id === isi.subject_id)?.nama ?? mapel[0]?.nama ?? '';
+    /**
+     * Mapel dikelompokkan menurut NAMA, bukan per baris `subjects`.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa dipisah mapel dan tingkat
+     * ---------------------------------------------------------------------
+     * Sekolah boleh menyusun satu mapel per tingkat: "Pendidikan Agama" ada
+     * sebagai PABK-7, PABK-8, dan PABK-9. Dikirim sebagai 24 baris datar, form
+     * menampilkan delapan mapel yang masing-masing berulang tiga kali - dan
+     * yang dibaca Admin sebagai "mapel yang sama muncul berkali-kali", bukan
+     * sebagai "tiga tingkat".
+     *
+     * Di sini mapelnya SATU pilihan (delapan baris), lalu tingkatnya dipilih
+     * terpisah. `subject_id` yang dikirim tetap id baris mapel tingkat itu -
+     * skemanya tidak berubah; hanya bentuk pilihannya.
+     */
+    const mapelUnik = (() => {
+        const peta = new Map<string, { nama: string; kode: string | null; varian: Props['mapel'] }>();
+
+        for (const m of mapel) {
+            const nama = (m.nama ?? m.kode ?? '').trim();
+
+            if (nama === '') {
+                continue;
+            }
+
+            const ada = peta.get(nama) ?? { nama, kode: m.kode, varian: [] };
+            ada.varian.push(m);
+            peta.set(nama, ada);
+        }
+
+        return [...peta.values()].sort((a, b) => a.nama.localeCompare(b.nama));
+    })();
+
+    /** Mapel yang sedang dipilih, dicocokkan lewat `subject_id`. */
+    const mapelAktif =
+        mapelUnik.find((m) => m.varian.some((v) => v.id === isi.subject_id)) ??
+        mapelUnik[0] ??
+        null;
+
+    /**
+     * Varian tingkat dari mapel yang sedang dipilih.
+     *
+     * Satu varian berarti mapel itu tidak disusun per tingkat.
+     */
+    const varianTingkat = mapelAktif?.varian ?? [];
+
+    /**
+     * Tingkat yang DICAKUP kelas sasaran yang dicentang.
+     *
+     * ---------------------------------------------------------------------
+     * Tingkat mengikuti KELAS SASARAN, bukan dipilih terpisah
+     * ---------------------------------------------------------------------
+     * Ujian untuk kelas 7A, 8A, dan 9A menaungi tiga tingkat sekaligus - dan
+     * itu sah: satu ujian satu mapel, kelas sasaran lintas tingkat. Pilihan
+     * "Tingkat" yang berdiri sendiri karena itu SALAH BENTUK: ia memaksa Admin
+     * memilih satu tingkat untuk ujian yang jelas-jelas menaungi tiga, dan
+     * memilih salah satunya berarti `subject_id` menunjuk varian yang tidak
+     * mewakili seluruh cakupan.
+     *
+     * Di sini tingkat DIBACA dari kelas yang dicentang, lalu varian mapel yang
+     * cocok dipilih otomatis. Bila cakupannya lintas tingkat - kelas 7 dan 8
+     * sekaligus - yang dipakai adalah varian dengan tingkat TERENDAH, dan
+     * ketidakcocokan itu DITAMPILKAN sebagai keterangan, bukan disembunyikan:
+     * skema `exams.subject_id` hanya bisa menunjuk satu baris mapel, dan
+     * keterbatasan itu harus terbaca.
+     */
+    const tingkatSasaran = (() => {
+        const t = [
+            ...new Set(
+                pilihKelas
+                    .map((id) => kelas.find((k) => k.id === id)?.tingkat)
+                    .filter((x): x is string => Boolean(x && x.trim())),
+            ),
+        ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+        return t;
+    })();
+
+    /**
+     * Pilih varian mapel yang cocok dengan tingkat kelas sasaran.
+     *
+     * Dipanggil saat kelas sasaran berubah - BUKAN saat Admin memilih mapel.
+     * Varian yang dipilih adalah yang tingkatnya ada dalam `tingkatSasaran`;
+     * bila tidak ada yang cocok (mis. kelas belum dicentang), varian pertama
+     * dipakai dan keterangannya menyebut itu.
+     */
+    useEffect(() => {
+        if (varianTingkat.length <= 1) {
+            return;
+        }
+
+        const cocok = varianTingkat.find(
+            (v) => v.tingkat !== null && tingkatSasaran.includes(v.tingkat),
+        );
+
+        const target = cocok ?? varianTingkat[0];
+
+        if (target !== undefined && target.id !== isi.subject_id) {
+            setIsi((lama) => ({ ...lama, subject_id: target.id }));
+        }
+        // `isi.subject_id` sengaja tidak masuk dependensi: efek ini MENULIS
+        // nilai itu, dan memasukkannya berarti efek yang memicu dirinya
+        // sendiri setiap kali nilainya berubah.
+    }, [tingkatSasaran.join(','), mapelAktif?.nama]);
+
+    const pilihMapel = (nama: string) => {
+        const m = mapelUnik.find((x) => x.nama === nama);
+
+        if (m === undefined || m.varian[0] === undefined) {
+            return;
+        }
+
+        // Varian pertama dipakai sebagai awal saat mapel berganti: Admin yang
+        // memilih "Pendidikan Agama" lalu memilih tingkatnya, bukan memilih
+        // mapel yang kebetulan sudah membawa tingkat tertentu.
+        setIsi({ ...isi, subject_id: m.varian[0].id });
+    };
+
+    // Nama mapel yang sedang dipilih - untuk pratinjau judul.
+    const namaMapelTerpilih = mapelAktif?.nama ?? '';
 
     // Tingkat untuk pratinjau judul. Aturannya SAMA dengan
     // `ExamRegistrar::tingkat()`: dari kelas sasaran yang dicentang, dan
@@ -1186,15 +1303,8 @@ function FormUjian({
             }
         >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Mata pelajaran bisa berjumlah puluhan di event besar
-                    (dua belas mapel per tingkat), dan `<select>` polos
-                    memaksa Admin menggulir daftar untuk menemukan satu mapel.
-                    `PilihCari` menyaring sambil mengetik, dengan keyboard
-                    yang bekerja penuh - lihat docblock komponennya.
-
-                    Penjaga yang TIDAK berubah: mapel yang sudah punya paket
-                    tetap terkunci, karena snapshot soalnya berasal dari mapel
-                    lama. */}
+                {/* Mata pelajaran dipilih menurut NAMA, lalu tingkatnya
+                    dipilih terpisah - lihat catatan `mapelUnik`. */}
                 <PilihCari
                     label="Mata pelajaran"
                     petunjuk={
@@ -1202,24 +1312,47 @@ function FormUjian({
                             ? 'Soal sudah dibekukan dari mapel ini, jadi mapelnya tidak bisa diganti.'
                             : undefined
                     }
-                    nilai={isi.subject_id}
-                    pilihan={mapel.map((m) => ({
-                        id: m.id,
-                        // Nama dan kode saja TIDAK cukup: sekolah boleh
-                        // menyusun satu mapel per tingkat, sehingga
-                        // "Pendidikan Agama" muncul tiga kali (PABK-7, PABK-8,
-                        // PABK-9) dengan nama yang sama persis. Tingkatnya
-                        // ikut di label supaya ketiganya bisa dibedakan - dan
-                        // itu yang dimaksud Admin saat memilih.
-                        label:
-                            `${m.kode ?? ''} ${m.nama ?? ''}`.trim() +
-                            (m.tingkat ? ` · Tingkat ${m.tingkat}` : ''),
+                    nilai={mapelAktif?.nama ?? ''}
+                    pilihan={mapelUnik.map((m) => ({
+                        id: m.nama,
+                        label: m.nama,
+                        // Kode varian pertamanya sebagai keterangan kanan -
+                        // cukup untuk mengenali mapelnya tanpa mengulang nama.
                         ket: m.kode,
                     }))}
-                    padaPilih={(id) => setIsi({ ...isi, subject_id: id ?? isi.subject_id })}
+                    padaPilih={(nama) => {
+                        if (nama !== null) {
+                            pilihMapel(nama);
+                        }
+                    }}
                     disabled={mengubah && ujianAwal.ada_paket}
                     kosong="Tidak ada mata pelajaran yang cocok."
                 />
+
+                {/* Tingkat TIDAK dipilih di sini - ia mengikuti kelas sasaran.
+                    Memilihnya terpisah memaksa Admin memilih satu tingkat untuk
+                    ujian yang menaungi tiga, dan skema hanya bisa menunjuk satu
+                    baris mapel. Keterangan ini menyebut varian mana yang
+                    terpakai, dan bilang terus terang bila cakupannya lintas
+                    tingkat. */}
+                <Field
+                    label="Tingkat"
+                    petunjuk={
+                        tingkatSasaran.length === 0
+                            ? 'Centang kelas sasaran - tingkatnya mengikuti kelas yang dipilih.'
+                            : tingkatSasaran.length > 1
+                              ? 'Kelas sasaran mencakup beberapa tingkat; mapel menunjuk varian tingkat terendah.'
+                              : 'Mengikuti tingkat kelas sasaran.'
+                    }
+                >
+                    <p className="rounded-wf border border-line bg-surface-2/60 px-2.5 py-1.5 text-sm text-ink">
+                        {tingkatSasaran.length === 0 ? (
+                            <span className="text-ink-3">—</span>
+                        ) : (
+                            `Tingkat ${tingkatSasaran.join(', ')}`
+                        )}
+                    </p>
+                </Field>
 
                 <Field
                     label="Jenis"
