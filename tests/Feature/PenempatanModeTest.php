@@ -3,6 +3,7 @@
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Exam\Enums\ModePenempatan;
 use App\Domain\Exam\Models\ExamEventShuffle;
+use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Services\PenempatanKocok;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\School;
@@ -263,6 +264,41 @@ it('menolak sebar dan kocok ulang sesudah penempatan dikunci', function () {
     $this->actingAs($this->admin)
         ->post(jalurPenempatan($this->event).'/kocok-ulang', ['mode' => 'campur'])
         ->assertSessionHas('galat', fn (string $p) => str_contains($p, 'dikunci'));
+});
+
+it('TETAP mengizinkan Pakai penempatan sesudah dikunci', function () {
+    // Regresi 2026-11-16. "Pakai penempatan" menerapkan peta ruang event yang
+    // SUDAH ADA ke satu sesi - ia tidak mengocok benih baru dan tidak
+    // memindahkan siswa. Siswa yang sama tetap di ruang yang sama; yang
+    // berubah hanyalah sesi mana yang kursinya tercatat.
+    //
+    // Itu justru tindakan yang dibutuhkan SESUDAH dikunci: sesi yang baru
+    // ditambahkan, atau sesi yang ruangnya baru diperbaiki, perlu memakai peta
+    // yang sudah dibekukan. Menahannya membuat sesi baru tidak akan pernah bisa
+    // diisi tanpa membuka kunci - padahal tidak ada satu kursi pun yang berubah.
+    $this->kocok->sebarEvent($this->event, $this->kocok->benihBaru(), null, ModePenempatan::Kelas);
+
+    $this->actingAs($this->admin)->post(jalurPenempatan($this->event).'/kunci');
+
+    expect($this->kocok->benihTersimpan($this->event)->terkunci())->toBeTrue();
+
+    // Kursi sesi dikosongkan lebih dulu, supaya "Pakai penempatan" benar-benar
+    // MENULIS sesuatu - bukan sekadar menjawab sukses atas keadaan yang sudah
+    // benar.
+    ExamParticipant::query()
+        ->where('exam_id', $this->f['ujian']->id)
+        ->update(['exam_session_id' => null, 'exam_session_room_id' => null]);
+
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event).'/sesi/'.$this->f['sesi']->id, [
+            'benih' => $this->kocok->benihTersimpan($this->event)->seed,
+        ])
+        ->assertSessionHas('sukses');
+
+    expect(ExamParticipant::query()
+        ->where('exam_id', $this->f['ujian']->id)
+        ->whereNotNull('exam_session_room_id')
+        ->count())->toBeGreaterThan(0);
 });
 
 it('membuka kunci dengan alasan, lalu mengizinkan sebar lagi', function () {

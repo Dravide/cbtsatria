@@ -280,10 +280,11 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                         {laman.terkunci ? 'sudah disebar' : 'belum disebar'}
                                     </Chip>
                                     {/* Kunci penempatan: penjagaan sesudah
-                                        daftar ruang dicetak. Selama aktif,
-                                        Sebar/Kocok ulang/Pakai penempatan
-                                        ditolak server - lihat
-                                        PenempatanKocok::sebarEvent(). */}
+                                        daftar ruang dicetak. Selama aktif, Sebar
+                                        dan Kocok ulang ditolak server - lihat
+                                        PenempatanKocok::sebarEvent().
+                                        "Pakai penempatan" TIDAK ditolak: ia
+                                        hanya menerapkan peta yang sudah ada. */}
                                     {laman.dikunci ? (
                                         <>
                                             <Chip nada="bad">dikunci</Chip>

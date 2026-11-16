@@ -289,8 +289,12 @@ class ExamPenempatanController
      * dicetak itu wajar; sesudahnya, satu tekanan yang tidak sengaja membuat
      * daftar di pintu tidak berlaku lagi sementara layarnya terlihat benar.
      *
-     * Kunci ini menutup seluruh jalur tulis (Sebar, Kocok ulang, Pakai
-     * penempatan) sampai seseorang MEMBUKANYA dengan sadar.
+     * Kunci ini menutup dua jalur yang MENULIS ULANG kursi - `sebar()` dan
+     * `kocokUlang()` - sampai seseorang MEMBUKANYA dengan sadar.
+     *
+     * "Pakai penempatan" SENGAJA tidak ikut ditutup: ia hanya menerapkan peta
+     * yang sudah ada ke satu sesi, tanpa mengocok ulang dan tanpa memindahkan
+     * siswa. Lihat catatan di `pakaiSesi()`.
      */
     public function kunci(
         Request $request,
@@ -399,14 +403,19 @@ class ExamPenempatanController
             'benih' => ['nullable', 'string', 'max:32'],
         ]);
 
-        // Kunci penempatan berlaku untuk SELURUH jalur tulis, termasuk yang
-        // ini - lihat `PenempatanKocok::sebarEvent()`.
-        if ($kocok->benihTersimpan($event)?->terkunci()) {
-            return back()->with(
-                'galat',
-                'Penempatan event ini sudah dikunci. Buka kuncinya lebih dulu di laman Penempatan.',
-            );
-        }
+        // Kunci penempatan SENGAJA TIDAK diperiksa di sini.
+        //
+        // "Pakai penempatan" menerapkan peta ruang event yang SUDAH ADA ke satu
+        // sesi - ia tidak mengocok benih baru dan tidak memindahkan siswa.
+        // Siswa yang sama tetap di ruang yang sama; yang berubah hanyalah sesi
+        // mana yang kursinya tercatat. Itu justru tindakan yang dibutuhkan
+        // SESUDAH penempatan dikunci: sesi yang baru ditambahkan, atau sesi
+        // yang ruangnya baru diperbaiki, perlu memakai peta yang sudah dibekukan.
+        //
+        // Menahannya di sini berarti kunci penempatan membuat sesi baru tidak
+        // akan pernah bisa diisi tanpa membuka kunci - dan membuka kunci adalah
+        // tindakan yang menyatakan "daftar tercetak boleh berubah", padahal
+        // tidak ada yang berubah.
 
         $ujian = $sesi->exam;
 
