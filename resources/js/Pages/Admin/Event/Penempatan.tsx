@@ -146,6 +146,20 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
     const gantiMode = (nilai: string) => {
         setMode(nilai);
 
+        // Sudah pernah disebar: mode TIDAK bisa berlaku tanpa menulis ulang
+        // kursi, dan satu-satunya tombol yang boleh melakukannya adalah
+        // "Kocok ulang". Jadi memilih mode di sini langsung membuka
+        // konfirmasi itu - bukan menukar pratinjau diam-diam.
+        //
+        // Sebelum perbaikan ini tombol mode DIMATIKAN begitu kocokan disebar,
+        // dan itu membuat mode tidak akan pernah bisa diganti sama sekali:
+        // "Kocok ulang" membaca `mode` dari state yang tidak bisa diubah.
+        if (laman.terkunci && !laman.dikunci && nilai !== laman.mode) {
+            setKonfirmasi(true);
+
+            return;
+        }
+
         // Pratinjau dihitung SERVER dari benih dan mode - React tidak
         // menghitungnya sendiri. Kalau ia menghitung sendiri, layar dan hasil
         // sebar bisa berbeda dari masukan yang sama, dan yang salah baru
@@ -337,16 +351,23 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                             <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-line pb-3">
                                 <span className="text-[11px] text-ink-3">Susunan</span>
 
-                                <div className="flex overflow-hidden rounded-wf border border-line">
+                                <div className="flex flex-wrap overflow-hidden rounded-wf border border-line">
                                     {Object.entries(laman.mode_pilihan).map(([nilai, label]) => (
                                         <button
                                             key={nilai}
                                             type="button"
-                                            disabled={laman.terkunci}
+                                            // HANYA kunci penempatan yang mematikan
+                                            // pilihan ini. Status "sudah disebar"
+                                            // tidak lagi - memilih mode pada
+                                            // kocokan tersebar membuka konfirmasi
+                                            // Kocok ulang, lihat `gantiMode()`.
+                                            disabled={laman.dikunci}
                                             title={
-                                                laman.terkunci
-                                                    ? 'Kocokan sudah disebar - pakai "Kocok ulang" untuk mengganti susunannya'
-                                                    : undefined
+                                                laman.dikunci
+                                                    ? 'Penempatan dikunci - buka kuncinya lebih dulu untuk mengganti susunan'
+                                                    : laman.terkunci && nilai !== laman.mode
+                                                      ? 'Ganti susunan - konfirmasi kocok ulang akan muncul'
+                                                      : undefined
                                             }
                                             onClick={() => gantiMode(nilai)}
                                             className={
@@ -540,7 +561,11 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                 klik di sini membuat 240 nama berpindah kursi di SETIAP mapel,
                 dan daftar yang sudah ditempel di pintu berubah menjadi salah. */}
             <Modal
-                judul="Kocok ulang seluruh event?"
+                judul={
+                    mode !== laman.mode
+                        ? `Ganti susunan ke "${laman.mode_pilihan[mode] ?? mode}"?`
+                        : 'Kocok ulang seluruh event?'
+                }
                 terbuka={konfirmasi}
                 padaTutup={() => setKonfirmasi(false)}
             >
@@ -549,6 +574,16 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                     sudah dicetak dan ditempel di pintu <strong>tidak berlaku lagi</strong> &mdash;
                     cetak ulang sesudahnya.
                 </Peringatan>
+
+                {mode !== laman.mode && (
+                    <p className="mt-3 text-xs leading-relaxed text-ink-2">
+                        Susunan berubah dari{' '}
+                        <strong className="text-ink">{laman.mode_label}</strong> menjadi{' '}
+                        <strong className="text-ink">{laman.mode_pilihan[mode] ?? mode}</strong>.
+                        Mengganti susunan selalu menulis ulang kursi, jadi ia melewati jalur yang
+                        sama dengan kocok ulang.
+                    </p>
+                )}
 
                 <p className="mt-3 text-xs leading-relaxed text-ink-2">
                     Kocokan sekarang memakai benih{' '}
@@ -559,7 +594,15 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                 </p>
 
                 <div className="mt-4 flex justify-end gap-2">
-                    <Tombol nada="sek" onClick={() => setKonfirmasi(false)}>
+                    <Tombol
+                        nada="sek"
+                        onClick={() => {
+                            setKonfirmasi(false);
+                            // Mode yang batal dipilih tidak boleh tertinggal di
+                            // state: pratinjau dan tombol Sebar membacanya.
+                            setMode(laman.mode);
+                        }}
+                    >
                         Batal
                     </Tombol>
                     <Tombol

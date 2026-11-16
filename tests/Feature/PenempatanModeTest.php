@@ -308,3 +308,47 @@ it('mengirim status kunci ke laman penempatan', function () {
             ->has('laman.mode_keterangan.rata')
         );
 });
+
+it('mengizinkan ganti mode SESUDAH disebar, lewat kocok ulang', function () {
+    // Regresi 2026-11-16. Tombol mode dulu DIMATIKAN begitu kocokan disebar,
+    // dan itu membuat mode tidak akan pernah bisa diganti sama sekali:
+    // "Kocok ulang" membaca `mode` dari state yang tidak bisa diubah. Mode
+    // ketiga (`rata`) karena itu tidak bisa dipilih pada event yang sudah
+    // punya penempatan - tombolnya mati.
+    //
+    // Yang dijaga di sini adalah JALUR SERVERNYA: kocok ulang dengan mode
+    // `rata` harus benar-benar tersimpan dan benar-benar mengubah susunan.
+    $this->kocok->sebarEvent($this->event, 'BENIH1', null, ModePenempatan::Kelas);
+
+    expect($this->kocok->benihTersimpan($this->event)->mode)->toBe(ModePenempatan::Kelas);
+
+    $this->actingAs($this->admin)
+        ->post(jalurPenempatan($this->event).'/kocok-ulang', ['mode' => ModePenempatan::Rata->value])
+        ->assertSessionHas('sukses');
+
+    expect($this->kocok->benihTersimpan($this->event)->mode)->toBe(ModePenempatan::Rata);
+});
+
+it('mengirim mode rata sebagai pilihan ketiga di laman penempatan', function () {
+    $this->actingAs($this->admin)
+        ->get(jalurPenempatan($this->event))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/Event/Penempatan')
+            ->where('laman.mode_pilihan.rata', 'Acak rata per kelas')
+            ->where('laman.mode_pilihan.kelas', 'Berurutan per kelas')
+            ->where('laman.mode_pilihan.campur', 'Campur antar kelas')
+            ->has('laman.mode_keterangan.rata')
+        );
+});
+
+it('memakai mode rata pada kocokan tersimpan saat mode tidak diberikan', function () {
+    // Sebar ulang tanpa mode harus tetap `rata`, bukan diam-diam kembali ke
+    // campur - Admin yang menekan Sebar kedua kali tidak sedang mengubah
+    // susunannya.
+    $this->kocok->sebarEvent($this->event, 'BENIH1', null, ModePenempatan::Rata);
+
+    $hasil = $this->kocok->sebarEvent($this->event);
+
+    expect($hasil['mode'])->toBe(ModePenempatan::Rata);
+});
