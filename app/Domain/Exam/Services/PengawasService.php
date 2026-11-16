@@ -46,24 +46,36 @@ use Illuminate\Validation\ValidationException;
 class PengawasService
 {
     /**
-     * Jumlah pengawas per ruang yang disarankan plate 17.
+     * Jumlah pengawas per ruang yang dituju "Tugaskan otomatis".
      *
-     * Ini ANGKASARAN, bukan syarat. PRD §9.6 berbunyi "satu ruang dapat
-     * memiliki beberapa Pengawas" - satu orang sudah sah mengawas satu ruang,
-     * dan sekolah dengan 24 ruang tetapi 26 pengawas memang hanya bisa
-     * menugaskan satu per ruang. Karena itu ruang berisi satu pengawas BUKAN
-     * temuan, dan tidak boleh diperlakukan seperti ruang yang belum siap.
+     * =====================================================================
+     * SATU per ruang - dan itu keputusan sekolah, bukan angka bawaan
+     * =====================================================================
+     * PRD §9.6 mengizinkan lebih dari satu pengawas per ruang, dan dulu angka
+     * ini 2 supaya penugasan otomatis mengisi sampai saran plate 17. Yang
+     * terjadi di lapangan berbeda: event dengan 33 ruang hanya punya 33-40
+     * pengawas, sehingga menuntut dua per ruang berarti setengah ruang
+     * dibiarkan kosong - atau, lebih buruk, penugasan otomatis diam-diam
+     * menempatkan orang yang sama di dua ruang pada jam berbeda.
+     *
+     * Satu orang menjaga satu ruang adalah bentuk yang dipakai sekolah ini,
+     * dan penugasan otomatis mengikuti bentuk itu. Menambah pengawas kedua
+     * tetap BISA - `tugaskan()` tidak membatasi jumlah - tetapi ia tidak lagi
+     * dilakukan otomatis.
      */
-    public const SARAN_PER_RUANG = 2;
+    public const SARAN_PER_RUANG = 1;
 
     /**
      * Jumlah pengawas paling sedikit yang membuat ruang bisa dibuka.
      *
-     * Angka ini yang dipakai gerbang kesiapan: SesiService menolak membuka
-     * sesi, dan TokenSesi menolak menerbitkan token, hanya bila ada ruang
-     * yang NOL pengawas. Bedanya dengan SARAN_PER_RUANG menentukan seluruh
-     * perilaku laman plate 17 - mencampur keduanya membuat "kurang dari dua"
-     * terbaca sebagai "tidak bisa dibuka", dan itu tidak benar.
+     * Sama dengan `SARAN_PER_RUANG` sejak 2026-11-16: sekolah ini menugaskan
+     * satu orang per ruang, dan angka yang berbeda untuk "boleh dibuka" dan
+     * "disarankan" hanya menghasilkan dua pertanyaan untuk satu keadaan.
+     *
+     * Yang tetap menjadi TEMUAN adalah ruang yang NOL pengawas - presensi
+     * harus diverifikasi orang, dan orang yang tidak ditugaskan tidak bisa
+     * membuka ruangnya. SesiService menolak membuka sesi, dan TokenSesi
+     * menolak menerbitkan token, hanya pada keadaan itu.
      */
     public const MINIMAL_PER_RUANG = 1;
 
@@ -236,7 +248,11 @@ class PengawasService
         $tersentuh = [];
         $dilewati = [];
 
-        foreach ([self::MINIMAL_PER_RUANG, self::SARAN_PER_RUANG] as $target) {
+        // Satu putaran, satu target. Dulu ada dua - MINIMAL lalu SARAN - dan
+        // itu masuk akal selama saran (2) berbeda dari minimal (1). Sejak
+        // sekolah memakai satu pengawas per ruang, keduanya sama, dan dua
+        // putaran dengan target sama hanya mengulang pekerjaan yang sama.
+        foreach ([self::SARAN_PER_RUANG] as $target) {
             foreach ($ruangan as $r) {
                 $kurang = $target - $r->supervisors->count();
 

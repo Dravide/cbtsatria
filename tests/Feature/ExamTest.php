@@ -2401,16 +2401,22 @@ it('membagi satu pengawas per ruang lebih dulu ketika calonnya kurang', function
         ->and($jumlah->min())->toBe(1);
 });
 
-it('menambah pengawas kedua setelah setiap ruang punya satu', function () {
-    // Empat calon, dua ruang: putaran kedua baru berjalan setelah putaran
-    // pertama selesai - jadi dua orang di tiap ruang, bukan tiga di R-01.
+it('menugaskan tepat SATU pengawas per ruang, walau calonnya berlebih', function () {
+    // Sejak 2026-11-16 sekolah memakai SATU pengawas per ruang, dan penugasan
+    // otomatis mengikuti bentuk itu. Dulu ia mengisi sampai DUA - dan pada
+    // event 33 ruang dengan 40 pengawas, putaran kedua hanya menghabiskan
+    // sisa calon untuk ruang yang sudah terjaga, sementara ruang lain
+    // bergantung pada urutan.
+    //
+    // Empat calon, dua ruang: dua orang tetap TIDAK dipakai. Yang benar adalah
+    // satu per ruang, dan sisanya tetap tersedia untuk penugasan manual.
     $data = siapkanCalon($this->event, $this->mapel, $this->admin, 4);
 
     masukSebagai($this, $this->admin)
         ->post("/admin/events/{$this->event->id}/pengawas/otomatis")
         ->assertRedirect();
 
-    expect($data['ruang']->map(fn ($r) => $r->supervisors()->count())->all())->toBe([2, 2]);
+    expect($data['ruang']->map(fn ($r) => $r->supervisors()->count())->all())->toBe([1, 1]);
 });
 
 it('membuka sesi yang setiap ruangnya baru punya satu pengawas', function () {
@@ -2432,11 +2438,16 @@ it('membuka sesi yang setiap ruangnya baru punya satu pengawas', function () {
     expect($data['sesi']->refresh()->status)->toBe(StatusSesi::Berjalan);
 });
 
-it('mengirim saran sebagai saran, bukan sebagai perhatian', function () {
-    // Nama propnya ikut menentukan perilakunya: apa pun yang bernama
-    // "perhatian" akan dirender kuning di layar, dan layar yang menandai
-    // keadaan yang sah sebagai peringatan membuat peringatan yang
-    // benar-benar penting ikut diabaikan.
+it('mengirim sasaran SATU pengawas per ruang, dan tidak menandai ruang yang sudah terjaga', function () {
+    // Sejak 2026-11-16 sasaran per ruang adalah SATU, sehingga ruang yang
+    // sudah berisi satu pengawas BUKAN temuan apa pun. Daftar `saran` kosong,
+    // dan itu benar: memberi tahu Admin "salah" untuk keadaan yang justru
+    // diminta adalah layar yang bertengkar dengan keadaannya sendiri.
+    //
+    // Nama propnya tetap `saran`, bukan `perhatian`: apa pun yang bernama
+    // "perhatian" akan dirender kuning, dan layar yang menandai keadaan sah
+    // sebagai peringatan membuat peringatan yang benar-benar penting ikut
+    // diabaikan.
     jadwalkan($this->event, $this->mapel, $this->admin);
 
     masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/pengawas")
@@ -2444,8 +2455,10 @@ it('mengirim saran sebagai saran, bukan sebagai perhatian', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Admin/Event/Pengawas')
             ->where('angka.minimal_per_ruang', 1)
-            ->where('angka.saran_per_ruang', 2)
-            ->has('saran', 2)
+            ->where('angka.saran_per_ruang', 1)
+            // Dua ruang sudah berisi satu pengawas masing-masing - tidak ada
+            // yang perlu disarankan.
+            ->has('saran', 0)
             ->missing('perhatian')
         );
 });

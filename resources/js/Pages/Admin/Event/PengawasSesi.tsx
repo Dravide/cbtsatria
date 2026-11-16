@@ -267,10 +267,11 @@ export default function PengawasSesi({
                                         )}
 
                                         <p className="mt-2 text-[11px] leading-relaxed text-ink-3">
-                                            Satu ruang cukup dijaga {angka.minimal_per_ruang} orang,
-                                            dan boleh sampai {angka.saran_per_ruang}. Penugasan yang
-                                            bentrok ditolak &mdash; satu orang tidak bisa berdiri di
-                                            dua ruang pada jam yang sama.
+                                            Satu ruang dijaga {angka.minimal_per_ruang} pengawas.
+                                            Menambah orang kedua tetap bisa, tetapi tidak
+                                            dilakukan otomatis. Penugasan yang bentrok ditolak
+                                            &mdash; satu orang tidak bisa berdiri di dua ruang pada
+                                            jam yang sama.
                                         </p>
                                     </div>
                                 )}

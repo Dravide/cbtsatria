@@ -144,7 +144,7 @@ export default function EventPengawas({
                     label="Pengawas ditugaskan"
                     nilai={angka.ditugaskan}
                     nada="ok"
-                    catatan={`${angka.minimal_per_ruang}–${angka.saran_per_ruang} orang per ruang`}
+                    catatan={`${angka.minimal_per_ruang} pengawas per ruang`}
                 />
                 <KPI
                     label="Ruang tanpa pengawas"
