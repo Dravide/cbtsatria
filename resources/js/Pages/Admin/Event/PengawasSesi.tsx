@@ -1,0 +1,284 @@
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
+import AdminLayout from '@/Layouts/AdminLayout';
+import { Chip, Kotak, Peringatan, PilihCari, Tombol } from '@/Components/ui';
+
+/**
+ * Pengawas satu SESI - daftar ruang + penugasan.
+ *
+ * ---------------------------------------------------------------------
+ * Mengapa laman tersendiri, bukan bagian dari laman pengawas
+ * ---------------------------------------------------------------------
+ * Pengawas menempel pada RUANG-SESI, dan tiap sesi punya pengawasnya sendiri.
+ * Pada event dengan tiga puluh tiga ruang dan dua belas sesi, merender
+ * semuanya di satu laman menghasilkan empat ratus baris - dan yang tenggelam
+ * adalah daftar SESINYA sendiri, padahal itulah yang dipindai Admin lebih
+ * dulu.
+ *
+ * Laman induk karena itu hanya menampilkan ringkasan per sesi; pekerjaan
+ * menugaskan terjadi di sini, satu sesi pada satu waktu. Penugasan tetap
+ * menempel pada ruang-sesi - yang berubah hanya di mana tombolnya berada.
+ */
+
+type PengawasBaris = {
+    id: number;
+    user_id: number;
+    nama: string | null;
+    username: string | null;
+    status: string;
+};
+
+type RuangBaris = {
+    id: number;
+    ruang: string | null;
+    ruang_nama: string | null;
+    kapasitas: number;
+    peserta: number;
+    pengawas: PengawasBaris[];
+};
+
+type Props = {
+    event: { id: number; kode: string; nama: string; status: string; status_label: string };
+    sesi: {
+        id: number;
+        label: string;
+        ujian: string | null;
+        tanggal: string | null;
+        jam: string | null;
+        selesai: string | null;
+        status: string;
+        status_label: string;
+        jenis: string;
+        susulan: boolean;
+    };
+    ruang: RuangBaris[];
+    angka: {
+        ruang: number;
+        tanpa_pengawas: number;
+        saran_per_ruang: number;
+        minimal_per_ruang: number;
+    };
+    calon: { id: number; nama: string; username: string; peran: string }[];
+    jalur_induk: string;
+};
+
+export default function PengawasSesi({
+    event,
+    sesi,
+    ruang,
+    angka,
+    calon,
+    jalur_induk,
+}: Props) {
+    const jalur = `/admin/events/${event.id}`;
+
+    // Ruang yang panel "Tugaskan"-nya terbuka. Satu pada satu waktu: panel
+    // yang bisa terbuka di tiga puluh tiga baris sekaligus mengembalikan
+    // masalah gulir yang justru ingin dihilangkan laman ini.
+    const [ruangId, setRuangId] = useState<number | null>(null);
+    const [orangId, setOrangId] = useState<number | null>(null);
+    const [galat, setGalat] = useState<string | null>(null);
+
+    const buka = (id: number) => {
+        setRuangId(ruangId === id ? null : id);
+        setOrangId(null);
+        setGalat(null);
+    };
+
+    const tugaskan = (idRuang: number) => {
+        if (orangId === null) {
+            return;
+        }
+
+        router.post(
+            `${jalur}/pengawas/ruang/${idRuang}`,
+            { user_id: orangId },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setRuangId(null);
+                    setOrangId(null);
+                    setGalat(null);
+                },
+                onError: (e: Record<string, string>) =>
+                    setGalat(Object.values(e)[0] ?? 'Pengawas tidak bisa ditugaskan.'),
+            },
+        );
+    };
+
+    const lepas = (tugasId: number) => {
+        router.delete(`${jalur}/pengawas/${tugasId}`, { preserveScroll: true });
+    };
+
+    return (
+        <AdminLayout
+            judul={`Pengawas ${sesi.label}`}
+            breadcrumb={`/admin/events · ${event.kode} · Pengawas · ${sesi.label}`}
+            aksi={
+                <Link
+                    href={jalur_induk}
+                    className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                >
+                    Kembali ke daftar sesi
+                </Link>
+            }
+        >
+            <Head title={`Pengawas ${sesi.label} · ${event.nama}`} />
+
+            {/* Kepala sesi: pertanyaan yang dijawab laman ini adalah "siapa
+                yang bertugas di sesi ini", jadi identitas sesinya ditulis
+                lengkap di atas. */}
+            <Kotak>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <span className="font-mono text-sm font-medium text-ink">{sesi.label}</span>
+                    <span className="text-sm text-ink">{sesi.ujian ?? '—'}</span>
+                    {sesi.susulan && <Chip nada="info">susulan</Chip>}
+                    <span className="font-mono text-[11px] text-ink-3">
+                        {sesi.tanggal ?? '—'} · {sesi.jam ?? '—'}
+                        {sesi.selesai ? `–${sesi.selesai}` : ''}
+                    </span>
+                    <Chip nada="mute">{sesi.status_label}</Chip>
+
+                    <span className="ml-auto flex items-center gap-2">
+                        <span className="font-mono text-[11px] text-ink-3">
+                            {angka.ruang} ruang
+                        </span>
+                        {angka.tanpa_pengawas > 0 ? (
+                            <Chip nada="bad">{angka.tanpa_pengawas} ruang tanpa pengawas</Chip>
+                        ) : (
+                            <Chip nada="ok">lengkap</Chip>
+                        )}
+                    </span>
+                </div>
+            </Kotak>
+
+            {calon.length === 0 && ruang.length > 0 && (
+                <div className="mt-3">
+                    <Peringatan>
+                        Belum ada panitia berjabatan <strong>pengawas</strong> yang punya akun.
+                        Tambahkan orangnya di laman <strong>Kepanitiaan</strong> &mdash; penugasan
+                        di sini hanya bisa diberikan kepada akun yang sudah ada.
+                    </Peringatan>
+                </div>
+            )}
+
+            {ruang.length === 0 ? (
+                <div className="mt-3">
+                    <Kotak>
+                        <p className="text-sm text-ink-3">
+                            Sesi ini belum punya ruang. Tetapkan ruangnya di laman{' '}
+                            <strong>Jadwal &amp; sesi</strong> &mdash; penugasan menempel pada
+                            ruang-sesi, sehingga sesi tanpa ruang tidak bisa ditugaskan.
+                        </p>
+                    </Kotak>
+                </div>
+            ) : (
+                <div className="mt-3 space-y-2">
+                    {ruang.map((r) => {
+                        const terbuka = ruangId === r.id;
+
+                        return (
+                            <section
+                                key={r.id}
+                                className="overflow-hidden rounded-wf border border-line bg-surface"
+                            >
+                                <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5">
+                                    <span className="font-mono text-xs font-medium text-ink">
+                                        {r.ruang ?? '—'}
+                                    </span>
+                                    <span className="text-[11px] text-ink-3">{r.ruang_nama}</span>
+
+                                    <span className="font-mono text-[11px] text-ink-3">
+                                        {r.peserta}/{r.kapasitas} peserta
+                                    </span>
+
+                                    {/* Pengawas sebagai DAFTAR, bukan dua kolom
+                                        tetap: PRD §9.6 mengizinkan lebih dari
+                                        dua, dan kolom tetap membuat orang
+                                        ketiga tersimpan tanpa terlihat. */}
+                                    <span className="flex min-w-0 flex-1 flex-wrap gap-x-3 gap-y-1">
+                                        {r.pengawas.length === 0 ? (
+                                            <span className="text-xs text-bad">
+                                                belum ada pengawas
+                                            </span>
+                                        ) : (
+                                            r.pengawas.map((p) => (
+                                                <span
+                                                    key={p.id}
+                                                    className="flex items-center gap-1.5"
+                                                >
+                                                    <span className="text-sm text-ink">
+                                                        {p.nama ?? p.username ?? '—'}
+                                                    </span>
+                                                    {p.status !== 'aktif' && (
+                                                        <Chip nada="warn">{p.status}</Chip>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        className="text-[11px] text-bad hover:underline"
+                                                        title={`Lepas ${p.nama ?? 'pengawas'} dari ${r.ruang}`}
+                                                        aria-label={`Lepas ${p.nama ?? 'pengawas'} dari ${r.ruang}`}
+                                                        onClick={() => lepas(p.id)}
+                                                    >
+                                                        &#10005;
+                                                    </button>
+                                                </span>
+                                            ))
+                                        )}
+                                    </span>
+
+                                    <Tombol
+                                        nada={terbuka ? 'sek' : 'pri'}
+                                        disabled={calon.length === 0}
+                                        onClick={() => buka(r.id)}
+                                    >
+                                        {terbuka ? 'Batal' : 'Tugaskan'}
+                                    </Tombol>
+                                </header>
+
+                                {terbuka && (
+                                    <div className="border-t border-line bg-surface-2/30 px-3 py-3">
+                                        <div className="flex flex-wrap items-end gap-2">
+                                            <div className="w-72">
+                                                <PilihCari
+                                                    label="Pengawas"
+                                                    nilai={orangId}
+                                                    pilihan={calon.map((c) => ({
+                                                        id: c.id,
+                                                        label: c.nama ?? c.username ?? '—',
+                                                        ket: c.peran,
+                                                    }))}
+                                                    padaPilih={(id) => setOrangId(id)}
+                                                    kosong="Tidak ada pengawas yang cocok."
+                                                />
+                                            </div>
+
+                                            <Tombol
+                                                nada="pri"
+                                                disabled={orangId === null}
+                                                onClick={() => tugaskan(r.id)}
+                                            >
+                                                Tugaskan ke {r.ruang}
+                                            </Tombol>
+                                        </div>
+
+                                        {galat && (
+                                            <p className="mt-2 text-[11px] text-bad">{galat}</p>
+                                        )}
+
+                                        <p className="mt-2 text-[11px] leading-relaxed text-ink-3">
+                                            Satu ruang cukup dijaga {angka.minimal_per_ruang} orang,
+                                            dan boleh sampai {angka.saran_per_ruang}. Penugasan yang
+                                            bentrok ditolak &mdash; satu orang tidak bisa berdiri di
+                                            dua ruang pada jam yang sama.
+                                        </p>
+                                    </div>
+                                )}
+                            </section>
+                        );
+                    })}
+                </div>
+            )}
+        </AdminLayout>
+    );
+}

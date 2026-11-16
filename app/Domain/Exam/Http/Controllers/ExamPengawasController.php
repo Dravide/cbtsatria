@@ -189,6 +189,12 @@ class ExamPengawasController
                 ->values()
                 ->all(),
 
+            // Sesi-sesi yang dilewati, hanya id-nya: laman ini menampilkan
+            // RINGKASAN, dan daftar ruang + tombol Tugaskan pindah ke laman
+            // sesi masing-masing. Tanpa ini, tiga puluh tiga ruang per sesi
+            // menumpuk ke bawah dan daftar sesinya sendiri tenggelam.
+            'jalur_sesi' => "/admin/events/{$event->id}/pengawas/sesi",
+
             // Sesi tanpa ruang tidak bisa ditugaskan: penugasan menempel pada
             // ruang-sesi, dan sesi tanpa ruang tidak punya tempat untuk
             // menempel. Daftarnya dikirim supaya halaman bisa mengatakan itu,
@@ -206,6 +212,98 @@ class ExamPengawasController
                 ])
                 ->values()
                 ->all(),
+        ]);
+    }
+
+    /**
+     * Satu SESI: daftar ruang beserta pengawasnya - laman tersendiri.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa dipisah dari laman pengawas
+     * ---------------------------------------------------------------------
+     * Event dengan tiga puluh tiga ruang per sesi dan dua belas sesi
+     * menghasilkan empat ratus baris yang semuanya dapat ditugaskan. Dirender
+     * di satu laman, daftar SESINYA sendiri tenggelam - padahal itulah yang
+     * dipindai Admin lebih dulu ("sesi mana yang belum berpengawas").
+     *
+     * Laman induk kini hanya menampilkan ringkasan per sesi; pekerjaan
+     * menugaskan terjadi di sini, satu sesi pada satu waktu.
+     */
+    public function sesi(SchoolEvent $event, ExamSession $sesi, PengawasService $penugasan): Response
+    {
+        Gate::authorize('view', $event);
+
+        // Sesi harus benar-benar milik event di URL. Binding implisit
+        // menemukan sesi di seluruh sekolah, dan scope tenant tidak menutupnya
+        // karena sekolahnya sama - 404, bukan 403.
+        abort_unless($sesi->exam?->event_id === $event->id, 404);
+
+        $sesi->load(['exam:id,code,title,subject_id', 'exam.subject:id,name']);
+
+        $ruangan = ExamSessionRoom::query()
+            ->where('exam_session_id', $sesi->id)
+            ->with([
+                'eventRoom.room:id,code,name,capacity',
+                'supervisors.supervisor:id,name,username,role',
+            ])
+            ->withCount(['participants as terisi' => fn ($q) => $q->where('status', 'terdaftar')])
+            ->orderBy('id')
+            ->get();
+
+        $daftarRuang = $ruangan->map(fn (ExamSessionRoom $r) => [
+            'id' => $r->id,
+            'ruang' => $r->eventRoom?->room?->code,
+            'ruang_nama' => $r->eventRoom?->room?->name,
+            'kapasitas' => $r->kapasitasEfektif(),
+            'peserta' => (int) $r->terisi,
+            'pengawas' => $r->supervisors
+                ->map(fn (SupervisionAssignment $t) => [
+                    'id' => $t->id,
+                    'user_id' => $t->supervisor_id,
+                    'nama' => $t->supervisor?->name,
+                    'username' => $t->supervisor?->username,
+                    'status' => $t->status,
+                ])
+                ->values()
+                ->all(),
+        ])->all();
+
+        return Inertia::render('Admin/Event/PengawasSesi', [
+            'event' => $this->ringkas($event),
+            'sesi' => [
+                'id' => $sesi->id,
+                'label' => $sesi->label(),
+                'ujian' => $sesi->exam?->subject?->name ?? $sesi->exam?->title,
+                'tanggal' => $sesi->access_opens_at?->format('d M'),
+                'jam' => $sesi->access_opens_at?->format('H:i'),
+                'selesai' => $sesi->hard_end_at?->format('H:i'),
+                'status' => $sesi->status->value,
+                'status_label' => $sesi->status->label(),
+                'jenis' => $sesi->jenis?->value ?? 'utama',
+                'susulan' => $sesi->susulan(),
+            ],
+            'ruang' => $daftarRuang,
+
+            'angka' => [
+                'ruang' => count($daftarRuang),
+                'tanpa_pengawas' => collect($daftarRuang)
+                    ->filter(fn (array $r) => $r['pengawas'] === [])
+                    ->count(),
+                'saran_per_ruang' => PengawasService::SARAN_PER_RUANG,
+                'minimal_per_ruang' => PengawasService::MINIMAL_PER_RUANG,
+            ],
+
+            'calon' => collect($penugasan->calonPengawas($event))
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'nama' => $u->name,
+                    'username' => $u->username,
+                    'peran' => $u->role->label(),
+                ])
+                ->values()
+                ->all(),
+
+            'jalur_induk' => "/admin/events/{$event->id}/pengawas",
         ]);
     }
 

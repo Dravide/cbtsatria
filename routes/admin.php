@@ -486,6 +486,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // 17 - pengawas & penempatan ruang. Barisnya ruang-SESI, bukan ruang:
     // pengawas sesi pagi belum tentu pengawas sesi siang.
     Route::get('/events/{event}/pengawas', [ExamPengawasController::class, 'index'])->name('events.pengawas');
+    // Laman SATU SESI: daftar ruang + penugasan. Dipisah dari laman induk
+    // karena 33 ruang x 12 sesi menenggelamkan daftar sesinya sendiri.
+    Route::get('/events/{event}/pengawas/sesi/{sesi}', [ExamPengawasController::class, 'sesi'])->name('events.pengawas.sesi');
     Route::post('/events/{event}/pengawas/otomatis', [ExamPengawasController::class, 'otomatis'])->name('events.pengawas.otomatis');
     Route::post('/events/{event}/pengawas/ruang/{ruang}', [ExamPengawasController::class, 'tugaskan'])->name('events.pengawas.tugaskan');
     Route::delete('/events/{event}/pengawas/{tugas}', [ExamPengawasController::class, 'batalkan'])->name('events.pengawas.batal');

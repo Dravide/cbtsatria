@@ -2509,6 +2509,57 @@ it('menandai ruang tanpa pengawas di dalam kelompok sesinya', function () {
         );
 });
 
+it('menyediakan laman sesi tersendiri untuk daftar ruang dan penugasannya', function () {
+    // Regresi 2026-11-16. Laman pengawas dulu merender SELURUH ruang tiap
+    // sesi. Pada event 33 ruang x 12 sesi itu ratusan baris, dan yang
+    // tenggelam adalah daftar SESINYA sendiri - padahal itulah yang dipindai
+    // Admin lebih dulu.
+    //
+    // Laman induk kini meringkas per sesi; daftar ruang pindah ke laman sesi.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/pengawas/sesi/{$data['sesi']->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/PengawasSesi')
+            ->where('sesi.id', $data['sesi']->id)
+            ->where('sesi.label', $data['sesi']->label())
+            ->has('ruang', 2)
+            ->where('angka.ruang', 2)
+            ->where('angka.tanpa_pengawas', 0)
+            // Setiap ruang membawa pengawasnya sendiri - itulah yang membuat
+            // laman ini bisa menugaskan tanpa kembali ke daftar.
+            ->has('ruang.0.pengawas', 1)
+            ->has('calon')
+            ->where('jalur_induk', "/admin/events/{$this->event->id}/pengawas")
+        );
+});
+
+it('menolak membuka laman sesi milik event lain', function () {
+    // Binding implisit menemukan sesi di SELURUH sekolah; tanpa pemeriksaan
+    // ini, sesi event B terbuka lewat URL event A.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    $tahunLain = AcademicYear::factory()->untukSekolah($this->lain)->create();
+    $semesterLain = Semester::factory()->create([
+        'school_id' => $this->lain->id,
+        'academic_year_id' => $tahunLain->id,
+    ]);
+    $adminLain = User::factory()->admin()->untukSekolah($this->lain)->create();
+    $eventLain = siapkanEvent($this->lain, $tahunLain, $semesterLain, $adminLain);
+    jadwalkan($eventLain, $eventLain->subjects()->first()->subject, $adminLain);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$this->event->id}/pengawas/sesi/{$data['sesi']->id}")
+        ->assertOk();
+
+    // Sesi milik event LAIN - 404, bukan 403.
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$eventLain->id}/pengawas/sesi/{$data['sesi']->id}")
+        ->assertNotFound();
+});
+
 /* =========================================================================
  | Ujian susulan - gelombang pengganti pada ujian yang sama (2026-11-16)
  | =========================================================================
