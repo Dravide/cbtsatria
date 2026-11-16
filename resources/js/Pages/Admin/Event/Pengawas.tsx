@@ -7,7 +7,6 @@ import {
     Inbox,
     Kotak,
     Peringatan,
-    Tabel,
     Tombol,
     kelasInput,
 } from '@/Components/ui';
@@ -74,9 +73,38 @@ type Baris = {
     peserta: number;
 };
 
+type RuangSesi = {
+    id: number;
+    ruang: string | null;
+    ruang_nama: string | null;
+    kapasitas: number;
+    peserta: number;
+    pengawas: PengawasBaris[];
+};
+
+type SesiKelompok = {
+    id: number;
+    label: string;
+    ujian: string | null;
+    tanggal: string | null;
+    jam: string | null;
+    selesai: string | null;
+    status: string;
+    status_label: string;
+    jenis: string;
+    susulan: boolean;
+    ruang: RuangSesi[];
+    jumlah_ruang: number;
+    jumlah_pengawas: number;
+    /** Kode ruang di sesi ini yang belum punya satu pun pengawas. */
+    ruang_tanpa_pengawas: string[];
+};
+
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     baris: Baris[];
+    /** Baris yang sama, dikelompokkan per sesi - bentuk yang ditampilkan. */
+    per_sesi: SesiKelompok[];
     angka: {
         ruang: number;
         ditugaskan: number;
@@ -92,6 +120,7 @@ type Props = {
 export default function EventPengawas({
     event,
     baris,
+    per_sesi,
     angka,
     saran,
     calon,
@@ -394,112 +423,45 @@ export default function EventPengawas({
                 </div>
             )}
 
-            <Tabel<Baris>
-                hal={{ data: baris, total: baris.length }}
-                kunci={(b) => b.id}
-                kosong="Belum ada ruang yang dipakai sesi mana pun. Susun jadwalnya terlebih dahulu."
-                kolom={[
-                    {
-                        judul: 'Ruang',
-                        kelas: 'w-40',
-                        render: (b) => (
-                            <span>
-                                <span className="font-mono text-xs font-medium text-ink">
-                                    {b.ruang ?? '—'}
-                                </span>
-                                <span className="ml-2 text-[11px] text-ink-3">{b.ruang_nama}</span>
-                            </span>
-                        ),
-                    },
-                    {
-                        judul: 'Pengawas 1',
-                        render: (b) => <NamaPengawas orang={b.pengawas[0]} />,
-                    },
-                    {
-                        judul: 'Pengawas 2',
-                        render: (b) => <NamaPengawas orang={b.pengawas[1]} />,
-                    },
-                    {
-                        judul: 'Sesi',
-                        kelas: 'w-36',
-                        render: (b) => (
-                            <span className="flex items-center gap-1.5">
-                                <span className="font-mono text-xs text-ink-2">{b.sesi ?? '—'}</span>
-                                {b.pengawas.length > 2 && (
-                                    <Chip nada="mute">+{b.pengawas.length - 2}</Chip>
-                                )}
-                            </span>
-                        ),
-                    },
-                    {
-                        judul: '',
-                        kelas: 'w-40',
-                        render: (b) => (
-                            <span className="flex justify-end gap-1.5">
-                                <Tombol
-                                    nada="sek"
-                                    disabled={calon.length === 0}
-                                    onClick={() => bukaPanel(b.id)}
-                                >
-                                    Tugaskan
-                                </Tombol>
-                                {/* Tukar per baris: ruang & sesi baris ini
-                                    dipilih lebih dulu, karena Admin yang
-                                    menekannya di R-02 sedang memikirkan R-02.
-                                    Ia tetap bisa memilih pasangan dari ruang
-                                    mana pun di panelnya. */}
-                                <Tombol
-                                    nada="sek"
-                                    disabled={b.pengawas.length === 0 || semuaPenugasan.length < 2}
-                                    title={
-                                        b.pengawas.length === 0
-                                            ? 'Ruang ini belum punya pengawas untuk ditukar.'
-                                            : undefined
-                                    }
-                                    onClick={() => bukaTukar(b.id)}
-                                >
-                                    Tukar
-                                </Tombol>
-                            </span>
-                        ),
-                    },
-                ]}
-            />
+            {/* --------------------------------------------------- per SESI */}
+            {/* Pengawas menempel pada RUANG-SESI, bukan pada event: pengawas
+                sesi pagi belum tentu pengawas sesi siang. Karena itu daftarnya
+                disusun per sesi - pertanyaan yang dijawab Admin saat menyusun
+                jadwal pengawasan adalah "siapa yang bertugas di sesi ini",
+                bukan "siapa yang bertugas di R-01 sepanjang hari".
 
-            {/* Penugasan dibatalkan per baris, bukan per kolom: yang dilepas
-                adalah satu orang dari satu ruang-sesi, dan tombol di kolom
-                Pengawas 1 tidak bisa menyatakan siapa yang dimaksud bila
-                kolomnya berisi lebih dari satu nama. */}
-            {baris.some((b) => b.pengawas.length > 0) && (
-                <div className="mt-3">
-                    <Kotak judul="Batalkan penugasan">
-                        <div className="flex flex-wrap gap-2">
-                            {baris.flatMap((b) =>
-                                b.pengawas.map((p) => (
-                                    <span
-                                        key={p.id}
-                                        className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1 text-xs"
-                                    >
-                                        <span className="font-mono text-ink-3">{b.ruang}</span>
-                                        <span className="font-mono text-ink-3">{b.sesi}</span>
-                                        <span className="text-ink">{p.nama}</span>
-                                        <button
-                                            className="text-bad hover:underline"
-                                            onClick={() =>
-                                                router.delete(`${jalur}/pengawas/${p.id}`, {
-                                                    preserveScroll: true,
-                                                })
-                                            }
-                                        >
-                                            &#10005;
-                                        </button>
-                                    </span>
-                                )),
-                            )}
-                        </div>
-                    </Kotak>
+                Tabel datar sebelumnya membuat R-01 muncul berkali-kali lintas
+                sesi, sehingga Admin harus menyusun kelompoknya sendiri dengan
+                mata - dan penugasan yang salah sesi baru ketahuan di hari-H. */}
+            {per_sesi.length === 0 ? (
+                <Kotak>
+                    <p className="text-sm text-ink-3">
+                        Belum ada ruang yang dipakai sesi mana pun. Susun jadwalnya terlebih
+                        dahulu di laman <strong>Jadwal &amp; sesi</strong>.
+                    </p>
+                </Kotak>
+            ) : (
+                <div className="space-y-3">
+                    {per_sesi.map((s) => (
+                        <KelompokSesi
+                            key={s.id}
+                            sesi={s}
+                            jalur={jalur}
+                            calon={calon}
+                            bisaTukar={semuaPenugasan.length >= 2}
+                            padaTugaskan={bukaPanel}
+                            padaTukar={bukaTukar}
+                        />
+                    ))}
                 </div>
             )}
+
+            {/* Pelepasan penugasan kini menempel pada BARISNYA di dalam
+                kelompok sesi - lihat `KelompokSesi`. Kotak "Batalkan
+                penugasan" yang dulu berdiri sendiri mengharuskan Admin
+                mencocokkan nama dengan ruang dan sesi dari daftar terpisah,
+                dan pada event dua puluh sesi daftar itu lebih panjang daripada
+                tabelnya sendiri. */}
 
             <div className="mt-3 space-y-3">
                 {/* Saran, BUKAN temuan. Ruang yang berisi satu pengawas sudah
@@ -534,16 +496,178 @@ export default function EventPengawas({
     );
 }
 
-function NamaPengawas({ orang }: { orang?: PengawasBaris }) {
-    if (!orang) {
-        return <span className="text-xs text-ink-3">&mdash;</span>;
-    }
+/**
+ * Satu SESI beserta ruang dan pengawasnya.
+ *
+ * Pengawas menempel pada ruang-sesi, jadi kelompok inilah jawaban atas
+ * "siapa yang bertugas di sesi ini" - pertanyaan yang sebenarnya ditanyakan
+ * Admin saat menyusun jadwal pengawasan. Penugasannya tetap per ruang, karena
+ * satu orang menjaga satu ruang; yang dikelompokkan hanyalah tampilannya.
+ */
+function KelompokSesi({
+    sesi,
+    jalur,
+    calon,
+    bisaTukar,
+    padaTugaskan,
+    padaTukar,
+}: {
+    sesi: SesiKelompok;
+    jalur: string;
+    calon: Props['calon'];
+    bisaTukar: boolean;
+    padaTugaskan: (id: number) => void;
+    padaTukar: (id: number) => void;
+}) {
+    // Dibuka bila sesi ini PUNYA masalah - ruang tanpa pengawas, atau
+    // belum ada pengawas sama sekali. Sesi yang sudah lengkap dilipat,
+    // supaya daftar dua puluh sesi tetap bisa dipindai.
+    const [buka, setBuka] = useState(
+        sesi.ruang_tanpa_pengawas.length > 0 || sesi.jumlah_pengawas === 0,
+    );
+
+    const kurang = sesi.ruang_tanpa_pengawas.length;
 
     return (
-        <span className="flex items-center gap-2">
-            <span className="text-sm text-ink">{orang.nama ?? orang.username ?? '—'}</span>
-            {orang.status !== 'aktif' && <Chip nada="warn">{orang.status}</Chip>}
-        </span>
+        <section className="overflow-hidden rounded-wf border border-line bg-surface">
+            <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line px-3 py-2.5">
+                <button
+                    type="button"
+                    onClick={() => setBuka(!buka)}
+                    aria-expanded={buka}
+                    className="flex items-center gap-2 text-left"
+                >
+                    <span className="font-mono text-xs text-ink-3">{buka ? '▾' : '▸'}</span>
+                    <span className="font-mono text-sm font-medium text-ink">{sesi.label}</span>
+                </button>
+
+                <span className="text-sm text-ink">{sesi.ujian ?? '—'}</span>
+
+                {sesi.susulan && <Chip nada="info">susulan</Chip>}
+
+                <span className="font-mono text-[11px] text-ink-3">
+                    {sesi.tanggal ?? '—'} · {sesi.jam ?? '—'}
+                    {sesi.selesai ? `–${sesi.selesai}` : ''}
+                </span>
+
+                <span className="ml-auto flex items-center gap-2">
+                    <span className="font-mono text-[11px] text-ink-3">
+                        {sesi.jumlah_ruang} ruang · {sesi.jumlah_pengawas} pengawas
+                    </span>
+
+                    {/* Ruang tanpa pengawas adalah keadaan yang MENGHALANGI
+                        sesi dibuka - bukan saran. Angkanya sama dengan yang
+                        dipakai `SesiService::mulai()` untuk menolak. */}
+                    {kurang > 0 ? (
+                        <Chip nada="bad">{kurang} ruang tanpa pengawas</Chip>
+                    ) : sesi.jumlah_pengawas === 0 ? (
+                        <Chip nada="warn">belum ada pengawas</Chip>
+                    ) : (
+                        <Chip nada="ok">lengkap</Chip>
+                    )}
+                </span>
+            </header>
+
+            {buka && (
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[40rem] text-sm">
+                        <thead>
+                            <tr className="border-b border-line bg-surface-2/50 text-left text-[11px] text-ink-3">
+                                <th className="w-40 px-3 py-2">Ruang</th>
+                                <th className="w-24 px-3 py-2">Peserta</th>
+                                <th className="px-3 py-2">Pengawas</th>
+                                <th className="w-44 px-3 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sesi.ruang.map((r) => (
+                                <tr key={r.id} className="border-b border-line last:border-0">
+                                    <td className="px-3 py-2">
+                                        <span className="font-mono text-xs font-medium text-ink">
+                                            {r.ruang ?? '—'}
+                                        </span>
+                                        <span className="ml-2 text-[11px] text-ink-3">
+                                            {r.ruang_nama}
+                                        </span>
+                                    </td>
+
+                                    <td className="px-3 py-2">
+                                        <span className="font-mono text-xs text-ink-2">
+                                            {r.peserta}/{r.kapasitas}
+                                        </span>
+                                    </td>
+
+                                    {/* Pengawas sebagai DAFTAR, bukan dua
+                                        kolom tetap: PRD §9.6 mengizinkan
+                                        lebih dari dua, dan kolom tetap membuat
+                                        orang ketiga tersimpan tanpa terlihat. */}
+                                    <td className="px-3 py-2">
+                                        {r.pengawas.length === 0 ? (
+                                            <span className="text-xs text-bad">
+                                                belum ada pengawas
+                                            </span>
+                                        ) : (
+                                            <span className="flex flex-wrap gap-x-3 gap-y-1">
+                                                {r.pengawas.map((p) => (
+                                                    <span
+                                                        key={p.id}
+                                                        className="flex items-center gap-1.5"
+                                                    >
+                                                        <span className="text-sm text-ink">
+                                                            {p.nama ?? p.username ?? '—'}
+                                                        </span>
+                                                        {p.status !== 'aktif' && (
+                                                            <Chip nada="warn">{p.status}</Chip>
+                                                        )}
+                                                        <button
+                                                            className="text-[11px] text-bad hover:underline"
+                                                            title={`Lepas ${p.nama ?? 'pengawas'} dari ${r.ruang}`}
+                                                            aria-label={`Lepas ${p.nama ?? 'pengawas'} dari ${r.ruang}`}
+                                                            onClick={() =>
+                                                                router.delete(
+                                                                    `${jalur}/pengawas/${p.id}`,
+                                                                    { preserveScroll: true },
+                                                                )
+                                                            }
+                                                        >
+                                                            &#10005;
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    <td className="px-3 py-2">
+                                        <span className="flex justify-end gap-1.5">
+                                            <Tombol
+                                                nada="sek"
+                                                disabled={calon.length === 0}
+                                                onClick={() => padaTugaskan(r.id)}
+                                            >
+                                                Tugaskan
+                                            </Tombol>
+                                            <Tombol
+                                                nada="sek"
+                                                disabled={r.pengawas.length === 0 || !bisaTukar}
+                                                title={
+                                                    r.pengawas.length === 0
+                                                        ? 'Ruang ini belum punya pengawas untuk ditukar.'
+                                                        : undefined
+                                                }
+                                                onClick={() => padaTukar(r.id)}
+                                            >
+                                                Tukar
+                                            </Tombol>
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </section>
     );
 }
 

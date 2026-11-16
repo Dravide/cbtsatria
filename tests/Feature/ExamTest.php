@@ -2432,6 +2432,83 @@ it('hanya menampilkan baris untuk sesi yang sudah punya peserta', function () {
         );
 });
 
+it('mengelompokkan pengawas per sesi, karena pengawas tiap sesi berbeda', function () {
+    // Regresi 2026-11-16. Tabel datar membuat R-01 muncul berkali-kali lintas
+    // sesi, sehingga Admin harus menyusun kelompoknya sendiri dengan mata -
+    // dan penugasan yang salah sesi baru ketahuan di hari-H.
+    //
+    // Yang dikirim sekarang `per_sesi`: satu kelompok per sesi, berisi ruang
+    // dan pengawas masing-masing. Barisnya tidak berubah; penugasan tetap
+    // menempel pada ruang-sesi.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    // Sesi KEDUA pada jam yang berbeda, dengan ruang yang sama - inilah bentuk
+    // yang dulu tampil sebagai baris kembar yang sulit dibedakan.
+    $sesi2 = app(SesiService::class)->buat($data['ujian'], [
+        'access_opens_at' => '2026-12-02 07:30:00',
+        'access_closes_at' => '2026-12-02 09:00:00',
+        'hard_end_at' => '2026-12-02 09:30:00',
+        'event_room_id' => $this->ruang->pluck('id')->all(),
+    ]);
+
+    $ruang2 = $sesi2->rooms()->orderBy('id')->get();
+
+    $pengawas2 = User::factory()->pengawas()->untukSekolah($this->sekolah)->create();
+
+    EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $this->event->id,
+        'user_id' => $pengawas2->id,
+        'name' => $pengawas2->name,
+        'position' => 'pengawas',
+        'scope' => 'event',
+        'status' => 'aktif',
+    ]);
+
+    app(PengawasService::class)->tugaskan($ruang2->first(), $pengawas2, $this->admin->id);
+
+    masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/pengawas")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Pengawas')
+            // Dua sesi = dua kelompok, bukan empat baris ruang datar.
+            ->has('per_sesi', 2)
+            ->where('per_sesi.0.id', $data['sesi']->id)
+            ->where('per_sesi.1.id', $sesi2->id)
+            // Tiap kelompok membawa ruangnya sendiri.
+            ->has('per_sesi.0.ruang', 2)
+            ->has('per_sesi.1.ruang', 2)
+            // Sesi kedua punya satu pengawas, sesi pertama punya dua (satu per
+            // ruang) - dan jumlahnya dihitung UNIK per sesi.
+            ->where('per_sesi.1.jumlah_pengawas', 1)
+            ->where('per_sesi.0.jumlah_pengawas', 2)
+            // Tidak ada ruang tanpa pengawas di kedua sesi.
+            ->where('per_sesi.0.ruang_tanpa_pengawas', [])
+        );
+});
+
+it('menandai ruang tanpa pengawas di dalam kelompok sesinya', function () {
+    // Angka `ruang_tanpa_pengawas` per sesi adalah yang dipakai
+    // `SesiService::mulai()` untuk menolak membuka sesi. Kalau laman
+    // menghitungnya sendiri, ia bisa bilang "lengkap" untuk sesi yang
+    // tombolnya pasti menolak.
+    $data = jadwalkan($this->event, $this->mapel, $this->admin);
+
+    // Lepas seluruh penugasan di sesi ini, lalu periksa kelompoknya.
+    SupervisionAssignment::query()
+        ->whereIn('exam_session_room_id', $data['ruang']->pluck('id'))
+        ->delete();
+
+    masukSebagai($this, $this->admin)->get("/admin/events/{$this->event->id}/pengawas")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Event/Pengawas')
+            ->has('per_sesi', 1)
+            ->where('per_sesi.0.jumlah_pengawas', 0)
+            ->has('per_sesi.0.ruang_tanpa_pengawas', 2)
+        );
+});
+
 /* =========================================================================
  | Ujian susulan - gelombang pengganti pada ujian yang sama (2026-11-16)
  | =========================================================================

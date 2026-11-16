@@ -142,6 +142,19 @@ class ExamPengawasController
             'event' => $this->ringkas($event),
             'baris' => $baris,
 
+            // Baris yang SAMA, dikelompokkan per SESI.
+            //
+            // Laman ini menugaskan pengawas per ruang-sesi, tetapi pertanyaan
+            // yang dijawab Admin saat menyusunnya adalah "siapa pengawas sesi
+            // ini" - dan tabel datar membuat R-01 muncul berkali-kali lintas
+            // sesi, sehingga kelompoknya harus disusun sendiri dengan mata.
+            //
+            // Barisnya tidak berubah satu pun; yang berubah hanya bentuk
+            // penyajiannya. Penugasan tetap menempel pada ruang-sesi
+            // (`exam_session_room_id`), karena pengawas sesi pagi belum tentu
+            // pengawas sesi siang.
+            'per_sesi' => $this->kelompokkanPerSesi($sesi, $ruangan),
+
             'angka' => [
                 'ruang' => $ruangan->count(),
                 'ditugaskan' => $penugasan->jumlahPenugasan($event),
@@ -387,6 +400,100 @@ class ExamPengawasController
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Baris ruang-sesi, dikelompokkan per SESI.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa kelompoknya disusun di server, bukan di layar
+     * ---------------------------------------------------------------------
+     * Layar sudah menerima `baris` datar, dan sebenarnya bisa mengelompokkannya
+     * sendiri. Yang membuatnya lebih baik di sini: urutan sesi (waktu mulai,
+     * lalu nomor), urutan ruang di dalamnya, dan ringkasan "berapa ruang belum
+     * berpengawas" adalah tiga aturan yang sama dengan yang dipakai
+     * `ruangTanpaPengawas()` - dan menuliskannya ulang di TypeScript berarti
+     * tiga aturan yang bisa berbeda.
+     *
+     * `idUjianBerpeserta` dipakai sebagai penyaring yang SAMA dengan tabel
+     * datar: sesi yang belum punya peserta tidak ditampilkan, karena ia belum
+     * membutuhkan pengawas.
+     *
+     * @param  Collection<int, ExamSession>  $sesi
+     * @param  Collection<int, ExamSessionRoom>  $ruangan  Sudah disaring.
+     * @return array<int, array<string, mixed>>
+     */
+    private function kelompokkanPerSesi($sesi, $ruangan): array
+    {
+        return $sesi
+            ->map(function (ExamSession $s) use ($ruangan) {
+                $ruangSesi = $ruangan
+                    ->where('exam_session_id', $s->id)
+                    ->values();
+
+                // Sesi yang ruangnya kosong setelah penyaringan tidak perlu
+                // ditampilkan: tidak ada satu pun penugasan yang bisa dibuat
+                // di sana.
+                if ($ruangSesi->isEmpty()) {
+                    return null;
+                }
+
+                $daftarRuang = $ruangSesi->map(fn (ExamSessionRoom $r) => [
+                    'id' => $r->id,
+                    'ruang' => $r->eventRoom?->room?->code,
+                    'ruang_nama' => $r->eventRoom?->room?->name,
+                    'kapasitas' => $r->kapasitasEfektif(),
+                    'peserta' => (int) $r->terisi,
+                    'pengawas' => $r->supervisors
+                        ->map(fn (SupervisionAssignment $t) => [
+                            'id' => $t->id,
+                            'user_id' => $t->supervisor_id,
+                            'nama' => $t->supervisor?->name,
+                            'username' => $t->supervisor?->username,
+                            'status' => $t->status,
+                        ])
+                        ->values()
+                        ->all(),
+                ])->all();
+
+                // Nama pengawas unik untuk sesi ini - satu orang yang menjaga
+                // dua ruang pada sesi yang sama tetap dihitung sekali, karena
+                // pertanyaannya "siapa saja yang bertugas sesi ini".
+                $orangUnik = $ruangSesi
+                    ->flatMap(fn (ExamSessionRoom $r) => $r->supervisors)
+                    ->map(fn (SupervisionAssignment $t) => $t->supervisor_id)
+                    ->unique()
+                    ->count();
+
+                return [
+                    'id' => $s->id,
+                    'label' => $s->label(),
+                    'ujian' => $s->exam?->subject?->name ?? $s->exam?->title,
+                    'tanggal' => $s->access_opens_at?->format('d M'),
+                    'jam' => $s->access_opens_at?->format('H:i'),
+                    'selesai' => $s->hard_end_at?->format('H:i'),
+                    'status' => $s->status->value,
+                    'status_label' => $s->status->label(),
+                    'jenis' => $s->jenis?->value ?? 'utama',
+                    'susulan' => $s->susulan(),
+
+                    'ruang' => $daftarRuang,
+                    'jumlah_ruang' => count($daftarRuang),
+                    'jumlah_pengawas' => $orangUnik,
+
+                    // Ruang di sesi ini yang belum punya satu pun pengawas.
+                    // Angka yang sama dipakai `SesiService::mulai()` untuk
+                    // menolak membuka sesi - lihat catatan di `ruangTanpaPengawas`.
+                    'ruang_tanpa_pengawas' => collect($daftarRuang)
+                        ->filter(fn (array $r) => $r['pengawas'] === [])
+                        ->pluck('ruang')
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     private function ringkas(SchoolEvent $event): array
     {
         return [
