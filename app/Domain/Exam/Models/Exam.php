@@ -179,6 +179,36 @@ class Exam extends Model
         return $this->hasMany(ExamClass::class);
     }
 
+    /**
+     * Tingkat kelas sasaran ujian ini, mis. `['7']` atau `['7', '8']`.
+     *
+     * ---------------------------------------------------------------------
+     * Kosong berarti SELURUH peserta event, dan itu bukan "tidak ada tingkat"
+     * ---------------------------------------------------------------------
+     * Ujian tanpa kelas sasaran berlaku untuk semua kelas yang ikut event,
+     * sehingga ia bersinggungan dengan SETIAP tingkat. Dikembalikan sebagai
+     * daftar kosong, dan pemakainya yang menafsirkan - lihat
+     * `KonflikJadwal::beririsanTingkat()`.
+     *
+     * Dipakai aturan benturan jadwal: dua ujian yang bertumpang hanya bentrok
+     * bila kelas sasarannya beririsan tingkat. Bahasa Indonesia kelas 7 dan
+     * kelas 8 pada jam yang sama bukan benturan - siswanya berbeda. Bahasa
+     * Indonesia kelas 8 dan Bahasa Sunda kelas 8 pada jam yang sama benturan,
+     * karena siswa yang sama tidak bisa berada di dua ruang.
+     */
+    public function tingkatSasaran(): array
+    {
+        return $this->classes()
+            ->with('kelas:id,grade_level')
+            ->get()
+            ->map(fn (ExamClass $k) => $k->kelas?->grade_level)
+            ->filter(fn ($t) => $t !== null && trim((string) $t) !== '')
+            ->map(fn ($t) => trim((string) $t))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     /** @return HasMany<ExamSession, $this> */
     public function sessions(): HasMany
     {

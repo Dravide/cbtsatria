@@ -221,6 +221,13 @@ class KonflikJadwal
                         continue;
                     }
 
+                    // Benturan RUANG tidak memakai aturan tingkat, dan bedanya
+                    // penting: yang diperebutkan di sini adalah ruangannya,
+                    // bukan siswanya. Satu ruang tidak bisa memuat dua
+                    // rombongan pada jam yang sama, tingkat mana pun.
+                    //
+                    // Aturan tingkat berlaku pada `benturanPeserta()` di bawah,
+                    // yang memang bertanya tentang SISWA.
                     $kode = $a->eventRoom?->room?->code ?? 'R-?';
 
                     // Pesannya menyebut sesi lawannya, persis seperti contoh
@@ -281,6 +288,24 @@ class KonflikJadwal
                     $sesiB = $sesi->firstWhere('id', $b->exam_session_id);
 
                     if ($sesiA === null || $sesiB === null || ! $this->bertumpang($sesiA, $sesiB)) {
+                        continue;
+                    }
+
+                    // Aturan TINGKAT - lihat `beririsanTingkat()`.
+                    //
+                    // Bahasa Indonesia kelas 7 dan kelas 8 pada jam 07:00 bukan
+                    // benturan: siswanya berbeda. Yang benturan adalah dua ujian
+                    // yang menyentuh tingkat yang sama pada jam yang sama,
+                    // karena siswa yang sama tidak bisa berada di dua ruang.
+                    //
+                    // Pemeriksaan ini pada dasarnya jaring pengaman: siswa yang
+                    // benar-benar terdaftar di dua ujian bertumpang sudah
+                    // tertangkap tanpa aturan tingkat. Ia menutup satu bentuk
+                    // yang lolos darinya - dua ujian di tingkat yang sama yang
+                    // pesertanya BELUM ditarik, sehingga baris penempatannya
+                    // belum ada dan `benturanPeserta` tidak punya pasangan untuk
+                    // dibandingkan.
+                    if (! $this->beririsanTingkat($sesiA, $sesiB)) {
                         continue;
                     }
 
@@ -499,6 +524,67 @@ class KonflikJadwal
         return $a->access_opens_at < $b->hard_end_at
             && $b->access_opens_at < $a->hard_end_at;
     }
+
+    /**
+     * Apakah dua sesi memperebutkan SISWA yang sama.
+     *
+     * =====================================================================
+     * Benturan dihitung per TINGKAT, bukan per jadwal
+     * =====================================================================
+     * Bahasa Indonesia kelas 7 dan kelas 8 pada jam 07:00 BUKAN benturan:
+     * siswanya berbeda, ruangnya boleh berbeda, dan sekolah memang menjalankan
+     * dua ujian serentak untuk tingkat berbeda - itu justru cara memampatkan
+     * jadwal ujian.
+     *
+     * Yang benturan adalah dua ujian yang menyentuh TINGKAT yang sama pada jam
+     * yang sama: Bahasa Indonesia kelas 8 dan Bahasa Sunda kelas 8. Siswa yang
+     * sama tidak bisa berada di dua ruang, dan nilai salah satunya pasti
+     * hilang.
+     *
+     * ---------------------------------------------------------------------
+     * Ujian tanpa kelas sasaran beririsan dengan SEMUA tingkat
+     * ---------------------------------------------------------------------
+     * Ia berlaku untuk seluruh peserta event, sehingga ia memperebutkan
+     * siswa di setiap tingkat. Daftar kosong karena itu BUKAN "tidak ada
+     * tingkat" - ia "semua tingkat", dan dibaca seperti itu di sini.
+     */
+    private function beririsanTingkat(ExamSession $a, ExamSession $b): bool
+    {
+        $tingkatA = $this->tingkatSesi($a);
+        $tingkatB = $this->tingkatSesi($b);
+
+        // Salah satu tanpa kelas sasaran = seluruh peserta event = semua tingkat.
+        if ($tingkatA === [] || $tingkatB === []) {
+            return true;
+        }
+
+        return array_intersect($tingkatA, $tingkatB) !== [];
+    }
+
+    /**
+     * Tingkat kelas sasaran satu sesi, dihitung SEKALI per sesi.
+     *
+     * Di-cache di dalam satu pemeriksaan karena `benturanRuang` dan
+     * `benturanPeserta` sama-sama menanyakannya untuk pasangan yang sama -
+     * dan `Exam::tingkatSasaran()` menjalankan satu kueri. Tanpa cache ini,
+     * satu event dengan dua puluh sesi menjalankan ratusan kueri untuk
+     * jawaban yang sama.
+     *
+     * @return array<int, string>
+     */
+    private function tingkatSesi(ExamSession $sesi): array
+    {
+        $id = (int) $sesi->exam_id;
+
+        if (! isset($this->tingkatCache[$id])) {
+            $this->tingkatCache[$id] = $sesi->exam?->tingkatSasaran() ?? [];
+        }
+
+        return $this->tingkatCache[$id];
+    }
+
+    /** @var array<int, array<int, string>> */
+    private array $tingkatCache = [];
 
     private function jendelaBertumpang(SupervisionAssignment $a, SupervisionAssignment $b): bool
     {
