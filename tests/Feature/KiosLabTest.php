@@ -323,3 +323,36 @@ it('menampilkan layar, bukan 404, ketika sesinya belum mulai', function () {
             ->where('pesan', fn ($p) => is_string($p) && str_contains($p, 'Jadwalnya'))
         );
 });
+
+it('menolak kios di ruang yang tidak punya PC sama sekali', function () {
+    // Bug yang dilaporkan 2026-11-17: `/lab/r-01-ek31/2` menampilkan layar
+    // kios untuk R-01, padahal device_count-nya 0. Ruang BYOD tidak memakai
+    // kios - siswanya membawa perangkat sendiri dan diabsen lewat pintu.
+    $this->d['ruang'][0]->eventRoom->room->forceFill(['device_count' => 0])->save();
+
+    $this->get("/lab/{$this->slug}/1")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Pengawas/KiosLab')
+            ->where('pesan', fn ($p) => is_string($p) && str_contains($p, 'tidak punya PC'))
+            ->where('ruang.kursi_ber_pc', 0)
+        );
+});
+
+it('menolak kiriman masuk dari ruang tanpa PC', function () {
+    $peserta = $this->d['ruang'][0]->participants()->orderBy('id')->firstOrFail();
+    $siswa = User::query()->findOrFail($peserta->student_id);
+    $kursi = kursiPeserta($peserta);
+
+    $this->d['ruang'][0]->eventRoom->room->forceFill(['device_count' => 0])->save();
+
+    masukSebagai($this, $siswa)
+        ->post("/lab/{$this->slug}/{$kursi}")
+        ->assertRedirect()
+        ->assertSessionHas('galat', fn (string $p) => str_contains($p, 'tidak punya PC'));
+
+    // Presensinya tidak berubah: penolakan terjadi sebelum penulisan.
+    expect(
+        AttendanceRecord::query()->where('exam_participant_id', $peserta->id)->first()->attendance_status->value,
+    )->toBe('pending');
+});

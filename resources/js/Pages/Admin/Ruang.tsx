@@ -281,9 +281,17 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                         kelas: 'w-32',
                         render: (b) => {
                             if (b.byod || b.pc === 0) {
+                                // Bukan "tidak ada PC" polos: kalimat itu
+                                // terbaca seperti kolom yang rusak. Yang
+                                // dibutuhkan Admin adalah ALASANNYA - ruang
+                                // ini memakai perangkat siswa sendiri, bukan
+                                // perangkat sekolah.
                                 return (
-                                    <span className="text-[11px] text-ink-3">
-                                        tidak ada PC
+                                    <span
+                                        className="text-[11px] text-ink-3"
+                                        title="Ruang BYOD: siswa membawa perangkat sendiri, sehingga tidak ada kios lab di sini."
+                                    >
+                                        BYOD &mdash; tanpa kios
                                     </span>
                                 );
                             }

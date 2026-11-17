@@ -154,6 +154,13 @@ class KiosLabController
             return back()->with('galat', 'Kios ini menuntut akun siswa. Masuk lebih dulu.');
         }
 
+        // Ruang tanpa kursi ber-PC bukan ruang kios - lihat `pesanKeadaan()`.
+        // Diperiksa juga di sini, bukan hanya di layar: form yang dikirim
+        // dengan tangan tidak melewati layar itu.
+        if (! ($ruang->eventRoom?->adaPerangkat() ?? false)) {
+            return back()->with('galat', 'Ruang ini tidak punya PC, jadi tidak memakai kios lab.');
+        }
+
         if (! $this->berjalan($ruang)) {
             return back()->with('galat', 'Sesi ruang ini tidak sedang berjalan.');
         }
@@ -322,6 +329,22 @@ class KiosLabController
 
     private function pesanKeadaan(ExamSessionRoom $ruang, int $nomor): ?string
     {
+        // ---------------------------------------------------------------
+        // Ruang tanpa PC BUKAN ruang kios, dan itu dikatakan lebih dulu
+        // ---------------------------------------------------------------
+        // Kios ada untuk kursi yang perangkatnya milik sekolah. Ruang yang
+        // tidak punya satu pun kursi ber-PC adalah ruang BYOD: siswanya
+        // membawa HP sendiri dan masuk lewat jalur biasa (`/hadir/{kode}`
+        // atau daftar pengawas).
+        //
+        // Tanpa pemeriksaan ini, `/lab/...` di ruang BYOD menampilkan layar
+        // kios yang berfungsi - dan teknisi yang memasangnya mengira ruang
+        // itu lab, lalu menunggu anak-anak yang seharusnya tidak lewat sini.
+        if (! ($ruang->eventRoom?->adaPerangkat() ?? false)) {
+            return 'Ruang ini tidak punya PC, jadi tidak memakai kios lab. '
+                .'Siswa di ruang ini membawa perangkat sendiri dan diabsen lewat pintu ruang.';
+        }
+
         if ($ruang->session === null) {
             return 'Ruang ini belum dipakai sesi mana pun.';
         }
