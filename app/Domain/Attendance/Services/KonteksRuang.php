@@ -93,7 +93,36 @@ class KonteksRuang
         public readonly ExamSessionRoom $ruang,
         public readonly ?User $pengguna,
         public readonly ?RoomEntryLink $tautan,
+        /**
+         * Pelaku yang bukan orang - kios lab menulis presensi atas nama
+         * PERANGKAT ("LAB-1 PC 07"). Null untuk semua konteks lain, dan itu
+         * yang membuat `pelakuLabel()` tidak berubah bagi mereka.
+         */
+        private readonly ?string $labelPerangkat = null,
     ) {}
+
+    /**
+     * Konteks kios lab - presensi yang ditulis MESIN, bukan orang.
+     *
+     * =====================================================================
+     * Mengapa bukan `KonteksRuang::dari()`
+     * =====================================================================
+     * `dari()` menuntut hibah sesi pengawas atau akun bertugas, dan kios
+     * bukan keduanya: yang masuk adalah SISWA di PC-nya. Memanggilnya di
+     * sini akan 404 pada setiap unggahan, atau - lebih buruk - mengenali
+     * siswa sebagai pelaku dan mencatat presensinya atas namanya sendiri.
+     *
+     * Yang dipakai karena itu konteks tertutup dengan satu label yang
+     * menyebut perangkatnya. Baris log berbunyi "perangkat LAB-1 PC 07",
+     * dan itu jawaban jujur atas "dari mana presensi ini datang".
+     *
+     * `pengguna`-nya sengaja TIDAK diisi meski ada siswa terautentikasi:
+     * pelakunya bukan siswa itu - ia yang HADIR, bukan yang mencatat.
+     */
+    public static function kios(ExamSessionRoom $ruang, string $labelPerangkat): self
+    {
+        return new self($ruang, null, null, $labelPerangkat);
+    }
 
     /**
      * Bangun konteks untuk satu ruang-sesi, atau menyerah dengan 404.
@@ -373,6 +402,13 @@ class KonteksRuang
      */
     public function pelakuLabel(): string
     {
+        // Perangkat lebih dulu: kios menulis presensi tanpa pelaku orang,
+        // dan label itu satu-satunya hal yang membedakannya dari presensi
+        // yang dicentang pengawas.
+        if ($this->labelPerangkat !== null) {
+            return $this->labelPerangkat;
+        }
+
         if ($this->pengguna !== null) {
             return $this->pengguna->name;
         }
@@ -396,6 +432,10 @@ class KonteksRuang
      */
     public function jenisPelaku(): string
     {
+        if ($this->labelPerangkat !== null) {
+            return 'perangkat';
+        }
+
         if ($this->tautan !== null) {
             return 'tautan';
         }

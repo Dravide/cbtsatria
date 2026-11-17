@@ -315,6 +315,39 @@ final class PembatasLaju
     /** Pesan saat denyut melampaui batas - dibaca halaman, bukan orang. */
     public const PESAN_PANTAU = 'Papan ini terlalu sering dimuat ulang dari jaringan ini. Tunggu satu menit, lalu segarkan.';
 
+    /** Nama limiter untuk masuk kios lab `/lab/{slug}/{nomor}`. */
+    public const KIOS = 'kios-lab';
+
+    /**
+     * Percobaan masuk kios per AKUN, per menit.
+     *
+     * ---------------------------------------------------------------------
+     * Sepuluh, dan yang dijaga bukan kredensial
+     * ---------------------------------------------------------------------
+     * Kios tidak menebak sandi: anak sudah login sebelum menekan tombolnya.
+     * Yang dibatasi adalah percobaan berulang pada kursi yang salah - anak
+     * yang mengetik nomor PC temannya berulang kali, atau skrip yang
+     * mencoba semua nomor di satu ruang.
+     *
+     * Sepuluh per menit jauh lebih longgar daripada pemakaian wajar: satu
+     * anak salah duduk sekali, membaca pesannya, lalu pindah - dan itu dua
+     * percobaan. Yang tersisa di atasnya bukan pemakaian, melainkan
+     * penebakan.
+     *
+     * Kuncinya per AKUN, bukan per IP: seluruh lab keluar lewat satu NAT,
+     * dan membatasi per IP berarti satu anak yang salah kursi memblokir
+     * tiga puluh lima anak lain di ruangan yang sama.
+     */
+    public const KIOS_PER_SISWA = 10;
+
+    /** Pesan saat percobaan kios melampaui batas. */
+    public const PESAN_KIOS = 'Terlalu banyak percobaan kursi. Panggil pengawas ruang.';
+
+    public static function kunciKios(int|string $userId): string
+    {
+        return "kios:{$userId}";
+    }
+
     public static function kunciPintuPasangan(string $slug, string $ip): string
     {
         return "pintu:{$slug}|{$ip}";

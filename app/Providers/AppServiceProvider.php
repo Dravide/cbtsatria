@@ -223,6 +223,21 @@ class AppServiceProvider extends ServiceProvider
         // Jawabannya JSON 429, bukan redirect: pemanggilnya `fetch` di latar
         // belakang, dan redirect akan diterima sebagai HTML yang lalu gagal
         // diurai - papan akan berhenti menyegarkan diri tanpa satu pun pesan.
+        // ----------------------------------------------------------------
+        // Masuk kios lab - POST /lab/{slug}/{nomor}
+        // ----------------------------------------------------------------
+        // Per AKUN, bukan per IP: seluruh lab keluar lewat satu NAT, dan
+        // membatasi per IP berarti satu anak yang salah kursi memblokir
+        // seluruh ruangan. Lihat `PembatasLaju::KIOS_PER_SISWA`.
+        //
+        // Bukan JSON: pemanggilnya form HTML biasa, dan jawabannya halaman
+        // yang sama dengan pesan galat.
+        RateLimiter::for(PembatasLaju::KIOS, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::KIOS_PER_SISWA)
+                ->by(PembatasLaju::kunciKios((int) $request->user()?->id))
+                ->response(fn () => back()->with('galat', PembatasLaju::PESAN_KIOS)),
+        ]);
+
         RateLimiter::for(PembatasLaju::PANTAU, fn (Request $request) => [
             Limit::perMinute(PembatasLaju::PANTAU_PER_IP)
                 ->by('pantau.ip:'.$request->ip())

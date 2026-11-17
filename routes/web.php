@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Attendance\Http\Controllers\KiosLabController;
 use App\Domain\Attendance\Http\Controllers\PantauPublikController;
 use App\Domain\Attendance\Http\Controllers\PapanPublikController;
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
@@ -105,6 +106,50 @@ Route::post('/p/{slug}', [PintuRuangController::class, 'buka'])
 // Menyerahkan kembali hibah sesi. Di luar grup auth dengan alasan yang sama:
 // yang memegangnya tidak punya akun untuk keluar darinya.
 Route::post('/p/{slug}/keluar', [PintuRuangController::class, 'keluar'])->name('pintu.ruang.keluar');
+
+/*
+|--------------------------------------------------------------------------
+| Kios per-PC ruang lab - `/lab/{slug}/{nomor}`
+|--------------------------------------------------------------------------
+| Satu alamat per kursi, dibuka otomatis saat PC dinyalakan. Yang ditulisnya
+| adalah PRESENSI, dan itulah bukti yang tidak dimiliki jalur lain: anak
+| benar-benar masuk di PC yang ditugaskan kepadanya.
+|
+| Slug-nya slug TAUTAN RUANG yang sudah ada, bukan bentuk kedua: satu kartu
+| di pintu, satu tombol pencabutan. Yang membedakan kios satu dengan lainnya
+| adalah NOMOR KURSI di URL - dan nomor itu bukan rahasia, ia tercetak di
+| meja, di tablo, dan di papan pengawas.
+|
+| Tautan yang berlaku TIDAK membuka ujian: kios hanya menulis presensi, dan
+| anak tetap mengetik token serta melewati `KelayakanUjian` seperti biasa.
+|
+| GET di luar `auth` - layar tunggu harus tampil sebelum ada yang masuk.
+| POST di dalam `auth` - yang menentukan SIAPA adalah akunnya, bukan nomor
+| di URL. Tanpa itu, tautan yang difoto siapa pun bisa mencatat kehadiran
+| atas nama siapa pun.
+*/
+Route::get('/lab/{slug}/{nomor}', [KiosLabController::class, 'tampilkan'])
+    ->whereNumber('nomor')
+    ->name('lab.kios');
+
+// Tujuan tombol "Masuk" di layar tunggu. GET, dan DI DALAM `auth` - bukan
+// tautan langsung ke `/login`.
+//
+// Alasannya satu baris `redirect()->intended()` di LoginController: kunci
+// `url.intended` hanya ditulis oleh middleware `auth` saat ia MENGALIHKAN
+// permintaan. Tautan ke `/login` dari laman publik tidak melewati middleware
+// itu, sehingga anak yang masuk dikembalikan ke berandanya - bukan ke kios
+// yang sedang ia hadapi. Rute ini yang membuat pengalihannya terjadi, lalu
+// `masuk()` meneruskannya ke gerbang setelah kursinya cocok.
+Route::get('/lab/{slug}/{nomor}/gerbang', [KiosLabController::class, 'gerbang'])
+    ->whereNumber('nomor')
+    ->middleware('auth')
+    ->name('lab.kios.gerbang');
+
+Route::post('/lab/{slug}/{nomor}', [KiosLabController::class, 'masuk'])
+    ->whereNumber('nomor')
+    ->middleware(['auth', 'throttle:'.PembatasLaju::KIOS])
+    ->name('lab.kios.masuk');
 
 /*
 |--------------------------------------------------------------------------
