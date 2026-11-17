@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wireframe Ruang Lab Tanpa HP</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   Wireframe School CBT — ruang lab untuk siswa tanpa HP
+   Primitif disalin dari wireframe-publik-kursi.html supaya
+   seluruh berkas wireframe terbaca sebagai satu sistem.
+   Yang BARU hanya dua: .pc (kursi berperangkat) dan .kios.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:70ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.fbtn{font:500 12px/1 var(--font-mono);letter-spacing:.04em;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.fbtn b{color:var(--ink-3);font-weight:500}
+.fbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.fbtn.on b{color:color-mix(in srgb,var(--on-accent) 70%,transparent)}
+.group{margin-bottom:38px;display:grid;gap:18px}
+.group>header{display:grid;gap:6px}
+.group>header h2{font-size:1.15rem;display:flex;gap:9px;align-items:baseline}
+.group>header h2 em{font-family:var(--font-mono);font-style:normal;font-size:12px;color:var(--accent);letter-spacing:.1em}
+.group>header p{color:var(--ink-2);max-width:74ch;font-size:13.5px}
+.shots{display:grid;gap:22px}
+.shots.phones{grid-template-columns:1fr}
+@media (min-width:600px){.shots.phones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:760px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1060px){.shots.phones{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.shot{display:grid;gap:10px;min-width:0}
+.cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cap .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.08em}
+.cap h3{font-size:.95rem}
+.cap .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;display:grid;gap:5px;font-size:13.5px;color:var(--ink-2)}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+
+/* --- primitif konsol (.wf) --- */
+.wf{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--wf-bg);color:var(--wf-ink);box-shadow:var(--shadow);min-width:0}
+.wf .chrome{display:flex;gap:4px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--wf-line);background:var(--wf-head)}
+.wf .chrome .dot{width:5px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wf .chrome .url{margin-left:7px;font:500 8.5px/1 var(--font-mono);color:var(--wf-dim);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.wf .bd{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.crumb{font-size:9px;color:var(--wf-dim);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sp{margin-left:auto}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.list{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.lrow{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.lrow:last-child{border-bottom:0}
+.lrow.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.lrow .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.big{font-size:11px;padding:6px 14px}
+.btn.off{opacity:.5}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.bar{height:4px;border-radius:99px;background:var(--wf-soft);overflow:hidden;border:1px solid var(--wf-hair)}
+.bar i{display:block;height:100%;background:var(--accent)}
+.tick{font-family:var(--font-mono);font-size:9px;color:var(--wf-dim)}
+
+/* --- BARU: kursi berperangkat (lab) --- */
+.pc{display:grid;gap:2px;border:1px solid var(--wf-line);border-radius:4px;background:var(--wf-bg);padding:4px 3px;justify-items:center;min-width:0}
+.pc .no{font:500 9px/1 var(--font-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.pc .nm{font-size:7px;color:var(--wf-dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc.ok{background:var(--ok-bg);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.pc.ok .no{color:var(--ok)}
+.pc.hp{background:var(--info-bg);border-color:color-mix(in srgb,var(--info) 35%,transparent)}
+.pc.hp .no{color:var(--info)}
+.pc.pending{background:var(--wf-soft);border-style:dashed}
+.pc.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
+.pc.bad .no{color:var(--bad)}
+.pc.off{opacity:.45}
+
+/* --- BARU: kios layar penuh (PC lab) --- */
+.kios{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--wf-bg);color:var(--wf-ink);box-shadow:var(--shadow);min-width:0}
+.kios .kbd{background:var(--wf-head);border-bottom:1px solid var(--wf-hair);padding:6px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kios .body{padding:14px 12px;display:grid;gap:10px;justify-items:center;text-align:center}
+.kios .body.flat{justify-items:stretch;text-align:left}
+.kios h4{font-size:13px}
+.kios .big{font-family:var(--font-display);font-size:26px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.kios .in{width:min(260px,100%);border:1px solid var(--wf-line);border-radius:5px;background:var(--wf-bg);padding:7px 9px;font:500 11px/1 var(--font-mono);color:var(--wf-dim)}
+.kios .in.solid{color:var(--wf-ink);border-color:var(--accent)}
+.kios .step{display:flex;gap:7px;align-items:flex-start;width:100%;text-align:left;font-size:9px;color:var(--wf-ink)}
+.kios .step .n{width:14px;height:14px;flex:none;border-radius:99px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:600 7.5px/1 var(--font-mono)}
+
+footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ wireframe ruang lab untuk siswa tanpa HP</span></div>
+    <div class="r">
+      <span>9 plate · 3 peran · 2 prasyarat skema</span><span>draft 2026-11-17</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Permintaan: siswa tanpa ponsel, ruang dengan PC</div>
+    <h1>Satu lab, tiga jenis kursi</h1>
+    <p class="lede">Mesin ujian ini mengandaikan setiap anak membawa perangkat sendiri. Anak tanpa HP memutus rantai itu. Tetapi lab komputer <b>bukan</b> ruang yang seluruhnya ber-PC: di lab yang sama ada anak yang datang membawa HP, ada yang memakai PC sekolah, dan &mdash; yang paling sering &mdash; ada yang <em>membawa HP tetapi tidak bisa memakainya</em>: kuotanya habis, baterainya tinggal 8%, atau kameranya rusak sehingga QR-nya tidak terbaca. Jawaban yang dipilih di sini bukan memilih salah satu dari ketiganya, melainkan <b>kursi yang tahu perangkatnya apa</b> &mdash; dan presensi yang mencatat dari mana ia datang.</p>
+    <div class="scope">
+      <span class="tag">Kursi ber-PC</span>
+      <span class="tag">Kursi HP sendiri</span>
+      <span class="tag">Kursi HP pinjaman</span>
+      <span class="tag">Presensi per sumber</span>
+    </div>
+  </div>
+
+  <div class="filters" role="group" aria-label="Saring plate">
+    <button class="fbtn on" data-g="all">Semua <b>8</b></button>
+    <button class="fbtn" data-g="admin">Admin <b>3</b></button>
+    <button class="fbtn" data-g="siswa">Siswa <b>3</b></button>
+    <button class="fbtn" data-g="pengawas">Pengawas <b>2</b></button>
+  </div>
+
+  <!-- ================================================================ -->
+  <section class="group" data-g="admin">
+    <header>
+      <h2><em>L</em> Menyiapkan: Admin, tiga langkah</h2>
+      <p>Tiga hal yang harus benar <em>sebelum</em> hari ujian, dan ketiganya sudah punya tempatnya di konsol. Yang ditambahkan hanya penanda di peserta dan kios di ruang &mdash; bukan laman baru.</p>
+    </header>
+
+    <div class="shots">
+
+      <!-- L1 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">L1</span><h3>Ruang: perangkat pribadi vs perangkat ruang</h3><span class="path">/admin/ruang</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/ruang</span></div>
+          <div class="tbar">
+            <span class="crumb">Ruang</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip info">33 ruang</span>
+          </div>
+          <div class="bd">
+            <div class="cols c4">
+              <div class="kpi"><span class="lb">Ruang</span><b>33</b></div>
+              <div class="kpi"><span class="lb">PC tersedia</span><b>96</b></div>
+              <div class="kpi"><span class="lb">Ruang BYOD</span><b>27</b></div>
+              <div class="kpi"><span class="lb">Ruang campuran</span><b>4</b></div>
+            </div>
+
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:58px 1fr 54px 46px 54px 86px">
+                <span>Kode</span><span>Nama</span><span>Kapasitas</span><span>PC</span><span>Kursi HP</span><span>Mode</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:58px 1fr 54px 46px 54px 86px">
+                <span class="c mono" style="font-weight:500">R-01</span>
+                <span class="c">Kelas 7A</span>
+                <span class="c mono">32</span>
+                <span class="c mono">0</span>
+                <span class="c mono">32</span>
+                <span class="c"><span class="chip mute">HP semua</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:58px 1fr 54px 46px 54px 86px">
+                <span class="c mono" style="font-weight:500">LAB-1</span>
+                <span class="c">Lab Komputer 1</span>
+                <span class="c mono">36</span>
+                <span class="c mono" style="color:var(--ok)">24</span>
+                <span class="c mono">12</span>
+                <span class="c"><span class="chip info">campuran</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:58px 1fr 54px 46px 54px 86px">
+                <span class="c mono" style="font-weight:500">LAB-2</span>
+                <span class="c">Lab Komputer 2</span>
+                <span class="c mono">30</span>
+                <span class="c mono" style="color:var(--ok)">30</span>
+                <span class="c mono">0</span>
+                <span class="c"><span class="chip info">PC semua</span></span>
+              </div>
+            </div>
+
+            <div class="inbox">LAB-1: 36 kursi, 24 di antaranya ber-PC. Dua belas kursinya meja biasa &mdash; dan <b>dua belas itulah</b> yang dipakai anak yang membawa HP sendiri. Angkanya sudah ada di basis data tanpa satu kolom baru: <code>device_count = 24</code>, <code>capacity = 36</code>, selisihnya kursi HP.</div>
+          </div>
+        </div>
+        <p class="note"><b>Lab campuran tidak butuh kolom baru &mdash; ia sudah terwakili.</b> <code>rooms.device_count</code> sudah ada, dan validasinya sudah menolak PC melebihi kapasitas (<code>RoomController</code>). <code>0 &lt; device_count &lt; capacity</code> berarti ruang campuran, dan itu <em>sudah</em> bisa dinyatakan hari ini. Yang belum: tidak ada kode yang memakai angka itu untuk memutuskan apa pun. Papan ini menjadikannya keputusan, bukan sekadar keterangan.</p>
+        <p class="note gap"><b>Batasnya: kursi mana yang ber-PC.</b> Konvensinya kursi <code>1..device_count</code> ber-PC &mdash; cukup untuk lab yang PC-nya berderet dari depan. Lab yang PC-nya berselang-seling (PC di meja ganjil saja) butuh peta kursi sendiri, dan itu daftar nomor di <code>exam_session_rooms</code>, bukan kolom di <code>rooms</code>: susunan meja bisa berubah antar sesi ketika PC dipindah. Default-nya tetap <code>1..device_count</code>, sehingga sekolah yang tidak pernah mengubah susunan tidak perlu mengisi apa pun.</p>
+      </figure>
+
+      <!-- L2 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">L2</span><h3>Peserta: menandai &ldquo;butuh perangkat sekolah&rdquo;</h3><span class="path">/admin/events/{event}/peserta</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/5/peserta?butuh_perangkat=1</span></div>
+          <div class="tbar">
+            <span class="crumb">Peserta</span>
+            <span class="sel">Kelas 9</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip warn">17 butuh perangkat</span>
+          </div>
+          <div class="bd">
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:22px 58px 1fr 70px 88px">
+                <span></span><span>NIS</span><span>Nama</span><span>Kelas</span><span>Perangkat</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:22px 58px 1fr 70px 88px">
+                <span class="c"><span class="tick">✓</span></span>
+                <span class="c mono">9-014</span>
+                <span class="c">Rizky Ananda</span>
+                <span class="c mono">9-A</span>
+                <span class="c"><span class="chip warn">butuh</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:22px 58px 1fr 70px 88px">
+                <span class="c"><span class="tick">✓</span></span>
+                <span class="c mono">9-021</span>
+                <span class="c">Salsabila Putri</span>
+                <span class="c mono">9-A</span>
+                <span class="c"><span class="chip warn">butuh</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:22px 58px 1fr 70px 88px">
+                <span class="c"><span class="tick">·</span></span>
+                <span class="c mono">9-032</span>
+                <span class="c">Fajar Nugraha</span>
+                <span class="c mono">9-B</span>
+                <span class="c" style="color:var(--wf-dim)">bawa sendiri</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:22px 58px 1fr 70px 88px">
+                <span class="c"><span class="tick">✓</span></span>
+                <span class="c mono">9-040</span>
+                <span class="c">Nabila Zahra</span>
+                <span class="c mono">9-B</span>
+                <span class="c"><span class="chip warn">butuh</span></span>
+              </div>
+            </div>
+            <div class="inbox warn">Tanda ini milik <b>penempatan di event</b>, bukan profil siswa. Anak yang HP-nya rusak minggu ini tidak harus tercatat &ldquo;tanpa HP&rdquo; sepanjang tahun &mdash; dan anak yang tahun lalu meminjam bisa membawa sendiri tahun ini.</div>
+          </div>
+        </div>
+        <p class="note gap"><b>Prasyarat skema #1.</b> <code>event_participants</code> belum punya kolom ini. Yang dibutuhkan satu boolean <code>butuh_perangkat</code> (bawaan <code>false</code>), diisi Admin dari laman Peserta &mdash; per baris atau massal per kelas. Ia sengaja <b>bukan</b> di <code>users</code>: &ldquo;tidak punya HP&rdquo; adalah keadaan yang berlaku untuk satu event, bukan sifat orang.</p>
+      </figure>
+
+      <!-- L3 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">L3</span><h3>Penempatan: lab menerima yang bertanda</h3><span class="path">/admin/events/{event}/penempatan</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/admin/events/5/penempatan</span></div>
+          <div class="tbar">
+            <span class="crumb">Penempatan</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip info">3 mode</span>
+            <span class="chip ok">benih PRESENSI1</span>
+          </div>
+          <div class="bd">
+            <div class="cols c3">
+              <div class="box solid" style="border-color:var(--accent)">
+                <span class="lb">Mode</span>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <span class="chip mute">Campur</span>
+                  <span class="chip mute">Per kelas</span>
+                  <span class="chip mute">Acak rata</span>
+                  <span class="chip info">Hormati perangkat</span>
+                </div>
+              </div>
+              <div class="box">
+                <span class="lb">Kursi ber-PC</span>
+                <span style="font:600 14px/1 var(--font-display)">54 <span style="font:400 9px/1 var(--font-mono);color:var(--wf-dim)">dari 66</span></span>
+                <span class="tick">LAB-1 24 · LAB-2 30</span>
+              </div>
+              <div class="box">
+                <span class="lb">Peserta bertanda</span>
+                <span style="font:600 14px/1 var(--font-display);color:var(--ok)">48</span>
+                <span class="tick">6 kursi ber-PC sisa</span>
+              </div>
+            </div>
+
+            <div class="inbox">48 peserta bertanda &ldquo;butuh perangkat&rdquo;, 54 kursi ber-PC. <b>Cukup</b> &mdash; dan enam kursi sisanya diisi anak yang membawa HP sendiri, bukan dikosongkan. Lab campuran memang begitu: kursinya dipakai bergantian menurut perangkatnya.</div>
+
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:58px 54px 54px 54px 54px 1fr">
+                <span>Ruang</span><span>Kursi</span><span>Ber-PC</span><span>Bertanda</span><span>Bawa HP</span><span>Catatan</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:58px 54px 54px 54px 54px 1fr">
+                <span class="c mono" style="font-weight:500">LAB-1</span>
+                <span class="c mono">36</span>
+                <span class="c mono" style="color:var(--ok)">24</span>
+                <span class="c mono">24</span>
+                <span class="c mono">12</span>
+                <span class="c" style="color:var(--wf-dim)">PC penuh; sisa 12 di meja biasa</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:58px 54px 54px 54px 54px 1fr">
+                <span class="c mono" style="font-weight:500">LAB-2</span>
+                <span class="c mono">30</span>
+                <span class="c mono" style="color:var(--ok)">30</span>
+                <span class="c mono">24</span>
+                <span class="c mono">0</span>
+                <span class="c" style="color:var(--wf-dim)">6 kursi ber-PC menganggur</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:58px 54px 54px 54px 54px 1fr">
+                <span class="c mono" style="font-weight:500">R-07</span>
+                <span class="c mono">32</span>
+                <span class="c mono" style="color:var(--bad);font-weight:500">0</span>
+                <span class="c mono" style="color:var(--bad);font-weight:500">0</span>
+                <span class="c mono">32</span>
+                <span class="c" style="color:var(--wf-dim)">benar: tak satu pun bertanda</span>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              <span class="btn pri">Sebar (hormati perangkat)</span>
+              <span class="btn">Sebar tanpa aturan perangkat</span>
+            </div>
+
+            <div class="inbox warn">Bila jumlah bertanda <b>melebihi</b> kursi ber-PC, penempatan menolak dan menyebut selisihnya &mdash; ia tidak diam-diam menaruh tujuh anak di meja tanpa PC lalu membiarkan pengawas menemukannya pada pukul 07:30.</div>
+          </div>
+        </div>
+        <p class="note"><b>Penempatan mendapat satu aturan baru: tanda mengalahkan kocokan &mdash; pada KURSI, bukan pada ruang.</b> Anak bertanda menempati kursi ber-PC lebih dulu; anak yang membawa HP mengisi sisanya. Karena setiap ruang menyatakan berapa kursinya yang ber-PC, aturan ini bekerja sama baiknya di lab campuran maupun di ruang BYOD &mdash; yang kedua kebetulan ber-PC nol, sehingga seluruhnya kursi HP. Satu aturan, tanpa cabang &ldquo;kalau ruangnya lab&rdquo;.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- P2 -->
+  <section class="group" data-g="siswa">
+    <header>
+      <h2><em>K</em> Kios: layar yang menyala sendiri di tiap PC</h2>
+      <p>Satu alamat per kursi, dibuka otomatis saat PC dinyalakan. Inilah yang membuat presensi ruang lab <b>terbukti mesin</b>, bukan sekadar dicentang pengawas &mdash; dan sekaligus yang mencegah dua anak bertukar kursi.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">K1</span><h3>Kios menunggu &mdash; PC 07, LAB-1</h3><span class="path">/lab/{kode}/07</span></div>
+        <div class="kios">
+          <div class="kbd">
+            <span class="chip info">LAB-1 · PC 07</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip mute">Sesi 2 · 07:30–09:30</span>
+          </div>
+          <div class="body">
+            <h4>Masuk dengan akunmu</h4>
+            <p style="font-size:9px;color:var(--wf-dim);max-width:34ch">Kursi ini <b>PC 07</b>. Sistem akan memeriksa bahwa kamu memang duduk di sini.</p>
+            <div class="in solid">nama.pengguna</div>
+            <div class="in">••••••••</div>
+            <span class="btn pri big">Masuk</span>
+            <p style="font-size:8px;color:var(--wf-dim)">Bukan kursimu? Panggil pengawas.</p>
+          </div>
+        </div>
+        <p class="note"><b>Kios tidak pernah menyebut nama siapa pun.</b> Layar ini menghadap ruangan dan difoto orang. Yang ditampilkan hanya identitas PERANGKAT &mdash; nomor PC, ruang, sesi. Nama anak muncul sesudah ia masuk, dan hanya di layarnya sendiri.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">K2</span><h3>Kios menerima &mdash; kursi cocok</h3><span class="path">/lab/{kode}/07 (sesudah masuk)</span></div>
+        <div class="kios">
+          <div class="kbd">
+            <span class="chip info">LAB-1 · PC 07</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip ok">hadir · 07:32</span>
+          </div>
+          <div class="body">
+            <h4 style="color:var(--ok)">Selamat, Rizky</h4>
+            <p style="font-size:9px;color:var(--ink)">Kursi 07 &mdash; Matematika, Sesi 2</p>
+            <div class="box" style="width:100%;text-align:left">
+              <span class="lb">Yang terjadi barusan</span>
+              <span style="font-size:9px;color:var(--wf-ink);line-height:1.5">Presensi dicatat <b>hadir</b> dan bersumber <b>perangkat ruang</b>. Gerbang ujian terbuka; token diketik di layar berikutnya.</span>
+            </div>
+            <span class="btn pri big">Mulai ujian</span>
+            <p style="font-size:8px;color:var(--wf-dim)">Setelah mulai, jangan tinggalkan kursi ini.</p>
+          </div>
+        </div>
+        <p class="note"><b>Presensinya ditulis MESIN, bukan pengawas.</b> <code>attendance_records</code> mendapat baris baru dengan pelaku <code>perangkat LAB-1 PC 07</code>. Pengawas tidak perlu memanggil satu per satu &mdash; tetapi ia tetap melihat daftarnya, dan tetap boleh mengoreksi (L5). Bukti otomatis dan koreksi manusia hidup berdampingan; yang tidak boleh adalah saling menimpa diam-diam.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">K3</span><h3>Kios menolak &mdash; kursi ini bukan untuknya</h3><span class="path">/lab/{kode}/07</span></div>
+        <div class="kios">
+          <div class="kbd">
+            <span class="chip info">LAB-1 · PC 07</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip bad">kursi tidak cocok</span>
+          </div>
+          <div class="body">
+            <h4 style="color:var(--bad)">Ini bukan kursimu</h4>
+            <p style="font-size:9px;color:var(--wf-ink);max-width:36ch">Akun <b>fajar.n</b> terdaftar di <b>PC 14</b>, bukan PC 07. Presensi tidak dicatat.</p>
+            <div class="box" style="width:100%;text-align:left;background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 30%,transparent)">
+              <span class="lb" style="color:var(--warn)">Yang harus dilakukan</span>
+              <span style="font-size:9px;color:var(--warn);line-height:1.5">Duduk di kursi yang tertera, atau panggil pengawas bila kursimu bermasalah. Menukar kursi tanpa sepengetahuan pengawas membuat presensi dua anak tertukar.</span>
+            </div>
+            <span class="btn">Keluar</span>
+          </div>
+        </div>
+        <p class="note"><b>Anak yang membawa HP di lab tidak memakai kios.</b> Ia masuk lewat jalur yang sudah ada: pindai QR pintu, atau ketik token di ponselnya &mdash; sama seperti di ruang BYOD. Lab campuran mengizinkan keduanya <em>di ruang yang sama, pada sesi yang sama</em>, dan tidak ada satu pun kode yang perlu tahu bedanya. Yang memang berbeda hanya satu: presensi anak ber-PC ditulis <b>mesin</b> saat ia masuk kios (K2), sedangkan presensi anak ber-HP ditulis pengawas dari daftar (P1) atau oleh anak lewat QR.</p>
+        <p class="note gap"><b>Inilah yang dijaga kios, dan bukan kerapian.</b> Tanpa ikatan kursi, dua anak dapat bertukar tempat tanpa ada yang tahu &mdash; dan seluruh tablo, denah, nomor kursi di papan pengawas, serta berita acara menjadi salah. Kios menolak tanpa menuduh: pesannya menyebut kursi yang benar, bukan &ldquo;akses ditolak&rdquo;.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- P3 -->
+  <section class="group" data-g="pengawas">
+    <header>
+      <h2><em>P</em> Pengawas: presensi ruang lab</h2>
+      <p>Ruang lab tetap ruang yang diawasi &mdash; yang berubah hanya dari mana presensinya datang. Pengawas melihat kursi yang sudah &ldquo;menyala&rdquo; dan yang belum, lalu menangani sisanya dengan cara yang sama seperti ruang lain.</p>
+    </header>
+
+    <div class="shots">
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">P1</span><h3>Presensi ruang lab &mdash; peta kursi berperangkat</h3><span class="path">/pengawas/ruang/{ruang}/presensi</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/pengawas/ruang/119/presensi</span></div>
+          <div class="tbar">
+            <span class="crumb">Lab Komputer 1 · S-2</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip info">36 PC</span>
+          </div>
+          <div class="bd">
+            <div class="cols c5">
+              <div class="kpi"><span class="lb">Kursi</span><b>36</b></div>
+              <div class="kpi"><span class="lb">Ber-PC</span><b>24</b></div>
+              <div class="kpi"><span class="lb">Sudah masuk</span><b style="color:var(--ok)">31</b></div>
+              <div class="kpi"><span class="lb">Belum</span><b style="color:var(--warn)">5</b></div>
+              <div class="kpi"><span class="lb">PC rusak</span><b style="color:var(--bad)">1</b></div>
+            </div>
+
+            <div class="ph">
+              <b>Peta kursi</b>
+              <span class="sp"></span>
+              <span class="chip ok">PC · masuk</span>
+              <span class="chip info">HP · masuk</span>
+              <span class="chip mute">belum</span>
+              <span class="chip bad">PC rusak</span>
+            </div>
+
+            <div class="inbox">Kursi <b>1–24 ber-PC</b>, <b>25–36 meja biasa</b>. Hijau berarti masuk lewat kios PC, biru berarti masuk lewat HP-nya sendiri &mdash; dan pengawas tidak perlu memanggil satu per satu untuk membedakannya.</div>
+
+            <div class="cols" style="grid-template-columns:repeat(9,minmax(0,1fr));gap:4px">
+              <div class="pc ok"><span class="no">01</span><span class="nm">Rizky</span></div>
+              <div class="pc ok"><span class="no">02</span><span class="nm">Salsa</span></div>
+              <div class="pc ok"><span class="no">03</span><span class="nm">Bagas</span></div>
+              <div class="pc ok"><span class="no">04</span><span class="nm">Intan</span></div>
+              <div class="pc ok"><span class="no">05</span><span class="nm">Yoga</span></div>
+              <div class="pc pending"><span class="no">06</span><span class="nm">—</span></div>
+              <div class="pc off" style="text-decoration:line-through"><span class="no">07</span><span class="nm">rusak</span></div>
+              <div class="pc ok"><span class="no">08</span><span class="nm">Dewi</span></div>
+              <div class="pc ok"><span class="no">09</span><span class="nm">Hendra</span></div>
+
+              <div class="pc ok"><span class="no">10</span><span class="nm">Rina</span></div>
+              <div class="pc ok"><span class="no">11</span><span class="nm">Asep</span></div>
+              <div class="pc ok"><span class="no">12</span><span class="nm">Melati</span></div>
+              <div class="pc pending"><span class="no">13</span><span class="nm">—</span></div>
+              <div class="pc pending"><span class="no">14</span><span class="nm">—</span></div>
+              <div class="pc ok"><span class="no">15</span><span class="nm">Dimas</span></div>
+              <div class="pc ok"><span class="no">16</span><span class="nm">Sari</span></div>
+              <div class="pc ok"><span class="no">17</span><span class="nm">Rudi</span></div>
+              <div class="pc ok"><span class="no">18</span><span class="nm">Nabila</span></div>
+
+              <div class="pc pending"><span class="no">19</span><span class="nm">—</span></div>
+              <div class="pc pending"><span class="no">20</span><span class="nm">—</span></div>
+              <div class="pc ok"><span class="no">21</span><span class="nm">Firman</span></div>
+              <div class="pc ok"><span class="no">22</span><span class="nm">Anisa</span></div>
+              <div class="pc ok"><span class="no">23</span><span class="nm">Teguh</span></div>
+              <div class="pc pending"><span class="no">24</span><span class="nm">—</span></div>
+              <div class="pc ok"><span class="no">25</span><span class="nm">Lestari</span></div>
+              <div class="pc ok"><span class="no">26</span><span class="nm">Bayu</span></div>
+              <div class="pc ok"><span class="no">27</span><span class="nm">Wulan</span></div>
+
+              <div class="pc hp"><span class="no">28</span><span class="nm">Arif</span></div>
+              <div class="pc hp"><span class="no">29</span><span class="nm">Putri</span></div>
+              <div class="pc hp"><span class="no">30</span><span class="nm">Gilang</span></div>
+              <div class="pc hp"><span class="no">31</span><span class="nm">Sinta</span></div>
+              <div class="pc pending"><span class="no">32</span><span class="nm">—</span></div>
+              <div class="pc pending"><span class="no">33</span><span class="nm">—</span></div>
+              <div class="pc pending"><span class="no">34</span><span class="nm">—</span></div>
+              <div class="pc pending"><span class="no">35</span><span class="nm">—</span></div>
+              <div class="pc pending"><span class="no">36</span><span class="nm">—</span></div>
+            </div>
+
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              <span class="btn">Tandai 5 belum masuk hadir</span>
+              <span class="btn">Koreksi satu kursi</span>
+            </div>
+
+            <div class="inbox bad">PC 07 rusak. Kursi 07 kosong sampai pengawas memindahkan penghuninya ke PC cadangan &mdash; dan pemindahan itu <b>dicatat</b>, bukan dilakukan diam-diam.</div>
+
+            <div class="inbox warn">Kursi 32&ndash;36 tidak punya PC. Anak di sana <b>harus</b> membawa HP atau dipinjami; menandainya hadir sebelum ia benar-benar masuk membuat presensi berbohong tentang di mana ia berada.</div>
+          </div>
+        </div>
+        <p class="note"><b>Tombol massal tetap ada, tetapi tidak lagi menjadi jalur utama.</b> Di ruang BYOD, "Tandai semua hadir" adalah cara tercepat karena tidak ada bukti lain. Di ruang lab, buktinya sudah ada &mdash; <b>24 anak benar-benar masuk di PC-nya, 7 lewat HP-nya sendiri</b>. Massal dipakai untuk sisanya, dan <code>attendance_logs</code> mencatat pelakunya berbeda: <code>perangkat LAB-1 PC 07</code> untuk kios, <code>pindai QR</code> untuk HP, <code>R-01 (pengawas)</code> untuk yang manual.</p>
+        <p class="note"><b>Sumber presensi disimpan, bukan disimpulkan.</b> Tiga sumber itu perlu berbeda pada satu laporan: anak yang tercatat hadir dari PC-nya <em>terbukti</em> hadir, sedangkan yang dicentang pengawas <em>dinyatakan</em> hadir. Menyamakan keduanya menghapus satu-satunya bukti yang dimiliki sekolah ketika presensi dipertanyakan.</p>
+      </figure>
+
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">P2</span><h3>PC rusak: memindahkan satu kursi</h3><span class="path">/pengawas/ruang/{ruang}/presensi/{peserta}</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/pengawas/ruang/119/presensi/2090</span></div>
+          <div class="tbar">
+            <span class="crumb">← Peta kursi</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="chip bad">PC 07 rusak</span>
+          </div>
+          <div class="bd">
+            <div class="box solid">
+              <div class="ph"><b>Rizky Ananda</b><span class="sp"></span><span class="chip warn">belum masuk</span></div>
+              <span style="font-size:9px;color:var(--wf-dim)">Kursi 07 · 9-A · NIS 9-014</span>
+            </div>
+
+            <div class="box">
+              <span class="lb">Pindahkan ke kursi</span>
+              <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+                <span class="sel">PC 37 (cadangan)</span>
+                <span class="sel">PC 13 (kosong)</span>
+              </div>
+              <span class="tick">Hanya kursi kosong di ruang ini, dan hanya yang PC-nya hidup.</span>
+            </div>
+
+            <div class="box">
+              <span class="lb">Alasan (wajib)</span>
+              <span style="font-size:9px;color:var(--wf-dim)">PC 07 tidak menyala saat dinyalakan pukul 07:28.</span>
+            </div>
+
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              <span class="btn pri">Pindahkan &amp; tandai hadir</span>
+              <span class="btn">Batal</span>
+            </div>
+
+            <div class="inbox">Pemindahan menulis <b>dua</b> baris: kursi 07 dikosongkan, kursi 37 diisi. Keduanya masuk <code>attendance_logs</code>, sehingga tablo dan berita acara menyebut kursi yang benar.</div>
+          </div>
+        </div>
+        <p class="note"><b>Alasan wajib, dan alasannya berbeda dari koreksi biasa.</b> Memindahkan kursi mengubah dua dokumen cetak sekaligus (tablo dan denah). Pengawas yang melihat PC-nya mati adalah satu-satunya orang yang tahu sebabnya &mdash; dan sebab itu harus terbaca oleh panitia yang menemukan selisihnya besok.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="group">
+    <header>
+      <h2><em>Catatan teknis</em> yang menentukan bentuk di atas</h2>
+      <p>Dua prasyarat skema, tiga jalur yang sudah ada dan tinggal disambungkan, dan empat jebakan yang harus ditutup sebelum satu baris kode ditulis.</p>
+    </header>
+
+    <div class="shots">
+
+      <div class="note">
+        <b>Prasyarat #1 &mdash; <code>event_participants.butuh_perangkat</code>.</b>
+        Boolean, bawaan <code>false</code>, diisi Admin dari laman Peserta. Milik PENEMPATAN, bukan <code>users</code>: keadaan ini berlaku untuk satu event, dan anak yang HP-nya rusak minggu ini tidak boleh tercatat &ldquo;tanpa HP&rdquo; sepanjang tahun. Dasar keputusannya ada di tiap baris, bukan di profil.
+      </div>
+
+      <div class="note">
+        <b>Prasyarat #2 &mdash; <code>exam_session_rooms.pc_rusak_json</code> (atau tabel kecil).</b>
+        Daftar nomor kursi yang PC-nya mati untuk sesi itu. Tanpa ini, peta kursi tidak bisa membedakan &ldquo;belum masuk&rdquo; dari &ldquo;tidak akan pernah bisa masuk&rdquo; &mdash; dan pengawas akan menunggu lima anak yang salah satunya tidak punya kursi.
+      </div>
+
+      <div class="note">
+        <b>Tiga sumber presensi, dan ketiganya perlu bisa dibedakan.</b>
+        <code>kios</code> (anak masuk di PC yang terikat padanya), <code>pindai</code> (anak memindai QR pintu dari HP-nya), <code>pengawas</code> (dicatat manual dari daftar). Sumbernya ditulis ke baris <code>attendance_logs</code> lewat <code>pelaku_label</code> yang sudah ada &mdash; bukan kolom baru. Yang penting: laporan yang membaca &ldquo;hadir&rdquo; harus bisa menjawab <em>dari mana</em> ia tahu.
+      </div>
+
+      <div class="note gap">
+        <b>Kuota habis dan baterai lowbat TIDAK bisa dideteksi sistem.</b>
+        Keduanya bukan keadaan yang dilaporkan peramban &mdash; dan menebaknya dari &ldquo;tidak ada denyut&rdquo; akan salah: anak yang kuotanya habis dan anak yang ponselnya ketinggalan di rumah menghasilkan sinyal yang sama persis. Karena itu satu-satunya jalan adalah <b>tanda dari Admin sebelum hari-H</b> (L2), bukan deteksi saat ujian berjalan. Sistem yang mengaku tahu sebabnya adalah sistem yang menebak.
+      </div>
+
+      <div class="note gap">
+        <b>Jebakan #1 &mdash; <code>DenyutService</code> menandai &ldquo;perangkat berubah&rdquo; sebagai pelanggaran.</b>
+        Di lab, anak yang pindah dari PC 07 ke PC 37 <em>karena PC-nya mati</em> akan tercatat <code>perangkat_berubah</code> (tingkat Sedang) &mdash; dan pada kasus dua layar menyala sekaligus, <code>sesi_ganda</code> yang <b>langsung mengunci</b>. Pemindahan yang dicatat pengawas harus menulis ulang sidik perangkat di <code>guard_flags_json</code>, supaya anak itu tidak dikunci karena kesalahan perangkat sekolah.
+      </div>
+
+      <div class="note gap">
+        <b>Jebakan #2 &mdash; kios adalah alamat publik, dan harus diperlakukan begitu.</b>
+        <code>/lab/{kode}/{nomor}</code> akan tertempel di monitor yang bisa difoto. Isinya hanya boleh: kode ruang, nomor PC, jam sesi. <b>Tidak nama, tidak NIS, tidak daftar kursi.</b> Aturannya sama persis dengan <code>/p/{slug}</code> dan <code>/pantau/{slug}</code> &mdash; ketiganya di luar <code>auth</code>, dan tautan yang tertempel bisa difoto siapa pun yang lewat.
+      </div>
+
+      <div class="note">
+        <b>Jebakan #3 &mdash; kios tidak boleh MEMBUKA gerbang ujian tanpa presensi.</b>
+        Puas masuk di kursi yang benar belum berarti boleh mengerjakan: <code>StatusPresensi::membukaGerbang()</code> tetap satu-satunya syarat, dan <code>KelayakanUjian</code> tetap memeriksa token, jendela sesi, dan sisa waktu. Kios menulis presensi; ia tidak memintas gerbang.
+      </div>
+
+      <div class="note">
+        <b>Jebakan #4 &mdash; dua anak di satu PC bukan &ldquo;sesi ganda&rdquo;.</b>
+        <code>sesi_ganda</code> mendeteksi satu AKUN di dua perangkat. Kasus lab adalah kebalikannya: satu PERANGKAT dipakai dua akun berurutan (anak pertama keluar, anak kedua masuk). Itu bukan pelanggaran, tetapi harus tercatat &mdash; supaya riwayat kursi bisa ditelusuri bila dua anak mengaku duduk di sana.
+      </div>
+
+      <div class="note">
+        <b>Yang TIDAK perlu dibuat baru.</b>
+        <code>rooms.device_count</code> dan <code>Room::isByod()</code> sudah ada. <code>EventRoom::kapasitasEfektif()</code> sudah ada. <code>PenempatanService</code> dan perintah <code>ujian:*</code> sudah mengisi ruang. <code>PresensiController::massal</code> sudah menulis satu baris log per peserta. <code>attendance_records</code> sudah menyimpan pelaku. Yang baru hanya: satu kolom tanda, satu daftar PC rusak, satu alamat kios, dan satu aturan urutan di penempatan.
+      </div>
+
+      <div class="note gap">
+        <b>Bila lab tidak layak &mdash; dan itu jawaban yang sah.</b>
+        Sekolah yang tidak punya lab cukup memakai jalur yang sudah ada: pengawas menandai hadir dari daftar, dan siswa mengerjakan di ponsel pinjaman <b>dengan akunnya sendiri</b> (bukan akun teman). Yang tidak boleh: satu akun dipakai dua anak. Itu sudah ditolak sistem, dan penolakan itu benar.
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <span>wireframe · 8 plate · 3 peran</span>
+    <span>primitif baru: .pc .kios</span>
+    <span>belum satu baris kode aplikasi</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.fbtn'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.group'));
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      var g = b.getAttribute('data-g');
+      groups.forEach(function(sec){
+        var gg = sec.getAttribute('data-g');
+        sec.style.display = (g === 'all' || gg === g || gg === null) ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
