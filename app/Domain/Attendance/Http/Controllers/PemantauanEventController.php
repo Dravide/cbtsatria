@@ -769,6 +769,92 @@ class PemantauanEventController
         Gate::authorize('view', $event);
 
         $ruangan = $this->ruangan($event);
+        $attempt = $this->attemptTerakhir($ruangan->flatMap->participants->pluck('id'));
+        $insidenPerRuang = $this->insiden->jumlahTerbukaPerRuang($ruangan);
+
+        $sesi = ExamSession::query()
+            ->whereIn('exam_id', $event->exams()->pluck('id'))
+            ->with(['exam:id,code,title,subject_id', 'exam.subject:id,name'])
+            ->orderBy('access_opens_at')
+            ->orderBy('session_number')
+            ->get();
+
+        $baris = $sesi->map(function (ExamSession $s) use ($ruangan, $attempt, $insidenPerRuang) {
+            $milik = $ruangan->where('exam_session_id', $s->id)->values();
+            $peserta = $milik->flatMap->participants;
+
+            $cari = fn (callable $saring) => $peserta
+                ->filter(fn (ExamParticipant $p) => $saring($attempt->get($p->id)))
+                ->count();
+
+            return [
+                'id' => $s->id,
+                'label' => $s->label(),
+                'ujian' => $s->exam?->subject?->name ?? $s->exam?->title,
+                'judul_ujian' => $s->exam?->title,
+                'tanggal' => $s->access_opens_at?->format('d M'),
+                'jam' => $s->access_opens_at?->format('H:i'),
+                // `jam_selesai`, bukan `selesai`: kunci terakhir di baris ini
+                // sudah dipakai jumlah pengerjaan yang dikumpulkan, dan satu
+                // kunci untuk dua arti akan membuat jam berakhir terbaca
+                // sebagai angka.
+                'jam_selesai' => $s->hard_end_at?->format('H:i'),
+                'status' => $s->status->value,
+                'status_label' => $s->status->label(),
+                'susulan' => $s->susulan(),
+                'ruang' => $milik->count(),
+                'ruang_tanpa_pengawas' => $milik
+                    ->filter(fn (ExamSessionRoom $r) => $r->supervisors->isEmpty())
+                    ->map(fn (ExamSessionRoom $r) => $r->eventRoom?->room?->code ?? 'R-?')
+                    ->values()
+                    ->all(),
+
+                'peserta' => $peserta->count(),
+                'mengerjakan' => $cari(fn (?ExamAttempt $a) => $a?->status === ExamAttempt::STATUS_BERJALAN),
+                'selesai' => $cari(fn (?ExamAttempt $a) => $a?->status === ExamAttempt::STATUS_DIKIRIM),
+                // "Terputus" disimpulkan dari `last_seen_at` pada attempt yang
+                // SUDAH dimuat - lihat catatan `ExamAttempt::terhubung()`. Yang
+                // belum mulai tidak punya jam kabar, dan menghitungnya sebagai
+                // terputus membuat sesi yang belum dibuka terbaca sebagai sesi
+                // yang seluruh jaringannya putus.
+                'terputus' => $cari(fn (?ExamAttempt $a) => $a !== null && ! $a->terhubung()),
+                'pelanggaran' => $peserta->sum(fn (ExamParticipant $p) => $attempt->get($p->id)?->violation_count ?? 0),
+                'terkunci' => $cari(fn (?ExamAttempt $a) => $a?->dikunci() ?? false),
+                'insiden' => $milik->sum(fn (ExamSessionRoom $r) => $insidenPerRuang[$r->id] ?? 0),
+            ];
+        })->values();
+
+        return Inertia::render('Admin/Event/MonitoringDaftarSesi', [
+            'event' => $this->ringkas($event),
+            'baris' => $baris->all(),
+            'angka' => [
+                'sesi' => $baris->count(),
+                'peserta' => $baris->sum('peserta'),
+                'mengerjakan' => $baris->sum('mengerjakan'),
+                'selesai' => $baris->sum('selesai'),
+                'terputus' => $baris->sum('terputus'),
+                'pelanggaran' => $baris->sum('pelanggaran'),
+                'terkunci' => $baris->sum('terkunci'),
+            ],
+            'mapel' => $this->mapelEvent($event),
+            'jalur_sesi' => "/admin/events/{$event->id}/monitoring/sesi",
+            'jalur_ruang' => "/admin/events/{$event->id}/monitoring/ruang",
+        ]);
+    }
+
+    /**
+     * Papan keadaan lintas SEMUA ruang event - pintasan dari daftar sesi.
+     *
+     * Alasan yang sama dengan `presensiRuang()`: daftar sesi menjawab "sesi
+     * mana yang tertinggal", tetapi Admin yang mendampingi satu pengawas lewat
+     * telepon melihat satu RUANGAN, bukan satu sesi - dan papan ini yang
+     * menjawabnya dalam sekali buka.
+     */
+    public function monitoringRuangEvent(SchoolEvent $event): Response
+    {
+        Gate::authorize('view', $event);
+
+        $ruangan = $this->ruangan($event);
         $peserta = $ruangan->flatMap->participants;
 
         $attempt = $this->attemptTerakhir($peserta->pluck('id'));
@@ -807,14 +893,110 @@ class PemantauanEventController
             ];
         })->values();
 
+        return $this->renderMonitoring($event, $baris, $peserta->count(), null);
+    }
+
+    /**
+     * Papan satu SESI - ruang-ruangnya beserta angka pengerjaannya.
+     *
+     * Barisnya RUANG-SESI, dan di sini itu benar: satu ruangan yang dipakai
+     * dua sesi tidak boleh muncul dua kali dengan angka yang sama, karena
+     * angka yang dibaca Admin adalah angka sesi ini.
+     */
+    public function monitoringSesi(SchoolEvent $event, ExamSession $sesi): Response
+    {
+        Gate::authorize('view', $event);
+
+        // Sesi harus benar-benar milik event di URL - alasan yang sama dengan
+        // `presensiSesi()`: binding implisit menemukan sesi di seluruh
+        // sekolah, dan scope tenant tidak menutupnya karena sekolahnya sama.
+        abort_unless($sesi->exam?->event_id === $event->id, 404);
+
+        $sesi->load(['exam:id,code,title,subject_id', 'exam.subject:id,name']);
+
+        $ruangan = ExamSessionRoom::query()
+            ->where('exam_session_id', $sesi->id)
+            ->with([
+                'eventRoom.room:id,code,name,location',
+                'session.exam:id,code,title,subject_id',
+                'session.exam.subject:id,name',
+                'supervisors.supervisor:id,name',
+                'participants:id,exam_session_room_id,student_id,school_id',
+            ])
+            ->orderBy('id')
+            ->get();
+
+        $peserta = $ruangan->flatMap->participants;
+        $attempt = $this->attemptTerakhir($peserta->pluck('id'));
+        $insidenPerRuang = $this->insiden->jumlahTerbukaPerRuang($ruangan);
+
+        $baris = $ruangan->map(function (ExamSessionRoom $ruang) use ($attempt, $insidenPerRuang) {
+            $anak = $ruang->participants;
+
+            return [
+                'ruang_id' => $ruang->id,
+                'ruang' => $ruang->eventRoom?->room?->code ?? 'R-?',
+                'ruang_nama' => $ruang->eventRoom?->room?->name,
+                'sesi' => $ruang->session?->label(),
+                'ujian' => $ruang->session?->exam?->title,
+                'status_sesi' => $ruang->session?->status->value,
+                'status_label' => $ruang->session?->status->label(),
+
+                'peserta' => $anak->count(),
+                'mengerjakan' => $anak->filter(
+                    fn (ExamParticipant $p) => $attempt->get($p->id)?->status === ExamAttempt::STATUS_BERJALAN,
+                )->count(),
+                'selesai' => $anak->filter(
+                    fn (ExamParticipant $p) => $attempt->get($p->id)?->status === ExamAttempt::STATUS_DIKIRIM,
+                )->count(),
+                'terputus' => $anak->filter(function (ExamParticipant $p) use ($attempt) {
+                    $a = $attempt->get($p->id);
+
+                    return $a !== null && ! $a->terhubung();
+                })->count(),
+                'pelanggaran' => $anak->sum(fn (ExamParticipant $p) => $attempt->get($p->id)?->violation_count ?? 0),
+                'terkunci' => $anak->filter(fn (ExamParticipant $p) => $attempt->get($p->id)?->dikunci() ?? false)->count(),
+                'insiden' => $insidenPerRuang[$ruang->id] ?? 0,
+            ];
+        })->values();
+
+        return $this->renderMonitoring($event, $baris, $peserta->count(), $sesi);
+    }
+
+    /**
+     * Payload akhir papan monitoring - dipakai KETIGA bentuknya.
+     *
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $baris
+     */
+    private function renderMonitoring(SchoolEvent $event, \Illuminate\Support\Collection $baris, int $jumlahPeserta, ?ExamSession $sesi): Response
+    {
         return Inertia::render('Admin/Event/Monitoring', [
             'event' => $this->ringkas($event),
+            'baris' => $baris->all(),
+
+            // Sesi yang sedang dibuka, bila laman ini adalah laman SATU sesi.
+            // Null berarti papan seluruh event - alasan yang sama dengan
+            // `renderPresensi()`.
+            'sesi' => $sesi === null ? null : [
+                'id' => $sesi->id,
+                'label' => $sesi->label(),
+                'ujian' => $sesi->exam?->subject?->name ?? $sesi->exam?->title,
+                'judul_ujian' => $sesi->exam?->title,
+                'tanggal' => $sesi->access_opens_at?->format('d M'),
+                'jam' => $sesi->access_opens_at?->format('H:i'),
+                'selesai' => $sesi->hard_end_at?->format('H:i'),
+                'status_label' => $sesi->status->label(),
+                'susulan' => $sesi->susulan(),
+            ],
+
+            'jalur_daftar_sesi' => "/admin/events/{$event->id}/monitoring",
+
             // Alamat laman rincian, supaya tautannya TIDAK disusun ulang di
             // React. Laman denah memakai pola yang sama (`denah_url`), dan
             // alasannya sama: alamat yang hidup di dua tempat adalah alamat
             // yang suatu hari berbeda di salah satunya.
             'ruang_url' => "/admin/events/{$event->id}/monitoring/ruang",
-            'baris' => $baris->all(),
+            'tidak_hadir_url' => "/admin/events/{$event->id}/monitoring/tidak-hadir",
 
             // Daftar mapel yang AKAN diujikan - termasuk yang belum punya
             // sesi. Papan ini disusun dari ruang-sesi, sehingga mapel yang
@@ -825,7 +1007,7 @@ class PemantauanEventController
             'mapel' => $this->mapelEvent($event),
             'angka' => [
                 'ruang' => $baris->count(),
-                'peserta' => $peserta->count(),
+                'peserta' => $jumlahPeserta,
                 'mengerjakan' => $baris->sum('mengerjakan'),
                 'selesai' => $baris->sum('selesai'),
                 'terputus' => $baris->sum('terputus'),

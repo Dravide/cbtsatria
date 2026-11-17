@@ -104,7 +104,7 @@ it('menyebut mapel yang belum punya sesi, di laman monitoring', function () {
     ]);
 
     masukUji($this, $this->admin)
-        ->get("/admin/events/{$data['event']->id}/monitoring")
+        ->get("/admin/events/{$data['event']->id}/monitoring/ruang")
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Admin/Event/Monitoring')

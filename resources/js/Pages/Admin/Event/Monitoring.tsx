@@ -85,7 +85,26 @@ type Baris = {
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     ruang_url: string;
+    tidak_hadir_url: string;
     baris: Baris[];
+
+    /**
+     * Sesi yang sedang dibuka, bila laman ini adalah laman SATU sesi atau
+     * papan seluruh-ruang. Null berarti papan seluruh-event, dan bentuk
+     * `baris` di bawahnya berbeda - lihat catatan kepala kelas.
+     */
+    sesi: {
+        id: number;
+        label: string;
+        ujian: string | null;
+        judul_ujian: string | null;
+        tanggal: string | null;
+        jam: string | null;
+        selesai: string | null;
+        status_label: string;
+        susulan: boolean;
+    } | null;
+    jalur_daftar_sesi: string;
 
     /**
      * Seluruh mapel event, termasuk yang belum dijadwalkan - lihat catatan
@@ -103,28 +122,42 @@ type Props = {
     };
 };
 
-export default function EventMonitoring({ event, ruang_url, baris, mapel, angka }: Props) {
+export default function EventMonitoring({
+    event,
+    ruang_url,
+    tidak_hadir_url,
+    baris,
+    sesi,
+    jalur_daftar_sesi,
+    mapel,
+    angka,
+}: Props) {
     const terkunci = baris.filter((b) => b.terkunci > 0);
     const terisi = baris.filter((b) => b.peserta > 0);
     const adaAttempt = angka.mengerjakan > 0 || angka.selesai > 0;
 
     return (
         <AdminLayout
-            judul="Monitoring"
-            breadcrumb={`/admin/events · ${event.kode} · Monitoring`}
+            judul={sesi ? `Monitoring ${sesi.label}` : 'Monitoring per ruang'}
+            breadcrumb={
+                sesi
+                    ? `/admin/events · ${event.kode} · Monitoring · ${sesi.label}`
+                    : `/admin/events · ${event.kode} · Monitoring · Semua ruang`
+            }
             aksi={
                 <>
-                    {/* Rekap "tidak hadir" - nama, ruang, dan kelas. Pertanyaan
-                        yang dijawabnya berbeda dari papan ini: papan menjawab
-                        "ruang mana yang tertinggal", rekap menjawab "siapa
-                        saja yang tidak hadir". Yang membacanya wali kelas dan
-                        Admin yang menyiapkan ujian susulan. */}
+                    {/* Dua tautan, dan keduanya ke LAMAN LAIN, bukan tab baru:
+                        keduanya menjawab pertanyaan yang berbeda dari papan
+                        ini, dan Admin yang pindah ke sana sedang mengerjakan
+                        pekerjaan yang lain. */}
                     <TombolTautan
-                        href={`/admin/events/${event.id}/monitoring/tidak-hadir`}
+                        href={tidak_hadir_url}
                         title="Daftar siswa tidak hadir beserta ruang dan kelasnya"
                     >
                         Rekap tidak hadir
                     </TombolTautan>
+
+                    <TombolTautan href={jalur_daftar_sesi}>Daftar sesi</TombolTautan>
 
                     <span className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-2">
                         <span className="text-ink-3">Event:</span>
@@ -134,6 +167,27 @@ export default function EventMonitoring({ event, ruang_url, baris, mapel, angka 
             }
         >
             <Head title={`Monitoring · ${event.nama}`} />
+
+            {/* Kepala sesi, hanya di laman satu sesi - isinya jam dan status,
+                dua hal yang tidak terbawa nama sesinya dan yang menjelaskan
+                mengapa angkanya masih nol. */}
+            {sesi && (
+                <div className="mb-3 rounded-wf border border-line bg-surface px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-sm font-medium text-ink">{sesi.label}</span>
+                        <span className="text-sm text-ink">{sesi.ujian ?? '—'}</span>
+                        {sesi.susulan && <Chip nada="info">susulan</Chip>}
+                        <Chip nada="mute">{sesi.status_label}</Chip>
+                        <span className="ml-auto font-mono text-[11px] text-ink-3">
+                            {sesi.tanggal ?? '—'} · {sesi.jam ?? '—'}
+                            {sesi.selesai ? `–${sesi.selesai}` : ''}
+                        </span>
+                    </div>
+                    {sesi.judul_ujian && (
+                        <p className="mt-1 text-[11px] text-ink-3">{sesi.judul_ujian}</p>
+                    )}
+                </div>
+            )}
 
             {/* Mapel lebih dulu, dan alasannya sama dengan laman Presensi:
                 papan di bawah disusun dari ruang-sesi, sehingga mapel yang
@@ -204,8 +258,9 @@ export default function EventMonitoring({ event, ruang_url, baris, mapel, angka 
                 {baris.length === 0 && (
                     <Kotak>
                         <p className="py-6 text-center text-sm text-ink-3">
-                            Event ini belum punya sesi yang menempatkan peserta di ruang
-                            mana pun.
+                            {sesi
+                                ? `Sesi ${sesi.label} belum punya ruang. Tetapkan ruangnya di laman Jadwal & sesi.`
+                                : 'Event ini belum punya sesi yang menempatkan peserta di ruang mana pun.'}
                         </p>
                     </Kotak>
                 )}

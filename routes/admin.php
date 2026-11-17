@@ -537,6 +537,19 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/events/{event}/monitoring', [PemantauanEventController::class, 'monitoring'])
         ->name('events.monitoring');
 
+    // Papan satu sesi, dan papan seluruh-event. Sejak 2026-11-17 `/monitoring`
+    // adalah DAFTAR SESI - alasan yang sama dengan `/presensi`: kartu per
+    // ruang mencampur sesi, sehingga "ruang mana yang tertinggal" terjawab
+    // untuk gabungan beberapa ujian sekaligus.
+    //
+    // `sesi` didaftarkan SEBELUM `ruang`, dan `tidak-hadir` sesudah keduanya:
+    // semuanya segmen statis di tingkat kedua, sehingga tidak ada yang bisa
+    // tertukar - urutannya hanya supaya maksudnya terbaca.
+    Route::get('/events/{event}/monitoring/sesi/{sesi}', [PemantauanEventController::class, 'monitoringSesi'])
+        ->name('events.monitoring.sesi');
+    Route::get('/events/{event}/monitoring/ruang', [PemantauanEventController::class, 'monitoringRuangEvent'])
+        ->name('events.monitoring.ruang-semua');
+
     // Rekap siswa TIDAK HADIR - nama, ruang, dan kelasnya.
     //
     // Didaftarkan SESUDAH `/monitoring` dan SEBELUM `/monitoring/ruang/{ruang}`:

@@ -467,7 +467,7 @@ it('membiarkan ruang tanpa peserta sebagai daftar kosong, bukan menolaknya', fun
     // ruang kedua benar-benar kosong lewat jalur pengisian yang biasa.
     $data = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['A-1', 'A-2'], 1);
 
-    $papan = propsPapan($this, $this->admin, "/admin/events/{$data['event']->id}/monitoring");
+    $papan = propsPapan($this, $this->admin, "/admin/events/{$data['event']->id}/monitoring/ruang");
 
     $terisi = collect($papan['baris'])->firstWhere('peserta', 1);
     $kosong = collect($papan['baris'])->firstWhere('peserta', 0);
