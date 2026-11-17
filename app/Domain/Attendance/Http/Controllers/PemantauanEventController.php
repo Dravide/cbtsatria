@@ -125,16 +125,193 @@ class PemantauanEventController
 
         $ruangan = $this->ruangan($event);
 
-        // Berita acaranya dibaca SEKALI untuk kedua bentuk laman - lihat
+        // Berita acaranya dibaca SEKALI untuk seluruh bentuk laman - lihat
         // `beritaAcara()`. Dua pemanggilan berarti dua kueri atas tabel yang
         // sama untuk laman yang hanya dibuka satu kali.
         $laporan = $this->beritaAcara($ruangan);
 
+        return $this->daftarSesiPresensi($event, $ruangan, $laporan);
+    }
+
+    /**
+     * Papan presensi SELURUH ruang event - pintasan dari daftar sesi.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa laman ini masih ada, padahal setiap sesi punya lamannya sendiri
+     * ---------------------------------------------------------------------
+     * Daftar sesi menjawab "sesi mana yang tertinggal". Tetapi ada pertanyaan
+     * yang tidak dijawab oleh satu sesi: "R-07 hari ini bagaimana" - dan
+     * Admin yang sedang mendampingi satu pengawas lewat telepon melihat satu
+     * ruangan, bukan satu sesi. Menghapus papan ini berarti ia harus membuka
+     * dua belas sesi untuk menemukan satu ruangan.
+     */
+    public function presensiRuang(SchoolEvent $event): Response
+    {
+        Gate::authorize('view', $event);
+
+        $ruangan = $this->ruangan($event);
+        $laporan = $this->beritaAcara($ruangan);
         $roster = $this->peta->rosterEvent($event);
 
         return $roster === null
             ? $this->presensiPerRuangSesi($event, $ruangan, $laporan)
             : $this->presensiPerRuangEvent($event, $ruangan, $roster, $laporan);
+    }
+
+    /**
+     * Presensi satu SESI - daftar ruangnya beserta rekap dan daftar anaknya.
+     *
+     * ---------------------------------------------------------------------
+     * Barisnya RUANG-SESI, bukan ruang event
+     * ---------------------------------------------------------------------
+     * Di laman seluruh-event barisnya ruang EVENT, karena satu ruangan dipakai
+     * beberapa sesi dan pertanyaan Admin di sana adalah "ruangan mana yang
+     * tertinggal hari ini". Di sini pertanyaannya berbeda: "sesi ini, di tiap
+     * ruangnya, bagaimana" - dan ruang event yang dipakai dua sesi tidak
+     * boleh muncul dua kali dengan angka yang sama.
+     *
+     * Dengan begitu jumlah ruangnya sama dengan yang tertulis di jadwal, dan
+     * itu satu-satunya angka yang dicocokkan orang saat memeriksa sesi.
+     */
+    public function presensiSesi(SchoolEvent $event, ExamSession $sesi): Response
+    {
+        Gate::authorize('view', $event);
+
+        // Sesi harus benar-benar milik event di URL. Binding implisit
+        // menemukan sesi di seluruh sekolah, dan scope tenant tidak
+        // menutupnya karena sekolahnya sama - 404, bukan 403. Alasan yang
+        // sama dengan `markingRuang()` di bawah.
+        abort_unless($sesi->exam?->event_id === $event->id, 404);
+
+        $sesi->load(['exam:id,code,title,subject_id', 'exam.subject:id,name']);
+
+        $ruangan = ExamSessionRoom::query()
+            ->where('exam_session_id', $sesi->id)
+            ->with([
+                'eventRoom.room:id,code,name,location',
+                'session.exam:id,code,title,subject_id',
+                'session.exam.subject:id,name',
+                'supervisors.supervisor:id,name',
+                'participants:id,exam_session_room_id,student_id,school_id',
+                'participants.student:id,name,school_id',
+                'participants.student.studentProfile:id,user_id,nis',
+            ])
+            ->orderBy('id')
+            ->get();
+
+        $laporan = $this->beritaAcara($ruangan);
+
+        return $this->presensiPerRuangSesi($event, $ruangan, $laporan, $sesi);
+    }
+
+    /**
+     * Daftar SESI event beserta rekap presensinya - titik masuk laman presensi.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa sesi lebih dulu, bukan ruang
+     * ---------------------------------------------------------------------
+     * Sebelum 2026-11-17 laman `/presensi` langsung menampilkan seluruh
+     * ruangan (33 kartu di event besar). Dua hal salah sekaligus: kartunya
+     * mencampur sesi yang berbeda, dan yang paling sering dicari Admin -
+     * "sesi mana yang belum tuntas" - hanya bisa dijawab dengan menjumlahkan
+     * tiga puluh tiga kartu secara manual.
+     *
+     * Pertanyaan yang urut: sesi mana, lalu ruang mana di dalamnya. Karena
+     * itu halaman ini memuat satu baris per sesi, dan rinciannya ada di
+     * laman sesinya.
+     *
+     * ---------------------------------------------------------------------
+     * Kuerinya tetap, berapa pun jumlah sesinya
+     * ---------------------------------------------------------------------
+     * Presensi, berita acara, dan insiden dibaca SEKALI untuk seluruh event
+     * lalu dikelompokkan - bukan per sesi. Sifat yang sama dengan
+     * `presensiPerRuangEvent()` dan dijaga `PemantauanQueryTest`.
+     *
+     * @param  Collection<int, ExamSessionRoom>  $ruangan
+     * @param  Collection<int, SessionReport>  $laporan  kunci: exam_session_room_id
+     */
+    private function daftarSesiPresensi(SchoolEvent $event, Collection $ruangan, Collection $laporan): Response
+    {
+        $records = AttendanceRecord::query()
+            ->whereIn('exam_participant_id', $ruangan->flatMap->participants->pluck('id'))
+            ->get()
+            ->keyBy('exam_participant_id');
+
+        $insidenPerRuang = $this->insiden->jumlahTerbukaPerRuang($ruangan);
+
+        $sesi = ExamSession::query()
+            ->whereIn('exam_id', $event->exams()->pluck('id'))
+            ->with(['exam:id,code,title,subject_id', 'exam.subject:id,name'])
+            ->orderBy('access_opens_at')
+            ->orderBy('session_number')
+            ->get();
+
+        $baris = $sesi->map(function (ExamSession $s) use ($ruangan, $laporan, $records, $insidenPerRuang) {
+            $milik = $ruangan->where('exam_session_id', $s->id)->values();
+
+            $catatan = $milik
+                ->flatMap->participants
+                ->pluck('id')
+                ->map(fn ($id) => $records->get($id))
+                ->filter()
+                ->values();
+
+            $rekap = $this->kehadiran->rekapDari($catatan);
+
+            // `total` = peserta yang DITEMPATKAN di ruang sesi ini, bukan
+            // jumlah baris presensi: yang belum dipresensi tetap anak yang
+            // duduk di kursinya, dan menghilangkannya membuat sesi terbaca
+            // lebih kecil daripada jadwalnya.
+            $rekap['total'] = $milik->flatMap->participants->pluck('id')->unique()->count();
+            $rekap['pending'] = $rekap['total'] - ($rekap['hadir'] + $rekap['terlambat'] + $rekap['tidak_hadir'] + $rekap['izin']);
+
+            $berita = $milik
+                ->map(fn (ExamSessionRoom $r) => $this->ringkasLaporan($r, $laporan->get($r->id)))
+                ->values();
+
+            return [
+                'id' => $s->id,
+                'label' => $s->label(),
+                'ujian' => $s->exam?->subject?->name ?? $s->exam?->title,
+                'judul_ujian' => $s->exam?->title,
+                'tanggal' => $s->access_opens_at?->format('d M'),
+                'jam' => $s->access_opens_at?->format('H:i'),
+                'selesai' => $s->hard_end_at?->format('H:i'),
+                'status' => $s->status->value,
+                'status_label' => $s->status->label(),
+                'jenis' => $s->jenis?->value ?? 'utama',
+                'susulan' => $s->susulan(),
+                'ruang' => $milik->count(),
+                'ruang_tanpa_pengawas' => $milik
+                    ->filter(fn (ExamSessionRoom $r) => $r->supervisors->isEmpty())
+                    ->map(fn (ExamSessionRoom $r) => $r->eventRoom?->room?->code ?? 'R-?')
+                    ->values()
+                    ->all(),
+                'rekap' => $rekap,
+                'insiden' => $milik->sum(fn (ExamSessionRoom $r) => $insidenPerRuang[$r->id] ?? 0),
+                'berita_acara' => [
+                    'ada' => $berita->count(),
+                    'final' => $berita->where('selesai', true)->count(),
+                    'dibuka' => $berita->where('dibuka', true)->count(),
+                ],
+            ];
+        })->values();
+
+        return Inertia::render('Admin/Event/PresensiDaftarSesi', [
+            'event' => $this->ringkas($event),
+            'baris' => $baris->all(),
+            'angka' => [
+                'sesi' => $baris->count(),
+                'belum_tuntas' => $baris->filter(fn (array $b) => $b['rekap']['pending'] > 0)->count(),
+                'peserta' => $baris->sum(fn (array $b) => $b['rekap']['total']),
+                'hadir' => $baris->sum(fn (array $b) => $b['rekap']['hadir']),
+                'tanpa_pengawas' => $baris->sum(fn (array $b) => count($b['ruang_tanpa_pengawas'])),
+                'insiden' => $baris->sum('insiden'),
+            ],
+            'mapel' => $this->mapelEvent($event),
+            'jalur_sesi' => "/admin/events/{$event->id}/presensi/sesi",
+            'jalur_ruang' => "/admin/events/{$event->id}/presensi/ruang",
+        ]);
     }
 
     /**
@@ -145,7 +322,7 @@ class PemantauanEventController
      * @param  Collection<int, ExamSessionRoom>  $ruangan
      * @param  Collection<int, SessionReport>  $laporan  kunci: exam_session_room_id
      */
-    private function presensiPerRuangSesi(SchoolEvent $event, Collection $ruangan, Collection $laporan): Response
+    private function presensiPerRuangSesi(SchoolEvent $event, Collection $ruangan, Collection $laporan, ?ExamSession $sesi = null): Response
     {
         // Satu query presensi untuk SELURUH event, bukan satu per ruang.
         // Laman ini dibuka Admin di tengah hari-H saat basis data paling
@@ -211,7 +388,7 @@ class PemantauanEventController
             ];
         })->values();
 
-        return $this->renderPresensi($event, $baris);
+        return $this->renderPresensi($event, $baris, $sesi);
     }
 
     /**
@@ -478,11 +655,30 @@ class PemantauanEventController
      *
      * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $baris
      */
-    private function renderPresensi(SchoolEvent $event, \Illuminate\Support\Collection $baris): Response
+    private function renderPresensi(SchoolEvent $event, \Illuminate\Support\Collection $baris, ?ExamSession $sesi = null): Response
     {
         return Inertia::render('Admin/Event/Presensi', [
             'event' => $this->ringkas($event),
             'baris' => $baris->all(),
+
+            // Sesi yang sedang dibuka, bila laman ini adalah laman SATU sesi.
+            // Null berarti papan seluruh event. Bedanya dipakai kepala laman
+            // untuk memilih breadcrumb dan tombol pulang - dan bukan
+            // disimpulkan dari `baris`, karena sesi yang belum punya ruang
+            // menghasilkan `baris` kosong yang sama dengan event tanpa sesi.
+            'sesi' => $sesi === null ? null : [
+                'id' => $sesi->id,
+                'label' => $sesi->label(),
+                'ujian' => $sesi->exam?->subject?->name ?? $sesi->exam?->title,
+                'judul_ujian' => $sesi->exam?->title,
+                'tanggal' => $sesi->access_opens_at?->format('d M'),
+                'jam' => $sesi->access_opens_at?->format('H:i'),
+                'selesai' => $sesi->hard_end_at?->format('H:i'),
+                'status_label' => $sesi->status->label(),
+                'susulan' => $sesi->susulan(),
+            ],
+
+            'jalur_daftar_sesi' => "/admin/events/{$event->id}/presensi",
 
             'angka' => [
                 'ruang' => $baris->count(),

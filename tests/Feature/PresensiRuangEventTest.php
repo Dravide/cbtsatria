@@ -86,7 +86,7 @@ it('menampilkan seluruh penghuni ruang walau kursinya belum tersimpan', function
     AttendanceRecord::query()->delete();
 
     masukSebagai($this, $this->admin)
-        ->get("/admin/events/{$d['event']->id}/presensi")
+        ->get("/admin/events/{$d['event']->id}/presensi/ruang")
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Admin/Event/Presensi')
@@ -126,7 +126,7 @@ it('menghitung peserta tanpa baris presensi sebagai belum, bukan mengecilkan tot
     AttendanceRecord::query()->delete();
 
     masukSebagai($this, $this->admin)
-        ->get("/admin/events/{$d['event']->id}/presensi")
+        ->get("/admin/events/{$d['event']->id}/presensi/ruang")
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('baris.0.rekap.total', 4)
@@ -158,7 +158,7 @@ it('menautkan baris presensi yang SUDAH ada ke peserta hasil kocokan', function 
     $record->forceFill(['attendance_status' => 'hadir', 'verified_at' => now()])->save();
 
     $props = masukSebagai($this, $this->admin)
-        ->get("/admin/events/{$d['event']->id}/presensi")
+        ->get("/admin/events/{$d['event']->id}/presensi/ruang")
         ->viewData('page')['props'];
 
     $baris = collect($props['baris'])->firstWhere(fn (array $b) => collect($b['peserta'])->contains('record_id', $record->id));
@@ -192,13 +192,13 @@ it('tidak menambah kueri saat ruangnya ditambah - presensi per ruang event', fun
             ->assertSessionMissing('galat');
     }
 
-    $kueriKecil = hitungKueriPresensi($this, "/admin/events/{$kecil['event']->id}/presensi");
+    $kueriKecil = hitungKueriPresensi($this, "/admin/events/{$kecil['event']->id}/presensi/ruang");
 
     // `forget()` wajib: tanpa itu `SchoolResolver` memakai hasil resolusi
     // permintaan sebelumnya, dan yang diukur bukan lagi dua laman yang sama.
     app(SchoolResolver::class)->forget();
 
-    $kueriBesar = hitungKueriPresensi($this, "/admin/events/{$besar['event']->id}/presensi");
+    $kueriBesar = hitungKueriPresensi($this, "/admin/events/{$besar['event']->id}/presensi/ruang");
 
     expect($kueriBesar - $kueriKecil)->toBe(0);
 });

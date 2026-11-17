@@ -96,7 +96,7 @@ it('mengirim berita acara yang SUDAH ada beserta kekurangannya', function () {
 
     expect($laporan->final())->toBeFalse();
 
-    $props = propsPresensi($this, "/admin/events/{$d['event']->id}/presensi");
+    $props = propsPresensi($this, "/admin/events/{$d['event']->id}/presensi/ruang");
 
     $baris = collect($props['baris'])->firstWhere(
         fn (array $b) => collect($b['berita_acara'])->contains('ruang_sesi_id', (int) $ruang->id),
@@ -135,7 +135,7 @@ it('menandai ruang yang berita acaranya belum dibuka TANPA membuat draf', functi
     // ini, pemeriksaan di bawah bisa hijau karena fixture-nya keliru.
     expect(SessionReport::query()->count())->toBe(0);
 
-    $props = propsPresensi($this, "/admin/events/{$d['event']->id}/presensi");
+    $props = propsPresensi($this, "/admin/events/{$d['event']->id}/presensi/ruang");
 
     foreach ($props['baris'] as $b) {
         foreach ($b['berita_acara'] as $l) {
@@ -181,7 +181,7 @@ it('mengirim BEBERAPA berita acara saat satu ruang event dipakai dua sesi', func
     // diasumsikan, karena `ujianTambahan()` memakai SELURUH ruang event.
     expect($ruangKedua->first()->event_room_id)->toBe($d['ruang'][0]->event_room_id);
 
-    $props = propsPresensi($this, "/admin/events/{$d['event']->id}/presensi");
+    $props = propsPresensi($this, "/admin/events/{$d['event']->id}/presensi/ruang");
 
     $baris = collect($props['baris'])->firstWhere('ruang_id', (int) $d['ruang'][0]->event_room_id);
 
@@ -225,13 +225,13 @@ it('tidak menambah kueri saat ruangnya ditambah - berita acara ikut terbaca seka
         }
     }
 
-    $kueriKecil = hitungKueriBeritaAcara($this, "/admin/events/{$kecil['event']->id}/presensi");
+    $kueriKecil = hitungKueriBeritaAcara($this, "/admin/events/{$kecil['event']->id}/presensi/ruang");
 
     // `forget()` wajib: tanpa itu `SchoolResolver` memakai hasil resolusi
     // permintaan sebelumnya, dan yang diukur bukan lagi dua laman yang sama.
     app(SchoolResolver::class)->forget();
 
-    $kueriBesar = hitungKueriBeritaAcara($this, "/admin/events/{$besar['event']->id}/presensi");
+    $kueriBesar = hitungKueriBeritaAcara($this, "/admin/events/{$besar['event']->id}/presensi/ruang");
 
     expect($kueriBesar - $kueriKecil)->toBe(0);
 });
@@ -261,7 +261,7 @@ it('menghitung berita acara yang sudah final sebagai selesai', function () {
             'submitted_at' => now(),
         ]);
 
-    $props = propsPresensi($this, "/admin/events/{$d['event']->id}/presensi");
+    $props = propsPresensi($this, "/admin/events/{$d['event']->id}/presensi/ruang");
 
     $baris = collect($props['baris'])->firstWhere(
         fn (array $b) => collect($b['berita_acara'])->contains('ruang_sesi_id', (int) $ruang->id),
@@ -291,7 +291,7 @@ it('menampilkan jalur lama dengan satu berita acara per kartu ruang-sesi', funct
         ->get("/pengawas/ruang/{$ruang->id}/berita-acara")
         ->assertOk();
 
-    $props = propsPresensi($this, "/admin/events/{$data['event']->id}/presensi");
+    $props = propsPresensi($this, "/admin/events/{$data['event']->id}/presensi/ruang");
 
     expect($props['baris'])->not->toBeEmpty();
 

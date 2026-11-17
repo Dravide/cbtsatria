@@ -120,11 +120,11 @@ it('tidak menambah kueri saat ruangnya ditambah - papan presensi', function () {
         2,
     );
 
-    $kueriKecil = hitungKueri($this, "/admin/events/{$kecil['event']->id}/presensi");
+    $kueriKecil = hitungKueri($this, "/admin/events/{$kecil['event']->id}/presensi/ruang");
 
     app(SchoolResolver::class)->forget();
 
-    $kueriBesar = hitungKueri($this, "/admin/events/{$besar['event']->id}/presensi");
+    $kueriBesar = hitungKueri($this, "/admin/events/{$besar['event']->id}/presensi/ruang");
 
     expect($kueriBesar - $kueriKecil)->toBe(0);
 });

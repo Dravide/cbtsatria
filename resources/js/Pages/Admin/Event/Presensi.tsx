@@ -133,6 +133,25 @@ type Baris = {
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     baris: Baris[];
+    /**
+     * Sesi yang sedang dibuka, bila laman ini adalah laman SATU sesi.
+     *
+     * Null berarti papan seluruh-event (`/presensi/ruang`). Bentuk `baris`
+     * kedua laman itu sama - yang berbeda hanya cakupannya, dan kepala laman
+     * inilah satu-satunya tempat perbedaan itu terlihat.
+     */
+    sesi: {
+        id: number;
+        label: string;
+        ujian: string | null;
+        judul_ujian: string | null;
+        tanggal: string | null;
+        jam: string | null;
+        selesai: string | null;
+        status_label: string;
+        susulan: boolean;
+    } | null;
+    jalur_daftar_sesi: string;
     angka: {
         ruang: number;
         belum_tuntas: number;
@@ -154,7 +173,16 @@ type Props = {
     mapel: MapelEvent[];
 };
 
-export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawas, mapel }: Props) {
+export default function EventPresensi({
+    event,
+    baris,
+    sesi,
+    jalur_daftar_sesi,
+    angka,
+    opsi,
+    tanpa_pengawas,
+    mapel,
+}: Props) {
     // Ruang yang sedang dibuka daftar anaknya. Satu saja pada satu waktu:
     // laman ini dibuka untuk mencari ruangan yang tertinggal, dan membuka
     // dua daftar sekaligus membuat daftar yang dicari tergeser ke bawah.
@@ -162,16 +190,51 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
 
     return (
         <AdminLayout
-            judul="Presensi"
-            breadcrumb={`/admin/events · ${event.kode} · Presensi`}
+            judul={sesi ? `Presensi ${sesi.label}` : 'Presensi per ruang'}
+            breadcrumb={
+                sesi
+                    ? `/admin/events · ${event.kode} · Presensi · ${sesi.label}`
+                    : `/admin/events · ${event.kode} · Presensi · Semua ruang`
+            }
             aksi={
-                <span className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-2">
-                    <span className="text-ink-3">Event:</span>
-                    <span className="font-medium text-ink">{event.nama}</span>
-                </span>
+                <>
+                    {/* Jalan pulang ke daftar sesi. Di laman satu sesi, ini
+                        satu-satunya jalan kembali selain tombol peramban -
+                        dan laman ini sering dibuka dari tautan yang dikirim
+                        panitia, sehingga riwayat peramban bisa kosong. */}
+                    <TombolTautan href={jalur_daftar_sesi}>
+                        Daftar sesi
+                    </TombolTautan>
+
+                    <span className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-2">
+                        <span className="text-ink-3">Event:</span>
+                        <span className="font-medium text-ink">{event.nama}</span>
+                    </span>
+                </>
             }
         >
             <Head title={`Presensi · ${event.nama}`} />
+
+            {/* Kepala sesi, hanya di laman satu sesi. Isinya jam dan status -
+                dua hal yang tidak terbawa oleh nama sesinya, dan yang
+                menjelaskan mengapa presensinya belum terisi. */}
+            {sesi && (
+                <div className="mb-3 rounded-wf border border-line bg-surface px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-sm font-medium text-ink">{sesi.label}</span>
+                        <span className="text-sm text-ink">{sesi.ujian ?? '—'}</span>
+                        {sesi.susulan && <Chip nada="info">susulan</Chip>}
+                        <Chip nada="mute">{sesi.status_label}</Chip>
+                        <span className="ml-auto font-mono text-[11px] text-ink-3">
+                            {sesi.tanggal ?? '—'} · {sesi.jam ?? '—'}
+                            {sesi.selesai ? `–${sesi.selesai}` : ''}
+                        </span>
+                    </div>
+                    {sesi.judul_ujian && (
+                        <p className="mt-1 text-[11px] text-ink-3">{sesi.judul_ujian}</p>
+                    )}
+                </div>
+            )}
 
             {/* Daftar mapel ditaruh SEBELUM rekap ruang, dan urutannya
                 disengaja: pertanyaan pertama Admin saat membuka laman ini
@@ -221,7 +284,9 @@ export default function EventPresensi({ event, baris, angka, opsi, tanpa_pengawa
                 {baris.length === 0 && (
                     <Kotak>
                         <p className="py-6 text-center text-sm text-ink-3">
-                            Event ini belum punya sesi yang menempatkan peserta di ruang mana pun.
+                            {sesi
+                                ? `Sesi ${sesi.label} belum punya ruang. Tetapkan ruangnya di laman Jadwal & sesi.`
+                                : 'Event ini belum punya sesi yang menempatkan peserta di ruang mana pun.'}
                         </p>
                     </Kotak>
                 )}

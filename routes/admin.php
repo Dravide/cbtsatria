@@ -515,9 +515,22 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     | milik PRD §3.5, dan keduanya BERBEDA dari laman pengawas di
     | /pengawas/... - pertanyaannya bukan pertanyaan yang sama. Barisnya
     | ruang-sesi, bukan kursi; lihat PemantauanEventController.
+    |
+    | Sejak 2026-11-17 `/presensi` adalah DAFTAR SESI, dan rinciannya di
+    | `/presensi/sesi/{sesi}`. Papan seluruh-ruang yang lama tetap hidup di
+    | `/presensi/ruang`: ia menjawab pertanyaan yang tidak bisa dijawab satu
+    | sesi ("R-07 hari ini bagaimana").
+    |
+    | Ketiga rutenya statis di segmen pertama, sehingga tidak ada yang bisa
+    | tertukar dengan `{sesi}` - `sesi` didahulukan hanya supaya maksudnya
+    | terbaca.
     */
     Route::get('/events/{event}/presensi', [PemantauanEventController::class, 'presensi'])
         ->name('events.presensi');
+    Route::get('/events/{event}/presensi/sesi/{sesi}', [PemantauanEventController::class, 'presensiSesi'])
+        ->name('events.presensi.sesi');
+    Route::get('/events/{event}/presensi/ruang', [PemantauanEventController::class, 'presensiRuang'])
+        ->name('events.presensi.ruang');
     Route::post('/events/{event}/presensi/koreksi', [PemantauanEventController::class, 'koreksi'])
         ->name('events.presensi.koreksi');
 

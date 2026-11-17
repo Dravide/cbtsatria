@@ -62,7 +62,7 @@ it('menyebut mapel yang dijadwalkan maupun yang belum, di laman presensi', funct
     ]);
 
     masukUji($this, $this->admin)
-        ->get("/admin/events/{$data['event']->id}/presensi")
+        ->get("/admin/events/{$data['event']->id}/presensi/ruang")
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Admin/Event/Presensi')
@@ -129,7 +129,7 @@ it('tidak menambah kueri saat mapelnya ditambah', function () {
 
         app(SchoolResolver::class)->forget();
 
-        masukUji($this, $this->admin)->get("/admin/events/{$eventId}/presensi")->assertOk();
+        masukUji($this, $this->admin)->get("/admin/events/{$eventId}/presensi/ruang")->assertOk();
 
         return $n;
     };
