@@ -1,11 +1,13 @@
 <?php
 
+use App\Domain\Attendance\Http\Controllers\PantauPublikController;
 use App\Domain\Attendance\Http\Controllers\PapanPublikController;
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
 use App\Domain\Attendance\Http\Controllers\Siswa\HadirSiswaController;
 use App\Domain\Identity\Http\Controllers\Auth\LoginController;
 use App\Domain\Identity\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\IdentitasController;
+use App\Support\PembatasLaju;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -130,6 +132,33 @@ Route::get('/papan/{slug}', [PapanPublikController::class, 'tampilkan'])->name('
 Route::get('/papan/{slug}/pengawas/{supervisor}', [PapanPublikController::class, 'pengawas'])
     ->whereNumber('supervisor')
     ->name('papan.pengawas');
+
+/*
+|--------------------------------------------------------------------------
+| Pantau publik aktivitas ujian - `/pantau/{slug}` dan `/pantau/{slug}/denyut`
+|--------------------------------------------------------------------------
+| Ditambahkan 2026-11-17. Menjawab "ujiannya sudah sampai mana, dan ada yang
+| tertahan tidak" - pertanyaan yang ditanyakan orang yang sama di lorong
+| dengan papan pengawas, tetapi tidak dijawab papan itu: papan pengawas
+| menyebut ruang, pengawas, dan jam; ia tidak bergerak dan tidak tahu ada
+| peserta terkunci.
+|
+| Isinya ANGKA. Batasnya di `PantauPublik`: jumlah peserta, mengerjakan,
+| selesai, terputus, terkunci; kode ruang; nama pengawas; jam; dan keadaan
+| berita acara SATU KATA per ruang. Tidak nama siswa, tidak NIS, tidak
+| nomor kursi, tidak token, tidak isi berita acara.
+|
+| Slugnya `schools.papan_slug` yang SAMA dengan papan pengawas - satu sekolah
+| satu alamat publik, bukan dua yang bisa berbeda. Sekolah tanpa slug tidak
+| punya alamat ini sama sekali.
+|
+| `denyut` diberi limiter sendiri karena ia dipanggil tiap lima detik oleh
+| setiap layar yang membuka papan ini, dan alamat ini di luar login.
+*/
+Route::get('/pantau/{slug}', [PantauPublikController::class, 'tampilkan'])->name('pantau.publik');
+Route::get('/pantau/{slug}/denyut', [PantauPublikController::class, 'denyut'])
+    ->middleware('throttle:'.PembatasLaju::PANTAU)
+    ->name('pantau.denyut');
 
 /*
 |--------------------------------------------------------------------------

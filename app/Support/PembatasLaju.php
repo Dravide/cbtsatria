@@ -287,6 +287,34 @@ final class PembatasLaju
     /** Pesan saat kiriman skor melampaui batas. */
     public const PESAN_LUANG = 'Terlalu banyak kiriman skor. Tunggu satu menit, lalu coba lagi.';
 
+    /** Nama limiter untuk denyut papan pantau publik `/pantau/{slug}/denyut`. */
+    public const PANTAU = 'pantau-publik';
+
+    /**
+     * Denyut papan pantau per IP, per menit.
+     *
+     * ---------------------------------------------------------------------
+     * Enam puluh, dan angkanya berasal dari frekuensi halaman itu sendiri
+     * ---------------------------------------------------------------------
+     * Halaman memanggil denyut tiap LIMA detik, jadi satu layar yang terbuka
+     * memakai dua belas permintaan per menit. Enam puluh berarti lima layar
+     * di satu jaringan - dan itu memang keadaannya: papan ini dibuka di
+     * lorong, beberapa orang sekaligus, sering dari satu Wi-Fi sekolah.
+     *
+     * Yang dijaga bukan kredensial melainkan beban: alamat ini di luar
+     * login, ia menyentuh `exam_attempts` dan `session_reports`, dan tanpa
+     * batas satu skrip sederhana menjadikannya alat pembebanan atas basis
+     * data sekolah - tepat saat seluruh sekolah sedang mengerjakan ujian.
+     *
+     * Kuncinya per IP, BUKAN per slug: slug adalah alamat yang dibagikan,
+     * dan membatasi per slug berarti satu orang yang membuka lima tab
+     * memblokir seluruh sekolah yang membaca papan yang sama.
+     */
+    public const PANTAU_PER_IP = 60;
+
+    /** Pesan saat denyut melampaui batas - dibaca halaman, bukan orang. */
+    public const PESAN_PANTAU = 'Papan ini terlalu sering dimuat ulang dari jaringan ini. Tunggu satu menit, lalu segarkan.';
+
     public static function kunciPintuPasangan(string $slug, string $ip): string
     {
         return "pintu:{$slug}|{$ip}";

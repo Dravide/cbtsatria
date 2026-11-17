@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wireframe Pantau Publik &amp; Toast Siswa Terkunci</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   Wireframe School CBT — pantau publik aktivitas ujian
+   Primitif disalin dari wireframe-publik-kursi.html supaya
+   keduanya terbaca sebagai satu sistem. Yang BARU hanya dua:
+   .toast (tumpukan pemberitahuan) dan .live (penanda siaran).
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:70ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.fbtn{font:500 12px/1 var(--font-mono);letter-spacing:.04em;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.fbtn b{color:var(--ink-3);font-weight:500}
+.fbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.fbtn.on b{color:color-mix(in srgb,var(--on-accent) 70%,transparent)}
+.group{margin-bottom:38px;display:grid;gap:18px}
+.group>header{display:grid;gap:6px}
+.group>header h2{font-size:1.15rem;display:flex;gap:9px;align-items:baseline}
+.group>header h2 em{font-family:var(--font-mono);font-style:normal;font-size:12px;color:var(--accent);letter-spacing:.1em}
+.group>header p{color:var(--ink-2);max-width:72ch;font-size:13.5px}
+.shots{display:grid;gap:22px}
+.shots.phones{grid-template-columns:1fr}
+@media (min-width:600px){.shots.phones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:760px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1060px){.shots.phones{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.shot{display:grid;gap:10px;min-width:0}
+.cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cap .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.08em}
+.cap h3{font-size:.95rem}
+.cap .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;display:grid;gap:5px;font-size:13.5px;color:var(--ink-2)}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+
+/* --- primitif konsol (.wf) --- */
+.wf{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--wf-bg);color:var(--wf-ink);box-shadow:var(--shadow);min-width:0;position:relative}
+.wf .chrome{display:flex;gap:4px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--wf-line);background:var(--wf-head)}
+.wf .chrome .dot{width:5px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wf .chrome .url{margin-left:7px;font:500 8.5px/1 var(--font-mono);color:var(--wf-dim);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.wf .bd{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.crumb{font-size:9px;color:var(--wf-dim);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sp{margin-left:auto}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.c6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.list{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.lrow{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.lrow:last-child{border-bottom:0}
+.lrow.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.lrow .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.big{font-size:11px;padding:6px 14px}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.bar{height:4px;border-radius:99px;background:var(--wf-soft);overflow:hidden;border:1px solid var(--wf-hair)}
+.bar i{display:block;height:100%;background:var(--accent)}
+
+/* --- BARU: penanda siaran langsung --- */
+.live{display:inline-flex;align-items:center;gap:5px;font:500 8.5px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--bad)}
+.live::before{content:"";width:6px;height:6px;border-radius:99px;background:var(--bad);animation:pulse 1.6s ease-in-out infinite}
+.live.idle{color:var(--wf-dim)}
+.live.idle::before{background:var(--wf-dash);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* --- BARU: toast --- */
+.toastwrap{display:grid;gap:6px;width:min(300px,100%);min-width:0}
+.wf .toastwrap.floating{position:absolute;right:10px;bottom:10px;z-index:5}
+.toast{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:7px;align-items:start;
+  border:1px solid color-mix(in srgb,var(--bad) 30%,transparent);border-left:3px solid var(--bad);
+  border-radius:6px;background:var(--wf-bg);box-shadow:0 6px 18px -10px rgba(16,22,32,.55);padding:7px 8px;
+  animation:slide .28s ease-out}
+.toast.warn{border-color:color-mix(in srgb,var(--warn) 30%,transparent);border-left-color:var(--warn)}
+.toast.info{border-color:color-mix(in srgb,var(--info) 30%,transparent);border-left-color:var(--info)}
+.toast .ic{width:13px;height:13px;border-radius:99px;display:grid;place-items:center;
+  font:700 7px/1 var(--font-mono);color:var(--on-accent);background:var(--bad);margin-top:1px}
+.toast.warn .ic{background:var(--warn)}
+.toast.info .ic{background:var(--info)}
+.toast .t{font-size:9px;font-weight:600;color:var(--wf-ink);line-height:1.3}
+.toast .m{font-size:8px;color:var(--wf-dim);line-height:1.4}
+.toast .x{font:500 9px/1 var(--font-mono);color:var(--wf-dim);padding:1px 2px}
+@keyframes slide{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* --- primitif ponsel (.wd) --- */
+.wd{position:relative;width:238px;max-width:100%;height:auto;min-height:318px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--wf-bg);box-shadow:var(--shadow);color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;font-size:9.5px;line-height:1.35;min-width:0}
+.wd .notch{position:relative;height:15px;background:var(--wf-head);border-bottom:1px solid var(--wf-hair)}
+.wd .notch::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:4px;width:46px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wd .scr{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden;position:relative}
+.wd .hd{display:flex;gap:6px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);min-width:0;flex-wrap:wrap}
+.wd .hd b{font-family:var(--font-display);font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd .hd .sp{margin-left:auto}
+.wd .bd{padding:8px;display:grid;gap:7px;align-content:start;overflow:hidden;min-width:0}
+.wd .kpi .lb{font-size:7.5px}
+.wd .kpi b{font-size:13px}
+.wd .lrow .c{font-size:8.5px}
+.wd .list{border:1px solid var(--wf-hair);border-radius:8px;overflow:hidden;min-width:0}
+.wd .lrow{display:grid;gap:6px;align-items:center;padding:6px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.wd .lrow:last-child{border-bottom:0}
+.wd .lrow.th{background:var(--wf-head);font:500 7.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim);padding:5px 7px}
+.wd .toast{padding:6px 7px}
+.wd .toast .t{font-size:9px}
+.wd .toast .m{font-size:8px}
+.wd .toastwrap.floating{position:absolute;left:8px;right:8px;top:8px;width:auto;z-index:6}
+.wd.lg{min-height:430px}
+footer{border-top:1px solid var(--line);margin-top:14px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ wireframe pantau publik aktivitas ujian</span></div>
+    <div class="r">
+      <span>1 laman · 3 keadaan · 1 toast</span><span>draft 2026-11-17</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Permintaan: papan publik yang bergerak</div>
+    <h1>Sedang berjalan, dan siapa yang tertahan</h1>
+    <p class="lede">Sampai sekarang tidak ada satu pun layar di luar login yang menjawab "ujiannya sudah sampai mana". Papan publik yang ada (<code>/papan/{slug}</code>) hanya menyebut ruang, pengawas, dan jam — ia tidak bergerak dan tidak tahu ada yang terkunci. Panitia di lorong, kepala sekolah di ruang tamu, dan wali kelas yang menunggu di luar tidak punya angka untuk dilihat, padahal angka itu sudah ada di basis data dan hanya perlu dikirim.</p>
+    <div class="scope">
+      <span class="tag">Publik · tanpa login</span>
+      <span class="tag">Angka, bukan nama</span>
+      <span class="tag">Toast saat ada yang terkunci</span>
+      <span class="tag">Ponsel lebih dulu</span>
+    </div>
+  </div>
+
+  <div class="filters" role="group" aria-label="Saring laman">
+    <button class="fbtn on" data-g="all">Semua <b>3</b></button>
+    <button class="fbtn" data-g="layar">Layar <b>3</b></button>
+  </div>
+
+  <!-- ================================================================= -->
+  <section class="group" data-g="layar">
+    <header>
+      <h2><em>M</em> Pantau publik</h2>
+      <p>Satu alamat tanpa login, sama seperti papan pengawas: <code>/pantau/{slug}</code>. Isinya <b>angka</b> — berapa yang mengerjakan, berapa yang selesai, berapa yang terputus, berapa yang terkunci — per sesi dan per ruang. Nama siswa tidak pernah muncul di sini, dan keputusan itu bukan kehati-hatian berlebih: alamat ini tayang untuk seluruh internet, dan apa pun yang tampil di sini akan difoto lalu disebar.</p>
+    </header>
+
+    <div class="shots">
+
+      <!-- M1 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">M1</span><h3>Sedang berjalan · lebar</h3><span class="path">/pantau/{slug}</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/pantau/smk1-uas-ganjil</span></div>
+          <div class="tbar">
+            <span class="crumb">SMP Negeri 1 Cipanas</span>
+            <span class="chip info">UAS Ganjil · Sesi 2</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="live">langsung</span>
+            <span class="chip mute">diperbarui 3 dtk lalu</span>
+          </div>
+          <div class="bd">
+            <div class="cols c6">
+              <div class="kpi"><span class="lb">Peserta</span><b>412</b></div>
+              <div class="kpi"><span class="lb">Mengerjakan</span><b style="color:var(--info)">368</b></div>
+              <div class="kpi"><span class="lb">Selesai</span><b style="color:var(--ok)">31</b></div>
+              <div class="kpi"><span class="lb">Belum mulai</span><b>13</b></div>
+              <div class="kpi"><span class="lb">Terputus</span><b style="color:var(--warn)">4</b></div>
+              <div class="kpi"><span class="lb">Terkunci</span><b style="color:var(--bad)">2</b></div>
+            </div>
+
+            <div class="bar" style="height:6px"><i style="width:89%"></i></div>
+            <p style="font-size:8.5px;color:var(--wf-dim)">89% dari 412 peserta sedang memegang soal. Bilah ini satu-satunya alasan kartu angka di atas ada: yang dibaca orang di lorong adalah "sudah sampai mana", bukan "berapa tepatnya".</p>
+
+            <div class="ph">
+              <b>Per ruang</b>
+              <span class="sp"></span>
+              <span class="sel">Semua ruang</span>
+            </div>
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:52px 1fr 1fr 54px 50px 50px 72px">
+                <span>Ruang</span><span>Pengawas</span><span>Progres</span><span>Kerja</span><span>Selesai</span><span>Terkunci</span><span>Laporan</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 54px 50px 50px 72px">
+                <span class="c mono" style="font-weight:500">R-01</span>
+                <span class="c">Ani Mulyani</span>
+                <span class="c"><span class="bar" style="display:block"><i style="width:100%"></i></span></span>
+                <span class="c mono">36</span><span class="c mono">2</span><span class="c mono" style="color:var(--wf-dim)">0</span>
+                <span class="c"><span class="chip ok">terisi</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 54px 50px 50px 72px">
+                <span class="c mono" style="font-weight:500">R-02</span>
+                <span class="c">Sri Handayani</span>
+                <span class="c"><span class="bar" style="display:block"><i style="width:92%"></i></span></span>
+                <span class="c mono">33</span><span class="c mono">3</span><span class="c mono" style="color:var(--bad);font-weight:500">1</span>
+                <span class="c"><span class="chip warn">draf</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 54px 50px 50px 72px">
+                <span class="c mono" style="font-weight:500">R-03</span>
+                <span class="c" style="color:var(--warn)">belum ditetapkan</span>
+                <span class="c"><span class="bar" style="display:block"><i style="width:0%"></i></span></span>
+                <span class="c mono">0</span><span class="c mono">0</span><span class="c mono" style="color:var(--wf-dim)">0</span>
+                <span class="c"><span class="chip mute">belum</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 54px 50px 50px 72px">
+                <span class="c mono" style="font-weight:500">R-04</span>
+                <span class="c">Budi Santoso</span>
+                <span class="c"><span class="bar" style="display:block"><i style="width:88%"></i></span></span>
+                <span class="c mono">35</span><span class="c mono">1</span><span class="c mono" style="color:var(--bad);font-weight:500">1</span>
+                <span class="c"><span class="chip ok">terisi</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 54px 50px 50px 72px">
+                <span class="c mono" style="font-weight:500">R-05</span>
+                <span class="c">Dewi Kartika</span>
+                <span class="c"><span class="bar" style="display:block"><i style="width:76%"></i></span></span>
+                <span class="c mono">30</span><span class="c mono">0</span><span class="c mono" style="color:var(--wf-dim)">0</span>
+                <span class="c"><span class="chip mute">belum</span></span>
+              </div>
+            </div>
+            <p style="font-size:8.5px;color:var(--wf-dim)">Ruang tanpa pengawas <b>tetap tampil</b> dengan angka nol — justru itu yang perlu dikejar panitia, dan menyembunyikannya membuat papan yang bersih terbaca "semua beres". Kolom <b>Laporan</b> menjawab pertanyaan yang paling sering datang dari lorong: <em>pengawasnya sudah mengisi berita acara belum</em>.</p>
+          </div>
+
+          <!-- Toast: satu terkunci baru -->
+          <div class="toastwrap floating">
+            <div class="toast">
+              <span class="ic">!</span>
+              <span>
+                <span class="t">Peserta terkunci · R-02</span>
+                <span class="m">Sesi 2 · 07:41 — pengawas ruang sedang menangani.</span>
+              </span>
+              <span class="x">×</span>
+            </div>
+          </div>
+        </div>
+        <p class="note"><b>Toast menyebut RUANG, bukan nama.</b> Yang dijawab papan ini "ada yang tertahan, di mana", dan itu sudah cukup untuk membuat panitia bergerak. Nama siswa di papan publik adalah nama anak yang sedang terkena sanksi, tayang permanen di internet, tanpa ia pernah bisa membantah. Nama itu hanya ada di konsol pengawas dan Admin.</p>
+      </figure>
+
+      <!-- M2 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">M2</span><h3>Tumpukan toast · tiga kejadian</h3><span class="path">/pantau/{slug} (bersamaan)</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/pantau/smk1-uas-ganjil</span></div>
+          <div class="tbar">
+            <span class="crumb">SMP Negeri 1 Cipanas</span>
+            <span class="chip info">Sesi 2</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="live">langsung</span>
+          </div>
+          <div class="bd" style="min-height:270px">
+            <div class="cols c5">
+              <div class="kpi"><span class="lb">Mengerjakan</span><b style="color:var(--info)">368</b></div>
+              <div class="kpi"><span class="lb">Selesai</span><b style="color:var(--ok)">31</b></div>
+              <div class="kpi"><span class="lb">Terputus</span><b style="color:var(--warn)">6</b></div>
+              <div class="kpi"><span class="lb">Terkunci</span><b style="color:var(--bad)">3</b></div>
+              <div class="kpi"><span class="lb">Belum mulai</span><b>13</b></div>
+            </div>
+
+            <div class="toastwrap" style="width:100%">
+              <div class="toast">
+                <span class="ic">!</span>
+                <span>
+                  <span class="t">Peserta terkunci · R-04</span>
+                  <span class="m">Sesi 2 · 07:44 — percobaan pertama, pengawas dipanggil.</span>
+                </span>
+                <span class="x">×</span>
+              </div>
+              <div class="toast warn">
+                <span class="ic">~</span>
+                <span>
+                  <span class="t">2 peserta terputus · R-05</span>
+                  <span class="m">Sesi 2 · 07:44 — tanpa kabar lebih dari 90 detik.</span>
+                </span>
+                <span class="x">×</span>
+              </div>
+              <div class="toast info">
+                <span class="ic">✓</span>
+                <span>
+                  <span class="t">Laporan lengkap · R-01</span>
+                  <span class="m">Sesi 2 · 07:44 — berita acara ditandatangani dan dikirim.</span>
+                </span>
+                <span class="x">×</span>
+              </div>
+            </div>
+
+            <p style="font-size:8.5px;color:var(--wf-dim)">Paling banyak <b>tiga</b> toast sekaligus. Sisanya menunggu — tumpukan yang lebih panjang menutupi angkanya sendiri, dan papan ini dibuka justru untuk melihat angka. Ketiganya dari jenis berbeda: bahaya, peringatan, dan kabar baik.</p>
+          </div>
+        </div>
+        <p class="note gap"><b>Toast lahir dari SELISIH, bukan dari keadaan.</b> Papan ini menyegarkan diri tiap lima detik, dan yang dikirim server adalah jumlah dan daftar ruang — tidak ada id peserta di dalamnya. Peramban membandingkan potret sekarang dengan potret sebelumnya: ruang yang angka terkuncinya <em>naik</em> memunculkan toast. Kalau toast dibangun dari keadaan, setiap penyegaran akan memunculkan pemberitahuan yang sama sampai ada yang menutupnya.</p>
+      </figure>
+
+      <!-- M3 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">M3</span><h3>Ponsel · sedang berjalan</h3><span class="path">/pantau/{slug}</span></div>
+        <div class="wd lg">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd">
+              <b>Sedang berjalan</b>
+              <span class="sp"></span>
+              <span class="live" style="font-size:7px">langsung</span>
+            </div>
+            <div class="bd">
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span class="chip info">UAS Ganjil · S2</span>
+                <span class="chip mute">07:30–09:30</span>
+              </div>
+
+              <div class="cols c2">
+                <div class="kpi"><span class="lb">Mengerjakan</span><b style="color:var(--info)">368</b></div>
+                <div class="kpi"><span class="lb">Selesai</span><b style="color:var(--ok)">31</b></div>
+                <div class="kpi"><span class="lb">Terputus</span><b style="color:var(--warn)">6</b></div>
+                <div class="kpi"><span class="lb">Terkunci</span><b style="color:var(--bad)">3</b></div>
+              </div>
+
+              <div class="toastwrap" style="width:auto;position:relative;top:0;left:0;right:0">
+                <div class="toast">
+                  <span class="ic">!</span>
+                  <span>
+                    <span class="t">Terkunci · R-04</span>
+                    <span class="m">07:44 · pengawas dipanggil</span>
+                  </span>
+                  <span class="x">×</span>
+                </div>
+              </div>
+
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:52px 1fr 46px 46px">
+                  <span>Ruang</span><span>Progres</span><span>Kerja</span><span>Kunci</span>
+                </div>
+                <div class="lrow" style="grid-template-columns:52px 1fr 46px 46px">
+                  <span class="c"><span class="mono" style="font-weight:500">R-01</span><br><span class="chip ok" style="font-size:7px;padding:1px 4px;margin-top:1px;display:inline-block">laporan</span></span>
+                  <span class="c"><span class="bar" style="display:block"><i style="width:100%"></i></span></span>
+                  <span class="c mono">36</span><span class="c mono">0</span>
+                </div>
+                <div class="lrow" style="grid-template-columns:52px 1fr 46px 46px">
+                  <span class="c"><span class="mono" style="font-weight:500">R-02</span><br><span class="chip warn" style="font-size:7px;padding:1px 4px;margin-top:1px;display:inline-block">draf</span></span>
+                  <span class="c"><span class="bar" style="display:block"><i style="width:92%"></i></span></span>
+                  <span class="c mono">33</span><span class="c mono" style="color:var(--bad);font-weight:500">1</span>
+                </div>
+                <div class="lrow" style="grid-template-columns:52px 1fr 46px 46px">
+                  <span class="c"><span class="mono" style="font-weight:500">R-03</span><br><span class="chip mute" style="font-size:7px;padding:1px 4px;margin-top:1px;display:inline-block">belum</span></span>
+                  <span class="c"><span class="bar" style="display:block"><i style="width:0%"></i></span></span>
+                  <span class="c mono">0</span><span class="c mono">0</span>
+                </div>
+                <div class="lrow" style="grid-template-columns:52px 1fr 46px 46px">
+                  <span class="c"><span class="mono" style="font-weight:500">R-04</span><br><span class="chip ok" style="font-size:7px;padding:1px 4px;margin-top:1px;display:inline-block">laporan</span></span>
+                  <span class="c"><span class="bar" style="display:block"><i style="width:88%"></i></span></span>
+                  <span class="c mono">35</span><span class="c mono" style="color:var(--bad);font-weight:500">1</span>
+                </div>
+                <div class="lrow" style="grid-template-columns:52px 1fr 46px 46px">
+                  <span class="c"><span class="mono" style="font-weight:500">R-05</span><br><span class="chip mute" style="font-size:7px;padding:1px 4px;margin-top:1px;display:inline-block">belum</span></span>
+                  <span class="c"><span class="bar" style="display:block"><i style="width:76%"></i></span></span>
+                  <span class="c mono">30</span><span class="c mono">0</span>
+                </div>
+              </div>
+
+              <span style="font-size:7.5px;color:var(--wf-dim)">Nama siswa dan nomor kursi tidak pernah tampil di halaman ini.</span>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note"><b>Kolom yang dipangkas di ponsel: pengawas &mdash; laporan TIDAK.</b> Nama pengawas memakan separuh baris untuk sesuatu yang tidak bisa dibaca utuh di 360px. Keadaan laporan sebaliknya: ia pertanyaan yang ditanyakan di lorong, dan ia cukup satu chip di bawah kode ruang tanpa menambah satu kolom pun.</p>
+      </figure>
+
+      <!-- M4 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">M4</span><h3>Keadaan kosong · sebelum mulai</h3><span class="path">/pantau/{slug}</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/pantau/smk1-uas-ganjil</span></div>
+          <div class="tbar">
+            <span class="crumb">SMP Negeri 1 Cipanas</span>
+            <span class="chip info">Sesi 2</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="live idle">menunggu</span>
+          </div>
+          <div class="bd">
+            <div class="box solid" style="text-align:center;padding:18px 10px">
+              <b style="font-family:var(--font-display);font-size:13px">Sesi 2 dibuka pukul 07:30</b>
+              <span style="font-size:9px;color:var(--wf-dim)">Papan ini mulai bergerak saat peserta pertama menekan Mulai. Angka nol di bawah adalah keadaan yang sebenarnya, bukan papan yang rusak.</span>
+            </div>
+            <div class="cols c4">
+              <div class="kpi"><span class="lb">Peserta</span><b>412</b></div>
+              <div class="kpi"><span class="lb">Mengerjakan</span><b>0</b></div>
+              <div class="kpi"><span class="lb">Selesai</span><b>0</b></div>
+              <div class="kpi"><span class="lb">Terkunci</span><b>0</b></div>
+            </div>
+            <div class="inbox">Belum ada sesi yang berjalan. Yang ditampilkan adalah sesi berikutnya beserta jadwalnya — papan yang kosong tanpa keterangan akan dikira rusak.</div>
+          </div>
+        </div>
+        <p class="note"><b>Nol dan "belum ada" adalah dua kalimat berbeda.</b> Papan yang menampilkan empat angka nol tanpa penjelasan membuat orang mengetuk-ngetuk layar. Yang membedakan keduanya hanya satu baris: sesi mana yang dibaca, dan kapan ia mulai bergerak.</p>
+      </figure>
+
+      <!-- M5 -->
+      <figure class="shot" style="margin:0">
+        <div class="cap"><span class="n">M5</span><h3>Keadaan setelah selesai</h3><span class="path">/pantau/{slug}</span></div>
+        <div class="wf">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">/pantau/smk1-uas-ganjil</span></div>
+          <div class="tbar">
+            <span class="crumb">SMP Negeri 1 Cipanas</span>
+            <span class="chip mute">Sesi 2 · selesai</span>
+            <span class="sp" style="margin-left:auto"></span>
+            <span class="live idle">berhenti</span>
+            <span class="chip mute">07:30–09:30</span>
+          </div>
+          <div class="bd">
+            <div class="cols c5">
+              <div class="kpi"><span class="lb">Peserta</span><b>412</b></div>
+              <div class="kpi"><span class="lb">Mengumpulkan</span><b style="color:var(--ok)">404</b></div>
+              <div class="kpi"><span class="lb">Waktu habis</span><b>6</b></div>
+              <div class="kpi"><span class="lb">Tidak mengumpulkan</span><b style="color:var(--warn)">2</b></div>
+              <div class="kpi"><span class="lb">Terkunci</span><b style="color:var(--bad)">3</b></div>
+            </div>
+            <div class="list">
+              <div class="lrow th" style="grid-template-columns:52px 1fr 1fr 1fr 84px">
+                <span>Ruang</span><span>Peserta</span><span>Mengumpulkan</span><span>Belum</span><span>Laporan</span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 1fr 84px">
+                <span class="c mono" style="font-weight:500">R-01</span>
+                <span class="c mono">38</span><span class="c mono">38</span><span class="c mono">0</span>
+                <span class="c"><span class="chip ok">selesai</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 1fr 84px">
+                <span class="c mono" style="font-weight:500">R-02</span>
+                <span class="c mono">36</span><span class="c mono">35</span><span class="c mono" style="color:var(--warn)">1</span>
+                <span class="c"><span class="chip warn">draf</span></span>
+              </div>
+              <div class="lrow" style="grid-template-columns:52px 1fr 1fr 1fr 84px">
+                <span class="c mono" style="font-weight:500">R-04</span>
+                <span class="c mono">36</span><span class="c mono">36</span><span class="c mono">0</span>
+                <span class="c"><span class="chip mute">belum</span></span>
+              </div>
+            </div>
+            <div class="inbox">Papan berhenti memperbarui diri. Sesi 2 sudah ditutup pukul 09:30; angka di atas adalah keadaan terakhirnya dan tidak akan berubah lagi.</div>
+          </div>
+        </div>
+        <p class="note"><b>Berhenti harus TERLIHAT berhenti.</b> Penanda "langsung" yang tetap menyala pada sesi yang sudah ditutup adalah janji bahwa angkanya bergerak padahal tidak — dan orang akan menunggu angka yang tidak akan datang. Kata "berhenti" dan hilangnya denyut adalah kalimat yang menjawabnya.<br><br><b>Kolom Laporan paling berguna justru SESUDAH sesi ditutup.</b> Pagi hari kerjanya pengawas; sore hari kerjanya panitia yang mengejar berita acara yang belum ditandatangani. Karena itu kolomnya tidak ikut hilang saat papan berhenti bergerak.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section class="group">
+    <header>
+      <h2><em>Catatan teknis</em> yang menentukan bentuk di atas</h2>
+      <p>Bagian ini bukan gambar; ia yang membuat gambar di atas bisa dikerjakan tanpa keputusan yang belum diambil.</p>
+    </header>
+
+    <div class="shots">
+
+      <div class="note">
+        <b>Sumber angkanya `exam_attempts`, bukan `attendance_records`.</b>
+        Presensi menjawab "siapa datang"; papan ini menjawab "siapa sedang mengerjakan". Keduanya berbeda dan sudah pernah tertukar: peserta yang hadir tetapi belum menekan Mulai benar-benar berbeda dari peserta yang sedang menjawab soal. Yang dibaca: <code>status</code> (berjalan / dikirim / kedaluwarsa / dikunci) dan <code>last_seen_at</code> untuk "terputus".
+      </div>
+
+      <div class="note gap">
+        <b>"Terputus" adalah kesimpulan, bukan kolom.</b>
+        90 detik tanpa denyut. Peserta yang belum mulai tidak punya jam kabar sama sekali, jadi ia <em>tidak</em> dihitung terputus — kalau dihitung, sesi yang belum dimulai akan terbaca sebagai sesi yang seluruh jaringannya putus.
+      </div>
+
+      <div class="note">
+        <b>Penyegaran lima detik, dan seluruh angka dalam SATU permintaan.</b>
+        Endpoint JSON <code>/pantau/{slug}/denyut</code> mengembalikan potret lengkap — angka sesi, per ruang, dan jam pembaruan. Bukan satu permintaan per ruang: papan ini dibuka di jaringan sekolah pada jam paling sibuk, dan dua puluh permintaan per lima detik dari setiap layar di lorong adalah cara tercepat membuat basis data menyerah.
+      </div>
+
+      <div class="note gap">
+        <b>Toast dikerjakan di peramban, dari selisih dua potret.</b>
+        Server tidak menyimpan "sudah diberitahukan". Setiap layar membandingkan potretnya sendiri; ruang yang angka terkuncinya naik memunculkan satu toast, dan angkanya diturunkan ke nol setelah ditutup atau lewat 12 detik. Membuat server menyimpan keadaan itu berarti satu tabel pemberitahuan per layar, dan layar yang ditutup sebelum sempat membacanya akan menahan pemberitahuan itu selamanya.
+      </div>
+
+      <div class="note">
+        <b>Batas isi: angka, kode ruang, nama pengawas, jam, keadaan laporan.</b>
+        Sama persis dengan <code>PapanPengawas</code>. Yang tidak pernah dikirim ke alamat ini: nama siswa, NIS, nomor kursi, kelas, token, isi jawaban, isi berita acara, nama penanda tangan, dan foto. Alamat ini di luar <code>auth</code> — apa pun yang lolos ke payload-nya tayang untuk seluruh internet, dan tautan yang tertempel di lorong bisa difoto siapa pun yang lewat.
+      </div>
+
+      <div class="note gap">
+        <b>Laporan hanya keadaannya, bukan isinya.</b>
+        Yang dikirim satu nilai per ruang-sesi: <code>belum</code> · <code>draf</code> · <code>sesuai</code> · <code>kurang</code> · <code>selesai</code>. Tidak ada catatan, tidak ada nama penanda tangan, tidak ada jumlah foto, tidak ada salam. Yang dibutuhkan orang di lorong hanya "pengawasnya sudah mengisi atau belum" — dan itu lima kata, bukan dokumen. Dihitung dari <code>SessionReport</code> yang sudah dimuat laman Admin, dengan aturan yang SAMA: <code>final()</code> dan <code>kekuranganFinal()</code>, bukan salinan kedua yang bisa berbeda.
+      </div>
+
+      <div class="note">
+        <b>Toast laporan lahir sekali, saat ruang BERPINDAH ke selesai.</b>
+        Bukan setiap kali ada draf diperbarui — draf berubah beberapa kali dalam satu sesi, dan pemberitahuan untuk setiap simpanan akan menutupi pemberitahuan yang benar-benar penting. Yang diberitakan hanya perpindahan ke <code>selesai</code>, karena itulah satu-satunya keadaan yang bisa dikejar panitia.
+      </div>
+
+      <div class="note">
+        <b>Slug sekolah, bukan id event.</b>
+        <code>/pantau/{slug}</code> memakai <code>schools.papan_slug</code> yang sama dengan papan pengawas. Sekolah yang belum menyalakan papannya tidak punya alamat sama sekali — 404, bukan halaman kosong: rute yang tidak pernah lahir tidak bisa ditebak.
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <span>wireframe · 1 laman · 5 keadaan</span>
+    <span>primitif: .wf .wd .toast .live .bar</span>
+    <span>belum satu baris kode aplikasi</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.fbtn'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.group'));
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      var g = b.getAttribute('data-g');
+      groups.forEach(function(sec){
+        var gg = sec.getAttribute('data-g');
+        sec.style.display = (g === 'all' || gg === g || gg === null) ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

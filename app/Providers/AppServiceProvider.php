@@ -211,5 +211,23 @@ class AppServiceProvider extends ServiceProvider
                 ->response(fn () => response()
                     ->json(['pesan' => PembatasLaju::PESAN_LUANG], 429)),
         ]);
+
+        // ----------------------------------------------------------------
+        // Denyut papan pantau publik - GET /pantau/{slug}/denyut
+        // ----------------------------------------------------------------
+        // Per IP, BUKAN per slug - lihat `PembatasLaju::PANTAU_PER_IP`. Slug
+        // adalah alamat yang dibagikan; membatasi per slug berarti satu
+        // orang yang membuka lima tab memblokir seluruh sekolah yang
+        // membaca papan yang sama.
+        //
+        // Jawabannya JSON 429, bukan redirect: pemanggilnya `fetch` di latar
+        // belakang, dan redirect akan diterima sebagai HTML yang lalu gagal
+        // diurai - papan akan berhenti menyegarkan diri tanpa satu pun pesan.
+        RateLimiter::for(PembatasLaju::PANTAU, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::PANTAU_PER_IP)
+                ->by('pantau.ip:'.$request->ip())
+                ->response(fn () => response()
+                    ->json(['pesan' => PembatasLaju::PESAN_PANTAU], 429)),
+        ]);
     }
 }
