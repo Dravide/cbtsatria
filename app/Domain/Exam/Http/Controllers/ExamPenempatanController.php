@@ -152,6 +152,17 @@ class ExamPenempatanController
                 // arti seluruh laman.
                 'kelas_terbelah' => $susunan['kelas_terbelah'] ?? [],
                 'rincian_kelas' => $susunan['rincian_kelas'] ?? [],
+
+                // Perangkat - wireframe-ruang-lab.html L3. `kursi_berperangkat`
+                // adalah jumlah kursi yang punya PC di seluruh ruang event;
+                // `bertanda` adalah peserta yang menuntut kursi itu.
+                //
+                // `perangkat_kurang` memuat NAMA, bukan jumlah: yang harus
+                // dicari panitia adalah anaknya, dan "7 peserta" tidak
+                // menjawab itu.
+                'kursi_berperangkat' => $susunan['kursi_berperangkat'] ?? 0,
+                'bertanda' => $susunan['bertanda'] ?? 0,
+                'perangkat_kurang' => $susunan['perangkat_kurang'] ?? [],
                 'pesan' => $susunan['pesan'] ?? null,
                 'bisa_sebar' => $this->bisaSebar($susunan, $baris),
             ],

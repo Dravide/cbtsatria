@@ -397,6 +397,151 @@ class PenempatanKocok
      * @param  array<int, int>  $kapasitas
      * @param  array<int, EventParticipant>  $sisa
      */
+    /**
+     * Kurangi kursi ber-PC sebanyak jumlah peserta bertanda di satu ruang -
+     * dipakai SETELAH pembagian selesai.
+     *
+     * =====================================================================
+     * Mengapa memotong sesudahnya, bukan mengubah ketiga algoritma pembagian
+     * =====================================================================
+     * Tiga mode (`bagi`, `bagiPerKelas`, `bagiRata`) masing-masing punya
+     * aturan pembagian sendiri, dan menambahkan "berapa kursi ber-PC" ke
+     * ketiganya berarti tiga salinan aturan yang sama - dan tiga tempat yang
+     * bisa salah. Yang jauh lebih kecil: sesudah pembagian, untuk tiap ruang,
+     * tukar tempat antara peserta bertanda yang kebetulan mendarat di kursi
+     * tanpa PC dan peserta tanpa tanda yang mendarat di kursi ber-PC.
+     *
+     * Pertukaran itu mempertahankan JUMLAH penghuni tiap ruang, sehingga
+     * kapasitas yang sudah dihormati ketiga algoritma tetap terhormat.
+     *
+     * ---------------------------------------------------------------------
+     * Bila ruangnya tidak cukup, peserta dipindah ke ruang lain yang punya
+     * ---------------------------------------------------------------------
+     * Lab campuran yang kursi ber-PC-nya lebih sedikit daripada peserta
+     * bertanda tidak bisa menyelesaikannya sendiri; sisanya dipindahkan ke
+     * ruang lain yang masih punya kursi ber-PC kosong. Itu memang yang
+     * diinginkan: anak tanpa perangkat harus duduk di depan PC, dan ruangnya
+     * mana ditentukan ketersediaan, bukan kelasnya.
+     *
+     * Yang benar-benar tidak kebagian tetap dibiarkan di tempatnya semula,
+     * dan `perangkatKurang` di `susun()` melaporkannya dengan nama - bukan
+     * diam-diam, karena yang menemukannya adalah anak itu pada pukul 07:30.
+     *
+     * @param  array<int, array<int, EventParticipant>>  $hasil
+     * @param  Collection<int, EventRoom>  $ruangan
+     * @return array{per_ruang: array<int, array<int, EventParticipant>>, kurang: array<int, array{nama: string, ruang: string}>}
+     */
+    public function hormatiPerangkat(array $hasil, Collection $ruangan): array
+    {
+        $adaPc = $ruangan->mapWithKeys(
+            fn (EventRoom $r) => [$r->id => $r->kursiBerPerangkat()],
+        )->all();
+
+        $kode = $ruangan->mapWithKeys(
+            fn (EventRoom $r) => [$r->id => $r->room?->code ?? "R-#{$r->id}"],
+        )->all();
+
+        $bertanda = fn (EventParticipant $p) => (bool) ($p->butuh_perangkat ?? false);
+
+        // ---------------------------------------------------------- tukar
+        // Satu putaran per ruang cukup: setiap pertukaran menempatkan satu
+        // peserta bertanda ke kursi ber-PC, dan jumlah kursi ber-PC yang
+        // terpakai tidak pernah berkurang oleh pertukaran itu sendiri.
+        foreach (array_keys($hasil) as $id) {
+            $kursiPc = $adaPc[$id] ?? 0;
+
+            $diPc = array_slice($hasil[$id], 0, $kursiPc, true);
+            $angka = array_keys($diPc);
+
+            foreach ($angka as $pos) {
+                if ($bertanda($hasil[$id][$pos])) {
+                    continue;
+                }
+
+                // Cari peserta BERTANDA yang duduk di luar jatah kursi PC,
+                // mulai dari yang paling depan supaya hasilnya tetap
+                // deterministik.
+                foreach (array_keys($hasil[$id]) as $lain) {
+                    if ($lain < $kursiPc || ! $bertanda($hasil[$id][$lain])) {
+                        continue;
+                    }
+
+                    [$hasil[$id][$pos], $hasil[$id][$lain]] = [$hasil[$id][$lain], $hasil[$id][$pos]];
+
+                    continue 2;
+                }
+            }
+        }
+
+        // ------------------------------------------------------- pindahkan
+        // Ruang yang kursi PC-nya sudah penuh oleh peserta BERTANDA tetapi
+        // masih punya peserta bertanda di luar jatah: sisa itu dipindah ke
+        // ruang lain yang kursi PC-nya masih kosong.
+        $kurang = [];
+
+        foreach (array_keys($hasil) as $id) {
+            $kursiPc = $adaPc[$id] ?? 0;
+
+            $diLuar = array_filter(
+                array_keys($hasil[$id]),
+                fn (int $pos) => $pos >= $kursiPc && $bertanda($hasil[$id][$pos]),
+            );
+
+            foreach ($diLuar as $pos) {
+                $tujuan = null;
+
+                foreach (array_keys($hasil) as $lain) {
+                    if ($lain === $id) {
+                        continue;
+                    }
+
+                    $pcLain = $adaPc[$lain] ?? 0;
+
+                    if ($pcLain === 0) {
+                        continue;
+                    }
+
+                    // Ruang tujuan masih punya kursi PC yang dihuni peserta
+                    // TANPA tanda - yaitu kursi yang boleh ditukar.
+                    foreach (array_keys($hasil[$lain]) as $posLain) {
+                        if ($posLain >= $pcLain) {
+                            break;
+                        }
+
+                        if (! $bertanda($hasil[$lain][$posLain])) {
+                            $tujuan = [$lain, $posLain];
+
+                            break 2;
+                        }
+                    }
+                }
+
+                if ($tujuan === null) {
+                    // Tidak ada kursi PC mana pun yang tersisa untuknya.
+                    $kurang[] = [
+                        'nama' => (string) ($hasil[$id][$pos]->student?->name ?? 'Peserta'),
+                        'ruang' => $kode[$id] ?? 'R-?',
+                    ];
+
+                    continue;
+                }
+
+                [$lain, $posLain] = $tujuan;
+
+                [$hasil[$id][$pos], $hasil[$lain][$posLain]] = [$hasil[$lain][$posLain], $hasil[$id][$pos]];
+            }
+        }
+
+        // Kunci array dirapikan supaya pemanggil berikutnya menerima daftar,
+        // bukan peta posisi - `array_slice(..., true)` di atas mempertahankan
+        // kunci aslinya.
+        foreach ($hasil as $id => $isi) {
+            $hasil[$id] = array_values($isi);
+        }
+
+        return ['per_ruang' => $hasil, 'kurang' => $kurang];
+    }
+
     private function taruhDiSisa(array &$hasil, array $idRuang, array $kapasitas, array $sisa): void
     {
         $pos = 0;
@@ -538,6 +683,12 @@ class PenempatanKocok
             $perRuang = $this->bagi($antrean, $ruangan);
         }
 
+        // Peserta bertanda "butuh perangkat" harus duduk di kursi ber-PC.
+        // Dipotong SESUDAH pembagian - lihat catatan `hormatiPerangkat()`
+        // tentang mengapa bukan di dalam ketiga algoritmanya.
+        $perangkat = $this->hormatiPerangkat($perRuang, $ruangan);
+        $perRuang = $perangkat['per_ruang'];
+
         $kapasitas = $ruangan->sum(fn (EventRoom $r) => $r->kapasitasEfektif());
 
         return [
@@ -556,6 +707,13 @@ class PenempatanKocok
                 ? $this->kelasTerbelah($perRuang, $ruangan)
                 : [],
             'rincian_kelas' => $this->rincianKelas($perRuang, $ruangan),
+
+            // Peserta bertanda "butuh perangkat" yang TIDAK mendapat kursi
+            // ber-PC. Daftarnya, bukan jumlahnya: yang harus dicari panitia
+            // adalah anaknya, dan "7 peserta" tidak menjawab itu.
+            'perangkat_kurang' => $perangkat['kurang'],
+            'kursi_berperangkat' => $ruangan->sum(fn (EventRoom $r) => $r->kursiBerPerangkat()),
+            'bertanda' => $antrean->filter(fn (EventParticipant $p) => (bool) ($p->butuh_perangkat ?? false))->count(),
         ];
     }
 
@@ -1074,7 +1232,11 @@ class PenempatanKocok
             // dan kolom yang tidak dimuat bernilai null - sehingga setiap ruang
             // terbaca berkapasitas NOL. Jebakan yang sama sudah tercatat di
             // PenempatanService.
-            ->with('room:id,code,name,capacity')
+            // `device_count` WAJIB ikut, dan alasannya sama dengan `capacity`:
+            // `kursiBerPerangkat()` membacanya, dan kolom yang tidak dimuat
+            // bernilai null - sehingga setiap ruang terbaca TANPA PC, dan
+            // seluruh peserta bertanda ditolak karena "lab tidak tersedia".
+            ->with('room:id,code,name,capacity,device_count')
             ->orderBy('id')
             ->get();
     }

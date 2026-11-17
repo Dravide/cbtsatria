@@ -367,6 +367,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/events/{event}/peserta/tarik', [EventParticipantController::class, 'tarik'])->name('events.peserta.tarik');
     Route::post('/events/{event}/peserta/tambah', [EventParticipantController::class, 'tambah'])->name('events.peserta.tambah');
     Route::post('/events/{event}/peserta/massal', [EventParticipantController::class, 'massal'])->name('events.peserta.massal');
+    // Tanda "butuh perangkat sekolah" - siswa tanpa HP yang harus duduk di
+    // kursi ber-PC. Tindakan tersendiri, bukan bagian dari `massal()`: yang
+    // itu mengubah STATUS peserta (ikut ujian atau tidak), dan menyatukan
+    // keduanya berarti satu kiriman yang membawa dua arti.
+    Route::post('/events/{event}/peserta/perangkat', [EventParticipantController::class, 'perangkat'])
+        ->name('events.peserta.perangkat');
     Route::put('/events/{event}/peserta/ruang', [EventParticipantController::class, 'simpanRuang'])->name('events.peserta.ruang');
 
     // 15 - mata pelajaran & paket soal. Pemasangan paket punya rutenya

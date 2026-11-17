@@ -113,6 +113,12 @@ type Props = {
         /** Hanya diisi mode `kelas` - kelas yang terbagi ke beberapa ruang. */
         kelas_terbelah: string[];
         rincian_kelas: { nama: string; jumlah: number; ruang: string[] }[];
+
+        // Perangkat - wireframe-ruang-lab.html L3.
+        kursi_berperangkat: number;
+        bertanda: number;
+        perangkat_kurang: { nama: string; ruang: string }[];
+
         /** Ada bila eventnya belum punya ruang sama sekali. */
         pesan: string | null;
         bisa_sebar: boolean;
@@ -258,6 +264,41 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                     nada={angka.belum_ditempatkan > 0 ? 'bad' : 'ok'}
                 />
             </div>
+
+            {/* ------------------------------------------------- perangkat */}
+            {/* Siswa tanpa HP, dan siswa yang membawa HP tetapi tidak bisa
+                memakainya (kuota habis, baterai lowbat, kamera rusak) harus
+                duduk di kursi ber-PC. Angkanya dari `rooms.device_count` yang
+                sudah ada - lab campuran adalah `0 < pc < kapasitas`. */}
+            <div className="mb-3 grid gap-2 sm:grid-cols-3">
+                <AngkaKecil label="Kursi ber-PC" nilai={laman.kursi_berperangkat} />
+                <AngkaKecil
+                    label="Peserta bertanda"
+                    nilai={laman.bertanda}
+                    nada={laman.perangkat_kurang.length > 0 ? 'bad' : 'ok'}
+                />
+                <AngkaKecil
+                    label="Tidak kebagian PC"
+                    nilai={laman.perangkat_kurang.length}
+                    nada={laman.perangkat_kurang.length > 0 ? 'bad' : 'ok'}
+                />
+            </div>
+
+            {laman.perangkat_kurang.length > 0 && (
+                <div className="mb-3">
+                    <Peringatan>
+                        {laman.perangkat_kurang.length} peserta bertanda &ldquo;butuh
+                        perangkat&rdquo; tidak mendapat kursi ber-PC:{' '}
+                        <span className="font-medium">
+                            {laman.perangkat_kurang
+                                .map((p) => `${p.nama} (${p.ruang})`)
+                                .join(', ')}
+                        </span>
+                        . Tambahkan ruang ber-PC, atau lepas tandanya di laman{' '}
+                        <strong>Kelas &amp; peserta</strong>.
+                    </Peringatan>
+                </div>
+            )}
 
             {/* Tab memisahkan tiga pertanyaan yang memang berbeda. Sebelumnya
                 ketiganya bertumpuk di satu halaman, dan pada event 33 ruang
@@ -806,4 +847,24 @@ async function mintaBukaKunci(jalur: string) {
 /** Terapkan peta ruang event ke SATU sesi - tombol "Pakai penempatan". */
 function pakai(jalur: string, sesiId: number, benih: string) {
     router.post(`${jalur}/penempatan/sesi/${sesiId}`, { benih }, { preserveScroll: true });
+}
+
+/** Angka kecil berlabel - dipakai baris ringkas perangkat. */
+function AngkaKecil({
+    label,
+    nilai,
+    nada,
+}: {
+    label: string;
+    nilai: number;
+    nada?: 'ok' | 'bad';
+}) {
+    const warna = nada === 'ok' ? 'text-ok' : nada === 'bad' ? 'text-bad' : 'text-ink';
+
+    return (
+        <div className="rounded-wf border border-line/70 bg-surface-2/50 px-2.5 py-1.5">
+            <p className="text-[10px] text-ink-3">{label}</p>
+            <p className={'font-mono text-sm ' + warna}>{nilai}</p>
+        </div>
+    );
 }

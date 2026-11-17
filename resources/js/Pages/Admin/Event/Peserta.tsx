@@ -49,6 +49,13 @@ type Baris = {
     kelas: string | null;
     sumber: string;
     status: string;
+    /**
+     * Butuh perangkat sekolah - wireframe-ruang-lab.html L2.
+     *
+     * Milik PENEMPATAN, bukan profil: anak yang HP-nya rusak minggu ini tidak
+     * boleh tercatat tanpa perangkat sepanjang tahun.
+     */
+    butuh_perangkat: boolean;
 };
 
 type KelasOpsi = { id: number; nama: string; tingkat: string | null; anggota: number };
@@ -56,7 +63,7 @@ type KelasOpsi = { id: number; nama: string; tingkat: string | null; anggota: nu
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     baris: Paginator<Baris>;
-    angka: { kelas: number; peserta: number; dikecualikan: number };
+    angka: { kelas: number; peserta: number; dikecualikan: number; butuh_perangkat: number };
     kelas: KelasOpsi[];
     kelas_tersedia: { id: number; nama: string }[];
     ruang: { id: number; kode: string | null; nama: string | null; kapasitas: number; status: string }[];
@@ -289,6 +296,35 @@ export default function EventPeserta({
                     >
                         Kembalikan terpilih
                     </Tombol>
+
+                    {/* Tanda perangkat. Alasannya sering didengar di sekolah:
+                        kuota habis, baterai lowbat, kamera rusak. Ketiganya
+                        TIDAK bisa dideteksi sistem - sinyalnya sama persis
+                        dengan "tidak ada denyut" - sehingga satu-satunya
+                        jalan adalah tanda dari Admin sebelum hari-H. */}
+                    <Tombol
+                        disabled={centang.length === 0}
+                        title="Peserta terpilih akan ditempatkan di kursi ber-PC"
+                        onClick={() =>
+                            kirim('post', `/admin/events/${event.id}/peserta/perangkat`, {
+                                id: centang,
+                                butuh: 1,
+                            })
+                        }
+                    >
+                        Tandai butuh perangkat
+                    </Tombol>
+                    <Tombol
+                        disabled={centang.length === 0}
+                        onClick={() =>
+                            kirim('post', `/admin/events/${event.id}/peserta/perangkat`, {
+                                id: centang,
+                                butuh: 0,
+                            })
+                        }
+                    >
+                        Lepas tanda
+                    </Tombol>
                 </div>
             </div>
 
@@ -354,6 +390,16 @@ export default function EventPeserta({
                         judul: 'Status',
                         kelas: 'w-32',
                         render: (b) => <Chip nada={nadaStatus(b.status)}>{b.status}</Chip>,
+                    },
+                    {
+                        judul: 'Perangkat',
+                        kelas: 'w-32',
+                        render: (b) =>
+                            b.butuh_perangkat ? (
+                                <Chip nada="warn">butuh</Chip>
+                            ) : (
+                                <span className="text-[11px] text-ink-3">bawa sendiri</span>
+                            ),
                     },
                 ]}
             />

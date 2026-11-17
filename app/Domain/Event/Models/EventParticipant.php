@@ -56,6 +56,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'event_id',
     'student_id',
     'class_id',
+    'butuh_perangkat',
     'source',
     'status',
     'registered_at',
@@ -76,6 +77,7 @@ class EventParticipant extends Model
     {
         return [
             'registered_at' => 'datetime',
+            'butuh_perangkat' => 'boolean',
         ];
     }
 

@@ -72,4 +72,47 @@ class EventRoom extends Model
     {
         return $this->capacity_override ?? (int) $this->room?->capacity ?? 0;
     }
+
+    /**
+     * Berapa kursi ruang ini yang punya PC - wireframe-ruang-lab.html L1.
+     *
+     * =====================================================================
+     * Lab campuran, dan mengapa TIDAK butuh kolom baru
+     * =====================================================================
+     * Lab komputer bukan ruang yang seluruhnya ber-PC. Di lab yang sama ada
+     * anak yang memakai PC sekolah, ada yang membawa HP sendiri, dan ada yang
+     * membawa HP tetapi tidak bisa memakainya (kuota habis, baterai lowbat,
+     * kamera rusak). Yang membedakan ketiganya bukan ruangnya, melainkan
+     * KURSINYA.
+     *
+     * Angka itu sudah ada: `rooms.device_count`. Ruang campuran adalah
+     * `0 < device_count < capacity`, ruang BYOD adalah nol, dan ruang yang
+     * seluruhnya ber-PC adalah sama dengan kapasitasnya. Tidak ada kolom
+     * tambahan yang perlu ditulis hanya untuk menyatakan "campuran".
+     *
+     * ---------------------------------------------------------------------
+     * Konvensi kursi: 1..device_count yang ber-PC
+     * ---------------------------------------------------------------------
+     * Lab yang PC-nya berderet dari depan cukup dengan konvensi ini. Lab yang
+     * PC-nya berselang-seling butuh peta kursi sendiri, dan itu kelak daftar
+     * nomor di `exam_session_rooms` - bukan kolom di `rooms`: susunan meja
+     * bisa berubah antar sesi ketika PC dipindah. Selama peta itu belum ada,
+     * konvensi di sini yang berlaku, dan ia berlaku untuk kedua bentuk.
+     *
+     * Kapasitas efektif tetap batas atasnya: menimpa kapasitas ruang menjadi
+     * lebih kecil daripada jumlah PC berarti kursi ber-PC-nya ikut berkurang,
+     * karena kursi yang tidak ada tidak bisa berisi PC.
+     */
+    public function kursiBerPerangkat(): int
+    {
+        $pc = (int) ($this->room?->device_count ?? 0);
+
+        return max(0, min($pc, $this->kapasitasEfektif()));
+    }
+
+    /** Apakah ruang ini punya setidaknya satu kursi ber-PC. */
+    public function adaPerangkat(): bool
+    {
+        return $this->kursiBerPerangkat() > 0;
+    }
 }

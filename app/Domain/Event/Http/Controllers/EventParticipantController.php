@@ -92,11 +92,24 @@ class EventParticipantController
                 'kelas' => $p->kelas?->name,
                 'sumber' => $p->source,
                 'status' => $p->status,
+                // Tanda "butuh perangkat sekolah" - wireframe-ruang-lab.html
+                // L2. Dibawa di baris karena ia milik PENEMPATAN, bukan
+                // profil siswa: anak yang HP-nya rusak minggu ini tidak
+                // tercatat tanpa perangkat sepanjang tahun.
+                'butuh_perangkat' => (bool) $p->butuh_perangkat,
             ]),
             'angka' => [
                 'kelas' => $kelasId->count(),
                 'peserta' => $angka(EventParticipant::STATUS_TERDAFTAR),
                 'dikecualikan' => $angka(EventParticipant::STATUS_DIKECUALIKAN),
+                // Satu angka yang membuat Admin tahu ia perlu menandai
+                // sebelum menyebar: tanpa tanda, penempatan tidak punya cara
+                // mengetahui siapa yang harus duduk di kursi ber-PC.
+                'butuh_perangkat' => EventParticipant::query()
+                    ->where('event_id', $event->id)
+                    ->where('status', EventParticipant::STATUS_TERDAFTAR)
+                    ->where('butuh_perangkat', true)
+                    ->count(),
             ],
 
             // Kelas yang ditetapkan ke event, beserta jumlah anggotanya -
@@ -299,6 +312,55 @@ class EventParticipantController
         ]);
 
         return back()->with('sukses', $jumlah.' peserta diperbarui.');
+    }
+
+    /**
+     * Tetapkan atau lepaskan tanda "butuh perangkat sekolah".
+     *
+     * =====================================================================
+     * Mengapa tindakan tersendiri, bukan bagian dari `massal()`
+     * =====================================================================
+     * `massal()` mengubah STATUS peserta (terdaftar/dikecualikan), dan status
+     * menentukan apakah anak itu ikut ujian sama sekali. Tanda perangkat
+     * tidak: anak yang ditandai tetap peserta penuh, ia hanya tidak boleh
+     * duduk di kursi tanpa PC. Menyatukan keduanya berarti satu kiriman yang
+     * membawa dua arti, dan kiriman seperti itu akan mengubah hal yang tidak
+     * dimaksud begitu salah satu formnya berubah.
+     *
+     * Batas 1000 baris sama dengan `massal()`: laman ini bekerja per kelas,
+     * dan satu kelas tiga puluh sampai empat puluh orang. Angka yang jauh di
+     * atas itu menandakan kiriman yang salah bentuk, bukan kelas yang besar.
+     */
+    public function perangkat(Request $request, SchoolEvent $event, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('update', $event);
+
+        $data = $request->validate([
+            'id' => ['required', 'array', 'max:1000'],
+            'id.*' => ['integer'],
+            'butuh' => ['required', 'boolean'],
+        ]);
+
+        // Peserta yang dikirim harus benar-benar milik event INI. Tanpa
+        // penyaringan ini, id dari event lain ikut berubah - dan scope tenant
+        // tidak menolongnya, karena sekolahnya sama.
+        $sah = EventParticipant::query()
+            ->where('event_id', $event->id)
+            ->whereIn('id', $data['id'])
+            ->pluck('id');
+
+        $jumlah = EventParticipant::query()
+            ->whereIn('id', $sah)
+            ->update(['butuh_perangkat' => (bool) $data['butuh']]);
+
+        $logger->log('Menandai kebutuhan perangkat', $event, [
+            'butuh' => (bool) $data['butuh'],
+            'jumlah' => $jumlah,
+        ]);
+
+        return back()->with('sukses', $data['butuh']
+            ? "{$jumlah} peserta ditandai butuh perangkat sekolah."
+            : "{$jumlah} peserta dilepas dari tanda butuh perangkat.");
     }
 
     /**
