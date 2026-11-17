@@ -214,31 +214,75 @@ class KiosLabController
      */
     private function ruang(string $slug): ExamSessionRoom
     {
-        $tautan = RoomEntryLink::tanpaTenant()->where('slug', $slug)->first();
+        $ruang = $this->ruangMungkin($slug);
 
-        if ($tautan === null || ! $tautan->berlaku()) {
-            abort(404);
-        }
-
-        $ruang = ExamSessionRoom::tanpaTenant()
-            ->with([
-                'eventRoom.room:id,code,name,capacity,device_count',
-                'session.exam:id,title,subject_id',
-                'session.exam.subject:id,name',
-            ])
-            ->whereHas('eventRoom', fn ($q) => $q->where('room_id', $tautan->room_id))
-            // Sesi yang paling baru dibuka - jendela yang sedang berlaku.
-            // Tanpa saringan ini, ruang yang dipakai dua sesi akan memilih
-            // yang mana saja, dan presensinya masuk ke sesi yang salah.
-            ->whereHas('session', fn ($q) => $q->where('hard_end_at', '>=', now()->subHours(12)))
-            ->orderByDesc('id')
-            ->first();
-
+        // 404 hanya untuk keadaan yang memang TIDAK ADA: slug keliru, tautan
+        // dicabut, atau ruang yang tidak pernah dipakai sesi mana pun.
+        //
+        // Ruang yang sudah dipakai sesi tetapi jendelanya lewat BUKAN 404 -
+        // itu keadaan yang sah pada kios yang dinyalakan sebelum ujian atau
+        // sesudahnya, dan layar yang menjawab "Not Found" kepada teknisi yang
+        // baru memasang monitor tidak memberitahunya apa pun. Keadaan itu
+        // ditangani `tampilkan()` lewat `pesanKeadaan()`.
         if ($ruang === null) {
             abort(404);
         }
 
         return $ruang;
+    }
+
+    /**
+     * Ruang-sesi untuk sebuah slug, tanpa memutuskan 404 - null bila tidak ada.
+     *
+     * ---------------------------------------------------------------------
+     * Tiga tingkat pencarian, dan urutannya menentukan
+     * ---------------------------------------------------------------------
+     *   1. ruang-sesi yang jendelanya SEDANG BERJALAN  -> sesi yang benar;
+     *   2. bila tidak ada, ruang-sesi TERBARU apa pun   -> layar menyebutkan
+     *      jadwalnya, bukan 404;
+     *   3. bila ruangnya memang belum pernah dipakai   -> null, dan 404.
+     *
+     * Tingkat kedua ada karena kios dinyalakan LEBIH DULU daripada sesinya,
+     * dan tetap menyala SESUDAHNYA. Keduanya keadaan normal di lab, dan
+     * keduanya menuntut layar yang menjelaskan - bukan halaman galat.
+     */
+    private function ruangMungkin(string $slug): ?ExamSessionRoom
+    {
+        $tautan = RoomEntryLink::tanpaTenant()->where('slug', $slug)->first();
+
+        if ($tautan === null || ! $tautan->berlaku()) {
+            return null;
+        }
+
+        $muatan = [
+            'eventRoom.room:id,code,name,capacity,device_count',
+            'session.exam:id,title,subject_id',
+            'session.exam.subject:id,name',
+        ];
+
+        // (1) Jendela yang sedang berlaku. Tanpa saringan ini, ruang yang
+        // dipakai dua sesi akan memilih yang mana saja, dan presensinya masuk
+        // ke sesi yang salah.
+        $berjalan = ExamSessionRoom::tanpaTenant()
+            ->with($muatan)
+            ->whereHas('eventRoom', fn ($q) => $q->where('room_id', $tautan->room_id))
+            ->whereHas('session', fn ($q) => $q
+                ->where('access_opens_at', '<=', now())
+                ->where('hard_end_at', '>=', now()))
+            ->orderByDesc('id')
+            ->first();
+
+        if ($berjalan !== null) {
+            return $berjalan;
+        }
+
+        // (2) Sesi terbaru yang pernah memakai ruang ini, apa pun jamnya.
+        return ExamSessionRoom::tanpaTenant()
+            ->with($muatan)
+            ->whereHas('eventRoom', fn ($q) => $q->where('room_id', $tautan->room_id))
+            ->whereHas('session')
+            ->orderByDesc('id')
+            ->first();
     }
 
     private function berjalan(ExamSessionRoom $ruang): bool
@@ -283,9 +327,18 @@ class KiosLabController
         }
 
         if (! $this->berjalan($ruang)) {
-            return 'Sesi ruang ini tidak sedang berjalan ('
-                .$ruang->session->access_opens_at->format('H:i')
-                .'–'.$ruang->session->hard_end_at->format('H:i').').';
+            $sesi = $ruang->session;
+            $sekarang = now();
+
+            // Tiga kalimat, bukan satu: yang dibaca teknisi yang memasang
+            // monitor perlu tahu JADWALNYA, bukan hanya bahwa ia belum bisa
+            // dipakai - dan apakah jadwalnya belum tiba atau sudah lewat.
+            $kapan = $sekarang->lt($sesi->access_opens_at)
+                ? 'Jadwalnya '.$sesi->access_opens_at->format('d M · H:i').' – '
+                    .$sesi->hard_end_at->format('H:i').'.'
+                : 'Sesi ini sudah berakhir pukul '.$sesi->hard_end_at->format('d M · H:i').'.';
+
+            return 'Sesi ruang ini tidak sedang berjalan. '.$kapan;
         }
 
         $sah = $this->nomorSah($ruang);

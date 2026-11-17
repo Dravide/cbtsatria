@@ -286,3 +286,40 @@ it('mengirim slug null bila tautan ruangnya belum diterbitkan', function () {
 
     expect($lab['slug'])->toBeNull();
 });
+
+it('menampilkan layar, bukan 404, ketika sesinya sudah lewat', function () {
+    // Bug yang dilaporkan 2026-11-17: `/lab/{slug}/1` menjawab 404 di lab
+    // sungguhan, karena sesi terakhirnya berakhir 27 jam sebelumnya. Kios
+    // dinyalakan lebih dulu daripada sesinya dan tetap menyala sesudahnya -
+    // keduanya keadaan normal, dan keduanya menuntut layar yang menjelaskan,
+    // bukan halaman galat.
+    $this->d['sesi']->forceFill([
+        'access_opens_at' => now()->subDays(2),
+        'access_closes_at' => now()->subDay(),
+        'hard_end_at' => now()->subDay(),
+    ])->save();
+
+    $this->get("/lab/{$this->slug}/1")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Pengawas/KiosLab')
+            ->where('sesi.berjalan', false)
+            ->where('pesan', fn ($p) => is_string($p) && str_contains($p, 'sudah berakhir'))
+        );
+});
+
+it('menampilkan layar, bukan 404, ketika sesinya belum mulai', function () {
+    $this->d['sesi']->forceFill([
+        'access_opens_at' => now()->addDay(),
+        'access_closes_at' => now()->addDay()->addHours(2),
+        'hard_end_at' => now()->addDay()->addHours(2),
+    ])->save();
+
+    $this->get("/lab/{$this->slug}/1")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Pengawas/KiosLab')
+            ->where('sesi.berjalan', false)
+            ->where('pesan', fn ($p) => is_string($p) && str_contains($p, 'Jadwalnya'))
+        );
+});
