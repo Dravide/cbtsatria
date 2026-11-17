@@ -253,11 +253,47 @@ export default function NilaiSiswa({
                     </Kotak>
 
                     {/* ---------------------------------------- linimasa */}
+                    {/* ---------------------------------------- linimasa */}
+                    {/* Garis waktu vertikal, bukan tabel tiga kolom.
+
+                        Tabel membaca sebagai DATA; yang dibutuhkan Guru di
+                        sini adalah CERITA - "ia mulai, lalu mengerjakan satu
+                        per satu, lalu mengumpulkan". Sumbu waktu memberi
+                        bentuk pada hal yang tidak bisa ditunjukkan angka:
+                        jarak antar-butir. Celah lebar di tengah adalah anak
+                        yang berhenti berpikir (atau jaringannya putus); dua
+                        butir di detik yang sama adalah anak yang mengebut.
+                        Keduanya terbaca SEKALIGUS, tanpa membandingkan kolom
+                        "menit ke-" baris demi baris. */}
                     <Kotak judul={`Linimasa (${linimasa.length} kejadian)`}>
-                        <p className="mb-2 text-[11px] leading-relaxed text-ink-3">
-                            Yang tersimpan hanya <strong>penyimpanan terakhir</strong> tiap butir
-                            &mdash; bukan setiap klik. Satu butir yang disunting dua kali muncul
-                            sekali, dengan jam simpanan terbarunya.
+                        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <span className="flex items-center gap-1.5 text-[11px] text-ink-3">
+                                <span className="inline-block size-2 rounded-full bg-info" />
+                                Mulai
+                            </span>
+                            <span className="flex items-center gap-1.5 text-[11px] text-ink-3">
+                                <span className="inline-block size-2 rounded-full bg-ok" />
+                                Benar
+                            </span>
+                            <span className="flex items-center gap-1.5 text-[11px] text-ink-3">
+                                <span className="inline-block size-2 rounded-full bg-bad" />
+                                Salah
+                            </span>
+                            <span className="flex items-center gap-1.5 text-[11px] text-ink-3">
+                                <span className="inline-block size-2 rounded-full bg-ink-3/40" />
+                                Belum dinilai / tanpa jawaban
+                            </span>
+                            {pengerjaan && (
+                                <span className="ml-auto font-mono text-[11px] text-ink-3">
+                                    total {formatDurasi(pengerjaan.durasi_detik)}
+                                </span>
+                            )}
+                        </div>
+
+                        <p className="mb-3 text-[11px] leading-relaxed text-ink-3">
+                            Yang tersimpan hanya <strong>penyimpanan terakhir</strong> tiap
+                            butir &mdash; bukan setiap klik. Satu butir yang disunting dua kali
+                            muncul sekali, dengan jam simpanan terbarunya.
                         </p>
 
                         {linimasa.length === 0 ? (
@@ -265,50 +301,106 @@ export default function NilaiSiswa({
                                 Tidak ada kejadian bertanggal untuk pengerjaan ini.
                             </p>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[26rem] text-sm">
-                                    <thead>
-                                        <tr className="border-b border-line text-left">
-                                            <Th className="w-20">Jam</Th>
-                                            <Th className="w-24">Menit ke-</Th>
-                                            <Th>Kejadian</Th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {linimasa.map((k, i) => (
-                                            <tr
-                                                key={`${k.jenis}-${k.jam}-${k.nomor ?? i}`}
-                                                className="border-b border-line/50 last:border-0"
-                                            >
-                                                <td className="px-3 py-1.5 font-mono text-xs text-ink-2">
-                                                    {k.jam}
-                                                </td>
-                                                <td className="px-3 py-1.5 font-mono text-xs text-ink-3">
-                                                    {k.detik === null
-                                                        ? '—'
-                                                        : formatMenit(k.detik)}
-                                                </td>
-                                                <td className="px-3 py-1.5 text-xs text-ink">
-                                                    <span className="flex items-center gap-2">
-                                                        <span
-                                                            className={
-                                                                'inline-block size-1.5 shrink-0 rounded-full ' +
-                                                                (k.jenis === 'mulai'
-                                                                    ? 'bg-info'
-                                                                    : k.jenis === 'kumpul'
-                                                                      ? 'bg-ok'
-                                                                      : keadaanTitik(k.keadaan))
-                                                            }
-                                                            aria-hidden="true"
-                                                        />
-                                                        {k.label}
+                            <ol className="relative ml-1">
+                                {/* Batang sumbu. `left-[7px]` menaruh garisnya
+                                    tepat di tengah titik, bukan di tepi kiri
+                                    kolom - tanpa itu garis dan titik terlihat
+                                    berasal dari dua gambar berbeda. */}
+                                <span
+                                    aria-hidden="true"
+                                    className="absolute top-1 bottom-1 left-[7px] w-px bg-line"
+                                />
+
+                                {linimasa.map((k, i) => {
+                                    const sebelumnya = i > 0 ? linimasa[i - 1] : null;
+                                    const jarak =
+                                        k.detik !== null && sebelumnya?.detik !== null
+                                            ? k.detik - (sebelumnya?.detik ?? 0)
+                                            : null;
+
+                                    const warna =
+                                        k.jenis === 'mulai'
+                                            ? 'bg-info'
+                                            : k.jenis === 'kumpul'
+                                              ? 'bg-ok'
+                                              : keadaanTitik(k.keadaan);
+
+                                    // Celah panjang ditandai, dan ambangnya
+                                    // disebut terang: 5 menit pada satu butir
+                                    // adalah anak yang berhenti mengerjakan,
+                                    // dan itu pertanyaan yang sering ditanyakan
+                                    // wali kelas sesudah nilainya keluar.
+                                    const celah = jarak !== null && jarak >= 300;
+
+                                    return (
+                                        <li
+                                            key={`${k.jenis}-${k.jam}-${k.nomor ?? i}`}
+                                            className="relative flex gap-3 pb-3 last:pb-0"
+                                        >
+                                            {/* Titik di sumbu. Cincin latar
+                                                membuat garis di belakangnya
+                                                tidak menembus. */}
+                                            <span className="relative z-10 mt-1 flex size-[15px] shrink-0 items-center justify-center rounded-full bg-surface">
+                                                <span
+                                                    className={
+                                                        'block size-2 rounded-full ' +
+                                                        warna +
+                                                        (k.jenis === 'mulai' || k.jenis === 'kumpul'
+                                                            ? ' ring-2 ring-surface'
+                                                            : '')
+                                                    }
+                                                />
+                                            </span>
+
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                                    <span className="font-mono text-xs font-medium tabular-nums text-ink">
+                                                        {k.jam}
                                                     </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+
+                                                    {k.detik !== null && (
+                                                        <span className="font-mono text-[11px] tabular-nums text-ink-3">
+                                                            +{formatMenit(k.detik)}
+                                                        </span>
+                                                    )}
+
+                                                    {k.jenis === 'mulai' && (
+                                                        <span className="rounded-wf bg-info-bg px-1.5 py-0.5 text-[10px] font-medium text-info">
+                                                            mulai
+                                                        </span>
+                                                    )}
+                                                    {k.jenis === 'kumpul' && (
+                                                        <span className="rounded-wf bg-ok-bg px-1.5 py-0.5 text-[10px] font-medium text-ok">
+                                                            kumpul
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <p className="mt-0.5 text-xs text-ink">
+                                                    {k.jenis === 'jawab' ? (
+                                                        <>
+                                                            Jawaban nomor{' '}
+                                                            <span className="font-mono font-medium">
+                                                                {String(k.nomor).padStart(2, '0')}
+                                                            </span>{' '}
+                                                            tersimpan
+                                                        </>
+                                                    ) : (
+                                                        k.label
+                                                    )}
+                                                </p>
+
+                                                {celah && (
+                                                    <p className="mt-0.5 text-[11px] text-warn">
+                                                        {formatGap(jarak!)} tanpa penyimpanan
+                                                        sebelum butir ini
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </li>
+                                    );
+                                })}
+                            </ol>
                         )}
                     </Kotak>
 
@@ -499,13 +591,6 @@ function Baris({ label, nilai }: { label: string; nilai: string }) {
     );
 }
 
-function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-    return (
-        <th className={'px-3 py-2 text-[11px] font-medium text-ink-3 ' + (className ?? '')}>
-            {children}
-        </th>
-    );
-}
 
 function labelKeadaan(k: Butir['keadaan']): string {
     return k === 'benar'
@@ -539,6 +624,23 @@ function formatDurasi(detik: number | null): string {
     }
 
     return `${detik} dtk`;
+}
+
+/** Jarak antar-kejadian, dalam kalimat yang bisa dibaca. */
+function formatGap(detik: number): string {
+    const menit = Math.floor(detik / 60);
+
+    if (menit >= 60) {
+        const jam = Math.floor(menit / 60);
+
+        return `${jam} jam ${menit % 60} menit`;
+    }
+
+    if (menit > 0) {
+        return `${menit} menit`;
+    }
+
+    return `${detik} detik`;
 }
 
 /** Detik sejak Mulai sebagai "menit ke-12" - dibaca sebagai cerita. */

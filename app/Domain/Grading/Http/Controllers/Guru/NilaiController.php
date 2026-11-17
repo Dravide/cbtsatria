@@ -123,13 +123,43 @@ class NilaiController
             $hasil->whereHas('pengerjaan.penempatan.pesertaEvent', fn ($q) => $q->where('class_id', $kelas));
         }
 
+        // ------------------------------------------------------------------
+        // Pengurutan menurut nama dan kelas menuntut JOIN, bukan subkueri
+        // ------------------------------------------------------------------
+        // `orderBy('name')` tanpa join hanya mengurutkan `exam_results` -
+        // dan tabel itu tidak punya kolom `name`, sehingga basis data
+        // menolaknya. Nama siswa dan nama kelas tinggal dua dan tiga tabel
+        // jauhnya, sehingga keduanya di-join lebih dulu.
+        //
+        // JOIN mempertahankan satu baris per hasil: seluruh rantai
+        // (attempt -> penempatan -> peserta event) adalah belongsTo, bukan
+        // hasMany. `select` dipersempit supaya kolom `id` dari tabel lain
+        // tidak menimpa `exam_results.id` - dan karena itu `kunciStabil`
+        // di bawah wajib menyebut nama tabelnya.
+        $hasil->leftJoin('exam_attempts as a', 'a.id', '=', 'exam_results.exam_attempt_id')
+            ->leftJoin('exam_participants as ep', 'ep.id', '=', 'a.exam_participant_id')
+            ->leftJoin('event_participants as evp', 'evp.id', '=', 'ep.event_participant_id')
+            ->leftJoin('users as s', 's.id', '=', 'evp.student_id')
+            ->leftJoin('classes as k', 'k.id', '=', 'evp.class_id')
+            ->select('exam_results.*');
+
         $halaman = TabelQuery::buat(
             $hasil,
             $request,
             cariDi: [],
-            bolehDiurut: ['final_percentage'],
-            urutBawaan: 'id',
+            // Daftar putihnya menyebut kolom BERTABEL. Nama kolom telanjang
+            // akan ambigu begitu joinnya ada, dan galatnya muncul sebagai
+            // 500 pada laman yang sedang dipakai, bukan pada saat menulis.
+            bolehDiurut: [
+                'exam_results.final_percentage',
+                'exam_results.automatic_score',
+                's.name',
+                's.username',
+                'k.name',
+            ],
+            urutBawaan: 'exam_results.id',
             arahBawaan: 'asc',
+            kunciStabil: 'exam_results.id',
         );
 
         $ringkas = $this->ringkasBanyak([$ujian->id])[$ujian->id];
@@ -178,7 +208,15 @@ class NilaiController
                     'lulus' => $r->final() ? $r->lulus($kkm) : null,
                 ];
             }),
-            'filter' => ['kelas' => $kelas ?? ''],
+            'filter' => [
+                'kelas' => $kelas ?? '',
+                // Keadaan urutan dikirim balik supaya kepala tabel bisa
+                // menandai kolom mana yang sedang mengurut dan ke arah mana.
+                // Tanpa ini, panah di kepala tabel adalah tebakan peramban
+                // atas sesuatu yang hanya diketahui server.
+                'urut' => (string) $request->query('urut', 'exam_results.id'),
+                'arah' => strtolower((string) $request->query('arah', 'asc')) === 'desc' ? 'desc' : 'asc',
+            ],
             // Kelas yang memang peserta event ini - bukan seluruh kelas
             // sekolah. Penyaring yang menawarkan kelas yang tidak ikut event
             // akan selalu menghasilkan daftar kosong, dan Guru yang memilihnya

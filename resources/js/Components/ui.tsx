@@ -833,7 +833,13 @@ export function Tabel<T>({
     kosong,
 }: {
     hal: Paginator<T> | { data: T[]; total: number };
-    kolom: { judul: string; kelas?: string; render: (baris: T) => ReactNode }[];
+    kolom: {
+        judul: string;
+        /** Isi kepala kolom bila berbeda dari judulnya - mis. tombol urut. */
+        kepala?: ReactNode;
+        kelas?: string;
+        render: (baris: T) => ReactNode;
+    }[];
     kunci: (baris: T) => string | number;
     kosong: string;
 }) {
@@ -863,7 +869,7 @@ export function Tabel<T>({
                                         (k.kelas ?? '')
                                     }
                                 >
-                                    {k.judul}
+                                    {k.kepala ?? k.judul}
                                 </th>
                             ))}
                         </tr>

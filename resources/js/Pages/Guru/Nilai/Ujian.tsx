@@ -68,12 +68,68 @@ type Props = {
         belum_final: number;
     };
     baris: Paginator<Baris>;
-    filter: { kelas: string };
+    filter: {
+        kelas: string;
+        /** Kunci urutan yang sedang berlaku - kolom BERTABEL dari server. */
+        urut: string;
+        arah: 'asc' | 'desc';
+    };
     kelas: { id: string; label: string }[];
 };
 
 export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }: Props) {
     const f = pakaiFilter(`/guru/nilai/${ujian.id}`, { kelas: filter.kelas });
+
+    /**
+     * Klik kepala kolom: urutkan menurutnya, atau balik arahnya bila kolom
+     * itu sudah aktif.
+     *
+     * Urutannya dikerjakan SERVER - `TabelQuery` sudah membatasi kolomnya
+     * dengan daftar putih, jadi nilai yang dikirim dari sini tidak bisa
+     * membuka kolom yang tidak seharusnya. Yang dikerjakan di sini hanya
+     * memutuskan arah, dan itu pun hanya tampilan: server menormalkannya
+     * lagi.
+     *
+     * Halaman pertama ikut direset, sama seperti penyaring kelas: Guru yang
+     * sedang di halaman 3 lalu mengurutkan ulang akan menerima halaman 3
+     * dari susunan yang baru - dan menyimpulkan urutannya salah.
+     */
+    const urutkan = (kolom: string) => {
+        const sudahAktif = filter.urut === kolom;
+        const arah = sudahAktif && filter.arah === 'asc' ? 'desc' : 'asc';
+
+        router.get(
+            `/guru/nilai/${ujian.id}`,
+            {
+                ...(filter.kelas ? { kelas: filter.kelas } : {}),
+                urut: kolom,
+                arah,
+            },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
+
+    /** Kepala kolom yang bisa diklik, dengan penanda arah. */
+    const KepalaUrut = ({ kolom, children }: { kolom: string; children: React.ReactNode }) => {
+        const aktif = filter.urut === kolom;
+
+        return (
+            <button
+                type="button"
+                onClick={() => urutkan(kolom)}
+                aria-sort={aktif ? (filter.arah === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className={
+                    'inline-flex items-center gap-1 text-[11px] font-medium transition-colors ' +
+                    (aktif ? 'text-accent' : 'text-ink-3 hover:text-ink')
+                }
+            >
+                {children}
+                <span aria-hidden="true" className={aktif ? '' : 'text-ink-3/50'}>
+                    {aktif ? (filter.arah === 'asc' ? '▲' : '▼') : '↕'}
+                </span>
+            </button>
+        );
+    };
 
     /**
      * Penyaring kelas mengirim lewat URL, dan halaman pertama ikut direset.
@@ -229,6 +285,7 @@ export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }
                     },
                     {
                         judul: 'Nama',
+                        kepala: <KepalaUrut kolom="s.name">Nama</KepalaUrut>,
                         render: (b) => (
                             <div className="min-w-0">
                                 {/* Nama adalah tautan ke rinciannya: soal,
@@ -256,6 +313,7 @@ export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }
                     },
                     {
                         judul: 'Obj.',
+                        kepala: <KepalaUrut kolom="exam_results.automatic_score">Obj.</KepalaUrut>,
                         kelas: 'w-16 text-right',
                         render: (b) => (
                             <span className="font-mono text-xs text-ink-2">
@@ -287,6 +345,7 @@ export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }
                     },
                     {
                         judul: 'Nilai',
+                        kepala: <KepalaUrut kolom="exam_results.final_percentage">Nilai</KepalaUrut>,
                         kelas: 'w-20 text-right',
                         render: (b) => (
                             <span className="font-mono text-sm font-semibold text-ink">

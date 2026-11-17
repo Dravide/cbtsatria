@@ -99,6 +99,8 @@ class TabelQuery
      * @param  array<int, string>  $cariDi  Kolom yang boleh dicari.
      * @param  array<int, string>  $bolehDiurut  Kolom yang boleh jadi kunci urutan.
      * @param  array<string, string>  $penyaring  Peta param => kolom, penyaring kesamaan.
+     * @param  string  $kunciStabil  Kolom pengurut kedua, sudah memuat nama
+     *                               tabel bila kuerinya memakai join.
      */
     public static function buat(
         Builder $query,
@@ -108,6 +110,7 @@ class TabelQuery
         array $penyaring = [],
         string $urutBawaan = 'id',
         string $arahBawaan = 'asc',
+        string $kunciStabil = 'id',
     ): LengthAwarePaginator {
         $query = self::saring($query, $request, $cariDi, $penyaring);
 
@@ -124,7 +127,12 @@ class TabelQuery
             // urut yang sama bisa bertukar tempat di antara dua halaman -
             // dan pada daftar bernomor halaman itu terlihat sebagai baris
             // yang hilang, atau muncul dua kali.
-            ->orderBy('id', 'asc')
+            //
+            // `$kunciStabil` ada karena kolom yang tidak diberi nama tabel
+            // menjadi ambigu begitu kuerinya memakai join: laman nilai Guru
+            // mengurutkan menurut nama siswa, dan `orderBy('id')` di sana
+            // ditolak basis data karena `id` ada di lima tabel sekaligus.
+            ->orderBy($kunciStabil, 'asc')
             ->paginate(self::PER_HALAMAN)
             ->withQueryString();
     }
