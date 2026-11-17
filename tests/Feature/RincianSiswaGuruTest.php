@@ -255,17 +255,35 @@ it('menampilkan peserta yang belum mulai sebagai tanpa pengerjaan', function () 
         );
 });
 
-it('membawa peserta_id di setiap baris nilai kelas, untuk tautan rincian', function () {
+it('membawa id PENEMPATAN di baris nilai kelas, dan tautannya terbuka', function () {
     $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
     $guru = guruRincian($data['ujian']);
 
     kerjakanRincian($this, $data, 0);
 
-    masukUji($this, $guru)
+    // Id-nya harus id PENEMPATAN (`exam_participants`), bukan id peserta
+    // event. Keduanya bilangan positif, sehingga pemeriksaan "lebih dari
+    // nol" lolos untuk yang salah - dan tautannya berakhir 404. Yang
+    // membedakan hanya menelusuri tautannya.
+    $props = masukUji($this, $guru)
         ->get("/guru/nilai/{$data['ujian']->id}")
+        ->viewData('page')['props'];
+
+    $pesertaId = $props['baris']['data'][0]['peserta_id'];
+
+    // Id yang dibandingkan di sini bisa KEBETULAN sama dengan id peserta
+    // event pada fixture kecil - dua tabel yang baru dibuat berurutan. Karena
+    // itu pemeriksaannya tidak berhenti di id: yang membuktikan barisnya
+    // benar adalah NAMANYA, dan bug yang mengirim id tabel yang salah akan
+    // membuka siswa lain (atau 404) dengan nama yang berbeda.
+    expect($pesertaId)->toBe($data['peserta'][0]->id);
+
+    masukUji($this, $guru)
+        ->get("/guru/nilai/{$data['ujian']->id}/siswa/{$pesertaId}")
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('Guru/Nilai/Ujian')
-            ->where('baris.data.0.peserta_id', fn ($id) => is_int($id) && $id > 0)
+            ->component('Guru/Nilai/Siswa')
+            ->where('siswa.peserta_id', $pesertaId)
+            ->where('siswa.nama', $data['siswa'][0]->name)
         );
 });

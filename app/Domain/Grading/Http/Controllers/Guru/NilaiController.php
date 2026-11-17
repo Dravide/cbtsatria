@@ -149,12 +149,15 @@ class NilaiController
 
                 return [
                     'hasil_id' => $r->id,
-                    // Id penempatan peserta - dipakai baris ini untuk
-                    // menautkan ke rincian per siswa. Nama dan NIS saja tidak
-                    // cukup: rute rincian memakai id `exam_participants`, dan
-                    // laman yang menyusunnya dari nama akan salah orang pada
-                    // sekolah yang punya dua siswa bernama sama.
-                    'peserta_id' => $peserta?->id,
+                    // Id PENEMPATAN (`exam_participants`), bukan id peserta
+                    // event. Rute rincian mem-bind `ExamParticipant`, sehingga
+                    // mengirim id `event_participants` menghasilkan 404 -
+                    // atau lebih buruk, rincian siswa lain.
+                    //
+                    // Nama dan NIS saja tidak cukup untuk menyusun tautannya:
+                    // sekolah yang punya dua siswa bernama sama akan
+                    // menautkan keduanya ke orang yang sama.
+                    'peserta_id' => $r->pengerjaan?->penempatan?->id,
                     'nis' => $peserta?->student?->username,
                     'nama' => $peserta?->student?->name,
                     'kelas' => $peserta?->kelas?->name,
