@@ -524,6 +524,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/events/{event}/monitoring', [PemantauanEventController::class, 'monitoring'])
         ->name('events.monitoring');
 
+    // Rekap siswa TIDAK HADIR - nama, ruang, dan kelasnya.
+    //
+    // Didaftarkan SESUDAH `/monitoring` dan SEBELUM `/monitoring/ruang/{ruang}`:
+    // Laravel mencocokkan berurutan, dan segmen statis `tidak-hadir` harus
+    // didahulukan agar tidak dicoba sebagai `{ruang}`.
+    Route::get('/events/{event}/monitoring/tidak-hadir', [PemantauanEventController::class, 'rekapTidakHadir'])
+        ->name('events.monitoring.tidak-hadir');
+
     // 20b - keadaan per peserta SATU ruang, di laman sendiri.
     //
     // Didaftarkan SESUDAH `/monitoring` karena Laravel mencocokkan berurutan -

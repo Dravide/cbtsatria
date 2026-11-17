@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import DaftarMapel, { MapelEvent } from '@/Components/DaftarMapelEvent';
-import { Chip, Inbox, Kotak } from '@/Components/ui';
+import { Chip, Inbox, Kotak, TombolTautan } from '@/Components/ui';
 
 /**
  * Papan keadaan sesi lintas ruang, dari konsol Admin.
@@ -113,10 +113,24 @@ export default function EventMonitoring({ event, ruang_url, baris, mapel, angka 
             judul="Monitoring"
             breadcrumb={`/admin/events · ${event.kode} · Monitoring`}
             aksi={
-                <span className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-2">
-                    <span className="text-ink-3">Event:</span>
-                    <span className="font-medium text-ink">{event.nama}</span>
-                </span>
+                <>
+                    {/* Rekap "tidak hadir" - nama, ruang, dan kelas. Pertanyaan
+                        yang dijawabnya berbeda dari papan ini: papan menjawab
+                        "ruang mana yang tertinggal", rekap menjawab "siapa
+                        saja yang tidak hadir". Yang membacanya wali kelas dan
+                        Admin yang menyiapkan ujian susulan. */}
+                    <TombolTautan
+                        href={`/admin/events/${event.id}/monitoring/tidak-hadir`}
+                        title="Daftar siswa tidak hadir beserta ruang dan kelasnya"
+                    >
+                        Rekap tidak hadir
+                    </TombolTautan>
+
+                    <span className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-2">
+                        <span className="text-ink-3">Event:</span>
+                        <span className="font-medium text-ink">{event.nama}</span>
+                    </span>
+                </>
             }
         >
             <Head title={`Monitoring · ${event.nama}`} />

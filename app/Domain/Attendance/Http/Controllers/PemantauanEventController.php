@@ -640,8 +640,145 @@ class PemantauanEventController
     }
 
     /**
-     * Keadaan per peserta SATU ruang-sesi - laman sendiri, tab sendiri.
+     * Rekap SISWA TIDAK HADIR satu event - nama, ruang, dan kelasnya.
      *
+     * ---------------------------------------------------------------------
+     * Mengapa laman tersendiri, bukan satu kolom di papan monitoring
+     * ---------------------------------------------------------------------
+     * Papan monitoring menjawab "ruang mana yang tertinggal". Pertanyaan yang
+     * dijawab di sini berbeda: "siapa saja yang tidak hadir, di ruang apa, dan
+     * kelas apa". Yang membacanya adalah wali kelas, guru BK, dan Admin yang
+     * menyiapkan ujian susulan - dan mereka membutuhkan DAFTAR NAMA, bukan
+     * angka per ruang.
+     *
+     * ---------------------------------------------------------------------
+     * Sumbernya `attendance_records`, bukan hitungan `pending`
+     * ---------------------------------------------------------------------
+     * "Tidak hadir" hanya berarti sesuatu setelah pengawas menyatakannya.
+     * Siswa yang belum dipresensi berada di keadaan `pending` - dan
+     * memasukkannya ke rekap ini akan menuduh anak yang mungkin sedang duduk
+     * di kursinya, hanya karena pengawasnya belum sampai ke namanya.
+     *
+     * Karena itu rekap ini memuat DUA status yang sudah diverifikasi:
+     * `tidak_hadir` (alpa) dan `izin`. Keduanya dipisah di layar, karena
+     * keduanya menuntut tindakan yang berbeda - satu dipanggil, satu dicatat.
+     */
+    public function rekapTidakHadir(SchoolEvent $event): Response
+    {
+        Gate::authorize('view', $event);
+
+        $idUjian = $event->exams()->pluck('id');
+
+        // Rekap disusun dari `attendance_records` lebih dulu, bukan dari
+        // penempatan: yang mendefinisikan "tidak hadir" adalah baris
+        // presensinya, dan menyaring lewat `whereHas` pada relasi yang sengaja
+        // tidak dibuat (lihat catatan di bawah) berarti satu kueri tambahan
+        // untuk setiap baris.
+        //
+        // Relasi `kehadiran` TIDAK ditambahkan ke `ExamParticipant`: itu akan
+        // membuat modul Exam menyebut model Attendance, dan
+        // `DomainBoundariesTest` mencatat lingkaran modul. Arahnya satu -
+        // Attendance membaca penempatan, bukan sebaliknya.
+        $presensi = AttendanceRecord::query()
+            ->whereIn('attendance_status', [
+                StatusPresensi::TidakHadir->value,
+                StatusPresensi::Izin->value,
+            ])
+            ->with('verifikator:id,name')
+            ->get()
+            ->keyBy('exam_participant_id');
+
+        if ($presensi->isEmpty()) {
+            return Inertia::render('Admin/Event/MonitoringTidakHadir', [
+                'event' => $this->ringkas($event),
+                'baris' => [],
+                'per_kelas' => [],
+                'angka' => ['tidak_hadir' => 0, 'izin' => 0, 'kelas' => 0],
+                'monitoring_url' => "/admin/events/{$event->id}/monitoring",
+                'presensi_url' => "/admin/events/{$event->id}/presensi",
+            ]);
+        }
+
+        // Satu kueri untuk seluruh rekap. Relasi dimuat sampai kelasnya karena
+        // rekap ini menjawab "kelas apa", dan menembusnya per baris berarti
+        // satu kueri per siswa tidak hadir - justru saat rekapnya paling
+        // dibutuhkan.
+        $baris = ExamParticipant::query()
+            ->whereIn('exam_id', $idUjian)
+            ->whereIn('id', $presensi->keys())
+            ->with([
+                'student:id,name,school_id',
+                'student.studentProfile:id,user_id,nis',
+                'pesertaEvent.kelas:id,name,grade_level',
+                'session:id,session_number,exam_id',
+                'session.exam:id,code,title,subject_id',
+                'session.exam.subject:id,name',
+                'room.eventRoom.room:id,code,name',
+            ])
+            ->get()
+            ->map(function (ExamParticipant $p) use ($presensi) {
+                $catatan = $presensi->get($p->id);
+
+                return [
+                    'peserta_id' => $p->id,
+                    'nis' => $p->student?->studentProfile?->nis,
+                    'nama' => $p->student?->name,
+                    'kelas' => $p->pesertaEvent?->kelas?->name,
+                    'tingkat' => $p->pesertaEvent?->kelas?->grade_level,
+                    'ruang' => $p->room?->eventRoom?->room?->code,
+                    'ruang_nama' => $p->room?->eventRoom?->room?->name,
+                    'sesi' => $p->session === null ? null : 'S-'.$p->session->session_number,
+                    'ujian' => $p->session?->exam?->subject?->name ?? $p->session?->exam?->title,
+                    'status' => $catatan?->attendance_status?->value,
+                    'status_label' => $catatan?->attendance_status?->label(),
+                    'diverifikasi_pada' => $catatan?->verified_at?->format('d M H:i'),
+                    'diverifikasi_oleh' => $catatan?->verifikator?->name ?? $catatan?->pelaku_label,
+                    'catatan' => $catatan?->notes,
+                ];
+            })
+            // Urutan yang dibaca wali kelas: kelas, lalu nama. Kunci
+            // pengurutnya SATU string gabungan, bukan beberapa comparator -
+            // `sortBy()` menerima kunci, bukan pasangan fungsi bandingkan.
+            ->sortBy(fn (array $b) => sprintf(
+                '%s|%s|%s',
+                str_pad((string) ($b['tingkat'] ?? ''), 4, '0', STR_PAD_LEFT),
+                $b['kelas'] ?? '',
+                $b['nama'] ?? '',
+            ))
+            ->values();
+
+        // Ringkasan per kelas - untuk kepala laman. Wali kelas yang bertanya
+        // "berapa anak saya yang tidak hadir" tidak perlu menghitung barisnya
+        // sendiri.
+        $perKelas = $baris
+            ->groupBy(fn (array $b) => $b['kelas'] ?? 'Tanpa kelas')
+            ->map(fn ($daftar, $kelas) => [
+                'kelas' => $kelas,
+                'tingkat' => $daftar->first()['tingkat'] ?? null,
+                'tidak_hadir' => $daftar->where('status', StatusPresensi::TidakHadir->value)->count(),
+                'izin' => $daftar->where('status', StatusPresensi::Izin->value)->count(),
+                'total' => $daftar->count(),
+            ])
+            ->sortBy('kelas')
+            ->values()
+            ->all();
+
+        return Inertia::render('Admin/Event/MonitoringTidakHadir', [
+            'event' => $this->ringkas($event),
+            'baris' => $baris->all(),
+            'per_kelas' => $perKelas,
+            'angka' => [
+                'tidak_hadir' => $baris->where('status', StatusPresensi::TidakHadir->value)->count(),
+                'izin' => $baris->where('status', StatusPresensi::Izin->value)->count(),
+                'kelas' => count($perKelas),
+            ],
+            'monitoring_url' => "/admin/events/{$event->id}/monitoring",
+            'presensi_url' => "/admin/events/{$event->id}/presensi",
+        ]);
+    }
+
+    /**
+     * Keadaan per peserta SATU ruang-sesi - laman sendiri, tab sendiri.
      * ---------------------------------------------------------------------
      * Ruangnya harus milik EVENT ini, dan itu bukan kehati-hatian
      * ---------------------------------------------------------------------
