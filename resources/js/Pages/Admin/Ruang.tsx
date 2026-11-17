@@ -42,6 +42,11 @@ type Baris = {
     pc: number;
     byod: boolean;
     status: string;
+    /**
+     * Slug tautan pintu yang sedang berlaku - null bila belum pernah
+     * diterbitkan. Dipakai menautkan ke kios lab ruang ini.
+     */
+    slug: string | null;
 };
 
 type Props = {
@@ -252,8 +257,58 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                             b.byod ? (
                                 <Chip nada="warn">BYOD</Chip>
                             ) : (
-                                <span className="font-mono text-sm text-ink">{b.pc}</span>
+                                <span className="font-mono text-sm text-ink">
+                                    {b.pc}
+                                    {b.pc < b.kapasitas && (
+                                        <span className="ml-1 text-[10px] text-ink-3">
+                                            / {b.kapasitas}
+                                        </span>
+                                    )}
+                                </span>
                             ),
+                    },
+                    {
+                        // Kios lab - hanya untuk ruang yang PUNYA kursi
+                        // ber-PC. Ruang BYOD tidak punya, sehingga
+                        // `/lab/...` di sana adalah alamat yang tidak akan
+                        // pernah dipakai; menawarkannya membuat Admin
+                        // mencetak tautan yang salah ke monitor.
+                        //
+                        // Tautan pintu belum terbit berarti slug-nya null:
+                        // tombolnya tidak dirender, dan yang tampil alasan
+                        // apa yang harus dilakukan lebih dulu.
+                        judul: 'Kios lab',
+                        kelas: 'w-32',
+                        render: (b) => {
+                            if (b.byod || b.pc === 0) {
+                                return (
+                                    <span className="text-[11px] text-ink-3">
+                                        tidak ada PC
+                                    </span>
+                                );
+                            }
+
+                            if (b.slug === null) {
+                                return (
+                                    <Link
+                                        href={`/admin/ruang/${b.id}`}
+                                        className="text-[11px] text-warn hover:underline"
+                                        title="Kios memakai slug tautan pintu ruang ini. Terbitkan tautannya lebih dulu."
+                                    >
+                                        terbitkan tautan
+                                    </Link>
+                                );
+                            }
+
+                            return (
+                                <TombolTautan
+                                    href={`/lab/${b.slug}/1`}
+                                    title={`Kios PC 1 ruang ${b.kode} - ganti angka terakhir sesuai nomor PC`}
+                                >
+                                    Buka kios
+                                </TombolTautan>
+                            );
+                        },
                     },
                     {
                         judul: 'Status',

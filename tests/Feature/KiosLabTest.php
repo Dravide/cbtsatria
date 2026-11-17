@@ -6,6 +6,7 @@ use App\Domain\Attendance\Models\AttendanceLog;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Services\PetaKursiEvent;
+use App\Domain\Facility\Models\Room;
 use App\Domain\Facility\Models\RoomEntryLink;
 use App\Domain\Facility\Services\RoomEntryLinkService;
 use App\Domain\Identity\Models\User;
@@ -227,4 +228,61 @@ it('menuntut login untuk masuk, dan mengembalikan ke kios sesudahnya', function 
         ->assertRedirect('/login');
 
     expect(session('url.intended'))->toContain("/lab/{$this->slug}/{$kursi}/gerbang");
+});
+
+/* =====================================================================
+ | Tautan kios di laman Ruang
+ |===================================================================== */
+
+it('menautkan kios dari daftar ruang, dan hanya untuk ruang ber-PC', function () {
+    // Ruang BYOD tetap tampil, tetapi tidak menawarkan kios: tidak ada kursi
+    // berperangkat di sana, sehingga `/lab/...` adalah alamat yang tidak
+    // akan pernah dipakai.
+    $byod = Room::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'code' => 'R-99',
+        'name' => 'Kelas Biasa',
+        'capacity' => 32,
+        'device_count' => 0,
+        'status' => 'aktif',
+    ]);
+
+    $props = masukSebagai($this, $this->admin)
+        ->get('/admin/ruang')
+        ->viewData('page')['props'];
+
+    $baris = collect($props['baris']['data']);
+
+    // Ruang lab: punya slug tautan yang sedang berlaku.
+    $lab = $baris->firstWhere('kode', $this->d['ruang'][0]->eventRoom->room->code);
+
+    expect($lab)->not->toBeNull()
+        ->and($lab['slug'])->toBe($this->slug)
+        ->and($lab['byod'])->toBeFalse();
+
+    // Dan slug itu benar-benar membuka kios.
+    $this->get("/lab/{$lab['slug']}/1")->assertOk();
+
+    // Ruang BYOD: tanpa PC, dan tanpa tautan yang ditawarkan.
+    $tanpaPc = $baris->firstWhere('kode', 'R-99');
+
+    expect($tanpaPc)->not->toBeNull()
+        ->and($tanpaPc['byod'])->toBeTrue()
+        ->and($tanpaPc['slug'])->toBeNull();
+});
+
+it('mengirim slug null bila tautan ruangnya belum diterbitkan', function () {
+    // Tombol "Buka kios" tidak dirender tanpa slug - kios tanpa tautan
+    // adalah alamat yang 404, dan tombol yang pasti gagal lebih buruk
+    // daripada keterangan yang menyebut apa yang harus dilakukan.
+    RoomEntryLink::query()->update(['revoked_at' => now()]);
+
+    $props = masukSebagai($this, $this->admin)
+        ->get('/admin/ruang')
+        ->viewData('page')['props'];
+
+    $lab = collect($props['baris']['data'])
+        ->firstWhere('kode', $this->d['ruang'][0]->eventRoom->room->code);
+
+    expect($lab['slug'])->toBeNull();
 });

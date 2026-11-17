@@ -4,6 +4,7 @@ namespace App\Domain\Admin\Http\Controllers;
 
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Facility\Models\Room;
+use App\Domain\Facility\Models\RoomEntryLink;
 use App\Domain\Facility\Services\KartuPintu;
 use App\Domain\Facility\Services\RoomEntryLinkService;
 use App\Domain\Tenancy\Models\School;
@@ -62,17 +63,45 @@ class RoomController
         // Angka ringkasan yang berubah saat berpindah halaman bukan ringkasan.
         $semua = Room::query()->get(['capacity', 'device_count', 'status']);
 
+        // Tautan pintu yang sedang berlaku untuk ruang-ruang di HALAMAN INI,
+        // dalam satu kueri - bukan satu per baris. Laman ini dibuka Admin saat
+        // menyiapkan hari ujian, dan N+1 di sana berarti tiga puluh tiga kueri
+        // untuk tabel yang barisnya sedang ia pindai.
+        //
+        // Hanya ruang BER-PC yang memakainya sebagai alamat kios: ruang BYOD
+        // tidak punya kursi berperangkat, sehingga `/lab/...` di sana tidak
+        // akan pernah dipakai - dan menawarkannya membuat Admin mencetak
+        // tautan yang tidak berguna.
+        $aktifPerRuang = RoomEntryLink::query()
+            ->whereIn('room_id', $halaman->pluck('id'))
+            ->whereNull('revoked_at')
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->orderByDesc('id')
+            ->get()
+            ->unique('room_id')
+            ->keyBy('room_id');
+
         return Inertia::render('Admin/Ruang', [
-            'baris' => $halaman->through(fn (Room $ruang) => [
-                'id' => $ruang->id,
-                'kode' => $ruang->code,
-                'nama' => $ruang->name,
-                'lokasi' => $ruang->location,
-                'kapasitas' => $ruang->capacity,
-                'pc' => $ruang->device_count,
-                'byod' => $ruang->isByod(),
-                'status' => $ruang->status,
-            ]),
+            'baris' => $halaman->through(function (Room $ruang) use ($aktifPerRuang) {
+                $tautan = $aktifPerRuang->get($ruang->id);
+
+                return [
+                    'id' => $ruang->id,
+                    'kode' => $ruang->code,
+                    'nama' => $ruang->name,
+                    'lokasi' => $ruang->location,
+                    'kapasitas' => $ruang->capacity,
+                    'pc' => $ruang->device_count,
+                    'byod' => $ruang->isByod(),
+                    'status' => $ruang->status,
+
+                    // Slug tautan pintu yang sedang berlaku - dipakai laman
+                    // ini untuk menautkan ke KIOS lab. Null berarti tautannya
+                    // belum pernah diterbitkan; tombolnya tidak dirender,
+                    // karena kios tanpa tautan adalah alamat yang 404.
+                    'slug' => $tautan?->slug,
+                ];
+            }),
             'filter' => [
                 'cari' => $request->query('cari', ''),
                 'status' => $request->query('status', ''),
