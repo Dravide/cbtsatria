@@ -201,6 +201,12 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     // tidak akan menelan dua segmen, tetapi urutan ini membuat maksudnya
     // terbaca tanpa harus mengetahui aturan itu.
     Route::get('/nilai/{ujian}/unduh', [NilaiController::class, 'unduh'])->name('nilai.unduh');
+    // Rincian satu SISWA - soal, jawaban, dan linimasa pengerjaannya.
+    //
+    // Didaftarkan SEBELUM `/nilai/{ujian}` karena segmennya lebih panjang;
+    // `{peserta}` di sini adalah id `exam_participants`, bukan id siswa.
+    Route::get('/nilai/{ujian}/siswa/{peserta}', [NilaiController::class, 'siswa'])
+        ->name('nilai.siswa');
     Route::get('/nilai/{ujian}', [NilaiController::class, 'ujian'])->name('nilai.ujian');
 
     Route::get('/analisis', [AnalisisController::class, 'index'])->name('analisis');

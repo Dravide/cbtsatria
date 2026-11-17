@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useMemo } from 'react';
 import GuruLayout from '@/Layouts/GuruLayout';
 import {
@@ -35,6 +35,8 @@ import { formatPoin } from '@/Components/angka';
 
 type Baris = {
     hasil_id: number;
+    /** Id penempatan peserta - kunci rute rincian per siswa. */
+    peserta_id: number | null;
     nis: string | null;
     nama: string | null;
     kelas: string | null;
@@ -229,9 +231,23 @@ export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }
                         judul: 'Nama',
                         render: (b) => (
                             <div className="min-w-0">
-                                <span className="block truncate text-sm text-ink">
-                                    {b.nama ?? 'Siswa tidak dikenal'}
-                                </span>
+                                {/* Nama adalah tautan ke rinciannya: soal,
+                                    jawaban, dan linimasa. Sebelumnya satu-
+                                    satunya cara melihat "kenapa nilainya
+                                    begini" adalah membuka koreksi dan
+                                    menebak butir mana yang dimaksud. */}
+                                {b.peserta_id === null ? (
+                                    <span className="block truncate text-sm text-ink">
+                                        {b.nama ?? 'Siswa tidak dikenal'}
+                                    </span>
+                                ) : (
+                                    <Link
+                                        href={`/guru/nilai/${ujian.id}/siswa/${b.peserta_id}`}
+                                        className="block truncate text-sm text-ink underline decoration-line underline-offset-2 hover:decoration-ink"
+                                    >
+                                        {b.nama ?? 'Siswa tidak dikenal'}
+                                    </Link>
+                                )}
                                 {b.kelas && (
                                     <span className="text-[11px] text-ink-3">{b.kelas}</span>
                                 )}

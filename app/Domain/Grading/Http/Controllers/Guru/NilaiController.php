@@ -3,9 +3,12 @@
 namespace App\Domain\Grading\Http\Controllers\Guru;
 
 use App\Domain\Academic\Models\SchoolClass;
+use App\Domain\Attendance\Models\AttemptQuestion;
 use App\Domain\Attendance\Models\ExamAttempt;
+use App\Domain\Attendance\Support\RingkasJawaban;
 use App\Domain\Event\Models\EventClass;
 use App\Domain\Exam\Models\Exam;
+use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Grading\Models\ExamResult;
 use App\Domain\Grading\Services\EksporNilai;
 use App\Domain\Grading\Support\UjianGuru;
@@ -14,6 +17,7 @@ use App\Support\TabelQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -145,6 +149,12 @@ class NilaiController
 
                 return [
                     'hasil_id' => $r->id,
+                    // Id penempatan peserta - dipakai baris ini untuk
+                    // menautkan ke rincian per siswa. Nama dan NIS saja tidak
+                    // cukup: rute rincian memakai id `exam_participants`, dan
+                    // laman yang menyusunnya dari nama akan salah orang pada
+                    // sekolah yang punya dua siswa bernama sama.
+                    'peserta_id' => $peserta?->id,
                     'nis' => $peserta?->student?->username,
                     'nama' => $peserta?->student?->name,
                     'kelas' => $peserta?->kelas?->name,
@@ -269,6 +279,337 @@ class NilaiController
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="'.$ekspor->namaBerkas($ujian, $namaKelas).'"',
         ]);
+    }
+
+    /**
+     * Rincian satu siswa: soal, jawabannya, dan linimasa pengerjaannya.
+     *
+     * ---------------------------------------------------------------------
+     * Apa yang BENAR-BENAR tersimpan, dan apa yang tidak
+     * ---------------------------------------------------------------------
+     * Tidak ada log per klik. Yang tersimpan hanya tiga hal yang bertanggal:
+     *
+     *   `exam_attempts.started_at`      kapan anak menekan Mulai;
+     *   `student_answers.saved_at`      penyimpanan TERAKHIR tiap butir;
+     *   `exam_violations.occurred_at`   kejadian yang dicatat mesin.
+     *
+     * Karena itu linimasa di sini menyebut "jawaban nomor 7 tersimpan pukul
+     * 07:34", bukan "nomor 7 diklik pukul 07:33:41". Setiap penyimpanan
+     * menimpa yang sebelumnya - itu memang disengaja, `version` menaik dan
+     * `saved_at` diganti. Menampilkan lebih dari ini berarti mengarang.
+     *
+     * `started_at` dan `saved_at` cukup untuk menjawab pertanyaan Guru yang
+     * sungguhan: "apakah anak ini mengebut di sepuluh menit terakhir" dan
+     * "butir mana yang dikerjakan paling akhir". Selisih antar-`saved_at`
+     * adalah waktu yang ia habiskan di butir berikutnya.
+     *
+     * ---------------------------------------------------------------------
+     * Guru melihat kunci dan rubrik; siswa tidak
+     * ---------------------------------------------------------------------
+     * Laman ini konsol GURU, yang menilai jawaban - jadi kunci dan rubrik
+     * ikut dikirim. Aturan yang sama sudah berlaku di `KoreksiController`.
+     * Yang TIDAK dikirim tetap satu: rubrik tidak pernah dikirim ke siswa,
+     * dan itu ditegakkan di `RiwayatSiswaController`, bukan di sini.
+     */
+    public function siswa(Request $request, Exam $ujian, ExamParticipant $peserta, RingkasJawaban $ringkas): Response
+    {
+        Gate::authorize('koreksi');
+
+        $guru = $request->user();
+        $ujian = UjianGuru::satu($guru->id, $ujian->id);
+
+        // Peserta harus benar-benar peserta ujian INI. Binding implisit
+        // menjamin barisnya ada di sekolah ini, bukan di ujian ini - dan
+        // tanpa pemeriksaan ini Guru bisa membaca jawaban siswa dari ujian
+        // lain dengan menebak id-nya. 404, bukan 403: yang 403 membuktikan
+        // barisnya ada di tempat lain.
+        abort_unless((int) $peserta->exam_id === (int) $ujian->id, 404);
+
+        $peserta->loadMissing([
+            'student:id,name,username',
+            'student.studentProfile:id,user_id,nis',
+            'pesertaEvent:id,student_id,class_id',
+            'pesertaEvent.kelas:id,name',
+        ]);
+
+        $attempt = ExamAttempt::query()
+            ->where('exam_participant_id', $peserta->id)
+            ->orderByDesc('attempt_number')
+            ->first();
+
+        $kkm = $this->kkm();
+        $hasil = $attempt === null ? null : ExamResult::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->first();
+
+        $butir = $attempt === null ? [] : $this->butirSiswa($attempt, $ringkas);
+
+        return Inertia::render('Guru/Nilai/Siswa', [
+            'ujian' => [
+                'id' => $ujian->id,
+                'judul' => $ujian->title,
+                'kode' => $ujian->code,
+                'mapel' => $ujian->subject?->name,
+            ],
+            'siswa' => [
+                'peserta_id' => $peserta->id,
+                'nama' => $peserta->student?->name,
+                'nis' => $peserta->student?->studentProfile?->nis
+                    ?? $peserta->student?->username,
+                'kelas' => $peserta->pesertaEvent?->kelas?->name,
+            ],
+            'pengerjaan' => $attempt === null ? null : [
+                'id' => $attempt->id,
+                'nomor_attempt' => $attempt->attempt_number,
+                'status' => $attempt->status,
+                'status_label' => $attempt->labelStatus(),
+                // Diisi bila attempt-nya diulang - Guru perlu tahu bahwa
+                // yang dibacanya adalah percobaan KEDUA, bukan satu-satunya.
+                'mulai' => $attempt->started_at?->toIso8601String(),
+                'mulai_label' => $attempt->started_at?->format('d M Y · H:i'),
+                'batas' => $attempt->deadline_at?->format('H:i'),
+                'dikumpulkan' => $attempt->submitted_at?->toIso8601String(),
+                'dikumpulkan_label' => $attempt->submitted_at?->format('d M Y · H:i'),
+                'terakhir_terlihat' => $attempt->last_seen_at?->format('d M · H:i'),
+                'pelanggaran' => (int) $attempt->violation_count,
+                'terberat' => (int) $attempt->violation_worst_severity,
+                'terkunci' => $attempt->dikunci(),
+                'kunci_alasan' => $attempt->lock_reason,
+                // Detik yang dipakai mengerjakan - jam dinding, bukan waktu
+                // aktif. Mesin ujian tidak menyimpan akumulasi waktu aktif,
+                // dan angka yang dikarang di sini akan dibandingkan dengan
+                // jam di kepala anak.
+                'durasi_detik' => $attempt->started_at !== null && $attempt->submitted_at !== null
+                    ? max(0, (int) $attempt->started_at->diffInSeconds($attempt->submitted_at, false))
+                    : null,
+            ],
+            'hasil' => $hasil === null ? null : [
+                'objektif' => (float) $hasil->automatic_score,
+                'uraian' => $hasil->final() ? (float) $hasil->essay_score : null,
+                'nilai' => (float) $hasil->final_percentage,
+                'final' => $hasil->final(),
+                'sisa_uraian' => (int) $hasil->pending_essays,
+                'status' => $hasil->grading_status->value,
+                'status_label' => $hasil->grading_status->label(),
+                'lulus' => $hasil->final() ? (float) $hasil->final_percentage >= $kkm : null,
+            ],
+            'kkm' => $kkm,
+            'butir' => $butir,
+            // Linimasa DIRAKIT dari `butir` dan attempt - bukan kueri kedua
+            // atas tabel yang sama. Dua pembacaan atas data yang sama adalah
+            // dua linimasa yang bisa berbeda diam-diam.
+            'linimasa' => $this->linimasa($attempt, $butir),
+            'jalur_ujian' => "/guru/nilai/{$ujian->id}",
+        ]);
+    }
+
+    /**
+     * Butir satu attempt dengan soal, jawaban, kunci, dan skornya.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function butirSiswa(ExamAttempt $attempt, RingkasJawaban $ringkas): array
+    {
+        return AttemptQuestion::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->with(['soal', 'jawaban'])
+            ->orderBy('display_order')
+            ->get()
+            ->map(function (AttemptQuestion $b) use ($ringkas) {
+                $soal = $b->soal;
+                $jawaban = $b->jawaban;
+
+                if ($soal === null) {
+                    // Snapshot yang hilang tetap dikirim, bukan dibuang -
+                    // nomor soal adalah hal yang disebut pengawas, dan
+                    // membuangnya menggeser seluruh nomor sesudahnya.
+                    return [
+                        'id' => $b->id,
+                        'nomor' => $b->display_order,
+                        'jenis_label' => 'Soal tidak tersedia',
+                        'judul' => null,
+                        'soal' => null,
+                        'opsi' => [],
+                        'jawaban' => null,
+                        'kunci' => null,
+                        'benar' => null,
+                        'skor' => null,
+                        'bobot' => 0.0,
+                        'keadaan' => 'belum',
+                        'tersimpan' => null,
+                        'versi' => null,
+                        'ditandai' => false,
+                    ];
+                }
+
+                $jenis = $soal->jenis;
+
+                return [
+                    'id' => $b->id,
+                    'nomor' => $b->display_order,
+                    'jenis' => $jenis->value,
+                    'jenis_label' => $jenis->label(),
+                    'judul' => $soal->judul,
+                    'soal' => $this->teksSoal($soal->soal_json),
+                    'opsi' => $this->opsiSoal($soal->opsi_json),
+
+                    'jawaban' => $jawaban === null
+                        ? null
+                        : $ringkas->jawaban($jenis, $jawaban->answer_json, $soal->butir_json),
+
+                    // Guru melihat kunci. Rubrik tidak: ia pedoman yang
+                    // dibaca di laman koreksi, dan menampilkannya di sini
+                    // berarti dua tempat yang harus sepakat tentang cara
+                    // membaca rubrik.
+                    'kunci' => $ringkas->kunci($jenis, $soal->kunci_json, $soal->butir_json),
+
+                    'benar' => $jawaban?->is_correct,
+                    'skor' => $jawaban?->score_awarded === null
+                        ? null
+                        : (float) $jawaban->score_awarded,
+                    'bobot' => $soal->bobotBerlaku(),
+                    'keadaan' => $this->keadaanButir($jawaban?->is_correct, $jawaban?->score_awarded),
+
+                    // Waktu penyimpanan TERAKHIR butir ini, apa adanya. Ia
+                    // diganti setiap penyimpanan - lihat catatan kepala
+                    // method `siswa()`.
+                    'tersimpan' => $jawaban?->saved_at?->toIso8601String(),
+                    'tersimpan_label' => $jawaban?->saved_at?->format('H:i:s'),
+                    'versi' => $jawaban?->version,
+                    'ditandai' => (bool) ($jawaban?->ditandai ?? false),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Linimasa pengerjaan - dari data yang BERTANGGAL, tidak dikarang.
+     *
+     * Tiga jenis kejadian, berurutan waktu:
+     *
+     *   mulai      `attempts.started_at`
+     *   jawab      `student_answers.saved_at`, satu per butir
+     *   kumpul     `attempts.submitted_at`
+     *
+     * Diurutkan menaik supaya bisa dibaca sebagai cerita. Butir yang
+     * tersimpan pada jam yang sama (autosave dua butir beruntun) tetap
+     * ditampilkan satu per satu - menyatukannya akan menghapus informasi
+     * "ia mengerjakan dua soal dalam satu detik", dan itu justru yang
+     * dicari Guru.
+     *
+     * @param  array<int, array<string, mixed>>  $butir
+     * @return array<int, array<string, mixed>>
+     */
+    private function linimasa(?ExamAttempt $attempt, array $butir): array
+    {
+        if ($attempt === null) {
+            return [];
+        }
+
+        $kejadian = [];
+
+        if ($attempt->started_at !== null) {
+            $kejadian[] = [
+                'jenis' => 'mulai',
+                'label' => 'Menekan Mulai',
+                'pada' => $attempt->started_at->toIso8601String(),
+                'jam' => $attempt->started_at->format('H:i:s'),
+                'detik' => 0,
+                'nomor' => null,
+            ];
+        }
+
+        $awal = $attempt->started_at;
+
+        foreach ($butir as $b) {
+            if ($b['tersimpan'] === null) {
+                continue;
+            }
+
+            $pada = Carbon::parse($b['tersimpan']);
+
+            $kejadian[] = [
+                'jenis' => 'jawab',
+                'label' => 'Jawaban nomor '.$b['nomor'].' tersimpan',
+                'pada' => $b['tersimpan'],
+                'jam' => $b['tersimpan_label'],
+                // Detik sejak Mulai - dipakai laman untuk kolom "menit ke-",
+                // dan dihitung di server supaya jawaban dan rumusnya satu.
+                'detik' => $awal === null ? null : max(0, (int) $awal->diffInSeconds($pada, false)),
+                'nomor' => $b['nomor'],
+                'keadaan' => $b['keadaan'],
+            ];
+        }
+
+        if ($attempt->submitted_at !== null) {
+            $kejadian[] = [
+                'jenis' => 'kumpul',
+                'label' => 'Mengumpulkan',
+                'pada' => $attempt->submitted_at->toIso8601String(),
+                'jam' => $attempt->submitted_at->format('H:i:s'),
+                'detik' => $awal === null
+                    ? null
+                    : max(0, (int) $awal->diffInSeconds($attempt->submitted_at, false)),
+                'nomor' => null,
+            ];
+        }
+
+        usort($kejadian, fn (array $a, array $b) => strcmp((string) $a['pada'], (string) $b['pada']));
+
+        return $kejadian;
+    }
+
+    /** Empat keadaan butir - sama dengan riwayat sisi siswa. */
+    private function keadaanButir(?bool $benar, mixed $skor): string
+    {
+        if ($benar === true) {
+            return 'benar';
+        }
+
+        if ($benar === false) {
+            return 'salah';
+        }
+
+        return $skor === null ? 'belum' : 'dinilai';
+    }
+
+    /** @param  array<string, mixed>|null  $isi */
+    private function teksSoal(?array $isi): ?string
+    {
+        $teks = $isi['teks'] ?? null;
+
+        return is_string($teks) && trim($teks) !== '' ? trim($teks) : null;
+    }
+
+    /**
+     * Opsi snapshot sebagai peta kunci-ke-teks.
+     *
+     * @param  array<int, array<string, mixed>>|null  $opsi
+     * @return array<string, string>
+     */
+    private function opsiSoal(?array $opsi): array
+    {
+        if (! is_array($opsi)) {
+            return [];
+        }
+
+        $peta = [];
+
+        foreach ($opsi as $satu) {
+            if (! is_array($satu) || ! isset($satu['kunci'])) {
+                continue;
+            }
+
+            $isi = $satu['teks'] ?? null;
+
+            if (is_array($isi)) {
+                $isi = $isi['teks'] ?? null;
+            }
+
+            $peta[(string) $satu['kunci']] = is_string($isi) ? trim($isi) : '';
+        }
+
+        return $peta;
     }
 
     /* ------------------------------------------------------------ Pembantu */
