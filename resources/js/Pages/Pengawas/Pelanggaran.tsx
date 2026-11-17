@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import KerangkaPonsel from '@/Layouts/KerangkaPonsel';
 import { Chip, Inbox, Peringatan } from '@/Components/ui';
 import { KpiPonsel, KotakPonsel } from '@/Components/ponsel';
@@ -60,6 +60,10 @@ type Props = {
         kunci_alasan: string | null;
         terhubung: boolean | null;
         terakhir: string | null;
+        /** Detik tersisa menurut server; null bila belum mulai. */
+        sisa_detik: number | null;
+        berakhir_pada: string | null;
+        akhir_sesi: string | null;
     };
     riwayat: Riwayat[];
 };
@@ -68,6 +72,39 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
     const [kirim, setKirim] = useState(false);
     const [catatan, setCatatan] = useState(false);
     const [isiCatatan, setIsiCatatan] = useState('');
+
+    /**
+     * Hitungan mundur - lokal, satu detik, tanpa jaringan.
+     *
+     * Angkanya MULAI dari `sisa_detik` yang dihitung server, lalu berkurang
+     * sendiri. Server tetap satu-satunya yang memutuskan kapan pengerjaan
+     * berakhir (`MesinUjian` menutup attempt yang lewat deadline), jadi
+     * hitungan ini adalah tampilan, bukan penentu - jam ponsel pengawas
+     * tidak pernah ikut menentukan apa pun.
+     *
+     * Ia berhenti di nol alih-alih menjadi negatif: "-3:12" akan terbaca
+     * seolah masih ada waktu tiga menit lagi.
+     */
+    const [sisa, setSisa] = useState(pengerjaan.sisa_detik);
+
+    useEffect(() => {
+        setSisa(pengerjaan.sisa_detik);
+    }, [pengerjaan.sisa_detik]);
+
+    useEffect(() => {
+        if (pengerjaan.sisa_detik === null) {
+            return;
+        }
+
+        const jam = window.setInterval(
+            () => setSisa((lama) => (lama === null ? null : Math.max(0, lama - 1))),
+            1000,
+        );
+
+        return () => window.clearInterval(jam);
+    }, [pengerjaan.sisa_detik]);
+
+    const habis = sisa !== null && sisa <= 0;
 
     const bukaKunci = () => {
         setKirim(true);
@@ -148,6 +185,63 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
                 />
                 <KpiPonsel label="Progres" nilai={angka.progres ?? '—'} />
             </div>
+
+            {/* ------------------------------------------------ hitung mundur */}
+            {/* Waktu yang tersisa BAGI ANAK INI, bukan sisa sesi ruang.
+
+                Keduanya berbeda, dan pengawas yang tidak bisa membedakannya
+                akan mendatangi anak yang masih punya empat puluh menit atau
+                meninggalkan anak yang tinggal tiga menit. `deadline_at` sudah
+                memuat MIN(durasi, akhir sesi) yang dihitung server, jadi satu
+                angka ini menjawab keduanya sekaligus - dan jam berakhirnya
+                ditulis di bawah sebagai pembanding. */}
+            <KotakPonsel judul="Sisa waktu" padat>
+                {sisa === null ? (
+                    <p className="text-[11px] leading-relaxed text-ink-3">
+                        {pengerjaan.ada
+                            ? 'Pengerjaan ini tidak punya batas waktu yang tercatat.'
+                            : 'Peserta ini belum mulai mengerjakan, jadi belum ada waktu berjalan.'}
+                    </p>
+                ) : (
+                    <div className="flex items-end gap-2">
+                        <span
+                            className={
+                                'angka font-mono text-2xl leading-none font-semibold tabular-nums ' +
+                                // Di bawah lima menit ia memanas: pengawas harus
+                                // tahu tanpa membaca angka, karena yang dibacanya
+                                // adalah nama anak yang sedang ditangani.
+                                (habis || sisa <= 300 ? 'text-bad' : 'text-ink')
+                            }
+                        >
+                            {formatSisa(sisa)}
+                        </span>
+                        <span className="pb-0.5 text-[11px] text-ink-3">
+                            {habis ? 'waktu habis' : 'tersisa'}
+                        </span>
+                    </div>
+                )}
+
+                <p className="mt-1 text-[11px] leading-relaxed text-ink-3">
+                    {[
+                        pengerjaan.berakhir_pada ? `berakhir ${pengerjaan.berakhir_pada}` : null,
+                        pengerjaan.akhir_sesi ? `sesi tutup ${pengerjaan.akhir_sesi}` : null,
+                    ]
+                        .filter(Boolean)
+                        .join(' · ') || '—'}
+                </p>
+
+                {/* Angkanya bergerak sendiri tanpa jaringan: yang dikirim
+                    server adalah detik sisa, dan laman ini hanya
+                    menguranginya. Yang MENUTUP pengerjaan tetap server - jam
+                    ponsel pengawas tidak pernah menentukan akhir ujian. */}
+                {sisa !== null && (
+                    <p className="mt-1 text-[11px] leading-relaxed text-ink-3">
+                        Hitungan ini berjalan sendiri di ponsel dan berhenti di nol. Yang
+                        menutup pengerjaan adalah server, jadi angka yang sudah nol di sini
+                        tidak berarti attempt-nya sudah tertutup.
+                    </p>
+                )}
+            </KotakPonsel>
 
             {pengerjaan.kunci_alasan && (
                 <Peringatan>
@@ -270,4 +364,21 @@ export default function Pelanggaran({ ruang, peserta, angka, pengerjaan, riwayat
             </Inbox>
         </KerangkaPonsel>
     );
+}
+
+/**
+ * Detik sisa sebagai jam:menit:detik.
+ *
+ * `tabular-nums` di pemanggilnya, bukan di sini: angka yang lebarnya
+ * berubah setiap detik membuat teks di sebelahnya bergeser, dan mata yang
+ * sedang mengawasi hitungan mundur membaca geseran itu sebagai perubahan
+ * angka.
+ */
+function formatSisa(detik: number): string {
+    const j = Math.floor(detik / 3600);
+    const m = Math.floor((detik % 3600) / 60);
+    const d = detik % 60;
+    const dua = (n: number) => String(n).padStart(2, '0');
+
+    return j > 0 ? `${dua(j)}:${dua(m)}:${dua(d)}` : `${dua(m)}:${dua(d)}`;
 }

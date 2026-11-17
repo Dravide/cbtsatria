@@ -118,9 +118,27 @@ class PelanggaranController
                 'status_label' => $attempt?->labelStatus() ?? 'Belum mulai',
                 'status_nada' => $attempt?->nadaStatus() ?? 'mute',
                 'terkunci' => $attempt?->dikunci() ?? false,
-                'kunci_alasan' => $attempt?->lock_reason,
+                'kunci_alasan' => $attempt->lock_reason ?? null,
                 'terhubung' => $attempt?->terhubung(),
                 'terakhir' => $attempt?->last_seen_at?->format('H:i'),
+
+                // Waktu yang tersisa, dan ia dihitung SERVER - bukan dari jam
+                // ponsel pengawas. `deadline_at` sudah memuat MIN(durasi,
+                // hard_end_at) yang dihitung `MesinUjian`, jadi angka ini
+                // adalah yang benar-benar berlaku bagi anak itu.
+                //
+                // Yang dikirim adalah DETIK, bukan jam berakhir: laman
+                // pengawas menghitung mundur sendiri setiap detik tanpa
+                // jaringan, dan jam perangkat tidak pernah ikut menentukan
+                // apa pun - ia hanya berhenti di nol, seperti laman siswa.
+                'sisa_detik' => $attempt === null || $attempt->deadline_at === null
+                    ? null
+                    : max(0, (int) now()->diffInSeconds($attempt->deadline_at, false)),
+                'berakhir_pada' => $attempt?->deadline_at?->format('H:i'),
+                // Sesi bisa berakhir lebih dulu daripada durasi ujian - dan
+                // pengawas yang tahu bedanya bisa memutuskan apakah anak ini
+                // masih punya waktu atau sedang mengejar sisa sesi.
+                'akhir_sesi' => $ruang->session?->hard_end_at?->format('H:i'),
             ],
 
             'riwayat' => $riwayat->map(fn (ExamViolation $v) => [

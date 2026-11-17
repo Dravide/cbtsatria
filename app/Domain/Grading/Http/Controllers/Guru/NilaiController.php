@@ -7,10 +7,13 @@ use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Event\Models\EventClass;
 use App\Domain\Exam\Models\Exam;
 use App\Domain\Grading\Models\ExamResult;
+use App\Domain\Grading\Services\EksporNilai;
 use App\Domain\Grading\Support\UjianGuru;
 use App\Domain\Tenancy\Support\PengaturanBawaan;
 use App\Support\TabelQuery;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -175,6 +178,96 @@ class NilaiController
                 ->get(['id', 'name'])
                 ->map(fn (SchoolClass $k) => ['id' => (string) $k->id, 'label' => $k->name])
                 ->all(),
+        ]);
+    }
+
+    /**
+     * Unduh nilai satu ujian sebagai XLSX - per kelas, atau seluruhnya.
+     *
+     * ---------------------------------------------------------------------
+     * Berkasnya hanya lahir bila SELURUH barisnya sudah final
+     * ---------------------------------------------------------------------
+     * Kalimat yang sama dengan plate 07, tetapi dengan akibat yang lebih
+     * keras: di layar, uraian yang belum dikoreksi tampil "belum" dan kolom
+     * Nilai tetap terbaca sebagai angka sementara. Di berkas, kolom itu
+     * menjadi SEL yang dijumlahkan Excel - dan rata-rata yang dihitung
+     * Guru dari berkas itu akan berbeda dari rata-rata yang ia lihat di
+     * layar, tanpa satu pun tanda bahwa penyebabnya koreksi yang belum
+     * selesai.
+     *
+     * Karena itu permintaannya DITOLAK dengan alasan, bukan dilayani dengan
+     * sel kosong. Berkas yang menyembunyikan pekerjaan yang belum selesai
+     * adalah berkas yang akan beredar sebagai nilai akhir.
+     *
+     * ---------------------------------------------------------------------
+     * Penyaring kelas memakai aturan yang SAMA dengan laman
+     * ---------------------------------------------------------------------
+     * `kelas` di sini adalah `class_id` peserta, bukan nama kelas: nama
+     * kelas bisa berubah dan tidak unik antar tahun ajaran, sementara id
+     * menunjuk baris yang sama dengan yang dipakai penyaring layar.
+     */
+    public function unduh(Request $request, Exam $ujian, EksporNilai $ekspor): HttpResponse|RedirectResponse
+    {
+        Gate::authorize('koreksi');
+
+        $guru = $request->user();
+        $ujian = UjianGuru::satu($guru->id, $ujian->id);
+
+        $kelas = $request->query('kelas');
+        $kelas = is_string($kelas) && $kelas !== '' ? $kelas : null;
+
+        $hasil = ExamResult::query()
+            ->whereIn('exam_attempt_id', ExamAttempt::query()
+                ->whereHas('penempatan', fn ($q) => $q->where('exam_id', $ujian->id))
+                ->select('id'))
+            ->with([
+                'pengerjaan:id,exam_participant_id',
+                'pengerjaan.penempatan:id,event_participant_id',
+                'pengerjaan.penempatan.pesertaEvent:id,student_id,class_id',
+                'pengerjaan.penempatan.pesertaEvent.student:id,name,username',
+                'pengerjaan.penempatan.pesertaEvent.kelas:id,name',
+            ])
+            ->when($kelas !== null, fn ($q) => $q->whereHas(
+                'pengerjaan.penempatan.pesertaEvent',
+                fn ($s) => $s->where('class_id', $kelas),
+            ))
+            ->get();
+
+        // Dua penolakan, dan keduanya menyebut apa yang harus dilakukan
+        // berikutnya - Guru yang menerima "tidak bisa diunduh" tanpa sebab
+        // akan menekan tombolnya lagi.
+        if ($hasil->isEmpty()) {
+            return back()->with('galat', $kelas === null
+                ? 'Belum ada nilai pada ujian ini, jadi belum ada yang bisa diunduh.'
+                : 'Kelas ini belum punya nilai pada ujian ini.');
+        }
+
+        $belumFinal = $hasil->filter(fn (ExamResult $r) => ! $r->final())->count();
+
+        if ($belumFinal > 0) {
+            return back()->with('galat', "Masih ada {$belumFinal} siswa yang uraiannya belum dikoreksi. "
+                .'Unduhan baru tersedia setelah semuanya dikoreksi - berkas dengan sel kosong akan terbaca sebagai nilai akhir.');
+        }
+
+        $baris = $hasil->map(fn (ExamResult $r) => [
+            'nis' => $r->pengerjaan?->penempatan?->pesertaEvent?->student?->username,
+            'nama' => $r->pengerjaan?->penempatan?->pesertaEvent?->student?->name,
+            'kelas' => $r->pengerjaan?->penempatan?->pesertaEvent?->kelas?->name,
+            'objektif' => (float) $r->automatic_score,
+            'uraian' => (float) $r->essay_score,
+            'nilai' => (float) $r->final_percentage,
+            'status_label' => $r->grading_status->label(),
+        ])->sortBy(fn (array $b) => (string) $b['kelas'].'|'.(string) $b['nama'])->values();
+
+        $namaKelas = $kelas === null ? null : $hasil->first()?->pengerjaan?->penempatan?->pesertaEvent?->kelas?->name;
+
+        // Dikirim langsung, bukan lewat disk: berkasnya satu ujian, selesai
+        // dalam milidetik, dan tautan yang mati karena berkasnya dipangkas
+        // adalah kegagalan yang tidak perlu diciptakan - lihat catatan yang
+        // sama di EventCommitteeController::ekspor().
+        return response($ekspor->buat($ujian, $baris), 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'.$ekspor->namaBerkas($ujian, $namaKelas).'"',
         ]);
     }
 

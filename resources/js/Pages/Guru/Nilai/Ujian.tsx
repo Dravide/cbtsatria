@@ -9,6 +9,7 @@ import {
     PilihCari,
     Tabel,
     Tombol,
+    TombolTautan,
     pakaiFilter,
 } from '@/Components/ui';
 import { formatPoin } from '@/Components/angka';
@@ -93,6 +94,23 @@ export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }
 
     const kelasAda = kelas.length > 0;
 
+    /**
+     * Unduhan tersedia hanya bila SELURUH baris sudah final, dan alasannya
+     * bukan tampilan.
+     *
+     * Di layar, uraian yang belum dikoreksi tampil "belum" dan angkanya
+     * terbaca sebagai sementara. Di berkas XLSX, kolom itu menjadi SEL yang
+     * dijumlahkan Excel - Guru yang menghitung rata-rata dari berkasnya akan
+     * mendapat angka yang berbeda dari laman ini, tanpa tanda bahwa
+     * penyebabnya koreksi yang belum selesai.
+     *
+     * Karena itu tombolnya ADA dan MENOLAK dengan alasan, bukan hilang:
+     * tombol yang hilang membuat Guru mengira fiturnya belum ada, dan ia
+     * akan menyusun sendiri tabelnya di Excel.
+     */
+    const siapUnduh = ringkas.belum_final === 0 && ringkas.hasil > 0;
+    const urlUnduh = `/guru/nilai/${ujian.id}/unduh${filter.kelas ? `?kelas=${filter.kelas}` : ''}`;
+
     const kosong = useMemo(
         () =>
             filter.kelas
@@ -106,13 +124,35 @@ export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }
             judul="Nilai kelas"
             breadcrumb={`Nilai · ${ujian.mapel ?? ujian.judul}`}
             aksi={
-                // XLSX dan PDF di plate 07 belum punya rutenya di Fase 8:
-                // ekspor sisi Guru memakai sumber data yang sama dengan plate
-                // 22, dan menambahkannya di sini berarti dua jalur ekspor
-                // yang harus tetap sepakat. Tombolnya tidak dirender sampai
-                // jalur itu ada - tombol mati mengajari Guru untuk tidak
-                // mempercayai laman ini.
-                null
+                <>
+                    {/* Unduhan: satu kelas bila penyaringnya aktif, seluruh
+                        ujian bila tidak. Labelnya menyebut cakupannya, supaya
+                        Guru tidak mengira ia mengunduh seluruh kelas padahal
+                        sedang menyaring satu kelas. */}
+                    {siapUnduh ? (
+                        <TombolTautan
+                            href={urlUnduh}
+                            title={
+                                filter.kelas
+                                    ? 'Unduh nilai kelas ini sebagai XLSX'
+                                    : 'Unduh nilai seluruh ujian sebagai XLSX'
+                            }
+                        >
+                            Unduh {filter.kelas ? 'kelas ini' : 'semua'}
+                        </TombolTautan>
+                    ) : (
+                        <span
+                            title={
+                                ringkas.hasil === 0
+                                    ? 'Belum ada nilai yang bisa diunduh.'
+                                    : `${ringkas.belum_final} siswa masih menunggu koreksi uraian.`
+                            }
+                            className="inline-flex items-center justify-center gap-1.5 rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-3"
+                        >
+                            Unduh {filter.kelas ? 'kelas ini' : 'semua'}
+                        </span>
+                    )}
+                </>
             }
         >
             <Head title={`Nilai · ${ujian.judul}`} />

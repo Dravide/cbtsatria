@@ -196,6 +196,11 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     Route::get('/koreksi/{ujian}', [KoreksiController::class, 'ujian'])->name('koreksi.ujian');
 
     Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai');
+    // Unduhan nilai - plate 07. Didaftarkan SEBELUM `/nilai/{ujian}` karena
+    // segmennya lebih panjang; Laravel mencocokkan berurutan dan `{ujian}`
+    // tidak akan menelan dua segmen, tetapi urutan ini membuat maksudnya
+    // terbaca tanpa harus mengetahui aturan itu.
+    Route::get('/nilai/{ujian}/unduh', [NilaiController::class, 'unduh'])->name('nilai.unduh');
     Route::get('/nilai/{ujian}', [NilaiController::class, 'ujian'])->name('nilai.ujian');
 
     Route::get('/analisis', [AnalisisController::class, 'index'])->name('analisis');
