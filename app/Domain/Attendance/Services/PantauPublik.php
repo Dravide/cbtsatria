@@ -190,7 +190,7 @@ class PantauPublik
             $a = $attempt->get($p->id);
             /** @var AttendanceRecord|null $rec */
             $rec = $presensi->get($p->id);
-            $statusPresensi = $rec?->status ?? StatusPresensi::Pending;
+            $statusPresensi = $rec?->attendance_status ?? StatusPresensi::Pending;
 
             $terhubung = $a !== null && $a->status === ExamAttempt::STATUS_BERJALAN
                 ? $a->terhubung(self::AMBANG_TERPUTUS)
