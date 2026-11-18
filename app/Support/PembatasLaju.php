@@ -287,6 +287,36 @@ final class PembatasLaju
     /** Pesan saat kiriman skor melampaui batas. */
     public const PESAN_LUANG = 'Terlalu banyak kiriman skor. Tunggu satu menit, lalu coba lagi.';
 
+    /** Nama limiter untuk denyut keadaan lomba dua pemain. */
+    public const LOMBA = 'luang-lomba';
+
+    /**
+     * Denyut lomba per SISWA, per menit.
+     *
+     * ---------------------------------------------------------------------
+     * Seratus, dan NOL KELONGGARAN adalah bug yang ditulis ulang di sini
+     * ---------------------------------------------------------------------
+     * Batas pertama (empat puluh) sama persis dengan kebutuhan satu layar:
+     * satu denyut tiap 1,5 detik berarti empat puluh permintaan per menit.
+     * Batas yang sama dengan kebutuhan berarti SETIAP lomba menyentuh
+     * plafonnya, dan satu percobaan ulang, satu tab yang tersambung lagi,
+     * atau satu permintaan yang datang lebih cepat karena jamnya bergeser
+     * langsung mendapat 429 - yang di layar tampak seperti lomba yang diam.
+     *
+     * Seratus memberi ruang dua setengah kali lipat. Tab yang tertinggal di
+     * latar belakang tetap bisa melewatinya (tab tersembunyi memang tetap
+     * memanggil), dan itulah yang perlu dijaga - tetapi yang dijaga bukan
+     * lomba yang SAH.
+     *
+     * Kuncinya per AKUN, bukan per IP: seluruh sekolah keluar lewat satu NAT,
+     * dan membatasi per IP berarti satu anak yang lupa menutup tab memblokir
+     * seluruh lab.
+     */
+    public const LOMBA_PER_SISWA = 100;
+
+    /** Pesan saat denyut lomba melampaui batas - dibaca kode, bukan orang. */
+    public const PESAN_LOMBA = 'Lomba ini terlalu sering dimuat ulang. Tunggu sebentar, lalu segarkan.';
+
     /** Nama limiter untuk denyut papan pantau publik `/pantau/{slug}/denyut`. */
     public const PANTAU = 'pantau-publik';
 
@@ -406,6 +436,12 @@ final class PembatasLaju
     public static function kunciLuang(int|string $userId): string
     {
         return "luang:{$userId}";
+    }
+
+    /** Kunci pembatas denyut lomba: per AKUN - lihat `LOMBA_PER_SISWA`. */
+    public static function kunciLomba(int|string $userId): string
+    {
+        return "lomba:{$userId}";
     }
 
     /**

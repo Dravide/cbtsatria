@@ -4,6 +4,7 @@ use App\Domain\Attendance\Http\Controllers\Siswa\AkunSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\GerbangSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\JadwalSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\KerjakanSiswaController;
+use App\Domain\Attendance\Http\Controllers\Siswa\LombaSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\LuangSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\NilaiSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\PelanggaranSiswaController;
@@ -143,4 +144,31 @@ Route::middleware(['auth', 'siswa'])->prefix('siswa')->name('siswa.')->group(fun
     // dalam satu menit.
     Route::post('/luang/skor', [LuangSiswaController::class, 'kirim'])
         ->middleware('throttle:luang-skor')->name('luang.skor');
+
+    /*
+    |----------------------------------------------------------------------
+    | Lomba dua pemain - undangan lewat kode
+    |----------------------------------------------------------------------
+    | Satu laman untuk seluruh daur hidup lomba: ruang tunggu, hitung mundur,
+    | bermain, dan hasil. Yang membedakan tampilannya keadaan lombanya, bukan
+    | alamatnya - lihat `LombaSiswaController`.
+    |
+    | `{kode}` di rute GET boleh kosong; alamat tanpa kode adalah ruang
+    | tunggu yang menampilkan tombol "Buat undangan" dan isian kode.
+    |
+    | Denyutnya dipanggil tiap 1,5 detik oleh DUA layar, jadi pembatasnya
+    | per AKUN dan longgar - lihat `PembatasLaju::LOMBA_PER_SISWA`. Yang
+    | dijaga di sana bukan keamanan melainkan tabel dan kueri: satu anak
+    | dengan tab yang tertinggal tidak boleh menghabiskan jatah temannya.
+    */
+    Route::get('/luang/lomba', [LombaSiswaController::class, 'tampilkan'])->name('luang.lomba');
+    Route::get('/luang/lomba/{kode}', [LombaSiswaController::class, 'tampilkan'])->name('luang.lomba.ruang');
+    Route::post('/luang/lomba', [LombaSiswaController::class, 'buat'])->name('luang.lomba.buat');
+    Route::post('/luang/lomba/masuk', [LombaSiswaController::class, 'masuk'])->name('luang.lomba.masuk');
+    Route::get('/luang/lomba/{kode}/keadaan', [LombaSiswaController::class, 'keadaan'])
+        ->middleware('throttle:luang-lomba')->name('luang.lomba.keadaan');
+    Route::post('/luang/lomba/{kode}/skor', [LombaSiswaController::class, 'skor'])
+        ->middleware('throttle:luang-skor')->name('luang.lomba.skor');
+    Route::post('/luang/lomba/{kode}/batal', [LombaSiswaController::class, 'batal'])
+        ->name('luang.lomba.batal');
 });

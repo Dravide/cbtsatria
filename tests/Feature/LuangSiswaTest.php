@@ -249,7 +249,12 @@ it('membuka laman permainan dan tab Main saat attempt sudah ditutup', function (
         ->viewData('page')['props'];
 
     expect($props['jendela']['berakhir_pada'])->not->toBeNull();
-    expect($props['peringkat']['pemain'])->toBe(0);
+
+    // Sejak skor dipisah per jenis permainan (2026-11-18), `peringkat` berisi
+    // DUA ringkasan - satu per game type - bukan satu. Permainan belum pernah
+    // dimainkan, jadi pemainnya nol di keduanya.
+    expect($props['peringkat']['lompat']['pemain'])->toBe(0)
+        ->and($props['peringkat']['hitung']['pemain'])->toBe(0);
 
     $beranda = masukUji($this, $data['siswa'][0])
         ->get('/siswa')

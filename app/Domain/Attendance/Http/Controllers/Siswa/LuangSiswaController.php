@@ -2,16 +2,14 @@
 
 namespace App\Domain\Attendance\Http\Controllers\Siswa;
 
+use App\Domain\Attendance\Models\LeisureGameScore;
 use App\Domain\Attendance\Services\JendelaLuang;
 use App\Domain\Attendance\Services\KuotaPermainan;
 use App\Domain\Attendance\Services\PapanPeringkatLuang;
-use App\Domain\Attendance\Models\LeisureGameScore;
-use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Exam\Models\ExamParticipant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -53,7 +51,6 @@ class LuangSiswaController extends SiswaDasar
     {
         $siswa = $request->user();
         $penempatan = $this->penempatan($siswa->id);
-
         $jendela = $this->jendela->untukSiswa($penempatan, now());
 
         // Pintunya tertutup HANYA saat anak itu sedang ujian - lihat
@@ -213,29 +210,9 @@ class LuangSiswaController extends SiswaDasar
     }
 
     /**
-     * Penempatan milik siswa ini, lengkap dengan sesi dan kelasnya.
+     * Penempatan milik siswa ini dipindahkan ke `SiswaDasar::penempatan()`.
      *
-     * Disaring dua kali dan itu disengaja: `student_id` menjawab "milik
-     * siapa", `EventStatus::tampilKeSiswa()` menjawab "masih relevan atau
-     * tidak". Tanpa yang kedua, anak yang eventnya sudah diarsipkan masih
-     * bisa membuka permainan dari event tahun lalu - dan jeda setahun lalu
-     * bukan jeda.
-     *
-     * @return Collection<int, ExamParticipant>
+     * Lomba dua pemain menanyakan daftar yang sama persis, dan fungsi yang
+     * disalin ke dua controller adalah fungsi yang suatu hari berbeda.
      */
-    private function penempatan(int $studentId): Collection
-    {
-        return ExamParticipant::query()
-            ->where('student_id', $studentId)
-            ->whereHas('exam.event', fn ($q) => $q->whereIn(
-                'status',
-                array_map(fn (EventStatus $s) => $s->value, EventStatus::tampilKeSiswa()),
-            ))
-            ->with([
-                'session',
-                'exam.subject:id,name',
-                'pesertaEvent.kelas:id,name',
-            ])
-            ->get();
-    }
 }

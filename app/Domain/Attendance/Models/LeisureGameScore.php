@@ -40,6 +40,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'class_id',
     'exam_participant_id',
     'game_type',
+    'match_id',
     'distance',
     'duration_ms',
     'score',

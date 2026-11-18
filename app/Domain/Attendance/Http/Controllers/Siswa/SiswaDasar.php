@@ -4,9 +4,11 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Services\JendelaLuang;
+use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Services\NomorKursi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
  * Dasar seluruh laman siswa - siapa yang boleh melihat apa.
@@ -142,11 +144,44 @@ abstract class SiswaDasar
     protected function luangTerbuka(Request $request): bool
     {
         return app(JendelaLuang::class)->untukSiswa(
-            ExamParticipant::query()
-                ->where('student_id', $request->user()->id)
-                ->with('session')
-                ->get(),
+            $this->penempatan($request->user()->id),
             now(),
         ) !== null;
+    }
+
+    /**
+     * Penempatan milik siswa ini, lengkap dengan sesi dan kelasnya.
+     *
+     * ---------------------------------------------------------------------
+     * Dipakai DUA laman, jadi tinggal di sini
+     * ---------------------------------------------------------------------
+     * `/siswa/luang` dan `/siswa/luang/lomba` menanyakan pertanyaan yang sama
+     * persis - "jendelanya terbuka atau tidak" - dan jawabannya bergantung
+     * pada daftar penempatan yang sama. Fungsi yang disalin ke dua controller
+     * adalah fungsi yang suatu hari berbeda; yang satu akan menambah saringan
+     * dan yang lain tidak.
+     *
+     * Disaring dua kali dan itu disengaja: `student_id` menjawab "milik
+     * siapa", `EventStatus::tampilKeSiswa()` menjawab "masih relevan atau
+     * tidak". Tanpa yang kedua, anak yang eventnya sudah diarsipkan masih
+     * bisa membuka permainan dari event tahun lalu - dan jeda setahun lalu
+     * bukan jeda.
+     *
+     * @return Collection<int, ExamParticipant>
+     */
+    protected function penempatan(int $studentId): Collection
+    {
+        return ExamParticipant::query()
+            ->where('student_id', $studentId)
+            ->whereHas('exam.event', fn ($q) => $q->whereIn(
+                'status',
+                array_map(fn (EventStatus $s) => $s->value, EventStatus::tampilKeSiswa()),
+            ))
+            ->with([
+                'session',
+                'exam.subject:id,name',
+                'pesertaEvent.kelas:id,name',
+            ])
+            ->get();
     }
 }

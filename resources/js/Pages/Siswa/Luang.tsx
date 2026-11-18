@@ -675,7 +675,7 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                             Sisa {kuota.batas} permainan hari ini sudah dipakai
                         </b>
                         <span className="text-[11px] text-ink-2">
-                            Besok jatahnya terbuka lagi. Rekormu hari ini tetap dihitung.
+                            Besok jatahnya terbuka lagi. Rekor Anda hari ini tetap dihitung.
                         </span>
                     </div>
                 )}
@@ -765,12 +765,12 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                 <p className="text-[11px] leading-relaxed text-ink-3">
                     {jendela.sesi_berikut.mapel ?? 'Ujian berikutnya'} dibuka dalam{' '}
                     <b className="text-ink-2 tabular-nums">{formatSisa(sisaWaktu)}</b>. Setelah
-                    itu permainan tetap bisa dibuka selama kamu belum mulai mengerjakan.
+                    itu permainan tetap bisa dibuka selama Anda belum mulai mengerjakan.
                 </p>
             )}
 
             <p className="text-[11px] leading-relaxed text-ink-3">
-                Permainan tertutup selama kamu mengerjakan ujian, dan saat ruang ujian yang masih
+                Permainan tertutup selama Anda mengerjakan ujian, dan saat ruang ujian yang masih
                 terpakai ditutup. Jatahnya {kuota.batas} permainan per hari. Skor diperiksa server
                 sebelum dicatat, jadi angka di papan bisa lebih rendah daripada yang tampil di
                 panggung.
@@ -790,6 +790,18 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                 >
                     Lihat papan peringkat{kelas ? ' ' + kelas : ''}
                 </Link>
+
+                {/* Lomba dua pemain hanya untuk hitung cepat - bentuk soalnya
+                    yang membuatnya adil, dan lompat rintangan tidak punya
+                    bentuk yang sama. */}
+                {modeGame === 'hitung' && (
+                    <Link
+                        href="/siswa/luang/lomba"
+                        className="block border border-line bg-surface px-3 py-2 text-center text-[12px] font-medium text-ink-2 hover:bg-surface-2"
+                    >
+                        Tantang teman (lomba)
+                    </Link>
+                )}
             </div>
         </KerangkaSiswa>
     );

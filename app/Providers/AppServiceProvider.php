@@ -213,6 +213,24 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         // ----------------------------------------------------------------
+        // Denyut keadaan lomba dua pemain - GET /siswa/luang/lomba/{kode}/keadaan
+        // ----------------------------------------------------------------
+        // Per AKUN, dan batasnya dihitung dari frekuensi halaman itu sendiri:
+        // layar lomba memanggil tiap 1,5 detik, jadi satu layar memakai empat
+        // puluh per menit. Lihat `PembatasLaju::LOMBA_PER_SISWA` tentang
+        // mengapa tab yang tertinggal - bukan penebak - yang dijaga di sini.
+        //
+        // Jawabannya JSON 429, bukan redirect: pemanggilnya `fetch` di latar
+        // belakang, dan redirect akan diterima sebagai HTML yang lalu gagal
+        // diurai - layar lomba berhenti menyegarkan diri tanpa satu pun pesan.
+        RateLimiter::for(PembatasLaju::LOMBA, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::LOMBA_PER_SISWA)
+                ->by(PembatasLaju::kunciLomba((int) $request->user()?->id))
+                ->response(fn () => response()
+                    ->json(['pesan' => PembatasLaju::PESAN_LOMBA], 429)),
+        ]);
+
+        // ----------------------------------------------------------------
         // Denyut papan pantau publik - GET /pantau/{slug}/denyut
         // ----------------------------------------------------------------
         // Per IP, BUKAN per slug - lihat `PembatasLaju::PANTAU_PER_IP`. Slug
