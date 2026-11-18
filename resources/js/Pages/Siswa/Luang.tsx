@@ -71,54 +71,39 @@ type Keadaan = {
     detik: number;
 };
 
-const GRAVITASI = 0.62;
+const GRAVITASI = 0.72;
 
 /**
  * Kekuatan lompat, dalam satuan per bingkai 60Hz.
  *
- * Dinaikkan 2026-11-15 dari -11,6 setelah pemainnya berganti dari kotak 22
- * satuan menjadi alien 26 satuan: tinggi lompatan harus melewati rintangan
- * TERTINGGI (29 satuan), bukan tinggi badannya. Dengan gaya lama, alien
- * setinggi itu hanya melewati rintangan pendek - dan permainannya menjadi
- * tidak adil tanpa satu pun angkanya terlihat salah.
+ * Dengan gravitasi 0,72, tinggi puncak lompatan = 9,5^2 / (2 * 0,72) ≈ 62,7
+ * satuan — cukup leluasa melewati rintangan tertinggi (29 satuan) tanpa
+ * melambung sampai menyentuh langit-langit panggung (150 satuan).
  */
-const LOMPAT = -13.2;
+const LOMPAT = -9.5;
 
 /**
  * Kecepatan awal, dalam satuan per bingkai 60Hz.
  *
  * Satuannya BINGKAI, bukan detik, karena gerak rintangan dikalikan `dt*60` -
- * dan pada 6,2 itu berarti 372 satuan per detik. Angka itulah yang dikirim ke
- * server sebagai `distance`, dan `PenjagaSkorLuar` menolak di atas 900.
+ * pada 4,2 itu berarti 252 satuan per detik (server `PenjagaSkorLuar`
+ * menolak di atas 900).
  */
-const KECEPATAN_AWAL = 6.2;
+const KECEPATAN_AWAL = 4.2;
 
 /**
  * Pertambahan kecepatan, dalam satuan per bingkai, PER DETIK bermain.
  *
- * ---------------------------------------------------------------------
- * Perlahan dulu, lalu naik - dan pagarnya dihitung, bukan dirasa
- * ---------------------------------------------------------------------
- * Versi pertama memakai 0,0012 per bingkai per bingkai, yang berarti
- * kecepatannya bertambah begitu lambat sehingga dua menit bermain pun tidak
- * terasa berbeda. Yang diminta adalah sebaliknya: mulai pelan, makin lama
- * makin cepat.
- *
- * Angkanya 0,15 per bingkai per detik, jadi:
- *
- *   detik ke-0    6,2  (372/detik)
- *   detik ke-20   9,2  (552/detik)
- *   detik ke-55  14,5  (870/detik)
- *
- * `KECEPATAN_MAKS` di bawah menahannya tepat sebelum batas server (900/detik
- * = 15 per bingkai). Tanpa pagar itu, permainan yang berjalan lama akan
- * menghasilkan jarak yang ditolak `PenjagaSkorLuar` - dan anak yang bermain
- * paling lama justru yang skornya hilang.
+ * Naik bertahap (0,07/detik) agar ritme awal terasa santai lalu menantang:
+ *   detik ke-0    4,2  (252/detik)
+ *   detik ke-30   6,3  (378/detik)
+ *   detik ke-60   8,4  (504/detik)
+ *   detik ke-90  10,5  (630/detik, ditahan `KECEPATAN_MAKS`)
  */
-const PERCEPATAN_PER_DETIK = 0.15;
+const PERCEPATAN_PER_DETIK = 0.07;
 
-/** Pagar kecepatan: 14 per bingkai = 840 per detik, di bawah batas 900. */
-const KECEPATAN_MAKS = 14;
+/** Pagar kecepatan: 10,5 per bingkai = 630 per detik, di bawah batas 900. */
+const KECEPATAN_MAKS = 10.5;
 
 /**
  * Bentuk pemain - `pixelated-alien.svg`.
