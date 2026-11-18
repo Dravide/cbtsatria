@@ -154,8 +154,8 @@ export default function EventPeserta({
                     }
                 >
                     <p className="mb-3 text-xs leading-relaxed text-ink-2">
-                        Kelas yang ikut event ini. Menyimpan hanya menetapkan kelasnya &mdash;
-                        pesertanya ditarik terpisah lewat tombol <em>Tarik peserta</em>, karena
+                        Kelas yang ikut event ini. Menyimpan hanya menetapkan kelasnya.
+                        Pesertanya ditarik terpisah lewat tombol <em>Tarik peserta</em>, karena
                         kelas ditetapkan saat event disusun sementara peserta ditarik saat
                         pendaftaran ditutup.
                     </p>
@@ -215,7 +215,7 @@ export default function EventPeserta({
                 >
                     <p className="mb-3 text-xs leading-relaxed text-ink-2">
                         Kapasitas dijumlahkan dari ruang yang dialokasikan. Kekurangan kapasitas
-                        tidak menghalangi penyimpanan &mdash; ia muncul sebagai butir kesiapan yang
+                        tidak menghalangi penyimpanan. Ia muncul sebagai butir kesiapan yang
                         harus dibereskan sebelum event ditandai siap.
                     </p>
 
@@ -423,7 +423,7 @@ export default function EventPeserta({
                     Peserta ditarik <strong>sekali</strong> di sini, bukan ditentukan per ujian.
                     Bila ditentukan per ujian, menambah satu siswa di tengah event berarti
                     mengulang pekerjaan di belasan tempat. Peserta yang dikecualikan tetap
-                    tersimpan sebagai catatan &mdash; ia tidak dihapus, sehingga alasan
+                    tersimpan sebagai catatan. Ia tidak dihapus, sehingga alasan
                     ketidakhadirannya masih bisa ditelusuri sesudah event selesai.
                 </Inbox>
             </div>

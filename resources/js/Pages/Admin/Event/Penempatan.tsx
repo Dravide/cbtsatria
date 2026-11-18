@@ -347,7 +347,7 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                         >
                             Kelas &amp; peserta
                         </Link>
-                        , lalu sebar ulang di sini.
+                        {' '}lalu sebar ulang di sini.
                     </p>
                 </div>
             ) : (
@@ -489,7 +489,7 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                             {mode === 'kelas' && laman.kelas_terbelah.length > 0 && (
                                 <p className="mt-2 text-[11px] leading-relaxed text-warn">
                                     {laman.kelas_terbelah.join('; ')}. Hanya kelas yang lebih besar
-                                    daripada satu ruang yang terbelah &mdash; kelas lain masing-masing
+                                    daripada satu ruang yang terbelah, kelas lain masing-masing
                                     menempati satu ruang utuh. Pengawas ruang tempat kelas itu
                                     berlanjut perlu lembar absen yang memuat dua bagian kelas yang sama.
                                 </p>
@@ -547,7 +547,7 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                     <RincianRuang ruang={pratinjau.ruang} />
 
                     <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
-                        Angka tiap ruang adalah penghuninya &mdash; jumlah yang sama dengan yang
+                        Angka tiap ruang adalah penghuninya, jumlah yang sama dengan yang
                         digambar laman denah dan dicetak tablo. Peta ini berlaku untuk{' '}
                         <strong className="text-ink-2">seluruh event</strong>: seorang siswa
                         memegang satu ruang yang sama sepanjang ujian.
@@ -620,7 +620,7 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                 <div className="mt-3">
                     <Peringatan>
                         {bermasalah.length} sesi belum bisa memakai peta ruang event, sehingga
-                        penyebaran ditolak seluruhnya &mdash; bukan diterapkan sebagian. Perbaiki
+                        penyebaran ditolak seluruhnya, bukan diterapkan sebagian. Perbaiki
                         ruangnya di laman <strong>Jadwal &amp; sesi</strong> agar setiap sesi memakai
                         seluruh ruang event, lalu sebar lagi.
                     </Peringatan>
@@ -631,7 +631,7 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                 <div className="mt-3">
                     <Inbox>
                         Kocokan ini belum disebar. Selama belum, susunan yang terlihat di pratinjau
-                        masih boleh berubah sebanyak apa pun &mdash; itu gunanya pratinjau. Sesudah
+                        masih boleh berubah sebanyak apa pun, itu gunanya pratinjau. Sesudah
                         disebar, satu-satunya cara mengubahnya adalah <strong>Kocok ulang</strong>,
                         dan itu membatalkan seluruh daftar ruang yang sudah dicetak.
                     </Inbox>
@@ -641,11 +641,11 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
             <div className="mt-3">
                 <Kotak judul="Cara mengocok">
                     <div className="space-y-1.5 text-xs text-ink-2">
-                        <Baris>Satu peta untuk seluruh event &mdash; siswa hafal satu ruang, berlaku untuk semua mapelnya</Baris>
-                        <Baris>Rotasi antar kelas &mdash; satu dari X-1, satu dari XI-2, satu dari XII-1, lalu ulang</Baris>
+                        <Baris>Satu peta untuk seluruh event. Siswa hafal satu ruang, berlaku untuk semua mapelnya</Baris>
+                        <Baris>Rotasi antar kelas: satu dari X-1, satu dari XI-2, satu dari XII-1, lalu ulang</Baris>
                         <Baris>Urutannya diacak berbenih; benih disimpan, sehingga halaman ini bisa dibuka ulang dan isinya sama persis</Baris>
                         <Baris>Kocokan dibekukan saat disebar. Daftar ruang yang sudah dicetak tetap cocok dengan layarnya</Baris>
-                        <Baris>Setiap sesi harus memakai seluruh ruang event &mdash; sesi yang ruangnya kurang ditolak, bukan ditambal</Baris>
+                        <Baris>Setiap sesi harus memakai seluruh ruang event. Sesi yang ruangnya kurang ditolak, bukan ditambal</Baris>
                     </div>
                 </Kotak>
             </div>
@@ -666,8 +666,8 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
             >
                 <Peringatan>
                     Siswa akan berpindah ruang <strong>di semua mapel</strong>. Daftar ruang yang
-                    sudah dicetak dan ditempel di pintu <strong>tidak berlaku lagi</strong> &mdash;
-                    cetak ulang sesudahnya.
+                    sudah dicetak dan ditempel di pintu <strong>tidak berlaku lagi</strong>.
+                    Cetak ulang sesudahnya.
                 </Peringatan>
 
                 {mode !== laman.mode && (

@@ -265,8 +265,8 @@ export default function EventMapel({ event, baris, tersedia }: Props) {
                         </p>
                         <p className="mt-2 text-xs leading-relaxed text-ink-3">
                             Paket yang masih berstatus <strong>Draft</strong> belum bisa dipasang.
-                            Status Siap diberikan Gurunya setelah paket itu selesai disusun —
-                            memasang paket setengah jadi berarti yang menemukan soalnya kurang
+                            Status Siap diberikan Gurunya setelah paket itu selesai disusun.
+                            Memasang paket setengah jadi berarti yang menemukan soalnya kurang
                             adalah pengawas di ruang ujian.
                         </p>
                     </Kotak>

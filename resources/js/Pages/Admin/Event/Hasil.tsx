@@ -151,7 +151,7 @@ export default function Hasil({ event, ujian, publikasi }: Props) {
                 ) : (
                     <Inbox>
                         Seluruh uraian sudah dikoreksi. Publikasi berlaku untuk SELURUH event
-                        sekaligus — menerbitkan sebagian membuat siswa membandingkan nilai yang
+                        sekaligus. Menerbitkan sebagian membuat siswa membandingkan nilai yang
                         belum final.
                     </Inbox>
                 )}

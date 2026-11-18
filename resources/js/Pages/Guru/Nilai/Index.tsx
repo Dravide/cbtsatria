@@ -44,8 +44,8 @@ export default function NilaiIndex({ ujian, kkm }: Props) {
 
             <div className="mb-3">
                 <Inbox>
-                    KKM sekolah <strong>{kkm}</strong>. Nilai di bawah KKM ditandai remedial —
-                    angkanya dibaca dari pengaturan sekolah, bukan diketik di laman ini.
+                    KKM sekolah <strong>{kkm}</strong>. Nilai di bawah KKM ditandai remedial.
+                    Angkanya dibaca dari pengaturan sekolah, bukan diketik di laman ini.
                 </Inbox>
             </div>
 

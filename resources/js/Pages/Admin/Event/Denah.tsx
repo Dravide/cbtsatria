@@ -129,7 +129,7 @@ export default function EventDenah({ event, tablo_url, denah_url, pdf_url, dafta
                             value={ruang?.id ?? ''}
                             onChange={(e) => pilihRuang(jalur, Number(e.target.value))}
                         >
-                            {ruang === null && <option value="">— pilih ruang —</option>}
+                            {ruang === null && <option value="">Pilih ruang</option>}
                             {daftar_ruang.map((r) => (
                                 <option key={r.id} value={r.id}>
                                     {r.kode} · {r.terisi}/{r.kapasitas}
@@ -195,7 +195,7 @@ export default function EventDenah({ event, tablo_url, denah_url, pdf_url, dafta
                             <div className="mb-3">
                                 <Inbox>
                                     Belum ada peserta yang ditempatkan di ruang ini. Kursinya
-                                    dihitung dari kocokan event &mdash; kocok dulu di laman{' '}
+                                    dihitung dari kocokan event. Kocok dulu di laman{' '}
                                     <span className="font-medium">Penempatan</span>.
                                 </Inbox>
                             </div>
@@ -249,7 +249,7 @@ export default function EventDenah({ event, tablo_url, denah_url, pdf_url, dafta
                             <div className="space-y-2 text-xs leading-relaxed text-ink-2">
                                 <p>
                                     Denah ini menggambar kursi menurut <em>kocokan benih</em>{' '}
-                                    eventnya &mdash; benih yang sama yang dipakai laman
+                                    eventnya, benih yang sama yang dipakai laman
                                     Penempatan, sehingga angka di sini tidak berbeda dari
                                     pratinjau di sana. Ia tidak mengocok ulang dan tidak bisa
                                     mengubah penempatan. Urutannya mengikuti abjad nama
@@ -257,8 +257,8 @@ export default function EventDenah({ event, tablo_url, denah_url, pdf_url, dafta
                                     pengawas di papan presensi.
                                 </p>
                                 <p className="text-warn">
-                                    Selama penyebaran belum selesai &mdash; mis. masih ada
-                                    ujian yang belum punya sesi &mdash; kursi di lembar ini
+                                    Selama penyebaran belum selesai (mis. masih ada
+                                    ujian yang belum punya sesi), kursi di lembar ini
                                     bisa berbeda dari baris yang sudah tersimpan di
                                     <em> exam_participants</em>. Yang digambar adalah susunan
                                     yang <strong>akan berlaku</strong>, dan itulah yang perlu
@@ -274,7 +274,7 @@ export default function EventDenah({ event, tablo_url, denah_url, pdf_url, dafta
                                     Nama dan NIS ada di dalam kotak karena lembar ini untuk
                                     pengawas di dalam ruangan, bukan untuk ditempel di koridor.
                                     Denah bernama tidak boleh dipasang di daun pintu bersama kartu
-                                    QR &mdash; halaman pintu sengaja tidak memuat satu pun nama
+                                    QR. Halaman pintu sengaja tidak memuat satu pun nama
                                     anak.
                                 </p>
                             </div>

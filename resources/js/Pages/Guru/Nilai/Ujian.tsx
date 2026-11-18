@@ -237,7 +237,7 @@ export default function NilaiUjian({ ujian, kkm, ringkas, baris, filter, kelas }
                     <Inbox>
                         <strong>{ringkas.belum_final}</strong> siswa masih menunggu koreksi
                         uraian. Angka rata-rata dan remedial di atas dihitung dari baris yang
-                        sudah final saja — memasukkan yang belum dinilai sebagai nol akan
+                        sudah final saja. Memasukkan yang belum dinilai sebagai nol akan
                         membuat kelas ini terlihat lebih buruk daripada kenyataannya.
                     </Inbox>
                 </div>

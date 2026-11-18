@@ -479,8 +479,8 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
             {adaGalat && (
                 <div className="mb-3">
                     <Peringatan>
-                        Soal belum tersimpan. Periksa isian yang bertanda merah di bawah
-                        &mdash; biasanya ada pilihan jawaban yang masih kosong.
+                        Soal belum tersimpan. Periksa isian yang bertanda merah di bawah.
+                        Biasanya ada pilihan jawaban yang masih kosong.
                     </Peringatan>
                 </div>
             )}
@@ -749,7 +749,7 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                                 disabled={!bolehUbah}
                                 className={kelasInput + ' max-w-xs'}
                             >
-                                <option value="pilihan">Pilihan — satu jawaban benar</option>
+                                <option value="pilihan">Pilihan ganda, satu jawaban benar</option>
                                 <option value="isian">Isian singkat</option>
                                 <option value="urut">Mengurutkan</option>
                             </select>
@@ -805,7 +805,7 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
 
                         <Inbox>
                             Berkas media (gambar, audio, video) diunggah ke penyimpanan privat
-                            sekolah, bukan ditautkan ke layanan luar — sehingga soal tetap utuh
+                            sekolah, bukan ditautkan ke layanan luar, sehingga soal tetap utuh
                             walau tautan luar itu mati. Unggah berkasnya di kotak{' '}
                             <b>Gambar / berkas soal</b> di atas.
                         </Inbox>
@@ -891,8 +891,8 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                                 disabled={!bolehUbah}
                                 className={kelasInput}
                             >
-                                <option value="draft">Draf — masih disunting</option>
-                                <option value="siap">Siap — boleh dipakai Guru lain</option>
+                                <option value="draft">Draf, masih disunting</option>
+                                <option value="siap">Siap, boleh dipakai Guru lain</option>
                                 <option value="arsip">Arsip</option>
                             </select>
                         </Field>
@@ -902,7 +902,7 @@ export default function Builder({ soal, bolehUbah = true, mapel, jenis, paketTuj
                         <Chip nada="info">{jenis.find((j) => j.nilai === tab)?.label}</Chip>
                         <span>
                             {tab === 'uraian'
-                                ? 'Dinilai manual — rubrik wajib diisi.'
+                                ? 'Dinilai manual. Rubrik wajib diisi.'
                                 : 'Dinilai otomatis oleh mesin.'}
                         </span>
                     </div>

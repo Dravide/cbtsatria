@@ -338,7 +338,7 @@ export default function EventPresensi({
                             <p>
                                 {[b.ujian, b.lokasi, b.jam].filter(Boolean).join(' · ') ||
                                     (b.punya_sesi === false
-                                        ? 'Ujian ruang ini belum punya sesi — jadwalkan di laman Jadwal & sesi.'
+                                        ? 'Ujian ruang ini belum punya sesi. Jadwalkan di laman Jadwal & sesi.'
                                         : '—')}
                             </p>
                             <p className="sm:text-right">

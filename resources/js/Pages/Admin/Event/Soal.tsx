@@ -472,7 +472,7 @@ function KelompokMapel({
                                 butir pun. Ujian tidak bisa dijalankan.
                             </Peringatan>
                             <p className="mt-2 text-xs text-ink-2">
-                                Paketnya sudah dipilih &mdash; yang perlu dihubungi adalah Guru
+                                Paketnya sudah dipilih. Yang perlu dihubungi adalah Guru
                                 penulisnya, bukan memasang ulang.
                             </p>
                         </div>
@@ -482,7 +482,7 @@ function KelompokMapel({
                         <div className="border-b border-line px-3 py-2">
                             <Inbox>
                                 Ujiannya belum dibuat, sehingga isi paket ini yang AKAN
-                                dikerjakan &mdash; bukan salinan yang tersimpan. Angka bobot di
+                                dikerjakan, bukan salinan yang tersimpan. Angka bobot di
                                 bawah sudah mengikuti timpaan paket.
                             </Inbox>
                         </div>

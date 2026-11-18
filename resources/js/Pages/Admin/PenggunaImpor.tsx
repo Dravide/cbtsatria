@@ -281,7 +281,7 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
                         {kolom.join(' · ')}
                     </p>
                     <p className="mt-1.5 text-[11px] leading-relaxed text-ink-3">
-                        Urutan kolom bebas — yang dicari adalah <strong>namanya</strong>. Satu
+                        Urutan kolom bebas. Yang dicari adalah <strong>namanya</strong>. Satu
                         template untuk tiga peran: kolom <code>peran</code> diisi{' '}
                         <code>siswa</code>, <code>guru</code>, atau <code>pengawas</code>, dan
                         kolom identitas yang tidak berlaku dibiarkan kosong. Kolom kelas hanya
@@ -414,7 +414,7 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
 
                     <div className="border-t border-line px-4 py-2.5">
                         <p className="text-[11px] leading-relaxed text-ink-3">
-                            Baris yang gagal <strong>tidak</strong> menggagalkan berkasnya —{' '}
+                            Baris yang gagal <strong>tidak</strong> menggagalkan berkasnya.{' '}
                             {aktif.sah} baris tetap tersimpan, dan laporan galat memuat alamat
                             baris sisanya. Perbaiki berkasnya, lalu unggah ulang: berkas yang{' '}
                             <em>isinya sama</em> ditolak supaya akun tidak tersentuh dua kali.
@@ -516,7 +516,7 @@ export default function PenggunaImpor({ riwayat, aktif, kolom }: Props) {
 
                     <div className="border-t border-line px-4 py-2.5">
                         <p className="text-[11px] text-ink-3">
-                            Berkas yang sudah diimpor tidak bisa dikonfirmasi ulang — impor kedua
+                            Berkas yang sudah diimpor tidak bisa dikonfirmasi ulang. Impor kedua
                             atas berkas yang sama akan memperbarui akun yang sama untuk kedua
                             kalinya.
                         </p>

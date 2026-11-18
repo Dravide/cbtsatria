@@ -164,7 +164,7 @@ export default function MonitoringDaftarSesi({
                 <Inbox>
                     &ldquo;Terputus&rdquo; bukan keadaan yang disimpan, melainkan yang
                     disimpulkan: peserta yang tidak mengirim kabar lebih dari 90 detik. Peserta
-                    yang belum mulai tidak dihitung &mdash; mereka belum punya jam kabar sama
+                    yang belum mulai tidak dihitung. Mereka belum punya jam kabar sama
                     sekali.
                 </Inbox>
             </div>

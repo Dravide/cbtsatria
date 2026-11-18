@@ -172,7 +172,7 @@ export default function DaftarMapel({
 
             <p className="border-t border-line px-4 py-2 text-[11px] leading-relaxed text-ink-3">
                 Tabel di bawah disusun dari ruang-sesi, sehingga hanya memuat mapel yang sudah
-                dijadwalkan. Daftar ini memuat seluruh mapel event &mdash; yang belum
+                dijadwalkan. Daftar ini memuat seluruh mapel event, yang belum
                 dijadwalkan tidak punya baris di sana, dan itulah yang perlu dikerjakan
                 berikutnya di <span className="font-medium">Jadwal &amp; sesi</span>.
             </p>

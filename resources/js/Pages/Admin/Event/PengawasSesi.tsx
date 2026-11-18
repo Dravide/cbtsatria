@@ -156,7 +156,7 @@ export default function PengawasSesi({
                 <div className="mt-3">
                     <Peringatan>
                         Belum ada panitia berjabatan <strong>pengawas</strong> yang punya akun.
-                        Tambahkan orangnya di laman <strong>Kepanitiaan</strong> &mdash; penugasan
+                        Tambahkan orangnya di laman <strong>Kepanitiaan</strong>. Penugasan
                         di sini hanya bisa diberikan kepada akun yang sudah ada.
                     </Peringatan>
                 </div>
@@ -167,7 +167,7 @@ export default function PengawasSesi({
                     <Kotak>
                         <p className="text-sm text-ink-3">
                             Sesi ini belum punya ruang. Tetapkan ruangnya di laman{' '}
-                            <strong>Jadwal &amp; sesi</strong> &mdash; penugasan menempel pada
+                            <strong>Jadwal &amp; sesi</strong>, penugasan menempel pada
                             ruang-sesi, sehingga sesi tanpa ruang tidak bisa ditugaskan.
                         </p>
                     </Kotak>
@@ -269,8 +269,8 @@ export default function PengawasSesi({
                                         <p className="mt-2 text-[11px] leading-relaxed text-ink-3">
                                             Satu ruang dijaga {angka.minimal_per_ruang} pengawas.
                                             Menambah orang kedua tetap bisa, tetapi tidak
-                                            dilakukan otomatis. Penugasan yang bentrok ditolak
-                                            &mdash; satu orang tidak bisa berdiri di dua ruang pada
+                                            dilakukan otomatis. Penugasan yang bentrok ditolak, karena
+                                            satu orang tidak bisa berdiri di dua ruang pada
                                             jam yang sama.
                                         </p>
                                     </div>

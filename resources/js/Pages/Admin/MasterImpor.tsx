@@ -255,7 +255,7 @@ export default function MasterImpor({
                     <Inbox>
                         Baris berkas ini masuk ke tahun ajaran{' '}
                         <strong>{tahun.nama}</strong>. Nama kelas boleh sama di tahun ajaran
-                        berbeda — X-1 muncul lagi setiap tahun, dan itu bukan duplikat.
+                        berbeda. X-1 muncul lagi setiap tahun, dan itu bukan duplikat.
                     </Inbox>
                 )}
 
@@ -325,7 +325,7 @@ export default function MasterImpor({
                         {kolom.join(' · ')}
                     </p>
                     <p className="mt-1.5 text-[11px] leading-relaxed text-ink-3">
-                        Urutan kolom bebas — yang dicari adalah <strong>namanya</strong>. Kolom{' '}
+                        Urutan kolom bebas. Yang dicari adalah <strong>namanya</strong>. Kolom{' '}
                         <code>{kolom_kunci}</code> wajib ada; kolom sisanya boleh dikosongkan,
                         dan yang dikosongkan tidak mengubah data yang sudah terisi. Kolom{' '}
                         <code>status</code> menerima {status_sah.join(', ')}.
@@ -445,7 +445,7 @@ export default function MasterImpor({
 
                     <div className="border-t border-line px-4 py-2.5">
                         <p className="text-[11px] leading-relaxed text-ink-3">
-                            Baris yang gagal <strong>tidak</strong> menggagalkan berkasnya —{' '}
+                            Baris yang gagal <strong>tidak</strong> menggagalkan berkasnya.{' '}
                             {aktif.sah} baris tetap tersimpan, dan laporan galat memuat alamat
                             baris sisanya. Perbaiki berkasnya, lalu unggah ulang: berkas yang{' '}
                             <em>isinya sama</em> ditolak supaya datanya tidak tersentuh dua kali.
@@ -534,7 +534,7 @@ export default function MasterImpor({
 
                     <div className="border-t border-line px-4 py-2.5">
                         <p className="text-[11px] text-ink-3">
-                            Berkas yang sudah diimpor tidak bisa dikonfirmasi ulang — impor kedua
+                            Berkas yang sudah diimpor tidak bisa dikonfirmasi ulang. Impor kedua
                             atas berkas yang sama akan menimpa baris yang sama untuk kedua kalinya.
                         </p>
                     </div>

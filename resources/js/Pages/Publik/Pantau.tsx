@@ -766,7 +766,7 @@ export default function Pantau({ slug, potret: awal, denyut_url, ruang_url_templ
                                     </span>
                                     <span>
                                         &ldquo;Terputus&rdquo; dihitung dari kabar terakhir
-                                        peserta &mdash; lebih dari 90 detik tanpa kabar.
+                                        peserta, lebih dari 90 detik tanpa kabar.
                                     </span>
                                 </div>
 
@@ -780,8 +780,8 @@ export default function Pantau({ slug, potret: awal, denyut_url, ruang_url_templ
 
                         {galat && (
                             <p className="mt-3 text-[11px] text-ink-3">
-                                Angka di atas belum diperbarui. Jaringan papan ini terputus
-                                &mdash; ia akan menyambung sendiri begitu tersedia lagi.
+                                Angka di atas belum diperbarui. Jaringan papan ini terputus.
+                                Ia akan menyambung sendiri begitu tersedia lagi.
                             </p>
                         )}
 

@@ -214,7 +214,7 @@ export default function EventShow({ event, kesiapan, langkah, angka, pantau_url,
                     <Peringatan>
                         Event berstatus <strong>{event.status_label}</strong> bersifat buntu.
                         Seluruh komponennya tetap bisa dibaca, tetapi statusnya tidak bisa
-                        dipindahkan lagi &mdash; dan itu disengaja: event yang dibatalkan tidak
+                        dipindahkan lagi, dan itu disengaja. Event yang dibatalkan tidak
                         pernah dijalankan, sehingga tidak ada keadaan &ldquo;sebelumnya&rdquo; yang
                         benar untuk dikembalikan. Yang dibutuhkan sesudahnya adalah event
                         pengganti, bukan membangkitkan yang sudah dibatalkan.

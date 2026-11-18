@@ -139,7 +139,7 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
                                     </h1>
                                     <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-2">
                                         Alamat di monitor ini menyebut nomor kursi yang tidak
-                                        terdaftar. Panggil teknisi atau pengawas ruang &mdash; anak
+                                        terdaftar. Panggil teknisi atau pengawas ruang. Anak
                                         tidak bisa masuk lewat layar ini sampai alamatnya benar.
                                     </p>
                                 </div>
@@ -148,11 +148,11 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
                             <>
                                 <div>
                                     <h1 className="font-display text-2xl font-semibold text-ink">
-                                        Masuk dengan akunmu
+                                        Masuk dengan akun Anda
                                     </h1>
                                     <p className="mt-2 max-w-sm text-sm leading-relaxed text-ink-2">
                                         Kursi ini <strong>PC {String(nomor).padStart(2, '0')}</strong>.
-                                        Sistem akan memeriksa bahwa kamu memang duduk di sini.
+                                        Sistem akan memeriksa bahwa Anda memang duduk di sini.
                                     </p>
                                 </div>
 
@@ -172,7 +172,7 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
                                 </a>
 
                                 <p className="text-xs text-ink-3">
-                                    Bukan kursimu? Panggil pengawas.
+                                    Bukan kursi Anda? Panggil pengawas.
                                 </p>
                             </>
                         ) : (
@@ -205,7 +205,7 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
                                 {!sesi.berjalan && (
                                     <p className="max-w-sm text-xs leading-relaxed text-warn">
                                         Sesi ini tidak sedang berjalan. Tombolnya mati sampai
-                                        jamnya dibuka &mdash; bukan karena kursinya salah.
+                                        jamnya dibuka, bukan karena kursinya salah.
                                     </p>
                                 )}
 
@@ -214,7 +214,7 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
                                     onClick={keluar}
                                     className="text-xs text-ink-3 underline underline-offset-2 hover:text-ink"
                                 >
-                                    Bukan saya &mdash; keluar
+                                    Bukan saya, keluar
                                 </button>
                             </>
                         )}

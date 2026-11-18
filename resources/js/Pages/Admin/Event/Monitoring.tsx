@@ -250,7 +250,7 @@ export default function EventMonitoring({
             {terisi.length > 0 && (
                 <div className="mb-3">
                     <Inbox>
-                        Nama satu per satu tidak ada di papan ini &mdash; ia ada di{' '}
+                        Nama satu per satu tidak ada di papan ini. Ia ada di{' '}
                         <span className="font-medium">Lihat peserta</span> tiap ruang, yang
                         terbuka di tab baru. Papan ini untuk memindai ruang mana yang
                         tertinggal; daftar anak untuk menelusuri satu orang.
@@ -350,7 +350,7 @@ export default function EventMonitoring({
                             &ldquo;Terputus&rdquo; bukan keadaan yang disimpan, melainkan
                             yang disimpulkan: peserta yang tidak mengirim kabar lebih dari
                             90 detik. Karena itu angkanya bisa naik turun sendiri tanpa ada
-                            yang mengubah apa pun &mdash; dan itu memang keadaannya.
+                            yang mengubah apa pun. Dan itu memang keadaannya.
                         </p>
                         <p>
                             &ldquo;Sampai nomor&rdquo; ada di laman rincian tiap ruang,

@@ -316,7 +316,7 @@ export default function BankSoalIndex({
                     {pilih.length === 0
                         ? 'Tandai satu baris untuk menduplikasi atau mengarsipkannya.'
                         : satu && !satu.milik_saya
-                          ? 'Soal ini ditulis Guru lain. Anda boleh memakainya di paket, tetapi tidak mengubahnya — duplikat dulu bila perlu disesuaikan.'
+                          ? 'Soal ini ditulis Guru lain. Anda boleh memakainya di paket, tetapi tidak mengubahnya. Duplikat dulu bila perlu disesuaikan.'
                           : 'Salinan hasil duplikat menjadi milik Anda sendiri.'}
                 </span>
                 <span className="ml-auto flex gap-2">

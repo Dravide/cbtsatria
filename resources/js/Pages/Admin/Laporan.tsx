@@ -186,7 +186,7 @@ export default function Laporan({
                 <div className="mb-3">
                     <Inbox>
                         Laporan selalu milik <strong>satu event</strong>. Pilih event aktif dari
-                        sidebar lebih dulu — nilai lintas event tidak punya arti, karena kelas yang
+                        sidebar lebih dulu. Nilai lintas event tidak punya arti, karena kelas yang
                         sama mengerjakan ujian yang berbeda.
                     </Inbox>
                 </div>

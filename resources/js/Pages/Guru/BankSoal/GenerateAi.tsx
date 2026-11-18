@@ -226,7 +226,7 @@ export function GenerateAi({
                 <div className="mb-3 rounded-wf border border-accent/30 bg-accent-soft/20">
                     <div className="flex flex-wrap items-center gap-2 border-b border-accent/25 px-3 py-2">
                         <span className="text-xs font-medium text-ink">
-                            Hasil AI &mdash; {baris.length} soal, {tercentang} dicentang
+                            Hasil AI, {baris.length} soal, {tercentang} dicentang
                         </span>
                         <button
                             type="button"
@@ -275,7 +275,7 @@ export function GenerateAi({
 
                     <p className="border-t border-accent/25 px-3 py-2 text-[11px] leading-relaxed text-ink-3">
                         Yang dicentang tersimpan apa adanya sebagai draf. Yang tidak dicentang
-                        hilang saat laman ini ditutup &mdash; periksa dulu, lalu centang.
+                        hilang saat laman ini ditutup, jadi periksa dulu, lalu centang.
                     </p>
                 </div>
             )}
@@ -435,7 +435,7 @@ export function GenerateAi({
                     </div>
 
                     <p className="text-[11px] leading-relaxed text-ink-3">
-                        Hasilnya tampil sebagai pratinjau &mdash; tidak ada yang tersimpan sampai
+                        Hasilnya tampil sebagai pratinjau. Tidak ada yang tersimpan sampai
                         Anda mencentang dan menekan Simpan. Setiap permintaan ditagih ke akun
                         penyedia sekolah.
                     </p>

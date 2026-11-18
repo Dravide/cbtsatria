@@ -260,8 +260,8 @@ export default function EventIndex({ tab, tab_angka, baris, filter }: Props) {
             </div>
 
             <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
-                Event adalah induk seluruh aktivitas ujian. Komponennya &mdash; peserta, ruang,
-                jadwal, pengawas, token &mdash; disusun di dalam event, dan tidak ada komponen
+                Event adalah induk seluruh aktivitas ujian. Komponennya (peserta, ruang,
+                jadwal, pengawas, token) disusun di dalam event, dan tidak ada komponen
                 yang bisa berdiri sendiri di luarnya.
             </p>
         </AdminLayout>

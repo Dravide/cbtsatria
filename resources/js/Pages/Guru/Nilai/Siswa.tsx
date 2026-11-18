@@ -246,7 +246,7 @@ export default function NilaiSiswa({
                         </div>
                         <p className="mt-2 text-[11px] leading-relaxed text-ink-3">
                             Status: <strong>{pengerjaan.status_label}</strong>. Durasi di atas
-                            adalah jam dinding sejak Mulai sampai dikumpulkan &mdash; mesin ujian
+                            adalah jam dinding sejak Mulai sampai dikumpulkan. Mesin ujian
                             tidak mencatat akumulasi waktu aktif, jadi waktu yang ia tinggalkan
                             (mis. jaringan putus) tetap terhitung.
                         </p>
@@ -292,7 +292,7 @@ export default function NilaiSiswa({
 
                         <p className="mb-3 text-[11px] leading-relaxed text-ink-3">
                             Yang tersimpan hanya <strong>penyimpanan terakhir</strong> tiap
-                            butir &mdash; bukan setiap klik. Satu butir yang disunting dua kali
+                            butir, bukan setiap klik. Satu butir yang disunting dua kali
                             muncul sekali, dengan jam simpanan terbarunya.
                         </p>
 

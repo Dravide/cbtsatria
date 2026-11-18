@@ -433,7 +433,7 @@ export function ButirJodohBuilder({
                             <option value="">pasangan…</option>
                             {kanan.map((k) => (
                                 <option key={k.item_key} value={k.item_key}>
-                                    {k.item_key} — {k.teks.slice(0, 18) || '(kosong)'}
+                                    {k.item_key}: {k.teks.slice(0, 18) || '(kosong)'}
                                 </option>
                             ))}
                         </select>
@@ -570,7 +570,7 @@ export function UrutanBuilder({
 
             {urutan.length === 0 && (
                 <p className="mt-2 text-[11px] text-ink-3">
-                    Tambahkan sekurang-kurangnya dua langkah — soal mengurutkan membutuhkan
+                    Tambahkan sekurang-kurangnya dua langkah. Soal mengurutkan membutuhkan
                     urutan yang lengkap.
                 </p>
             )}

@@ -448,7 +448,7 @@ function PitaUtama({ baris }: { baris: Baris }) {
                         </>
                     ) : (
                         <>
-                            Presensi {baris.presensi.label.toLowerCase()} &mdash; hubungi
+                            Presensi {baris.presensi.label.toLowerCase()}, hubungi
                             Pengawas
                         </>
                     )}

@@ -252,7 +252,7 @@ export function HitungCepat({
                         Sisa {kuotaBatas} permainan hari ini sudah dipakai
                     </b>
                     <span className="text-[11px] text-ink-2">
-                        Besok jatahnya terbuka lagi. Rekormu hari ini tetap dihitung.
+                        Besok jatahnya terbuka lagi. Rekor Anda hari ini tetap dihitung.
                     </span>
                 </div>
             ) : fase === 'siap' ? (

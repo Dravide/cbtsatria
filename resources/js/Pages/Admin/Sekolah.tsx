@@ -226,7 +226,7 @@ function PapanFormulir({ sekolah }: { sekolah: Props['sekolah'] }) {
                     Alamat tanpa login yang menjawab &ldquo;pengawas mana ada di ruang
                     mana&rdquo;. Yang tayang hanya <strong className="text-ink">nama ruang</strong>,{' '}
                     <strong className="text-ink">nama pengawas</strong>, dan{' '}
-                    <strong className="text-ink">jam sesi</strong> &mdash; tidak nama siswa,
+                    <strong className="text-ink">jam sesi</strong>. Tidak nama siswa,
                     tidak nomor kursi, tidak token.
                 </p>
 

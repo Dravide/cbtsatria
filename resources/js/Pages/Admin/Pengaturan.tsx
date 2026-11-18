@@ -340,14 +340,14 @@ export default function Pengaturan({ pengaturan, ai }: Props) {
                                     Belum ada notifikasi yang bisa diatur. Pemberitahuan ke
                                     pengawas dibangun bersama laman monitoring, dan sampai itu
                                     ada, tab ini hanya memberi tahu bahwa pengaturannya memang
-                                    belum tersedia &mdash; bukan belum tersimpan.
+                                    belum tersedia, bukan belum tersimpan.
                                 </p>
                             </Kotak>
                         )}
 
                         <Inbox>
                             Nilai di sini adalah bawaan untuk event baru. Event yang sudah dibuat
-                            menyimpan nilainya sendiri dan tidak ikut berubah &mdash; jadi mengubah
+                            menyimpan nilainya sendiri dan tidak ikut berubah. Jadi mengubah
                             ambang di sini tidak menyentuh ujian yang sedang berjalan.
                         </Inbox>
                     </form>
@@ -459,8 +459,8 @@ export default function Pengaturan({ pengaturan, ai }: Props) {
                         <Peringatan>
                             Selama AI aktif, setiap klik <b>Generate</b> di laman bank soal
                             mengirim permintaan ke alamat di atas dan <b>ditagih ke akun
-                            penyedia itu</b>. Soal yang dihasilkan hanya mengisi form &mdash;
-                            tidak ada yang tersimpan sampai Guru menekan Simpan.
+                            penyedia itu</b>. Soal yang dihasilkan hanya mengisi form.
+                            Tidak ada yang tersimpan sampai Guru menekan Simpan.
                         </Peringatan>
                     </div>
                 )}

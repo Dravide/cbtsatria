@@ -157,7 +157,7 @@ export default function EventPengawas({
                 <div className="mb-3">
                     <Peringatan>
                         Belum ada panitia berjabatan <strong>pengawas</strong> yang punya akun.
-                        Tambahkan orangnya di laman <strong>Kepanitiaan</strong> &mdash; penugasan
+                        Tambahkan orangnya di laman <strong>Kepanitiaan</strong>. Penugasan
                         hanya bisa diberikan kepada akun yang sudah ada.
                     </Peringatan>
                 </div>
@@ -169,7 +169,7 @@ export default function EventPengawas({
                         {sesi_tanpa_ruang.length} sesi belum punya ruang:{' '}
                         {sesi_tanpa_ruang.map((s) => `${s.label} (${s.ujian ?? '—'})`).join(', ')}.
                         Penugasan menempel pada ruang-sesi, sehingga sesi tanpa ruang tidak bisa
-                        ditugaskan &mdash; tetapkan ruangnya di laman{' '}
+                        ditugaskan, tetapkan ruangnya di laman{' '}
                         <strong>Jadwal &amp; sesi</strong>.
                     </Peringatan>
                 </div>
@@ -201,7 +201,7 @@ export default function EventPengawas({
             {per_sesi.some((s) => s.jumlah_pengawas > 0) && (
                 <div className="mt-3">
                     <Inbox>
-                        Satu pengawas per ruang sudah sah &mdash; sesinya tetap bisa dibuka.
+                        Satu pengawas per ruang sudah sah, sesinya tetap bisa dibuka.
                         Menambah pengawas kedua sebaiknya dilakukan pada sesi yang pengawasnya
                         cukup, karena ruang yang benar-benar tidak akan bisa dibuka siswanya
                         hanyalah ruang yang belum punya pengawas sama sekali.

@@ -92,19 +92,19 @@ export default function Dashboard({ ringkasan }: Props) {
                             <Link href="/guru/bank-soal/baru" className="text-accent hover:underline">
                                 Tulis satu soal baru
                             </Link>{' '}
-                            &mdash; sepuluh jenis, satu tab per jenis.
+                            Sepuluh jenis, satu tab per jenis.
                         </li>
                         <li>
                             <Link href="/guru/bank-soal/impor" className="text-accent hover:underline">
                                 Impor dari berkas
                             </Link>{' '}
-                            &mdash; XLSX atau CSV, selalu berhenti di pratinjau dulu.
+                            XLSX atau CSV, selalu berhenti di pratinjau dulu.
                         </li>
                         <li>
                             <Link href="/guru/paket" className="text-accent hover:underline">
                                 Susun paket soal
                             </Link>{' '}
-                            &mdash; kumpulkan butir dari bank dan tetapkan poinnya.
+                            Kumpulkan butir dari bank dan tetapkan poinnya.
                         </li>
                     </ul>
                 </div>

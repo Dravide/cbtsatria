@@ -113,7 +113,7 @@ export default function AnalisisUjian({ ujian, baris, ada_analisis, ambang }: Pr
                 <div className="mb-3">
                     <Inbox>
                         Ujian ini belum pernah dianalisis. Tombol <strong>Hitung ulang</strong>{' '}
-                        menghitungnya sekarang — hitung hanya setelah seluruh kelas mengumpulkan,
+                        menghitungnya sekarang. Hitung hanya setelah seluruh kelas mengumpulkan,
                         karena daya beda yang dihitung dari separuh kelas adalah angka yang salah.
                     </Inbox>
                 </div>
@@ -200,7 +200,7 @@ export default function AnalisisUjian({ ujian, baris, ada_analisis, ambang }: Pr
                                 // yang berbeda - lihat PenghitungAnalisis.
                                 title={
                                     b.daya_beda === null
-                                        ? `Belum bisa dihitung — butuh minimal ${ambang.minimal_peserta} peserta`
+                                        ? `Belum bisa dihitung. Butuh minimal ${ambang.minimal_peserta} peserta`
                                         : undefined
                                 }
                             >

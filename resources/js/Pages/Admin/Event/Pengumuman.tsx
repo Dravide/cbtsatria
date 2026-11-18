@@ -97,7 +97,7 @@ export default function EventPengumuman({ event, pengumuman, angka }: Props) {
 
             <div className="mb-3">
                 <Inbox>
-                    Pengumuman tampil di beranda siswa yang terdaftar pada event ini — di atas
+                    Pengumuman tampil di beranda siswa yang terdaftar pada event ini, di atas
                     jadwal ujian mereka, karena ia bisa membatalkan jadwal itu. Tidak ada
                     persetujuan atau terbitan terpisah: begitu disimpan, ia langsung tayang.
                 </Inbox>
@@ -292,7 +292,7 @@ function FormPengumuman({
             <Field
                 label="Berlaku sampai (boleh dikosongkan)"
                 galat={errors.berlaku_sampai}
-                petunjuk="Kosongkan bila pengumuman berlaku sepanjang event. Isi bila ia berhenti berlaku sendiri — mis. pengumuman listrik padam."
+                petunjuk="Kosongkan bila pengumuman berlaku sepanjang event. Isi bila ia berhenti berlaku sendiri, mis. pengumuman listrik padam."
             >
                 <input
                     type="datetime-local"

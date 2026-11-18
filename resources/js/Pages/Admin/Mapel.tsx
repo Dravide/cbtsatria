@@ -146,7 +146,7 @@ export default function Mapel({
                 <div className="mb-3">
                     <Inbox>
                         Belum ada tahun ajaran aktif, jadi penugasan mengajar belum bisa
-                        dibuat &mdash; daftar kelas masih kosong. Aktifkan tahun ajaran di
+                        dibuat, karena daftar kelas masih kosong. Aktifkan tahun ajaran di
                         laman Tahun ajaran.
                     </Inbox>
                 </div>
@@ -645,7 +645,7 @@ function FormTugaskan({
                             <option value="">Pilih tingkat...</option>
                             {tingkat.map((t) => (
                                 <option key={t.tingkat} value={t.tingkat}>
-                                    Tingkat {t.tingkat} &mdash; {t.jumlah} kelas
+                                    Tingkat {t.tingkat}, {t.jumlah} kelas
                                 </option>
                             ))}
                         </select>

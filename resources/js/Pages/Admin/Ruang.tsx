@@ -291,7 +291,7 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                                         className="text-[11px] text-ink-3"
                                         title="Ruang BYOD: siswa membawa perangkat sendiri, sehingga tidak ada kios lab di sini."
                                     >
-                                        BYOD &mdash; tanpa kios
+                                        BYOD, tanpa kios
                                     </span>
                                 );
                             }
@@ -350,7 +350,7 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                 <Inbox>
                     Ruang master dipakai ulang lintas event. Satu ruang fisik yang sama muncul
                     di banyak event sepanjang tahun, dan tautan pintunya terikat pada ruang
-                    itu &mdash; bukan pada event tertentu.
+                    itu sendiri, bukan pada event tertentu.
                 </Inbox>
 
                 <p className="text-[11px] text-ink-3">

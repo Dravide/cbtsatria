@@ -177,7 +177,7 @@ export default function Impor({ riwayat, aktif, tujuan, kolom }: Props) {
             <div className="mb-3">
                 <Inbox>
                     Impor selalu berhenti di <strong>pratinjau</strong> sebelum menyimpan apa pun.
-                    Baris yang gagal ditampilkan bersama nomor barisnya — nomor yang sama dengan yang
+                    Baris yang gagal ditampilkan bersama nomor barisnya, nomor yang sama dengan yang
                     Anda lihat di Excel.
                 </Inbox>
             </div>
@@ -288,7 +288,7 @@ export default function Impor({ riwayat, aktif, tujuan, kolom }: Props) {
                         {kolom.join(' · ')}
                     </p>
                     <p className="mt-1.5 text-[11px] text-ink-3">
-                        Urutan kolom bebas — yang dicari adalah <strong>namanya</strong>. Kolom wajib
+                        Urutan kolom bebas. Yang dicari adalah <strong>namanya</strong>. Kolom wajib
                         hanya judul, jenis, dan soal. Kunci diisi berbeda per jenis: huruf untuk
                         pilihan ganda, <code>a=Jakarta; b=Bandung</code> untuk menjodohkan,
                         <code> c, a, b</code> untuk mengurutkan, <code>gravitasi~gaya
@@ -405,7 +405,7 @@ export default function Impor({ riwayat, aktif, tujuan, kolom }: Props) {
 
                     <div className="border-t border-line px-4 py-2.5">
                         <p className="text-[11px] leading-relaxed text-ink-3">
-                            Baris yang gagal <strong>tidak</strong> menggagalkan berkasnya —{' '}
+                            Baris yang gagal <strong>tidak</strong> menggagalkan berkasnya.{' '}
                             {aktif.sah} soal tetap tersimpan, dan laporan galat memuat alamat baris
                             sisanya. Perbaiki berkasnya, lalu unggah ulang: berkas yang{' '}
                             <em>isinya sama</em> ditolak supaya soal tidak tergandakan.
@@ -479,7 +479,7 @@ export default function Impor({ riwayat, aktif, tujuan, kolom }: Props) {
 
                     <div className="border-t border-line px-4 py-2.5">
                         <p className="text-[11px] text-ink-3">
-                            Berkas yang sudah diimpor tidak bisa dikonfirmasi ulang — impor kedua
+                            Berkas yang sudah diimpor tidak bisa dikonfirmasi ulang. Impor kedua
                             atas berkas yang sama akan menggandakan seluruh soalnya.
                         </p>
                     </div>

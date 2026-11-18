@@ -67,7 +67,7 @@ export default function PratinjauSoal({ soal, bolehUbah }: Props) {
                 </>
             }
         >
-            <Head title={`Pratinjau — ${soal.judul}`} />
+            <Head title={`Pratinjau · ${soal.judul}`} />
 
             {!bolehUbah && (
                 <div className="mb-3">
@@ -75,7 +75,7 @@ export default function PratinjauSoal({ soal, bolehUbah }: Props) {
                         Soal ini ditulis <strong>{soal.penulis ?? 'Guru lain'}</strong>. Anda
                         boleh membacanya dan memakainya di paket Anda, tetapi yang dapat
                         mengubahnya hanya penulisnya. Bila perlu menyesuaikan, duplikat dulu
-                        dari bank soal — salinannya menjadi milik Anda.
+                        dari bank soal. Salinannya menjadi milik Anda.
                     </Inbox>
                 </div>
             )}
@@ -87,7 +87,7 @@ export default function PratinjauSoal({ soal, bolehUbah }: Props) {
                 {soal.tingkat && <span>Kesulitan {soal.tingkat}</span>}
                 <span className="ml-auto">
                     Tampilan di bawah ini sama dengan yang akan dilihat siswa, kecuali
-                    bagian kunci, rubrik, dan pembahasan — ketiganya tidak pernah dikirim ke
+                    bagian kunci, rubrik, dan pembahasan. Ketiganya tidak pernah dikirim ke
                     peramban siswa.
                 </span>
             </div>

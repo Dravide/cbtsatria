@@ -118,7 +118,7 @@ export default function MonitoringTidakHadir({
                     <Inbox>
                         Belum ada siswa yang ditandai <strong>tidak hadir</strong> atau{' '}
                         <strong>izin</strong> pada event ini. Rekap terbentuk dari presensi yang
-                        sudah <em>diverifikasi</em> pengawas &mdash; siswa yang belum dipresensi
+                        sudah <em>diverifikasi</em> pengawas, siswa yang belum dipresensi
                         tidak dihitung sebagai tidak hadir.
                     </Inbox>
                 </Kotak>
@@ -281,7 +281,7 @@ export default function MonitoringTidakHadir({
 
                     <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
                         Data ini berasal dari presensi yang sudah <strong>diverifikasi</strong>{' '}
-                        pengawas. Siswa yang belum dipresensi tidak muncul di sini &mdash; ia masih
+                        pengawas. Siswa yang belum dipresensi tidak muncul di sini. Ia masih
                         berstatus <em>belum diverifikasi</em>, dan memasukkannya berarti menuduh
                         anak yang mungkin sedang duduk di kursinya. Perbaiki presensinya di{' '}
                         <Link href={presensi_url} className="font-medium text-ink underline">

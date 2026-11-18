@@ -275,7 +275,7 @@ export default function EventJadwal({
                     ))}
                     {temuan.length > 4 && (
                         <p className="text-xs text-ink-3">
-                            +{temuan.length - 4} temuan lain &mdash; perbaiki yang di atas lebih dulu.
+                            +{temuan.length - 4} temuan lain. Perbaiki yang di atas lebih dulu.
                         </p>
                     )}
                 </div>
@@ -514,8 +514,8 @@ export default function EventJadwal({
                 sini hanya ringkasannya, supaya jumlahnya tidak hilang. */}
             {barisBentrok > 0 && (
                 <p className="mt-2 text-xs text-ink-3">
-                    {barisBentrok} sesi bertanda <span className="text-bad">bentrok</span> &mdash;
-                    tekan <em>Rincian</em> pada barisnya untuk melihat penyebabnya.
+                    {barisBentrok} sesi bertanda <span className="text-bad">bentrok</span>.
+                    Tekan <em>Rincian</em> pada barisnya untuk melihat penyebabnya.
                 </p>
             )}
 
@@ -604,7 +604,7 @@ export default function EventJadwal({
                 <Inbox>
                     Tanggal dan jam di tabel ini adalah jendela sesinya, bukan durasi ujiannya.
                     Sesi yang selesai tepat ketika sesi berikutnya dibuka{' '}
-                    <strong>tidak dihitung bentrok</strong> &mdash; menyusun jadwal rapat seperti
+                    <strong>tidak dihitung bentrok</strong>. Menyusun jadwal rapat seperti
                     itu justru cara memakai ruang dengan efisien. Yang dihitung bentrok adalah
                     jendela yang benar-benar bertumpang.
                 </Inbox>

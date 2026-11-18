@@ -247,7 +247,7 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
                                 <p>
                                     Tautan {ruang.kode} menentukan RUANG; kode menentukan SIAPA
                                     yang masuk. Kode pengawas ruang lain memang ditolak di
-                                    pintu ini &mdash; bukan karena kodenya salah, tetapi karena
+                                    pintu ini bukan karena kodenya salah, tetapi karena
                                     pengawas itu tidak ditugaskan di sini.
                                 </p>
                             </div>
@@ -256,7 +256,7 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
 
                     <Inbox>
                         Kode pengawas tidak diterbitkan di laman ini, melainkan di laman
-                        Kepanitiaan event &mdash; satu kode per pengawas. Ia ditampilkan sekali
+                        Kepanitiaan event, satu kode per pengawas. Ia ditampilkan sekali
                         tepat saat diterbitkan, dan yang tersimpan hanya sidik jarinya.
                     </Inbox>
                 </div>

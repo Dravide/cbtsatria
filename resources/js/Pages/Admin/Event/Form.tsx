@@ -162,7 +162,7 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
             {ubah && event?.final && (
                 <div className="mb-3">
                     <Chip nada="warn">
-                        Event berstatus {event.status_label} &mdash; tidak bisa dipindahkan lagi
+                        Event berstatus {event.status_label}, tidak bisa dipindahkan lagi
                     </Chip>
                 </div>
             )}
@@ -235,7 +235,7 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
                                 }
                                 className={kelasInput}
                             >
-                                <option value="">— tanpa semester —</option>
+                                <option value="">Tanpa semester</option>
                                 {semesterTersedia.map((s) => (
                                     <option key={s.id} value={s.id}>
                                         {s.nama}
@@ -305,7 +305,7 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
                 <Kotak judul="Ambang pelanggaran siswa">
                     <p className="mb-3 text-xs leading-relaxed text-ink-2">
                         Tiga tingkat, dan masing-masing berlaku pada satu tindakan. Nilai awalnya
-                        diambil dari Pengaturan sekolah &mdash; sesudah disimpan, event ini
+                        diambil dari Pengaturan sekolah. Sesudah disimpan, event ini
                         memegang nilainya sendiri dan tidak lagi ikut berubah bila pengaturan
                         sekolah diubah. Urutannya harus menaik: siswa tidak boleh dikunci
                         sebelum ia diperingatkan.
@@ -378,7 +378,7 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
                             <span className="mt-0.5 block text-[11px] text-ink-3">
                                 Berbeda dari ketiga ambang di atas. Ambang menjawab &ldquo;berapa
                                 kali boleh&rdquo;; ini menjawab &ldquo;boleh keluar atau
-                                tidak&rdquo; &mdash; dan jawabannya tidak bergantung pada
+                                tidak&rdquo;, dan jawabannya tidak bergantung pada
                                 hitungan.
                             </span>
                         </span>
@@ -407,8 +407,8 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
                                     Deteksi layar terbagi
                                     <span className="mt-0.5 block text-[11px] text-ink-3">
                                         Lebar yang menyusut sampai di bawah 72% layar dilaporkan
-                                        sebagai <code>layar_terbagi</code>, tingkat 3 &mdash;
-                                        dicatat, tidak mengunci.
+                                        sebagai <code>layar_terbagi</code>, tingkat 3.
+                                        Dicatat, tidak mengunci.
                                     </span>
                                 </span>
                             </label>
@@ -445,7 +445,7 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
                                     <span className="mt-0.5 block text-[11px] text-ink-3">
                                         Tangkapan layar tidak bisa diblokir peramban; tanda air
                                         membuat hasilnya menyebut pemiliknya. Mematikannya pada
-                                        layar kecil masuk akal &mdash; ia menutupi sebagian soal.
+                                        layar kecil masuk akal, ia menutupi sebagian soal.
                                     </span>
                                 </span>
                             </label>
@@ -456,7 +456,7 @@ export default function EventForm({ event, bawaan, tahun, semester, jenis }: Pro
                 {!ubah && (
                     <Inbox>
                         Event baru selalu dibuat sebagai <strong>draft</strong>. Komponennya
-                        &mdash; kelas, peserta, mapel, ruang, panitia &mdash; disusun sesudahnya,
+                        (kelas, peserta, mapel, ruang, panitia) disusun sesudahnya,
                         dan status <strong>siap</strong> hanya bisa dicapai bila seluruh syarat
                         kesiapan terpenuhi.
                     </Inbox>

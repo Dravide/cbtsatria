@@ -210,7 +210,7 @@ export default function Login({ errors }: { errors: Record<string, string> }) {
                         </form>
 
                         <p className="mt-5 border-t border-line pt-4 text-[11px] leading-relaxed text-ink-3">
-                            Username tidak ada atau password salah &mdash; pesannya sama,
+                            Username tidak ada atau password salah, pesannya sama,
                             supaya tidak bisa dipakai menebak akun mana yang ada. Tiga
                             kali gagal, akun terkunci sementara 60 detik.
                         </p>

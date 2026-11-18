@@ -34,8 +34,8 @@ export default function AnalisisIndex({ ujian, ada_analisis }: Props) {
             {!ada_analisis && (
                 <div className="mb-3">
                     <Inbox>
-                        Belum ada butir yang dianalisis. Analisis dihitung setelah ujian selesai —
-                        dayanya baru berarti bila seluruh kelas sudah mengumpulkan.
+                        Belum ada butir yang dianalisis. Analisis dihitung setelah ujian selesai.
+                        Dayanya baru berarti bila seluruh kelas sudah mengumpulkan.
                     </Inbox>
                 </div>
             )}

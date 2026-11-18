@@ -119,7 +119,7 @@ export default function EventToken({ event, baris, angka, riwayat, tanpa_pengawa
                             {flash.kode_token}
                         </p>
                         <p className="mt-2 text-xs leading-relaxed text-ink-3">
-                            Muat ulang laman ini dan kodenya hilang dari layar &mdash; tetapi tidak
+                            Muat ulang laman ini dan kodenya hilang dari layar, tetapi tidak
                             hilang dari sistem. Selama ia masih dalam jendela berlakunya, ia bisa
                             dibaca lagi lewat tombol <em>Baca</em>, dan setiap pembacaan itu{' '}
                             <strong>tercatat</strong> di riwayat di bawah.
@@ -135,7 +135,7 @@ export default function EventToken({ event, baris, angka, riwayat, tanpa_pengawa
                         <ul className="mt-1.5 list-inside list-disc space-y-0.5">
                             {tanpa_pengawas.map((b) => (
                                 <li key={b.sesi_id}>
-                                    <span className="font-mono">{b.sesi}</span> &mdash;{' '}
+                                    <span className="font-mono">{b.sesi}</span>:{' '}
                                     {b.alasan_tolak}
                                 </li>
                             ))}
@@ -180,7 +180,7 @@ export default function EventToken({ event, baris, angka, riwayat, tanpa_pengawa
             <div className="mt-3">
                 <Inbox>
                     Satu token per sesi (keputusan PRD §24 #6). Menerbitkan ulang{' '}
-                    <strong>mencabut yang lama</strong> &mdash; tanpa itu, token yang sudah difoto
+                    <strong>mencabut yang lama</strong>. Tanpa itu, token yang sudah difoto
                     siswa tetap berlaku, dan tidak ada yang tahu berapa banyak token sah yang
                     beredar untuk satu sesi. Token hanya berguna bila ada pengawas yang
                     memverifikasi di pintu, sehingga sesi tanpa pengawas tidak bisa diterbitkan.

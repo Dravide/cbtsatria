@@ -421,7 +421,7 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
 
             <p className="mt-3 text-[11px] text-ink-3">
                 {jumlah.toLocaleString('id-ID')} akun pada peran ini. Akun tidak pernah
-                dihapus, hanya dinonaktifkan &mdash; riwayat ujian dan presensi menunjuk ke
+                dihapus, hanya dinonaktifkan. Riwayat ujian dan presensi menunjuk ke
                 sana.
             </p>
 
@@ -550,8 +550,8 @@ function FormGantiUsername({
                 <Inbox>
                     Username adalah satu-satunya yang diketik siswa di layar login, dan
                     ia tertempel di kartu siswa. Menggantinya berarti siswa yang
-                    menghafal username lama tidak bisa masuk sampai kartunya diperbarui
-                    &mdash; dan ia akan melapor sebagai &ldquo;username atau sandi
+                    menghafal username lama tidak bisa masuk sampai kartunya diperbarui.
+                    Ia akan melapor sebagai &ldquo;username atau sandi
                     salah&rdquo;, yang tidak menjelaskan apa pun kepada pengawas.
                 </Inbox>
 
@@ -605,14 +605,13 @@ function FormEkspor({
                     dengan penyaring yang sedang aktif
                     {filter.cari ? (
                         <>
-                            {' '}
-                            &mdash; kata kunci <span className="font-mono">{filter.cari}</span>
+                            {', kata kunci '}
+                            <span className="font-mono">{filter.cari}</span>
                         </>
                     ) : null}
                     {filter.status ? (
                         <>
-                            {' '}
-                            &mdash; status{' '}
+                            {', status '}
                             <span className="font-mono">
                                 {filter.status === '1' ? 'aktif' : 'nonaktif'}
                             </span>
@@ -623,7 +622,7 @@ function FormEkspor({
 
                 <p className="text-[11px] text-ink-3">
                     Berkasnya disiapkan di latar belakang. Unduh dari daftar Ekspor terakhir
-                    begitu statusnya siap &mdash; berkasnya bisa langsung diunggah kembali
+                    begitu statusnya siap. Berkasnya bisa langsung diunggah kembali
                     lewat Impor setelah diperbaiki di Excel.
                 </p>
 

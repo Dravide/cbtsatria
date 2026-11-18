@@ -494,7 +494,7 @@ export default function KoreksiJawaban({
                 <Field
                     label="Catatan untuk siswa"
                     galat={galat.feedback}
-                    petunjuk="Tampil ke siswa hanya bila pembahasan dibuka Admin. Catatan ini bukan tempat mencatat kekeliruan siswa — itu ada di kolom pelanggaran."
+                    petunjuk="Tampil ke siswa hanya bila pembahasan dibuka Admin. Catatan ini bukan tempat mencatat kekeliruan siswa. Itu ada di kolom pelanggaran."
                 >
                     <textarea
                         value={feedback}

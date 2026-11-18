@@ -334,7 +334,7 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                 <Inbox>
                     Cakupan <strong>seluruh event</strong> memberi akses ke semua komponen event
                     ini. Cakupan <strong>ruang tertentu</strong> membatasinya pada ruang yang
-                    disebut &mdash; pengawas biasanya masuk di sini, karena yang ia butuhkan adalah
+                    disebut. Pengawas biasanya masuk di sini, karena yang ia butuhkan adalah
                     presensi ruangnya sendiri, bukan seluruh event.
                 </Inbox>
             </div>
@@ -344,9 +344,9 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                     <strong>Kode pengawas</strong> diketik pengawasnya di pintu ruang
                     (<code className="font-mono text-[11px]">/p/&lt;slug&gt;</code>). Tautan di
                     daun pintu menentukan <em>ruang</em>; kode ini menentukan <em>siapa</em> yang
-                    masuk &mdash; dan hanya berlaku bila orangnya ditugaskan di ruang-sesi itu.
+                    masuk, dan hanya berlaku bila orangnya ditugaskan di ruang-sesi itu.
                     Kodenya selalu terlihat di tabel ini, jadi bisa langsung dipakai untuk membuat
-                    kartu pengawas. Menekan &ldquo;Terbitkan ulang&rdquo; menggantinya &mdash; kode
+                    kartu pengawas. Menekan &ldquo;Terbitkan ulang&rdquo; menggantinya, kode
                     lama langsung berhenti berlaku.
                 </Inbox>
             </div>
@@ -476,7 +476,7 @@ function PanelPanitia({
                         }}
                         className={kelasInput}
                     >
-                        <option value="">— tanpa akun —</option>
+                        <option value="">Tanpa akun</option>
                         {akun.map((a) => (
                             <option key={a.id} value={a.id}>
                                 {a.nama} · {a.username} ({a.peran})
@@ -678,7 +678,7 @@ function PanelMassal({
             <form onSubmit={kirim} className="space-y-3">
                 <Inbox>
                     Nama diambil dari akunnya, jadi tidak ada kolom nama. Satu jabatan dan satu
-                    cakupan berlaku untuk semua yang dicentang &mdash; jabatan yang berbeda berarti
+                    cakupan berlaku untuk semua yang dicentang, jabatan yang berbeda berarti
                     kiriman terpisah.
                 </Inbox>
 

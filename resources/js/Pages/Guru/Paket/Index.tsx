@@ -79,8 +79,8 @@ export default function PaketIndex({ baris, filter, mapel, bolehMenulis }: Props
             <div className="mb-3">
                 <Inbox>
                     Paket hanya <strong>menunjuk</strong> soal, tidak memilikinya.
-                    Mengeluarkan butir dari paket tidak menghapus soalnya dari bank soal —
-                    satu soal bagus boleh dipakai di tiga ujian berbeda.
+                    Mengeluarkan butir dari paket tidak menghapus soalnya dari bank soal.
+                    Satu soal bagus boleh dipakai di tiga ujian berbeda.
                 </Inbox>
             </div>
 
@@ -295,7 +295,7 @@ function BuatPaket({ mapel, kirim, padaKirim, padaSukses }: PropsBuat) {
 
             <p className="text-[11px] text-ink-3">
                 Butir ditambahkan setelah paketnya ada. Paket yang baru dibuat berstatus
-                Draft — status Siap hanya bisa diberikan bila paketnya sudah berisi butir.
+                Draft. Status Siap hanya bisa diberikan bila paketnya sudah berisi butir.
             </p>
 
             <div className="flex justify-end gap-2">

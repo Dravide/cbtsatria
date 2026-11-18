@@ -74,7 +74,7 @@ export default function PratinjauPaket({ paket, butir, bolehUbah }: Props) {
 
     return (
         <GuruLayout
-            judul={`Pratinjau — ${paket.nama}`}
+            judul={`Pratinjau · ${paket.nama}`}
             breadcrumb={`/guru/paket / ${paket.nama} / pratinjau`}
             aksi={
                 <>
@@ -95,7 +95,7 @@ export default function PratinjauPaket({ paket, butir, bolehUbah }: Props) {
                 </>
             }
         >
-            <Head title={`Pratinjau — ${paket.nama}`} />
+            <Head title={`Pratinjau · ${paket.nama}`} />
 
             <div className="mb-3 space-y-2">
                 {!bolehUbah && (
@@ -159,7 +159,7 @@ export default function PratinjauPaket({ paket, butir, bolehUbah }: Props) {
                 <Kotak judul="Isi paket">
                     <p className="text-sm text-ink-2">
                         Paket ini belum berisi butir. Paket kosong tidak bisa ditandai siap
-                        maupun dipasang ke mapel event — buka paketnya, lalu tandai soal di
+                        maupun dipasang ke mapel event. Buka paketnya, lalu tandai soal di
                         panel bank soal.
                     </p>
                 </Kotak>

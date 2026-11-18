@@ -492,7 +492,7 @@ export default function EventMonitoringRuang({
                     <p className="rounded-wf border border-warn/40 bg-warn-bg px-2.5 py-2 text-[11px] leading-relaxed text-ink-2">
                         Peserta yang belum mulai mengerjakan tidak tersentuh. Kejadiannya
                         tercatat di riwayat pelanggaran <em>setiap</em> anak yang direset, dengan
-                        alasan yang Anda tulis di bawah &mdash; tulis kalimat yang sudah cukup
+                        alasan yang Anda tulis di bawah. Tulis kalimat yang sudah cukup
                         tiga bulan dari sekarang.
                     </p>
 
@@ -529,7 +529,7 @@ export default function EventMonitoringRuang({
                             &ldquo;Terputus&rdquo; bukan keadaan yang disimpan, melainkan
                             yang disimpulkan: peserta yang tidak mengirim kabar lebih dari
                             90 detik. Karena itu angkanya bisa naik turun sendiri tanpa ada
-                            yang mengubah apa pun &mdash; dan itu memang keadaannya.
+                            yang mengubah apa pun. Dan itu memang keadaannya.
                         </p>
                         <p>
                             &ldquo;Sampai nomor&rdquo; berasal dari denyut anak, yang
@@ -549,14 +549,14 @@ export default function EventMonitoringRuang({
                         </p>
                         <p>
                             Kolom &ldquo;Dikerjakan&rdquo; bukan versi lebih tepat dari
-                            &ldquo;Sampai nomor&rdquo; &mdash; keduanya menjawab pertanyaan
+                            &ldquo;Sampai nomor&rdquo;. Keduanya menjawab pertanyaan
                             yang berbeda. Yang pertama dihitung dari jawaban yang
                             benar-benar tersimpan, yang kedua dari nomor yang dilaporkan
                             peramban. Anak yang sudah sampai nomor 12 tetapi baru menyimpan
                             tiga jawaban sedang melewati sebelas soal tanpa menjawabnya;
                             anak yang menjawab sampai nomor 40 tetapi melaporkan nomor 3
                             sedang menengok kembali ke belakang. Keduanya tampak sama di
-                            kolom denyut, dan keduanya perlu ditanyai &mdash; dengan
+                            kolom denyut, dan keduanya perlu ditanyai dengan
                             pertanyaan yang berbeda.
                         </p>
                         <p>
@@ -564,13 +564,13 @@ export default function EventMonitoringRuang({
                             <span className="text-ink-2">Butir soal</span> di barisnya, dan di
                             sana nomornya nomor yang dilihat anak itu sendiri. Pada ujian yang
                             mengacak soal, nomor yang sama menunjuk soal yang berbeda untuk tiap
-                            anak &mdash; dan itulah sebabnya rinciannya per anak, bukan satu
+                            anak. Dan itulah sebabnya rinciannya per anak, bukan satu
                             tabel untuk seluruh ruangan yang akan mencampur soal-soal berbeda
                             menjadi satu baris.
                         </p>
                         <p>
                             Kolom &ldquo;Benar&rdquo; pada tiap butir baru terisi setelah
-                            penilaian berjalan &mdash; penilaian otomatis berjalan sesudah
+                            penilaian berjalan. Penilaian otomatis berjalan sesudah
                             ujiannya berakhir, bukan saat anak menyimpan jawabannya, dan
                             uraian menunggu koreksi guru. Sebelum itu yang tertulis
                             &ldquo;belum dinilai&rdquo;, bukan &ldquo;0 benar&rdquo;:
@@ -689,7 +689,7 @@ function RingkasSoal({
 
                 <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
                     Angka &ldquo;sudah&rdquo; dan &ldquo;belum&rdquo; di atas dihitung dari{' '}
-                    <em>jawaban yang tersimpan</em> &mdash; bukan dari nomor yang dilaporkan
+                    <em>jawaban yang tersimpan</em>, bukan dari nomor yang dilaporkan
                     peramban anak. Daftar butir satu anak, beserta soal mana yang belum
                     dijawabnya, dibuka lewat tombol <span className="text-ink-2">Butir soal</span>{' '}
                     di barisnya.
@@ -741,7 +741,7 @@ function DetailButir({
         return (
             <div className="space-y-2 text-xs leading-relaxed text-ink-2">
                 <p>
-                    Butir soal anak ini <strong>belum tertulis</strong> &mdash; ia belum
+                    Butir soal anak ini <strong>belum tertulis</strong>. Ia belum
                     membuka ujiannya. Mesin ujian menuliskan daftar butirnya saat anak membuka
                     soal pertama, dan sampai itu terjadi tidak ada satu pun nomor yang bisa
                     dibacakan ke pengawas.
@@ -1206,7 +1206,7 @@ function RingkasanButir({ anak, padaRincian }: { anak: Anak; padaRincian: () => 
     if (dikerjakan === null || belum === null || ditandai === null) {
         return (
             <p className="mt-2 border-t border-line/60 pt-2 text-[11px] text-ink-3">
-                Butir soalnya belum tertulis &mdash; anak ini belum membuka ujiannya.
+                Butir soalnya belum tertulis. Anak ini belum membuka ujiannya.
                 Mesin ujian menuliskan daftar butirnya saat soal pertama dibuka.
             </p>
         );
@@ -1247,7 +1247,7 @@ function RingkasanButir({ anak, padaRincian }: { anak: Anak; padaRincian: () => 
                     <span className="text-ink-3">Ditandai ragu: </span>
                     <span className="font-mono text-warn">{ditandai.join(', ')}</span>
                     <span className="ml-2 text-ink-3">
-                        &mdash; anaknya sendiri menandai ini, dan itu yang paling perlu
+                        Anaknya sendiri menandai ini, dan itu yang paling perlu
                         ditanyakan
                     </span>
                 </p>
