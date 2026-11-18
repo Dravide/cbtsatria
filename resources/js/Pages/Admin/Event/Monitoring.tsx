@@ -157,6 +157,10 @@ export default function EventMonitoring({
                         Rekap tidak hadir
                     </TombolTautan>
 
+                    <TombolTautan href={`/admin/events/${event.id}/pantau`}>
+                        Papan pantau
+                    </TombolTautan>
+
                     <TombolTautan href={jalur_daftar_sesi}>Daftar sesi</TombolTautan>
 
                     <span className="flex items-center gap-2 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-2">

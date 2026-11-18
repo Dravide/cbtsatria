@@ -192,11 +192,15 @@ class EventController
         $request->session()->put('event_aktif', $event->id);
 
         $laporan = $kesiapan->periksa($event);
+        $event->loadMissing('school:id,papan_slug');
+        $papanSlug = $event->school?->papan_slug;
 
         return Inertia::render('Admin/Event/Show', [
             'event' => $this->ringkas($event),
             'kesiapan' => $laporan,
             'langkah' => $status->langkahTersedia($event),
+            'pantau_url' => "/admin/events/{$event->id}/pantau",
+            'pantau_publik_url' => $papanSlug !== null ? "/pantau/{$papanSlug}/event/{$event->id}" : null,
             'angka' => [
                 'peserta' => $event->participants()
                     ->where('status', EventParticipant::STATUS_TERDAFTAR)->count(),

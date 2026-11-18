@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chip, Kotak } from '@/Components/ui';
 
@@ -77,6 +77,7 @@ type Potret = {
     ada: boolean;
     keadaan: 'kosong' | 'berjalan' | 'menunggu' | 'selesai';
     sekolah: string;
+    event?: { id: number; kode: string; nama: string } | null;
     diperbarui: string;
     diperbarui_jam: string;
     sesi: Sesi | null;
@@ -96,7 +97,8 @@ type Props = {
     slug: string;
     potret: Potret | null;
     denyut_url: string;
-    papan_url: string;
+    papan_url?: string | null;
+    kembali_url?: string | null;
 };
 
 type Toast = {
@@ -117,7 +119,7 @@ const LABEL_LAPORAN: Record<Ruang['laporan'], { teks: string; nada: 'ok' | 'warn
     selesai: { teks: 'selesai', nada: 'ok' },
 };
 
-export default function Pantau({ slug, potret: awal, denyut_url }: Props) {
+export default function Pantau({ slug, potret: awal, denyut_url, kembali_url }: Props) {
     const [potret, setPotret] = useState<Potret | null>(awal);
     const [toast, setToast] = useState<Toast[]>([]);
     const [galat, setGalat] = useState<string | null>(null);
@@ -271,8 +273,19 @@ export default function Pantau({ slug, potret: awal, denyut_url }: Props) {
             <div className="min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[64rem] flex-col sm:border-x sm:border-line">
                     <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line bg-surface px-3 py-2.5">
+                        {kembali_url && (
+                            <Link
+                                href={kembali_url}
+                                className="text-xs text-ink-3 hover:text-ink"
+                            >
+                                ← Kembali ke event
+                            </Link>
+                        )}
+
                         <span className="truncate text-xs font-medium text-ink">
-                            {potret?.sekolah ?? slug}
+                            {potret?.event
+                                ? `${potret.sekolah} · ${potret.event.nama}`
+                                : (potret?.sekolah ?? slug)}
                         </span>
 
                         {sesi && (

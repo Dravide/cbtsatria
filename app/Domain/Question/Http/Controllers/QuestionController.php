@@ -4,6 +4,7 @@ namespace App\Domain\Question\Http\Controllers;
 
 use App\Domain\Academic\Models\Subject;
 use App\Domain\Academic\Models\TeachingAssignment;
+use App\Domain\Identity\Models\TeacherProfile;
 use App\Domain\Question\Enums\JenisSoal;
 use App\Domain\Question\Enums\StatusSoal;
 use App\Domain\Question\Http\Requests\SimpanSoalRequest;
@@ -125,6 +126,9 @@ class QuestionController
             // diam begitu jenis yang didukung bertambah.
             'jenisAi' => $this->jenisAi(),
             'ai' => $this->aiAktif(),
+            'kuotaAi' => $user->role->value === 'teacher'
+                ? TeacherProfile::untukGuru($user)->ringkasKuotaAi()
+                : null,
         ]);
     }
 

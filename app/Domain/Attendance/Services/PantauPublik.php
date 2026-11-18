@@ -5,6 +5,8 @@ namespace App\Domain\Attendance\Services;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Event\Enums\EventStatus;
+use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
@@ -84,11 +86,45 @@ class PantauPublik
 
         $sesi = $this->sesiAktif($sekolah);
 
+        return $this->susunDariSesi($sekolah->name, null, $sesi);
+    }
+
+    /**
+     * Potret papan pantau untuk SATU event tertentu.
+     *
+     * @return array<string, mixed>
+     */
+    public function susunEvent(SchoolEvent $event): array
+    {
+        $event->loadMissing('school:id,name');
+
+        $sesi = $this->sesiAktifEvent($event);
+
+        return $this->susunDariSesi(
+            $event->school?->name ?? '',
+            $event,
+            $sesi,
+        );
+    }
+
+    /**
+     * @param  Collection<int, ExamSession>  $sesi
+     * @return array<string, mixed>
+     */
+    private function susunDariSesi(string $namaSekolah, ?SchoolEvent $event, Collection $sesi): array
+    {
+        $eventRingkas = $event ? [
+            'id' => (int) $event->id,
+            'kode' => $event->code,
+            'nama' => $event->name,
+        ] : null;
+
         if ($sesi->isEmpty()) {
             return [
                 'ada' => false,
                 'keadaan' => 'kosong',
-                'sekolah' => $sekolah->name,
+                'sekolah' => $namaSekolah,
+                'event' => $eventRingkas,
                 'diperbarui' => now()->toIso8601String(),
                 'diperbarui_jam' => now()->format('H:i:s'),
                 'sesi' => null,
@@ -102,12 +138,12 @@ class PantauPublik
         // ada yang berjalan. `sesiAktif()` sudah mengurutkannya.
         $terpilih = $sesi->first();
 
-        $ruangan = ExamSessionRoom::query()
+        $ruangan = ExamSessionRoom::withoutGlobalScopes()
             ->where('exam_session_id', $terpilih->id)
             ->with([
                 'eventRoom.room:id,code,name,location',
                 'supervisors.supervisor:id,name',
-                'participants:id,exam_session_room_id,student_id,school_id',
+                'participants' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'exam_session_room_id', 'student_id', 'school_id'),
             ])
             ->orderBy('id')
             ->get();
@@ -119,14 +155,14 @@ class PantauPublik
         // di jaringan sekolah pada jam paling sibuk, dan penyegaran tiap
         // lima detik dari setiap layar di lorong akan menghabiskan basis
         // data bila satu ruang satu kueri.
-        $attempt = ExamAttempt::query()
+        $attempt = ExamAttempt::withoutGlobalScopes()
             ->whereIn('exam_participant_id', $idPeserta)
             ->orderBy('attempt_number')
             ->get()
             ->groupBy('exam_participant_id')
             ->map(fn ($baris) => $baris->last());
 
-        $laporan = SessionReport::query()
+        $laporan = SessionReport::withoutGlobalScopes()
             ->whereIn('exam_session_room_id', $ruangan->pluck('id'))
             ->with('tandaTangan:id,session_report_id,peran')
             ->get()
@@ -187,7 +223,8 @@ class PantauPublik
         return [
             'ada' => true,
             'keadaan' => $this->keadaan($terpilih),
-            'sekolah' => $sekolah->name,
+            'sekolah' => $namaSekolah,
+            'event' => $eventRingkas,
             'diperbarui' => now()->toIso8601String(),
             'diperbarui_jam' => now()->format('H:i:s'),
             'sesi' => [
@@ -219,16 +256,17 @@ class PantauPublik
      */
     private function keadaan(ExamSession $sesi): string
     {
-        // Jendela yang sudah LEWAT menang atas statusnya, dan urutannya
-        // penting: sesi yang `hard_end_at`-nya lewat tetapi statusnya masih
-        // `berjalan` - keadaan yang bisa bertahan sampai
-        // `ujian:tutup-sesi` berjalan satu menit kemudian - tidak boleh
-        // tampil sebagai papan yang masih bergerak.
-        if ($sesi->hard_end_at !== null && $sesi->hard_end_at->isPast()) {
+        // Jendela yang sudah LEWAT atau status sesi sudah selesai menang,
+        // dan urutannya penting: sesi yang `hard_end_at`-nya lewat tetapi
+        // statusnya masih `berjalan` tidak boleh tampil sebagai papan bergerak.
+        if (
+            $sesi->status === StatusSesi::Selesai
+            || ($sesi->hard_end_at !== null && $sesi->hard_end_at->isPast())
+        ) {
             return 'selesai';
         }
 
-        return $sesi->status->value === 'berjalan' ? 'berjalan' : 'menunggu';
+        return $sesi->status === StatusSesi::Berjalan ? 'berjalan' : 'menunggu';
     }
 
     /**
@@ -268,14 +306,48 @@ class PantauPublik
     {
         $statusAktif = array_map(fn (EventStatus $s) => $s->value, EventStatus::belumSelesai());
 
-        $layak = fn ($q) => $q
-            ->where('school_id', $sekolah->id)
-            ->whereIn('status', $statusAktif);
+        return $this->pilihSesiDariQuery(
+            fn ($q) => $q->withoutGlobalScopes()
+                ->whereHas('event', fn ($ev) => $ev->withoutGlobalScopes()
+                    ->where('school_id', $sekolah->id)
+                    ->whereIn('status', $statusAktif)),
+            (int) $sekolah->id,
+        );
+    }
 
-        $berjalan = ExamSession::query()
-            ->whereHas('exam.event', $layak)
-            ->where('status', 'berjalan')
-            ->with(['exam:id,title,subject_id,event_id', 'exam.subject:id,name'])
+    /**
+     * Sesi yang dibaca papan untuk SATU event tertentu.
+     *
+     * Tidak menyaring `EventStatus::belumSelesai()`: bila Admin atau tautan
+     * event membuka papan untuk event yang sudah selesai, papan tetap
+     * menampilkan angka akhir sesi terakhirnya.
+     *
+     * @return Collection<int, ExamSession>
+     */
+    private function sesiAktifEvent(SchoolEvent $event): Collection
+    {
+        return $this->pilihSesiDariQuery(
+            fn ($q) => $q->withoutGlobalScopes()->where('event_id', $event->id),
+            (int) $event->school_id,
+        );
+    }
+
+    /**
+     * @param  \Closure(\Illuminate\Database\Eloquent\Builder<\App\Domain\Exam\Models\Exam>): void  $filterExam
+     * @return Collection<int, ExamSession>
+     */
+    private function pilihSesiDariQuery(\Closure $filterExam, int $schoolId): Collection
+    {
+        $dasar = fn () => ExamSession::withoutGlobalScopes()
+            ->where('school_id', $schoolId)
+            ->whereHas('exam', $filterExam)
+            ->with([
+                'exam' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'title', 'subject_id', 'event_id'),
+                'exam.subject:id,name',
+            ]);
+
+        $berjalan = $dasar()
+            ->where('status', StatusSesi::Berjalan->value)
             ->orderBy('access_opens_at')
             ->limit(self::MAKS_SESI)
             ->get();
@@ -284,10 +356,9 @@ class PantauPublik
             return $berjalan;
         }
 
-        $akanDatang = ExamSession::query()
-            ->whereHas('exam.event', $layak)
+        $akanDatang = $dasar()
             ->where('hard_end_at', '>=', now())
-            ->with(['exam:id,title,subject_id,event_id', 'exam.subject:id,name'])
+            ->whereNotIn('status', [StatusSesi::Batal->value, StatusSesi::Selesai->value])
             ->orderBy('access_opens_at')
             ->limit(self::MAKS_SESI)
             ->get();
@@ -300,9 +371,8 @@ class PantauPublik
         // yang sudah ditutup tetap dibaca. Papan publik yang kosong pada
         // pukul sebelas pagi akan dikira rusak, padahal jawabannya memang
         // "ujiannya sudah selesai".
-        return ExamSession::query()
-            ->whereHas('exam.event', $layak)
-            ->with(['exam:id,title,subject_id,event_id', 'exam.subject:id,name'])
+        return $dasar()
+            ->whereNotIn('status', [StatusSesi::Batal->value])
             ->orderByDesc('hard_end_at')
             ->limit(1)
             ->get();

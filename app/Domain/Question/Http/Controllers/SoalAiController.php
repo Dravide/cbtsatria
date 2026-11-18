@@ -2,6 +2,7 @@
 
 namespace App\Domain\Question\Http\Controllers;
 
+use App\Domain\Identity\Models\TeacherProfile;
 use App\Domain\Question\Enums\JenisSoal;
 use App\Domain\Question\Models\Question;
 use App\Domain\Question\Services\AmpuanMapel;
@@ -151,6 +152,24 @@ class SoalAiController
         $ampuan->pastikan($request->user(), (int) $data['subject_id']);
 
         $jumlah = (int) ($data['jumlah'] ?? 1);
+        $totalDiminta = $jumlah * count($jenis);
+
+        $profil = TeacherProfile::untukGuru($request->user());
+        $kuota = $profil->ringkasKuotaAi();
+
+        if ($kuota['sisa'] <= 0) {
+            return response()->json([
+                'pesan' => "Kuota generate AI Anda sudah habis ({$kuota['terpakai']}/{$kuota['batas']} soal). Hubungi Admin untuk memperbarui atau mereset kuota.",
+                'kuota' => $kuota,
+            ], 422);
+        }
+
+        if ($totalDiminta > $kuota['sisa']) {
+            return response()->json([
+                'pesan' => "Sisa kuota generate AI Anda tinggal {$kuota['sisa']} soal (diminta {$totalDiminta} soal). Kurangi jumlah soal atau hubungi Admin untuk memperbarui kuota.",
+                'kuota' => $kuota,
+            ], 422);
+        }
 
         try {
             $daftar = $this->susunSemua($penulis, (int) $data['subject_id'], $jenis, $data['topik'], $data['tingkat'], $jumlah);
@@ -173,6 +192,9 @@ class SoalAiController
             ], 422);
         }
 
+        $profil->increment('ai_used', count($daftar));
+        $kuotaBaru = $profil->fresh()->ringkasKuotaAi();
+
         // ---------------------------------------------------------------
         // Satu soal tetap berbentuk datar, seperti sejak awal
         // ---------------------------------------------------------------
@@ -182,10 +204,10 @@ class SoalAiController
         // bentuk larik berarti seluruh pemanggil lama harus berubah untuk
         // fitur yang tidak mengubah hasil mereka satu pun.
         if (count($jenis) === 1 && $jumlah === 1) {
-            return response()->json($daftar[0]);
+            return response()->json($daftar[0] + ['kuota' => $kuotaBaru]);
         }
 
-        return response()->json(['soal' => $daftar]);
+        return response()->json(['soal' => $daftar, 'kuota' => $kuotaBaru]);
     }
 
     /**

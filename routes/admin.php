@@ -16,6 +16,7 @@ use App\Domain\Admin\Http\Controllers\SubjectController;
 use App\Domain\Admin\Http\Controllers\UserController;
 use App\Domain\Admin\Http\Controllers\UserExportController;
 use App\Domain\Admin\Http\Controllers\UserImportController;
+use App\Domain\Attendance\Http\Controllers\PantauPublikController;
 use App\Domain\Attendance\Http\Controllers\PemantauanEventController;
 use App\Domain\Event\Http\Controllers\EventAnnouncementController;
 use App\Domain\Event\Http\Controllers\EventCommitteeController;
@@ -138,6 +139,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // langsung mengunci siswa pada hari ujian. Lihat docblock methodnya.
     Route::put('/pengguna/{pengguna}/username', [UserController::class, 'gantiUsername'])
         ->name('pengguna.username');
+    Route::put('/pengguna/{pengguna}/kuota-ai', [UserController::class, 'ubahKuotaAi'])
+        ->name('pengguna.kuota-ai');
     // Kartu akun guru. Segmen statis, jadi ia tidak membayangi
     // `PUT /pengguna/{pengguna}` di atas (metodenya `GET`, dan tidak ada
     // `GET /pengguna/{pengguna}` sama sekali).
@@ -150,6 +153,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/pengguna/massal', [UserController::class, 'massal'])->name('pengguna.massal');
     Route::post('/pengguna/reset-password', [UserController::class, 'resetPassword'])
         ->name('pengguna.reset');
+    Route::post('/pengguna/reset-kuota-ai', [UserController::class, 'resetKuotaAi'])
+        ->name('pengguna.reset-kuota-ai');
 
     /*
     |----------------------------------------------------------------------
@@ -542,6 +547,11 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/events/{event}/monitoring', [PemantauanEventController::class, 'monitoring'])
         ->name('events.monitoring');
+
+    Route::get('/events/{event}/pantau', [PantauPublikController::class, 'tampilkanEventAdmin'])
+        ->name('events.pantau');
+    Route::get('/events/{event}/pantau/denyut', [PantauPublikController::class, 'denyutEventAdmin'])
+        ->name('events.pantau.denyut');
 
     // Papan satu sesi, dan papan seluruh-event. Sejak 2026-11-17 `/monitoring`
     // adalah DAFTAR SESI - alasan yang sama dengan `/presensi`: kartu per

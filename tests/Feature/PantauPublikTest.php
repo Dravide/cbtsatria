@@ -278,3 +278,35 @@ it('tidak mengirim nama pengguna atau email pengawas, hanya namanya', function (
         ->and($isi)->not->toContain('email')
         ->and($isi)->not->toContain('@');
 });
+
+it('membuka pantau per event dari admin dan publik per event', function () {
+    $d = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 4);
+    $event = $d['event'];
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$event->id}/pantau")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Publik/Pantau')
+            ->where('potret.ada', true)
+            ->where('potret.event.id', $event->id)
+            ->where('denyut_url', "/admin/events/{$event->id}/pantau/denyut")
+            ->where('kembali_url', "/admin/events/{$event->id}")
+        );
+
+    $this->getJson("/admin/events/{$event->id}/pantau/denyut")
+        ->assertOk()
+        ->assertJsonPath('ada', true)
+        ->assertJsonPath('event.id', $event->id);
+
+    app(SchoolResolver::class)->forget();
+
+    $this->get("/pantau/smk1-uas-ganjil/event/{$event->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Publik/Pantau')
+            ->where('potret.ada', true)
+            ->where('potret.event.id', $event->id)
+            ->where('denyut_url', "/pantau/smk1-uas-ganjil/event/{$event->id}/denyut")
+        );
+});

@@ -6,6 +6,7 @@ use App\Domain\Admin\Models\UserExport;
 use App\Domain\Admin\Services\UserRegistrar;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\TeacherProfile;
 use App\Domain\Identity\Models\User;
 use App\Support\TabelQuery;
 use Illuminate\Http\RedirectResponse;
@@ -77,6 +78,7 @@ class UserController
                 // jenis kelamin yang kosong untuk akun yang sudah terisi -
                 // lalu Admin menyimpan form kosong itu dan menghapus datanya.
                 'profil' => $this->profil($u),
+                'ai_kuota' => $u->role === Role::Teacher ? $this->kuotaAi($u) : null,
             ]),
             'filter' => [
                 'cari' => $request->query('cari', ''),
@@ -261,6 +263,79 @@ class UserController
     }
 
     /**
+     * Perbarui batas kuota generate AI untuk satu guru, dan opsional reset
+     * jumlah terpakainya ke 0.
+     */
+    public function ubahKuotaAi(Request $request, User $pengguna, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('update', $pengguna);
+
+        if ($pengguna->role !== Role::Teacher) {
+            throw ValidationException::withMessages([
+                'ai_limit' => 'Kuota generate AI hanya berlaku untuk akun guru.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'ai_limit' => ['required', 'integer', 'min:0', 'max:10000'],
+            'reset' => ['sometimes', 'boolean'],
+        ], [], [
+            'ai_limit' => 'batas kuota AI',
+        ]);
+
+        $profil = TeacherProfile::untukGuru($pengguna);
+        $lama = $profil->ringkasKuotaAi();
+        $reset = (bool) ($data['reset'] ?? false);
+
+        $profil->forceFill([
+            'ai_limit' => (int) $data['ai_limit'],
+            ...($reset ? ['ai_used' => 0] : []),
+        ])->save();
+
+        $logger->log('Memperbarui kuota AI guru', $pengguna, [
+            'batas_lama' => $lama['batas'],
+            'batas_baru' => (int) $data['ai_limit'],
+            'reset' => $reset,
+        ]);
+
+        return back()->with(
+            'sukses',
+            $reset
+                ? "Kuota AI {$pengguna->name} diperbarui menjadi {$data['ai_limit']} soal dan pemakaian direset ke 0."
+                : "Kuota AI {$pengguna->name} diperbarui menjadi {$data['ai_limit']} soal.",
+        );
+    }
+
+    /**
+     * Reset pemakaian kuota AI sekumpulan guru ke 0.
+     */
+    public function resetKuotaAi(Request $request, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('viewAny', User::class);
+
+        $data = $request->validate([
+            'id' => ['required', 'array', 'min:1'],
+            'id.*' => ['integer'],
+        ]);
+
+        $guru = User::query()
+            ->where('role', Role::Teacher)
+            ->whereIn('id', $data['id'])
+            ->get();
+
+        foreach ($guru as $satu) {
+            $profil = TeacherProfile::untukGuru($satu);
+            $profil->forceFill(['ai_used' => 0])->save();
+        }
+
+        $logger->log('Mereset pemakaian kuota AI guru', null, [
+            'jumlah' => $guru->count(),
+        ]);
+
+        return back()->with('sukses', 'Pemakaian kuota AI untuk '.$guru->count().' guru direset ke 0.');
+    }
+
+    /**
      * Reset password sekumpulan akun ke nilai awal.
      *
      * Hanya Admin - lihat UserPolicy::resetPassword. Sandi yang direset tidak
@@ -380,6 +455,20 @@ class UserController
             'staff_code' => $profil?->staff_code ?? null,
             'gender' => $profil?->gender ?? null,
             'address' => $profil?->address ?? null,
+        ];
+    }
+
+    /** @return array{batas: int, terpakai: int, sisa: int} */
+    private function kuotaAi(User $u): array
+    {
+        if ($u->teacherProfile !== null) {
+            return $u->teacherProfile->ringkasKuotaAi();
+        }
+
+        return [
+            'batas' => TeacherProfile::KUOTA_BAWAAN,
+            'terpakai' => 0,
+            'sisa' => TeacherProfile::KUOTA_BAWAAN,
         ];
     }
 

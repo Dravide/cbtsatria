@@ -82,9 +82,11 @@ type Props = {
         pengawas: number;
         ujian: number;
     };
+    pantau_url: string;
+    pantau_publik_url: string | null;
 };
 
-export default function EventShow({ event, kesiapan, langkah, angka }: Props) {
+export default function EventShow({ event, kesiapan, langkah, angka, pantau_url, pantau_publik_url }: Props) {
     const [tab, setTab] = useState<'ringkasan' | 'kesiapan'>('ringkasan');
 
     const pindah = (tujuan: string) =>
@@ -129,6 +131,10 @@ export default function EventShow({ event, kesiapan, langkah, angka }: Props) {
             breadcrumb={`/admin/events · ${event.kode} · ${event.status_label}`}
             aksi={
                 <>
+                    <Link href={pantau_url}>
+                        <Tombol>Papan pantau</Tombol>
+                    </Link>
+
                     <Link href={`/admin/events/${event.id}/ubah`}>
                         <Tombol>Ubah</Tombol>
                     </Link>
@@ -298,6 +304,21 @@ export default function EventShow({ event, kesiapan, langkah, angka }: Props) {
                                         </Chip>
                                     </dd>
                                 </div>
+                                {pantau_publik_url && (
+                                    <div className="border-t border-line/60 pt-2">
+                                        <dt className="text-xs text-ink-3">Pantau publik event</dt>
+                                        <dd className="mt-1">
+                                            <a
+                                                href={pantau_publik_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="font-mono text-xs text-accent hover:underline"
+                                            >
+                                                {pantau_publik_url}
+                                            </a>
+                                        </dd>
+                                    </div>
+                                )}
                             </dl>
                         </div>
                     </div>

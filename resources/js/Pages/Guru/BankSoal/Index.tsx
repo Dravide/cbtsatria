@@ -12,7 +12,7 @@ import {
     nadaStatus,
     pakaiFilter,
 } from '@/Components/ui';
-import { GenerateAi, JenisAi, Mapel } from './GenerateAi';
+import { GenerateAi, JenisAi, KuotaAi, Mapel } from './GenerateAi';
 
 /**
  * Laman Guru 02 - bank soal. Wireframe-peran.html plate 02.
@@ -77,6 +77,7 @@ type Props = {
     jenisAi?: JenisAi[];
     // Hanya SAKLARNYA. Base URL dan nama model tidak dikirim ke peramban.
     ai?: boolean;
+    kuotaAi?: KuotaAi | null;
 };
 
 export default function BankSoalIndex({
@@ -89,9 +90,11 @@ export default function BankSoalIndex({
     bolehMenulis,
     jenisAi = [],
     ai = false,
+    kuotaAi: kuotaAwal = null,
 }: Props) {
     const [pilih, setPilih] = useState<number[]>([]);
     const [modalAi, setModalAi] = useState(false);
+    const [kuotaAi, setKuotaAi] = useState<KuotaAi | null>(kuotaAwal);
 
     const f = pakaiFilter('/guru/bank-soal', {
         cari: filter.cari,
@@ -128,7 +131,9 @@ export default function BankSoalIndex({
             aksi={
                 <>
                     {bolehMenulis && ai && jenisAi.length > 0 && (
-                        <Tombol onClick={() => setModalAi(true)}>Generate AI</Tombol>
+                        <Tombol onClick={() => setModalAi(true)}>
+                            Generate AI{kuotaAi ? ` (${kuotaAi.sisa}/${kuotaAi.batas})` : ''}
+                        </Tombol>
                     )}
                     <Link href="/guru/bank-soal/impor" className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2">
                         Impor
@@ -153,6 +158,8 @@ export default function BankSoalIndex({
             <GenerateAi
                 mapel={mapel}
                 jenisAi={jenisAi}
+                kuota={kuotaAi}
+                padaKuotaBerubah={setKuotaAi}
                 terbuka={modalAi}
                 padaTutup={() => setModalAi(false)}
             />

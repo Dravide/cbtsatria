@@ -30,6 +30,7 @@ import { PratinjauSoalAi, SoalAi } from '@/Components/PratinjauAi';
 
 export type Mapel = { id: number; nama: string };
 export type JenisAi = { nilai: string; label: string; pendek: string };
+export type KuotaAi = { batas: number; terpakai: number; sisa: number };
 
 /** Satu baris pratinjau: soalnya, centangnya, dan tingkat yang DIMINTA. */
 type Baris = { soal: SoalAi; dicentang: boolean; tingkat: string };
@@ -37,11 +38,15 @@ type Baris = { soal: SoalAi; dicentang: boolean; tingkat: string };
 export function GenerateAi({
     mapel,
     jenisAi,
+    kuota,
+    padaKuotaBerubah,
     terbuka,
     padaTutup,
 }: {
     mapel: Mapel[];
     jenisAi: JenisAi[];
+    kuota?: KuotaAi | null;
+    padaKuotaBerubah?: (baru: KuotaAi) => void;
     /** Modal dikendalikan laman induk: tombolnya ada di bilah aksi tabel. */
     terbuka: boolean;
     padaTutup: () => void;
@@ -115,10 +120,15 @@ export function GenerateAi({
 
             const isi = (await jawab.json().catch(() => ({}))) as Partial<SoalAi> & {
                 soal?: SoalAi[];
+                kuota?: KuotaAi;
                 pesan?: string;
                 message?: string;
                 errors?: Record<string, string[]>;
             };
+
+            if (isi.kuota && padaKuotaBerubah) {
+                padaKuotaBerubah(isi.kuota);
+            }
 
             if (!jawab.ok) {
                 const pertama = isi.errors ? Object.values(isi.errors)[0]?.[0] : undefined;
@@ -283,6 +293,28 @@ export function GenerateAi({
                 }}
             >
                 <div className="space-y-3">
+                    {kuota && (
+                        <div className="flex items-center justify-between rounded-wf border border-line bg-surface-2/60 px-3 py-2 text-xs">
+                            <span className="text-ink-2">Sisa kuota generate AI Anda</span>
+                            <span
+                                className={
+                                    'font-mono font-medium ' +
+                                    (kuota.sisa <= 0 ? 'text-bad' : 'text-ink')
+                                }
+                            >
+                                {kuota.sisa} / {kuota.batas} soal
+                            </span>
+                        </div>
+                    )}
+
+                    {kuota && kuota.sisa <= 0 && (
+                        <Peringatan>
+                            Kuota generate AI Anda sudah habis ({kuota.terpakai}/{kuota.batas}{' '}
+                            soal). Hubungi Admin untuk memperbarui atau mereset kuota di laman
+                            Pengguna.
+                        </Peringatan>
+                    )}
+
                     <Field label="Mata pelajaran">
                         <select
                             value={mapelId}
@@ -391,7 +423,8 @@ export function GenerateAi({
                                 menyusun ||
                                 topik.trim().length < 5 ||
                                 jenisPilih.length === 0 ||
-                                idMapel === null
+                                idMapel === null ||
+                                (kuota !== null && kuota !== undefined && kuota.sisa <= 0)
                             }
                         >
                             {menyusun ? 'Menyusun soal...' : `Buat ${jumlah} soal`}

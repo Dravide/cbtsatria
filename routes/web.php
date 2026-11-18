@@ -204,6 +204,13 @@ Route::get('/pantau/{slug}', [PantauPublikController::class, 'tampilkan'])->name
 Route::get('/pantau/{slug}/denyut', [PantauPublikController::class, 'denyut'])
     ->middleware('throttle:'.PembatasLaju::PANTAU)
     ->name('pantau.denyut');
+Route::get('/pantau/{slug}/event/{event}', [PantauPublikController::class, 'tampilkanEventPublik'])
+    ->whereNumber('event')
+    ->name('pantau.event.publik');
+Route::get('/pantau/{slug}/event/{event}/denyut', [PantauPublikController::class, 'denyutEventPublik'])
+    ->whereNumber('event')
+    ->middleware('throttle:'.PembatasLaju::PANTAU)
+    ->name('pantau.event.denyut');
 
 /*
 |--------------------------------------------------------------------------

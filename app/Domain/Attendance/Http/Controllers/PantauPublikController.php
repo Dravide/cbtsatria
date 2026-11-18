@@ -3,8 +3,10 @@
 namespace App\Domain\Attendance\Http\Controllers;
 
 use App\Domain\Attendance\Services\PantauPublik;
+use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Tenancy\Models\School;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -74,6 +76,76 @@ class PantauPublikController
         $sekolah = $this->sekolah($slug);
 
         return response()->json($this->pantau->susun($sekolah));
+    }
+
+    /**
+     * Papan pantau publik untuk SATU event tertentu - `/pantau/{slug}/event/{event}`.
+     */
+    public function tampilkanEventPublik(string $slug, int $event): Response
+    {
+        $sekolah = $this->sekolah($slug);
+        $eventModel = $this->eventSekolah($sekolah, $event);
+
+        return Inertia::render('Publik/Pantau', [
+            'slug' => $slug,
+            'potret' => $this->pantau->susunEvent($eventModel),
+            'denyut_url' => "/pantau/{$slug}/event/{$eventModel->id}/denyut",
+            'papan_url' => "/papan/{$slug}",
+            'kembali_url' => null,
+        ]);
+    }
+
+    /**
+     * Denyut JSON papan pantau publik untuk SATU event tertentu.
+     */
+    public function denyutEventPublik(string $slug, int $event): JsonResponse
+    {
+        $sekolah = $this->sekolah($slug);
+        $eventModel = $this->eventSekolah($sekolah, $event);
+
+        return response()->json($this->pantau->susunEvent($eventModel));
+    }
+
+    /**
+     * Papan pantau dari konsol Admin untuk SATU event - `/admin/events/{event}/pantau`.
+     *
+     * Bekerja meskipun `schools.papan_slug` belum dinyalakan, karena Admin
+     * sudah terautentikasi dan diotorisasi lewat `Gate::authorize('view', $event)`.
+     */
+    public function tampilkanEventAdmin(SchoolEvent $event): Response
+    {
+        Gate::authorize('view', $event);
+
+        return Inertia::render('Publik/Pantau', [
+            'slug' => $event->code,
+            'potret' => $this->pantau->susunEvent($event),
+            'denyut_url' => "/admin/events/{$event->id}/pantau/denyut",
+            'papan_url' => null,
+            'kembali_url' => "/admin/events/{$event->id}",
+        ]);
+    }
+
+    /**
+     * Denyut JSON papan pantau Admin untuk SATU event.
+     */
+    public function denyutEventAdmin(SchoolEvent $event): JsonResponse
+    {
+        Gate::authorize('view', $event);
+
+        return response()->json($this->pantau->susunEvent($event));
+    }
+
+    private function eventSekolah(School $sekolah, int $eventId): SchoolEvent
+    {
+        $event = SchoolEvent::withoutGlobalScopes()
+            ->where('school_id', $sekolah->id)
+            ->find($eventId);
+
+        if ($event === null) {
+            abort(404);
+        }
+
+        return $event;
     }
 
     /**

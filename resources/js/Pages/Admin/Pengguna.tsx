@@ -61,6 +61,7 @@ type Baris = {
     aktif: boolean;
     terakhir_masuk: string | null;
     profil: Profil;
+    ai_kuota?: { batas: number; terpakai: number; sisa: number } | null;
 };
 
 type Props = {
@@ -120,6 +121,7 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
     const [pilih, setPilih] = useState<number[]>([]);
     const [ubah, setUbah] = useState<Baris | null>(null);
     const [gantiUsername, setGantiUsername] = useState<Baris | null>(null);
+    const [kuotaAiGuru, setKuotaAiGuru] = useState<Baris | null>(null);
     const [eksporTerbuka, setEksporTerbuka] = useState(false);
 
     const f = pakaiFilter('/admin/pengguna', { cari: filter.cari, status: filter.status });
@@ -144,6 +146,15 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
         }
 
         router.post('/admin/pengguna/reset-password', { id: pilih }, { preserveScroll: true });
+        setPilih([]);
+    };
+
+    const resetKuotaAiMassal = () => {
+        if (pilih.length === 0) {
+            return;
+        }
+
+        router.post('/admin/pengguna/reset-kuota-ai', { id: pilih }, { preserveScroll: true });
         setPilih([]);
     };
 
@@ -255,12 +266,20 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                         <span className="ml-auto flex flex-wrap items-center gap-2">
                             <span className="text-xs text-ink-3">{pilih.length} terpilih</span>
                             {adaKartu && (
-                                <Tombol
-                                    onClick={() => cetakKartu(pilih)}
-                                    title="Cetak kartu akun untuk baris yang dicentang"
-                                >
-                                    Kartu terpilih
-                                </Tombol>
+                                <>
+                                    <Tombol
+                                        onClick={() => cetakKartu(pilih)}
+                                        title="Cetak kartu akun untuk baris yang dicentang"
+                                    >
+                                        Kartu terpilih
+                                    </Tombol>
+                                    <Tombol
+                                        onClick={resetKuotaAiMassal}
+                                        title="Reset pemakaian kuota generate AI guru terpilih ke 0"
+                                    >
+                                        Reset kuota AI
+                                    </Tombol>
+                                </>
                             )}
                             <Tombol onClick={() => aksiMassal('nonaktifkan')}>
                                 Nonaktifkan terpilih
@@ -334,23 +353,52 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                             </Chip>
                         ),
                     },
+                    ...(adaKartu
+                        ? [
+                              {
+                                  judul: 'Kuota AI',
+                                  kelas: 'w-28',
+                                  render: (b: Baris) => {
+                                      const k = b.ai_kuota;
+
+                                      if (!k) {
+                                          return <span className="text-xs text-ink-3">—</span>;
+                                      }
+
+                                      return (
+                                          <Chip nada={k.sisa <= 0 ? 'bad' : 'mute'}>
+                                              {k.terpakai}/{k.batas}
+                                          </Chip>
+                                      );
+                                  },
+                              },
+                          ]
+                        : []),
                     {
                         judul: '',
                         // Lebar kolom aksi mengikuti jumlah tautannya: tab
-                        // Guru punya tiga (Kartu, Username, Ubah), tab lain
-                        // dua. `w-32` membuat tiga tautan berdesakan di tab
-                        // Guru dan terlipat menjadi dua baris.
-                        kelas: adaKartu ? 'w-40 text-right' : 'w-32 text-right',
+                        // Guru punya empat (Kartu, Kuota AI, Username, Ubah),
+                        // tab lain dua.
+                        kelas: adaKartu ? 'w-52 text-right' : 'w-32 text-right',
                         render: (b) => (
                             <span className="flex justify-end gap-3">
                                 {adaKartu && (
-                                    <button
-                                        onClick={() => cetakKartu([b.id])}
-                                        className="text-xs text-accent hover:underline"
-                                        title={`Cetak kartu akun ${b.nama}`}
-                                    >
-                                        Kartu
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => cetakKartu([b.id])}
+                                            className="text-xs text-accent hover:underline"
+                                            title={`Cetak kartu akun ${b.nama}`}
+                                        >
+                                            Kartu
+                                        </button>
+                                        <button
+                                            onClick={() => setKuotaAiGuru(b)}
+                                            className="text-xs text-accent hover:underline"
+                                            title={`Perbarui atau reset kuota AI ${b.nama}`}
+                                        >
+                                            Kuota AI
+                                        </button>
+                                    </>
                                 )}
                                 <button
                                     onClick={() => setGantiUsername(b)}
@@ -406,6 +454,12 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                 key={'username-' + (gantiUsername?.id ?? 'kosong')}
                 pengguna={gantiUsername}
                 padaTutup={() => setGantiUsername(null)}
+            />
+
+            <FormKuotaAi
+                key={'kuota-ai-' + (kuotaAiGuru?.id ?? 'kosong')}
+                pengguna={kuotaAiGuru}
+                padaTutup={() => setKuotaAiGuru(null)}
             />
 
             <FormEkspor
@@ -857,6 +911,86 @@ function FormPengguna({
                         className="size-4 accent-accent"
                     />
                     Akun aktif
+                </label>
+
+                <div className="flex gap-2 pt-1">
+                    <Tombol type="submit" nada="pri" disabled={processing}>
+                        {processing ? 'Menyimpan...' : 'Simpan'}
+                    </Tombol>
+                    <Tombol onClick={padaTutup}>Batal</Tombol>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
+function FormKuotaAi({
+    pengguna,
+    padaTutup,
+}: {
+    pengguna: Baris | null;
+    padaTutup: () => void;
+}) {
+    const kuota = pengguna?.ai_kuota ?? { batas: 20, terpakai: 0, sisa: 20 };
+
+    const { data, setData, put, processing, errors } = useForm<{
+        ai_limit: number;
+        reset: boolean;
+    }>({
+        ai_limit: kuota.batas,
+        reset: false,
+    });
+
+    const kirim = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!pengguna) {
+            return;
+        }
+
+        put(`/admin/pengguna/${pengguna.id}/kuota-ai`, {
+            preserveScroll: true,
+            onSuccess: () => padaTutup(),
+        });
+    };
+
+    return (
+        <Modal
+            terbuka={pengguna !== null}
+            padaTutup={padaTutup}
+            judul={pengguna ? `Kuota AI · ${pengguna.nama}` : 'Kuota AI'}
+        >
+            <form onSubmit={kirim} className="space-y-3">
+                <div className="flex items-center justify-between rounded-wf border border-line bg-surface-2/60 px-3 py-2 text-xs">
+                    <span className="text-ink-2">Pemakaian saat ini</span>
+                    <span className="font-mono font-medium text-ink">
+                        {kuota.terpakai} / {kuota.batas} soal (sisa {kuota.sisa})
+                    </span>
+                </div>
+
+                <Field
+                    label="Batas kuota generate AI (soal)"
+                    galat={errors.ai_limit}
+                    petunjuk="Bawaan setiap guru adalah 20 soal."
+                >
+                    <input
+                        type="number"
+                        min={0}
+                        max={10000}
+                        value={data.ai_limit}
+                        onChange={(e) => setData('ai_limit', Number.parseInt(e.target.value, 10) || 0)}
+                        className={kelasInput + ' font-mono'}
+                    />
+                </Field>
+
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                    <input
+                        type="checkbox"
+                        checked={data.reset}
+                        onChange={(e) => setData('reset', e.target.checked)}
+                        className="size-4 accent-accent"
+                    />
+                    Reset jumlah terpakai ke 0
                 </label>
 
                 <div className="flex gap-2 pt-1">

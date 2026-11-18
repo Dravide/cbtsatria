@@ -21,14 +21,51 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * users, bukan tabel profil.
  */
 #[ScopedBy(SchoolScope::class)]
-#[Fillable(['school_id', 'user_id', 'nip', 'gender', 'address'])]
+#[Fillable(['school_id', 'user_id', 'nip', 'gender', 'address', 'ai_limit', 'ai_used'])]
 class TeacherProfile extends Model
 {
     use BelongsToSchool;
+
+    /** Batas bawaan pembuatan soal AI per guru. */
+    public const KUOTA_BAWAAN = 20;
+
+    protected function casts(): array
+    {
+        return [
+            'ai_limit' => 'integer',
+            'ai_used' => 'integer',
+        ];
+    }
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Ambil atau buat baris profil guru untuk melacak kuota generate AI.
+     */
+    public static function untukGuru(User $guru): self
+    {
+        return static::firstOrCreate(
+            ['school_id' => $guru->school_id, 'user_id' => $guru->id],
+            ['ai_limit' => self::KUOTA_BAWAAN, 'ai_used' => 0],
+        );
+    }
+
+    /**
+     * @return array{batas: int, terpakai: int, sisa: int}
+     */
+    public function ringkasKuotaAi(): array
+    {
+        $batas = max(0, (int) ($this->ai_limit ?? self::KUOTA_BAWAAN));
+        $terpakai = max(0, (int) ($this->ai_used ?? 0));
+
+        return [
+            'batas' => $batas,
+            'terpakai' => $terpakai,
+            'sisa' => max(0, $batas - $terpakai),
+        ];
     }
 }
