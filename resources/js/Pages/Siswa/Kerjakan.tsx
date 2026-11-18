@@ -212,6 +212,17 @@ export default function Kerjakan({
     const [sisa, setSisa] = useState(attempt.sisa_detik);
     const [ringkas, setRingkas] = useState(progres);
     const [tersimpan, setTersimpan] = useState<'diam' | 'proses' | 'ok' | 'galat'>('diam');
+    const [online, setOnline] = useState(() =>
+        typeof navigator !== 'undefined' ? navigator.onLine : true,
+    );
+
+    const tertundaRef = useRef<Record<number, Record<string, unknown>>>(
+        bacaTertunda(attempt.id),
+    );
+    const [jumlahTertunda, setJumlahTertunda] = useState(
+        () => Object.keys(tertundaRef.current).length,
+    );
+    const sedangSyncRef = useRef(false);
 
     // Daftar soal hanya muncul saat diminta - lihat `DaftarSoal` di bawah.
     const [daftarTerbuka, setDaftarTerbuka] = useState(false);
@@ -219,11 +230,14 @@ export default function Kerjakan({
     // Jawaban dipegang di satu objek, bukan di state per butir: jawaban
     // harus bertahan saat anak berpindah butir lalu kembali, dan state yang
     // hidup di dalam komponen butir akan hilang begitu butirnya dilepas.
-    const [jawaban, setJawaban] = useState<Record<number, Record<string, unknown>>>(() =>
-        Object.fromEntries(
+    // Cadangan lokal dari `localStorage` digabungkan agar jawaban yang belum
+    // sempat terkirim saat offline tidak hilang jika halaman dimuat ulang.
+    const [jawaban, setJawaban] = useState<Record<number, Record<string, unknown>>>(() => ({
+        ...Object.fromEntries(
             butir.filter((b) => b.jawaban?.isi).map((b) => [b.id, b.jawaban?.isi ?? {}]),
         ),
-    );
+        ...tertundaRef.current,
+    }));
 
     const [ditandai, setDitandai] = useState<Record<number, boolean>>(() =>
         Object.fromEntries(butir.map((b) => [b.id, b.jawaban?.ditandai ?? false])),
@@ -320,6 +334,11 @@ export default function Kerjakan({
                         return;
                     }
 
+                    setOnline(true);
+                    if (Object.keys(tertundaRef.current).length > 0) {
+                        void kirimTertunda();
+                    }
+
                     // Namanya dari `TindakanPelanggaran::toArray()`, dan
                     // dibaca apa adanya: `dikunci` dan `diperingatkan` adalah
                     // keputusan server atas rangkaiannya, bukan kesimpulan
@@ -349,9 +368,33 @@ export default function Kerjakan({
         [kirimJson, peserta.peserta_id],
     );
 
+    const catatTertunda = useCallback(
+        (butirId: number, isi: Record<string, unknown>) => {
+            tertundaRef.current = { ...tertundaRef.current, [butirId]: isi };
+            tulisTertunda(attempt.id, tertundaRef.current);
+            setJumlahTertunda(Object.keys(tertundaRef.current).length);
+        },
+        [attempt.id],
+    );
+
+    const hapusTertunda = useCallback(
+        (butirId: number) => {
+            if (!(butirId in tertundaRef.current)) {
+                return;
+            }
+
+            const salinan = { ...tertundaRef.current };
+            delete salinan[butirId];
+            tertundaRef.current = salinan;
+            tulisTertunda(attempt.id, salinan);
+            setJumlahTertunda(Object.keys(salinan).length);
+        },
+        [attempt.id],
+    );
+
     /** Simpan satu butir. `senyap` berarti autosave, bukan aksi anak. */
     const simpan = useCallback(
-        async (butirId: number, isi: Record<string, unknown>, senyap: boolean) => {
+        async (butirId: number, isi: Record<string, unknown>, senyap: boolean): Promise<boolean> => {
             if (!senyap) {
                 setTersimpan('proses');
             }
@@ -363,12 +406,16 @@ export default function Kerjakan({
                 )) as { versi: number; progres: Progres } | null;
 
                 if (!hasil) {
-                    return;
+                    return false;
                 }
 
                 versi.current[butirId] = hasil.versi;
                 setRingkas(hasil.progres);
+                hapusTertunda(butirId);
+                setOnline(true);
                 setTersimpan('ok');
+
+                return true;
             } catch (galat) {
                 // 409 - versi basi. Butirnya dimuat ulang, dan yang lebih
                 // baru menang. Jawaban di layar TIDAK ditimpa: anak yang
@@ -379,10 +426,58 @@ export default function Kerjakan({
                 }
 
                 setTersimpan('galat');
+
+                return false;
             }
         },
-        [kirimJson, peserta.peserta_id],
+        [hapusTertunda, kirimJson, peserta.peserta_id],
     );
+
+    /** Kirim seluruh jawaban yang tertunda di localStorage saat koneksi pulih. */
+    const kirimTertunda = useCallback(async () => {
+        if (sedangSyncRef.current) {
+            return;
+        }
+
+        const entri = Object.entries(tertundaRef.current);
+
+        if (entri.length === 0) {
+            return;
+        }
+
+        sedangSyncRef.current = true;
+
+        try {
+            for (const [idStr, isi] of entri) {
+                const berhasil = await simpan(Number(idStr), isi, true);
+                if (!berhasil) {
+                    break;
+                }
+            }
+        } finally {
+            sedangSyncRef.current = false;
+        }
+    }, [simpan]);
+
+    useEffect(() => {
+        const saatOnline = () => {
+            setOnline(true);
+            void kirimTertunda();
+        };
+        const saatOffline = () => setOnline(false);
+
+        window.addEventListener('online', saatOnline);
+        window.addEventListener('offline', saatOffline);
+
+        if (navigator.onLine && Object.keys(tertundaRef.current).length > 0) {
+            void kirimTertunda();
+        }
+
+        return () => {
+            window.removeEventListener('online', saatOnline);
+            window.removeEventListener('offline', saatOffline);
+        };
+    }, [kirimTertunda]);
 
     /* -------------------------------------------------------------- Denyut */
 
@@ -402,6 +497,11 @@ export default function Kerjakan({
                 .then((hasil) => {
                     if (!hasil) {
                         return;
+                    }
+
+                    setOnline(true);
+                    if (Object.keys(tertundaRef.current).length > 0) {
+                        void kirimTertunda();
                     }
 
                     // `DenyutService::catat()` mengembalikan tepat kunci-kunci
@@ -766,7 +866,12 @@ export default function Kerjakan({
 
         const id = aktif.id;
 
-        setJawaban((lama) => ({ ...lama, [id]: { ...(lama[id] ?? {}), ...potongan } }));
+        setJawaban((lama) => {
+            const baru = { ...(lama[id] ?? {}), ...potongan };
+            catatTertunda(id, baru);
+
+            return { ...lama, [id]: baru };
+        });
     };
 
     const terakhir = indeks === butir.length - 1;
@@ -786,7 +891,7 @@ export default function Kerjakan({
             aksiBawah={
                 <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
-                        <PenandaSimpan keadaan={tersimpan} />
+                        <PenandaSimpan keadaan={tersimpan} tertunda={jumlahTertunda} />
 
                         {/* Daftar nomor soal dulunya berdiri di atas soal -
                             enam kolom tombol yang selalu terlihat. Di layar
@@ -824,9 +929,13 @@ export default function Kerjakan({
                         {terakhir ? (
                             <button
                                 type="button"
-                                onClick={() =>
-                                    router.visit(`/siswa/ujian/${peserta.peserta_id}/selesai`)
-                                }
+                                onClick={async () => {
+                                    if (aktif && jawabanRef.current[aktif.id]) {
+                                        await simpan(aktif.id, jawabanRef.current[aktif.id], false);
+                                    }
+                                    await kirimTertunda();
+                                    router.visit(`/siswa/ujian/${peserta.peserta_id}/selesai`);
+                                }}
                                 className={tombolUtama}
                             >
                                 Selesai
@@ -848,6 +957,23 @@ export default function Kerjakan({
                 gangguan sepersekian detik dari notifikasi ponsel adalah hal
                 biasa, dan menghapus pekerjaannya karena itu adalah hukuman
                 yang tidak sepadan. */}
+
+            {/* Peringatan koneksi terputus: jawaban tetap dicadangkan di perangkat
+                agar tidak hilang, dan siswa diingatkan melapor ke pengawas bila
+                koneksi belum pulih sebelum waktu habis. */}
+            {(!online || tersimpan === 'galat') && (
+                <div className="rounded-wf border border-bad/50 bg-bad-bg p-3">
+                    <b className="block font-display text-sm text-bad">
+                        Koneksi internet terputus
+                    </b>
+                    <p className="mt-1 text-[11px] leading-relaxed text-bad">
+                        {jumlahTertunda > 0
+                            ? `${jumlahTertunda} jawaban disimpan sementara di perangkat ini dan akan dikirim otomatis saat internet tersambung kembali. `
+                            : 'Jawaban Anda sementara disimpan di perangkat ini. '}
+                        Segera hubungi pengawas jika koneksi tidak kembali sebelum waktu ujian habis.
+                    </p>
+                </div>
+            )}
 
             {/* Event yang menuntut layar penuh menampilkan spanduk ini saat
                 anak keluar darinya. Tombolnya BUKAN paksaan: peramban
@@ -1686,8 +1812,14 @@ function Jam({ sisa, panas }: { sisa: number; panas: boolean }) {
 }
 
 /** "Tersimpan" / "Menyimpan…" / "Gagal menyimpan" - plate 22. */
-function PenandaSimpan({ keadaan }: { keadaan: 'diam' | 'proses' | 'ok' | 'galat' }) {
-    if (keadaan === 'diam') {
+function PenandaSimpan({
+    keadaan,
+    tertunda = 0,
+}: {
+    keadaan: 'diam' | 'proses' | 'ok' | 'galat';
+    tertunda?: number;
+}) {
+    if (keadaan === 'diam' && tertunda === 0) {
         return <span className="text-[11px] text-ink-3">Tersimpan otomatis</span>;
     }
 
@@ -1699,10 +1831,60 @@ function PenandaSimpan({ keadaan }: { keadaan: 'diam' | 'proses' | 'ok' | 'galat
         // Gagal menyimpan DITAMPILKAN, dan itu kebalikan dari laporan
         // pelanggaran yang gagal dengan diam: kehilangan jawaban adalah hal
         // yang harus diketahui anak saat itu juga, bukan setelah ujian.
-        return <Chip nada="bad">Gagal menyimpan</Chip>;
+        return (
+            <Chip nada="bad">
+                {tertunda > 0 ? `Tertunda (${tertunda}) · di perangkat` : 'Gagal menyimpan'}
+            </Chip>
+        );
+    }
+
+    if (tertunda > 0) {
+        return <Chip nada="warn">Menunggu kirim ({tertunda})</Chip>;
     }
 
     return <Chip nada="ok">tersimpan</Chip>;
+}
+
+function kunciCadangan(attemptId: number): string {
+    return `cbt_cadangan_attempt_${attemptId}`;
+}
+
+function bacaTertunda(attemptId: number): Record<number, Record<string, unknown>> {
+    if (typeof window === 'undefined') {
+        return {};
+    }
+
+    try {
+        const mentah = window.localStorage.getItem(kunciCadangan(attemptId));
+
+        if (!mentah) {
+            return {};
+        }
+
+        const hasil = JSON.parse(mentah) as Record<string, Record<string, unknown>>;
+
+        return Object.fromEntries(
+            Object.entries(hasil).map(([k, v]) => [Number(k), v]),
+        );
+    } catch {
+        return {};
+    }
+}
+
+function tulisTertunda(attemptId: number, data: Record<number, Record<string, unknown>>): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    try {
+        if (Object.keys(data).length === 0) {
+            window.localStorage.removeItem(kunciCadangan(attemptId));
+        } else {
+            window.localStorage.setItem(kunciCadangan(attemptId), JSON.stringify(data));
+        }
+    } catch {
+        // localStorage penuh atau diblokir mode privat — memori tab tetap jalan.
+    }
 }
 
 /**
