@@ -64,8 +64,14 @@ final class PapanPeringkatLuang
         ?ExamParticipant $peserta,
         int $distance,
         int $durationMs,
+        string $gameType = LeisureGameScore::GAME_LOMPAT,
     ): LeisureGameScore {
-        $alasan = $this->penjaga->periksa($distance, $durationMs);
+        $alasan = $this->penjaga->periksa($distance, $durationMs, $gameType);
+
+        // Untuk hitung_cepat, `distance` kolom dipakai menyimpan skor poin.
+        $score = $gameType === LeisureGameScore::GAME_HITUNG
+            ? $this->penjaga->hitungSkorHitung($distance)
+            : $this->penjaga->hitungSkor($distance);
 
         return LeisureGameScore::create([
             'school_id' => $siswa->school_id,
@@ -77,24 +83,26 @@ final class PapanPeringkatLuang
             'class_id' => $peserta?->pesertaEvent?->class_id,
 
             'exam_participant_id' => $peserta?->id,
+            'game_type' => $gameType,
             'distance' => $distance,
             'duration_ms' => $durationMs,
             // Skor yang DIHITUNG di sini. Kiriman yang ditolak tetap diberi
             // angka: baris yang ditolak dengan skor nol terbaca sebagai
             // "kirimannya kosong", padahal ia ditolak karena mustahil.
-            'score' => $this->penjaga->hitungSkor($distance),
+            'score' => $score,
             'rejected_reason' => $alasan,
             'played_at' => now(),
         ]);
     }
 
     /**
-     * Rekor tertinggi siswa ini, atau null bila belum pernah diterima.
+     * Rekor tertinggi siswa ini untuk jenis permainan tertentu, atau null bila belum pernah diterima.
      */
-    public function rekorSaya(User $siswa): ?int
+    public function rekorSaya(User $siswa, string $gameType = LeisureGameScore::GAME_LOMPAT): ?int
     {
         $nilai = LeisureGameScore::query()
             ->where('student_id', $siswa->id)
+            ->where('game_type', $gameType)
             ->whereNull('rejected_reason')
             ->max('score');
 
@@ -104,38 +112,24 @@ final class PapanPeringkatLuang
     /**
      * Peringkat siswa ini di kelasnya, dan berapa banyak pemain di sana.
      *
-     * ---------------------------------------------------------------------
-     * Peringkat dihitung dari SEMUA pemain, termasuk yang tidak ditampilkan
-     * ---------------------------------------------------------------------
-     * Anak yang rekornya peringkat kedua belas tetap perlu tahu bahwa ia
-     * kedua belas dari tiga puluh satu - dan "peringkat 12" yang dihitung
-     * hanya dari sepuluh baris teratas akan berbunyi "peringkat 11" untuk
-     * setiap orang di luar daftar. Itu papan peringkat yang berbohong pada
-     * mayoritas pemainnya.
-     *
-     * Karena itu peringkatnya dihitung dengan SATU kueri hitung atas seluruh
-     * kelas, bukan dengan mencari namanya di `papan()` - daftar itu memang
-     * dipotong sepuluh baris.
-     *
      * @return array{peringkat: int|null, pemain: int, rekor: int|null}
      */
-    public function peringkatSaya(User $siswa, ?int $classId): array
+    public function peringkatSaya(User $siswa, ?int $classId, string $gameType = LeisureGameScore::GAME_LOMPAT): array
     {
-        $rekor = $this->rekorSaya($siswa);
+        $rekor = $this->rekorSaya($siswa, $gameType);
 
         if ($rekor === null) {
             return [
                 'peringkat' => null,
-                'pemain' => $this->jumlahPemain($siswa->school_id, $classId),
+                'pemain' => $this->jumlahPemain($siswa->school_id, $classId, $gameType),
                 'rekor' => null,
             ];
         }
 
         // Berapa SISWA - bukan berapa BARIS - yang rekornya lebih tinggi.
-        // Satu anak yang bermain dua puluh kali akan menghitung dua puluh
-        // kali bila kuerinya tidak menyaring ke skor tertinggi per siswa.
         $diAtas = LeisureGameScore::query()
             ->where('school_id', $siswa->school_id)
+            ->where('game_type', $gameType)
             ->when($classId !== null, fn ($q) => $q->where('class_id', $classId))
             ->whereNull('rejected_reason')
             ->where('student_id', '!=', $siswa->id)
@@ -146,7 +140,7 @@ final class PapanPeringkatLuang
 
         return [
             'peringkat' => $diAtas + 1,
-            'pemain' => $this->jumlahPemain($siswa->school_id, $classId),
+            'pemain' => $this->jumlahPemain($siswa->school_id, $classId, $gameType),
             'rekor' => $rekor,
         ];
     }
@@ -156,10 +150,11 @@ final class PapanPeringkatLuang
      *
      * @return Collection<int, array{student_id: int, nama: string, kelas: string|null, score: int}>
      */
-    public function papan(int $schoolId, ?int $classId, int $batas = self::BARIS_TERATAS): Collection
+    public function papan(int $schoolId, ?int $classId, string $gameType = LeisureGameScore::GAME_LOMPAT, int $batas = self::BARIS_TERATAS): Collection
     {
         $baris = LeisureGameScore::query()
             ->where('school_id', $schoolId)
+            ->where('game_type', $gameType)
             ->when($classId !== null, fn ($q) => $q->where('class_id', $classId))
             ->whereNull('rejected_reason')
             ->orderByDesc('score')
@@ -181,11 +176,12 @@ final class PapanPeringkatLuang
         ]);
     }
 
-    /** Berapa siswa yang punya skor diterima di kelas ini. */
-    public function jumlahPemain(int $schoolId, ?int $classId): int
+    /** Berapa siswa yang punya skor diterima di kelas ini untuk jenis game ini. */
+    public function jumlahPemain(int $schoolId, ?int $classId, string $gameType = LeisureGameScore::GAME_LOMPAT): int
     {
         return (int) LeisureGameScore::query()
             ->where('school_id', $schoolId)
+            ->where('game_type', $gameType)
             ->when($classId !== null, fn ($q) => $q->where('class_id', $classId))
             ->whereNull('rejected_reason')
             ->distinct()

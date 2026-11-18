@@ -39,6 +39,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'student_id',
     'class_id',
     'exam_participant_id',
+    'game_type',
     'distance',
     'duration_ms',
     'score',
@@ -50,6 +51,12 @@ class LeisureGameScore extends Model
     use BelongsToSchool;
 
     protected $table = 'leisure_game_scores';
+
+    /** Jenis permainan: lompat rintangan. */
+    public const GAME_LOMPAT = 'lompat';
+
+    /** Jenis permainan: hitung cepat 60 detik. */
+    public const GAME_HITUNG = 'hitung_cepat';
 
     /** Kiriman wajar: tidak ada satu pun alasan penolakan padanya. */
     public const DITERIMA = null;
@@ -67,6 +74,7 @@ class LeisureGameScore extends Model
             'duration_ms' => 'integer',
             'score' => 'integer',
             'played_at' => 'datetime',
+            'game_type' => 'string',
         ];
     }
 

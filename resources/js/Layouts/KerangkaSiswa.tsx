@@ -110,15 +110,24 @@ const TAB = [
  * pemain di panggungnya (kotak di atas garis tanah), supaya anak yang sudah
  * pernah membukanya mengenalinya tanpa membaca apa pun.
  */
-function TabMain() {
+function TabMain({ aktif = false }: { aktif?: boolean }) {
     return (
         <Link
             href="/siswa/luang"
-            className="flex min-h-[3rem] flex-col items-center justify-center gap-1 text-ink-3 transition-colors duration-150 hover:text-ink"
+            className={
+                'flex min-h-[3rem] flex-col items-center justify-center gap-1 transition-colors duration-150 ' +
+                (aktif ? 'text-accent' : 'text-ink-3 hover:text-ink')
+            }
+            aria-current={aktif ? 'page' : undefined}
             aria-label="Waktu luang - main"
             title="Waktu luang"
         >
-            <span className="relative grid size-6 place-items-center rounded-md border border-line bg-surface">
+            <span
+                className={
+                    'relative grid size-6 place-items-center rounded-md border bg-surface ' +
+                    (aktif ? 'border-accent text-accent' : 'border-line')
+                }
+            >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path
                         d="M2 12.5h12"
@@ -141,7 +150,9 @@ function TabMain() {
                     sekali sebagai sinyal, bukan sebagai label. */}
                 <span className="absolute -top-1 -right-1 size-1.5 rounded-full bg-accent ring-1 ring-surface" />
             </span>
-            <span className="text-[10px] font-medium">Main</span>
+            <span className={'text-[10px] font-medium ' + (aktif ? 'font-semibold text-accent' : '')}>
+                Main
+            </span>
         </Link>
     );
 }
@@ -170,7 +181,7 @@ export function TabbarSiswa({ aktif, luang = false }: { aktif: string; luang?: b
     return (
         <nav className={'tabbar grid ' + (luang ? 'grid-cols-5' : 'grid-cols-4')}>
             {kiri.map(sel)}
-            {luang && <TabMain />}
+            {luang && <TabMain aktif={aktif === 'luang'} />}
             {kanan.map(sel)}
         </nav>
     );

@@ -3,22 +3,11 @@ import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 
 /**
  * Papan peringkat kelas - wireframe-waktu-luang.html plate 03.
- * `/siswa/luang/peringkat`.
+ * `/siswa/luang/peringkat`
  *
- * =====================================================================
- * Baris pemain sendiri selalu terlihat
- * =====================================================================
- * Bila peringkatnya di luar sepuluh teratas, barisnya ditempel di bawah
- * daftar. Papan peringkat yang membuat pemain tidak menemukan namanya
- * sendiri adalah papan peringkat yang berhenti dibuka - dan anak yang baru
- * pertama kali main hampir selalu berada di luar sepuluh teratas.
- *
- * =====================================================================
- * Peringkat dari REKOR, bukan dari total
- * =====================================================================
- * Total akan membuat anak yang bermain paling lama selalu menang, dan
- * permainan berhenti menjadi soal keterampilan. Itu juga alasan
- * `PapanPeringkatLuang` memilih satu baris per siswa sebelum mengurutkan.
+ * Sejak pemisahan skor, laman ini menampilkan tab untuk memilih antara
+ * "Lompat Rintangan" dan "Hitung Cepat (60d)". Server mengirim data untuk
+ * satu game type berdasarkan query param `?game=`.
  */
 
 type Baris = {
@@ -30,12 +19,18 @@ type Baris = {
 
 type Props = {
     kelas: string | null;
+    gameType: 'lompat' | 'hitung_cepat';
     papan: Baris[];
     ringkas: { peringkat: number | null; pemain: number; rekor: number | null };
     saya: { student_id: number; nama: string; peringkat: number | null; score: number | null };
 };
 
-export default function LuangPeringkat({ kelas, papan, ringkas, saya }: Props) {
+const TAB_GAME: { kunci: 'lompat' | 'hitung_cepat'; label: string }[] = [
+    { kunci: 'lompat', label: 'Lompat Rintangan' },
+    { kunci: 'hitung_cepat', label: 'Hitung Cepat (60d)' },
+];
+
+export default function LuangPeringkat({ kelas, gameType, papan, ringkas, saya }: Props) {
     const milikSaya = (id: number) => id === saya.student_id;
 
     // Baris sendiri hanya ditempel bila ia TIDAK ada di daftar - dan
@@ -46,8 +41,20 @@ export default function LuangPeringkat({ kelas, papan, ringkas, saya }: Props) {
     return (
         <KerangkaSiswa
             judul="Papan peringkat"
+            tabbarAktif="luang"
+            luang
             bilah
-            kiri={<span className="truncate text-[12px] font-medium text-ink">Papan peringkat</span>}
+            kiri={
+                <div className="flex items-center gap-2">
+                    <Link
+                        href="/siswa/luang"
+                        className="rounded border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
+                    >
+                        ← Main
+                    </Link>
+                    <span className="truncate text-[12px] font-medium text-ink">Papan peringkat</span>
+                </div>
+            }
             kanan={
                 kelas ? (
                     <span className="border border-line-2 px-1.5 py-0.5 text-[11px] text-ink-2">
@@ -56,6 +63,24 @@ export default function LuangPeringkat({ kelas, papan, ringkas, saya }: Props) {
                 ) : undefined
             }
         >
+            {/* Tab pilih game */}
+            <div className="flex gap-1.5">
+                {TAB_GAME.map(({ kunci, label }) => (
+                    <Link
+                        key={kunci}
+                        href={`/siswa/luang/peringkat?game=${kunci}`}
+                        className={
+                            'flex-1 rounded-wf border px-3 py-1.5 text-center text-xs font-medium transition-colors ' +
+                            (gameType === kunci
+                                ? 'border-accent bg-accent-soft text-accent'
+                                : 'border-line bg-surface text-ink-2 hover:bg-surface-2')
+                        }
+                    >
+                        {label}
+                    </Link>
+                ))}
+            </div>
+
             <div className="flex items-stretch gap-2">
                 <div className="flex-1 border border-line bg-surface px-2.5 py-2">
                     <p className="text-[11px] text-ink-3">Rekor saya</p>
@@ -134,12 +159,20 @@ export default function LuangPeringkat({ kelas, papan, ringkas, saya }: Props) {
                 keterampilan.
             </p>
 
-            <Link
-                href="/siswa/luang"
-                className="block border border-accent bg-accent px-3 py-2 text-center text-[12px] font-medium text-on-accent"
-            >
-                Kembali ke permainan
-            </Link>
+            <div className="space-y-2">
+                <Link
+                    href="/siswa/luang"
+                    className="block border border-accent bg-accent px-3 py-2 text-center text-[12px] font-medium text-on-accent hover:bg-accent/90"
+                >
+                    Kembali ke permainan
+                </Link>
+                <Link
+                    href="/siswa"
+                    className="block border border-line bg-surface px-3 py-2 text-center text-[12px] font-medium text-ink-2 hover:bg-surface-2"
+                >
+                    Kembali ke ujian
+                </Link>
+            </div>
         </KerangkaSiswa>
     );
 }

@@ -56,8 +56,11 @@ type Props = {
         berakhir_pada: string | null;
         sesi_berikut: { label: string; mapel: string | null; dibuka: string } | null;
     };
-    rekor: number | null;
-    peringkat: { peringkat: number | null; pemain: number; rekor: number | null };
+    rekor: { lompat: number | null; hitung: number | null };
+    peringkat: {
+        lompat: { peringkat: number | null; pemain: number; rekor: number | null };
+        hitung: { peringkat: number | null; pemain: number; rekor: number | null };
+    };
     kelas: string | null;
     kuota: { terpakai: number; sisa: number; batas: number; boleh: boolean };
 };
@@ -183,8 +186,12 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
 
     const [menyimpan, setMenyimpan] = useState(false);
     const [pesan, setPesan] = useState<string | null>(null);
-    const [tercatat, setTercatat] = useState<number | null>(rekor);
+    const [tercatat, setTercatat] = useState<{ lompat: number | null; hitung: number | null }>(rekor);
     const [modeGame, setModeGame] = useState<'lompat' | 'hitung'>('lompat');
+
+    // Rekor dan peringkat aktif sesuai mode game yang sedang dipilih.
+    const rekorAktif = tercatat[modeGame];
+    const peringkatAktif = peringkat[modeGame];
 
     // Prop `rekor` berganti setiap kali halaman dimuat ulang; state di atas
     // hanya nilai awalnya.
@@ -400,7 +407,7 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                     setBerakhir(true);
                     setBermain(false);
                     setJarakAkhir(Math.round(s.jarak));
-                    kirim(Math.round(s.jarak), Math.round(s.detik * 1000));
+                    kirim(Math.round(s.jarak), Math.round(s.detik * 1000), 'lompat');
                     return;
                 }
             }
@@ -466,8 +473,11 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
      * Kirimannya `distance` dan `duration_ms` - BUKAN skornya. Server
      * menghitung ulang, dan bila jawabannya menyebut skor lebih rendah,
      * angka itulah yang benar.
+     *
+     * Untuk hitung_cepat, `distance` berisi poin yang dihitung di peramban
+     * (server menyimpannya di kolom yang sama, lalu memvalidasinya).
      */
-    async function kirim(distance: number, durationMs: number) {
+    async function kirim(distance: number, durationMs: number, gameType: 'lompat' | 'hitung_cepat' = 'lompat') {
         setMenyimpan(true);
 
         try {
@@ -479,7 +489,7 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-XSRF-TOKEN': tokenCsrf(),
                 },
-                body: JSON.stringify({ distance, duration_ms: durationMs }),
+                body: JSON.stringify({ distance, duration_ms: durationMs, game_type: gameType }),
             });
 
             if (respon.status === 409) {
@@ -515,7 +525,9 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                 kuota: { sisa: number };
             };
 
-            setTercatat(data.rekor);
+            // Update rekor hanya untuk game type yang dikirim.
+            const kunci = gameType === 'hitung_cepat' ? 'hitung' : 'lompat';
+            setTercatat((prev) => ({ ...prev, [kunci]: data.rekor }));
             setPesan(data.pesan);
             setSisaKuota(data.kuota.sisa);
         } catch {
@@ -561,11 +573,23 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
     return (
         <KerangkaSiswa
             judul="Waktu luang"
+            tabbarAktif="luang"
+            luang
             bilah
-            kiri={<span className="truncate text-[12px] font-medium text-ink">Waktu luang</span>}
+            kiri={
+                <div className="flex items-center gap-2">
+                    <Link
+                        href="/siswa"
+                        className="rounded border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
+                    >
+                        ← Ujian
+                    </Link>
+                    <span className="truncate text-[12px] font-medium text-ink">Waktu luang</span>
+                </div>
+            }
             kanan={
                 <span className="border border-line-2 px-1.5 py-0.5 text-[11px] text-ink-2 tabular-nums">
-                    {tercatat === null ? 'belum ada rekor' : 'Rekor ' + tercatat.toLocaleString('id-ID')}
+                    {rekorAktif === null ? 'belum ada rekor' : 'Rekor ' + rekorAktif.toLocaleString('id-ID')}
                 </span>
             }
         >
@@ -605,7 +629,7 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                     habisKuota={habisKuota}
                     kuotaBatas={kuota.batas}
                     sesiLabel={jendela.sesi_berikut?.mapel ?? null}
-                    padaSelesai={(skor, durasiMs) => void kirim(skor, durasiMs)}
+                    padaSelesai={(skor, durasiMs) => void kirim(skor, durasiMs, 'hitung_cepat')}
                 />
             ) : (
             <div
@@ -712,15 +736,15 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                 <div className="flex-1 border border-line bg-surface px-2.5 py-2">
                     <p className="text-[11px] text-ink-3">Rekor saya</p>
                     <p className="angka text-lg">
-                        {tercatat === null ? '—' : tercatat.toLocaleString('id-ID')}
+                        {rekorAktif === null ? '—' : rekorAktif.toLocaleString('id-ID')}
                     </p>
                 </div>
                 <div className="flex-1 border border-line bg-surface px-2.5 py-2">
                     <p className="text-[11px] text-ink-3">Peringkat</p>
                     <p className="angka text-lg">
-                        {peringkat.peringkat === null ? '—' : peringkat.peringkat}
+                        {peringkatAktif.peringkat === null ? '—' : peringkatAktif.peringkat}
                         <span className="ml-1 text-[11px] text-ink-3">
-                            dari {peringkat.pemain}
+                            dari {peringkatAktif.pemain}
                         </span>
                     </p>
                 </div>
@@ -752,21 +776,21 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                 panggung.
             </p>
 
-            {habis ? (
+            <div className="space-y-2">
                 <Link
                     href="/siswa"
-                    className="block border border-accent bg-accent px-3 py-2 text-center text-[12px] font-medium text-on-accent"
+                    className="block border border-accent bg-accent px-3 py-2 text-center text-[12px] font-medium text-on-accent hover:bg-accent/90"
                 >
-                    Masuk ujian
+                    {habis ? 'Masuk ujian' : 'Kembali ke ujian'}
                 </Link>
-            ) : (
+
                 <Link
-                    href="/siswa/luang/peringkat"
-                    className="block border border-line bg-surface px-3 py-2 text-center text-[12px] font-medium text-ink-2"
+                    href={`/siswa/luang/peringkat?game=${modeGame === 'hitung' ? 'hitung_cepat' : 'lompat'}`}
+                    className="block border border-line bg-surface px-3 py-2 text-center text-[12px] font-medium text-ink-2 hover:bg-surface-2"
                 >
                     Lihat papan peringkat{kelas ? ' ' + kelas : ''}
                 </Link>
-            )}
+            </div>
         </KerangkaSiswa>
     );
 }

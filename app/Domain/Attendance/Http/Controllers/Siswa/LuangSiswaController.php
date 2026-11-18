@@ -5,6 +5,7 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 use App\Domain\Attendance\Services\JendelaLuang;
 use App\Domain\Attendance\Services\KuotaPermainan;
 use App\Domain\Attendance\Services\PapanPeringkatLuang;
+use App\Domain\Attendance\Models\LeisureGameScore;
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Exam\Models\ExamParticipant;
 use Illuminate\Http\JsonResponse;
@@ -70,8 +71,14 @@ class LuangSiswaController extends SiswaDasar
 
         return Inertia::render('Siswa/Luang', [
             'jendela' => $jendela,
-            'rekor' => $this->papan->rekorSaya($siswa),
-            'peringkat' => $this->papan->peringkatSaya($siswa, $kelasId),
+            'rekor' => [
+                'lompat' => $this->papan->rekorSaya($siswa, LeisureGameScore::GAME_LOMPAT),
+                'hitung' => $this->papan->rekorSaya($siswa, LeisureGameScore::GAME_HITUNG),
+            ],
+            'peringkat' => [
+                'lompat' => $this->papan->peringkatSaya($siswa, $kelasId, LeisureGameScore::GAME_LOMPAT),
+                'hitung' => $this->papan->peringkatSaya($siswa, $kelasId, LeisureGameScore::GAME_HITUNG),
+            ],
             'kelas' => $penempatan->first()?->pesertaEvent?->kelas?->name,
 
             // Sisa kuota dikirim bersama lamannya, bukan dibaca peramban
@@ -95,15 +102,20 @@ class LuangSiswaController extends SiswaDasar
         $kelasId = $penempatan->first(fn (ExamParticipant $p) => $p->pesertaEvent?->class_id !== null)
             ?->pesertaEvent?->class_id;
 
-        $ringkas = $this->papan->peringkatSaya($siswa, $kelasId);
+        // Jenis game dari query param, default lompat.
+        $gameType = $request->query('game') === LeisureGameScore::GAME_HITUNG
+            ? LeisureGameScore::GAME_HITUNG
+            : LeisureGameScore::GAME_LOMPAT;
+
+        $ringkas = $this->papan->peringkatSaya($siswa, $kelasId, $gameType);
 
         return Inertia::render('Siswa/LuangPeringkat', [
             'kelas' => $penempatan->first()?->pesertaEvent?->kelas?->name,
-            'papan' => $this->papan->papan($siswa->school_id, $kelasId),
+            'gameType' => $gameType,
+            'papan' => $this->papan->papan($siswa->school_id, $kelasId, $gameType),
             'ringkas' => $ringkas,
             // Baris pemain sendiri selalu terlihat - bila ia di luar sepuluh
-            // teratas, barisnya ditempel di bawah daftar. Papan yang membuat
-            // pemain tidak menemukan namanya sendiri berhenti dibuka.
+            // teratas, barisnya ditempel di bawah daftar.
             'saya' => [
                 'student_id' => $siswa->id,
                 'nama' => $siswa->name,
@@ -134,7 +146,10 @@ class LuangSiswaController extends SiswaDasar
         $data = $request->validate([
             'distance' => ['required', 'integer', 'min:0', 'max:4000000'],
             'duration_ms' => ['required', 'integer', 'min:0', 'max:3600000'],
+            'game_type' => ['nullable', 'string', 'in:lompat,hitung_cepat'],
         ]);
+
+        $gameType = $data['game_type'] ?? LeisureGameScore::GAME_LOMPAT;
 
         $siswa = $request->user();
         $penempatan = $this->penempatan($siswa->id);
@@ -178,9 +193,9 @@ class LuangSiswaController extends SiswaDasar
         $peserta = $penempatan->first(fn (ExamParticipant $p) => $p->exam_session_id !== null)
             ?? $penempatan->first();
 
-        $skor = $this->papan->catat($siswa, $peserta, (int) $data['distance'], (int) $data['duration_ms']);
+        $skor = $this->papan->catat($siswa, $peserta, (int) $data['distance'], (int) $data['duration_ms'], $gameType);
 
-        $ringkas = $this->papan->peringkatSaya($siswa, $peserta?->pesertaEvent?->class_id);
+        $ringkas = $this->papan->peringkatSaya($siswa, $peserta?->pesertaEvent?->class_id, $gameType);
 
         return response()->json([
             'diterima' => $skor->diterima(),
@@ -189,8 +204,7 @@ class LuangSiswaController extends SiswaDasar
             'peringkat' => $ringkas['peringkat'],
             'pemain' => $ringkas['pemain'],
             // Sisa kuota dikirim balik supaya layarnya bisa memperbarui
-            // angkanya tanpa memuat ulang halaman - dan supaya angka yang
-            // tampil sesudah kiriman terakhir adalah angka yang benar.
+            // angkanya tanpa memuat ulang halaman.
             'kuota' => $this->kuota->hariIni($siswa->id, now()),
             'pesan' => $skor->diterima()
                 ? 'Skor tersimpan.'

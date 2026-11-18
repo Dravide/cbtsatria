@@ -46,7 +46,7 @@ use App\Domain\Attendance\Models\LeisureGameScore;
 final class PenjagaSkorLuar
 {
     /**
-     * Durasi minimal yang dianggap mustahil.
+     * Durasi minimal untuk permainan lompat rintangan.
      *
      * ---------------------------------------------------------------------
      * Dikalibrasi ulang 2026-11-15, dari 3.000 menjadi 400
@@ -64,7 +64,7 @@ final class PenjagaSkorLuar
     public const DURASI_MINIMAL_MS = 400;
 
     /**
-     * Satuan jarak per detik.
+     * Satuan jarak per detik untuk lompat rintangan.
      *
      * ---------------------------------------------------------------------
      * Dikalibrasi ulang 2026-11-15, dari 160 menjadi 900
@@ -95,7 +95,21 @@ final class PenjagaSkorLuar
     public const UNIT_PER_DETIK_MAKS = 900;
 
     /**
-     * Skor dari jarak dan durasi.
+     * Poin per detik maksimum untuk hitung cepat (60 detik).
+     *
+     * Kalkulasi: jawaban benar maks ~30/menit dengan streak penuh = 30 × 30 = 900 poin.
+     * Batas 20 poin/detik masih jauh di atas permainan manusia tercepat.
+     */
+    public const HITUNG_POIN_PER_DETIK_MAKS = 20;
+
+    /**
+     * Durasi maksimum untuk hitung cepat (ms). 75 detik = 75.000 ms untuk toleransi
+     * sedikit lebih dari 60 detik permainan + latensi.
+     */
+    public const HITUNG_DURASI_MAKS_MS = 75_000;
+
+    /**
+     * Skor dari jarak dan durasi - untuk lompat rintangan.
      *
      * Rumusnya SENGAJA sesederhana mungkin dan sama dengan yang dipakai
      * panggungnya: satu satuan jarak, satu angka skor. Setiap pembobotan yang
@@ -108,11 +122,30 @@ final class PenjagaSkorLuar
     }
 
     /**
+     * Skor hitung cepat dipercaya dari peramban (sudah dihitung di sana).
+     * Validasinya di `periksa()`.
+     */
+    public function hitungSkorHitung(int $score): int
+    {
+        return max(0, $score);
+    }
+
+    /**
      * Alasan penolakan, atau `null` bila kiriman diterima.
      *
+     * @param string $gameType LeisureGameScore::GAME_LOMPAT | GAME_HITUNG
      * @return string|null Nama konstanta `LeisureGameScore::TOLAK_*`.
      */
-    public function periksa(int $distance, int $durationMs): ?string
+    public function periksa(int $distance, int $durationMs, string $gameType = LeisureGameScore::GAME_LOMPAT): ?string
+    {
+        if ($gameType === LeisureGameScore::GAME_HITUNG) {
+            return $this->periksaHitung($distance, $durationMs);
+        }
+
+        return $this->periksaLompat($distance, $durationMs);
+    }
+
+    private function periksaLompat(int $distance, int $durationMs): ?string
     {
         if ($durationMs < self::DURASI_MINIMAL_MS) {
             return LeisureGameScore::TOLAK_TERLALU_CEPAT;
@@ -124,6 +157,31 @@ final class PenjagaSkorLuar
         $perDetik = $distance / ($durationMs / 1000);
 
         if ($perDetik > self::UNIT_PER_DETIK_MAKS) {
+            return LeisureGameScore::TOLAK_TIDAK_SESUAI;
+        }
+
+        return LeisureGameScore::DITERIMA;
+    }
+
+    /**
+     * Validasi kiriman hitung cepat.
+     *
+     * `$distance` di sini dipakai sebagai `score` (poin) - penamaan kolom
+     * dipertahankan agar skema basis data tetap satu tabel.
+     */
+    private function periksaHitung(int $score, int $durationMs): ?string
+    {
+        if ($durationMs < self::DURASI_MINIMAL_MS) {
+            return LeisureGameScore::TOLAK_TERLALU_CEPAT;
+        }
+
+        if ($durationMs > self::HITUNG_DURASI_MAKS_MS) {
+            return LeisureGameScore::TOLAK_TIDAK_SESUAI;
+        }
+
+        $perDetik = $score / ($durationMs / 1000);
+
+        if ($perDetik > self::HITUNG_POIN_PER_DETIK_MAKS) {
             return LeisureGameScore::TOLAK_TIDAK_SESUAI;
         }
 
