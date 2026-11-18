@@ -2,6 +2,9 @@
 
 namespace App\Domain\Attendance\Services;
 
+use App\Domain\Attendance\Enums\PeranTandaTangan;
+use App\Domain\Attendance\Enums\StatusPresensi;
+use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Event\Enums\EventStatus;
@@ -86,7 +89,7 @@ class PantauPublik
 
         $sesi = $this->sesiAktif($sekolah);
 
-        return $this->susunDariSesi($sekolah->name, null, $sesi);
+        return $this->susunDariSesi($sekolah->name, null, $sesi, []);
     }
 
     /**
@@ -94,24 +97,186 @@ class PantauPublik
      *
      * @return array<string, mixed>
      */
-    public function susunEvent(SchoolEvent $event): array
+    public function susunEvent(SchoolEvent $event, ?int $sesiId = null): array
     {
         $event->loadMissing('school:id,name');
 
-        $sesi = $this->sesiAktifEvent($event);
+        $semuaSesi = $this->daftarSesiEvent($event);
+
+        if ($sesiId !== null) {
+            $terpilih = $semuaSesi->firstWhere('id', $sesiId);
+            $sesi = $terpilih !== null
+                ? new Collection([$terpilih])
+                : $this->sesiAktifEvent($event);
+        } else {
+            $sesi = $this->sesiAktifEvent($event);
+        }
+
+        $daftarSesi = $semuaSesi->map(fn (ExamSession $s) => [
+            'id' => (int) $s->id,
+            'label' => $s->label(),
+            'ujian' => $s->exam?->title,
+            'mapel' => $s->exam?->subject?->name,
+            'tanggal' => $s->access_opens_at?->format('d M'),
+            'jam' => $s->access_opens_at->format('H:i'),
+            'selesai' => $s->hard_end_at?->format('H:i'),
+            'status' => $s->status->value,
+            'status_label' => $s->status->label(),
+            'keadaan' => $this->keadaan($s),
+        ])->values()->all();
 
         return $this->susunDariSesi(
             $event->school?->name ?? '',
             $event,
             $sesi,
+            $daftarSesi,
         );
     }
 
     /**
+     * Detail satu ruang-sesi pada event untuk panel interaktif Layar PID:
+     * daftar presensi & status pengerjaan siswa serta isi ringkas berita acara.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function detailRuangEvent(SchoolEvent $event, int $ruangId): ?array
+    {
+        $ruang = ExamSessionRoom::withoutGlobalScopes()
+            ->where('school_id', $event->school_id)
+            ->whereHas('session.exam', fn ($q) => $q->withoutGlobalScopes()->where('event_id', $event->id))
+            ->with([
+                'eventRoom.room:id,code,name,location',
+                'supervisors.supervisor:id,name',
+                'session' => fn ($q) => $q->withoutGlobalScopes(),
+                'session.exam' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'title', 'subject_id', 'event_id'),
+                'session.exam.subject:id,name',
+                'participants' => fn ($q) => $q->withoutGlobalScopes()->orderBy('id'),
+                'participants.student:id,name',
+                'participants.student.studentProfile:id,user_id,nis',
+            ])
+            ->find($ruangId);
+
+        if ($ruang === null) {
+            return null;
+        }
+
+        $anak = $ruang->participants;
+        $idPeserta = $anak->pluck('id');
+
+        $attempt = ExamAttempt::withoutGlobalScopes()
+            ->whereIn('exam_participant_id', $idPeserta)
+            ->orderBy('attempt_number')
+            ->get()
+            ->groupBy('exam_participant_id')
+            ->map(fn ($baris) => $baris->last());
+
+        $presensi = AttendanceRecord::withoutGlobalScopes()
+            ->whereIn('exam_participant_id', $idPeserta)
+            ->orderBy('id')
+            ->get()
+            ->groupBy('exam_participant_id')
+            ->map(fn ($baris) => $baris->last());
+
+        $laporan = SessionReport::withoutGlobalScopes()
+            ->where('exam_session_room_id', $ruang->id)
+            ->with([
+                'berkas:id,session_report_id',
+                'tandaTangan:id,session_report_id,peran,nama',
+            ])
+            ->first();
+
+        $daftarPeserta = $anak->map(function (ExamParticipant $p) use ($attempt, $presensi) {
+            /** @var ExamAttempt|null $a */
+            $a = $attempt->get($p->id);
+            /** @var AttendanceRecord|null $rec */
+            $rec = $presensi->get($p->id);
+            $statusPresensi = $rec?->status ?? StatusPresensi::Pending;
+
+            $terhubung = $a !== null && $a->status === ExamAttempt::STATUS_BERJALAN
+                ? $a->terhubung(self::AMBANG_TERPUTUS)
+                : null;
+
+            return [
+                'id' => (int) $p->id,
+                'nama' => $p->student?->name ?? 'Peserta',
+                'nis' => $p->student?->studentProfile?->nis,
+                'presensi' => $statusPresensi->value,
+                'presensi_label' => $statusPresensi->label(),
+                'presensi_pendek' => $statusPresensi->pendek(),
+                'presensi_nada' => $statusPresensi->nada(),
+                'status' => $a?->status,
+                'status_label' => $a?->labelStatus() ?? 'Belum mulai',
+                'status_nada' => $a?->nadaStatus() ?? 'mute',
+                'terhubung' => $terhubung,
+                'terkunci' => $a?->dikunci() ?? false,
+                'kunci_alasan' => $a?->lock_reason,
+                'pelanggaran' => (int) ($a?->violation_count ?? 0),
+                'denyut' => $a?->last_heartbeat_at?->format('H:i:s'),
+                'nomor' => $a?->guard_flags_json['nomor'] ?? null,
+                'progres' => $a?->guard_flags_json['progres'] ?? null,
+            ];
+        })->values();
+
+        $hadir = $daftarPeserta->whereIn('presensi', [StatusPresensi::Hadir->value, StatusPresensi::Terlambat->value])->count();
+        $tidakHadir = $daftarPeserta->whereIn('presensi', [StatusPresensi::TidakHadir->value, StatusPresensi::Izin->value])->count();
+        $belumPresensi = max(0, $daftarPeserta->count() - $hadir - $tidakHadir);
+
+        $ttdPengawas = $laporan?->tandaTanganPeran(PeranTandaTangan::Pengawas);
+
+        return [
+            'ruang' => [
+                'id' => (int) $ruang->id,
+                'kode' => $ruang->eventRoom?->room?->code ?? 'R-?',
+                'nama' => $ruang->eventRoom?->room?->name,
+                'lokasi' => $ruang->eventRoom?->room?->location,
+                'sesi' => $ruang->session?->label(),
+                'ujian' => $ruang->session?->exam?->title,
+                'mapel' => $ruang->session?->exam?->subject?->name,
+                'jam' => $ruang->session
+                    ? $ruang->session->access_opens_at->format('H:i').($ruang->session->hard_end_at ? '–'.$ruang->session->hard_end_at->format('H:i') : '')
+                    : null,
+                'pengawas' => $ruang->supervisors
+                    ->map(fn (SupervisionAssignment $t) => $t->supervisor?->name)
+                    ->filter()
+                    ->values()
+                    ->all(),
+            ],
+            'angka' => [
+                'peserta' => $daftarPeserta->count(),
+                'hadir' => $hadir,
+                'belum_presensi' => $belumPresensi,
+                'tidak_hadir' => $tidakHadir,
+                'mengerjakan' => $daftarPeserta->where('status', ExamAttempt::STATUS_BERJALAN)->count(),
+                'selesai' => $daftarPeserta->whereIn('status', [ExamAttempt::STATUS_DIKIRIM, ExamAttempt::STATUS_KEDALUWARSA])->count(),
+                'terputus' => $daftarPeserta->where('terhubung', false)->count(),
+                'terkunci' => $daftarPeserta->where('terkunci', true)->count(),
+                'pelanggaran' => $daftarPeserta->sum('pelanggaran'),
+            ],
+            'peserta' => $daftarPeserta->all(),
+            'berita_acara' => [
+                'keadaan' => $this->keadaanLaporan($laporan),
+                'dibuka' => $laporan !== null,
+                'final' => $laporan?->final() ?? false,
+                'dikirim_pada' => $laporan?->submitted_at?->format('d M Y H:i'),
+                'catatan' => $laporan?->catatan,
+                'pernyataan_presensi' => $laporan?->pernyataan_presensi ?? false,
+                'pernyataan_keluar' => $laporan?->pernyataan_keluar ?? false,
+                'foto' => $laporan?->berkas->count() ?? 0,
+                'ttd_pengawas' => $ttdPengawas !== null,
+                'ttd_oleh' => $ttdPengawas?->nama,
+                'kurang' => $laporan?->kekuranganFinal() ?? [],
+            ],
+            'admin_monitoring_url' => "/admin/events/{$event->id}/monitoring/ruang/{$ruang->id}",
+            'diperbarui_jam' => now()->format('H:i:s'),
+        ];
+    }
+
+    /**
      * @param  Collection<int, ExamSession>  $sesi
+     * @param  array<int, array<string, mixed>>  $daftarSesi
      * @return array<string, mixed>
      */
-    private function susunDariSesi(string $namaSekolah, ?SchoolEvent $event, Collection $sesi): array
+    private function susunDariSesi(string $namaSekolah, ?SchoolEvent $event, Collection $sesi, array $daftarSesi): array
     {
         $eventRingkas = $event ? [
             'id' => (int) $event->id,
@@ -125,6 +290,7 @@ class PantauPublik
                 'keadaan' => 'kosong',
                 'sekolah' => $namaSekolah,
                 'event' => $eventRingkas,
+                'daftar_sesi' => $daftarSesi,
                 'diperbarui' => now()->toIso8601String(),
                 'diperbarui_jam' => now()->format('H:i:s'),
                 'sesi' => null,
@@ -225,6 +391,7 @@ class PantauPublik
             'keadaan' => $this->keadaan($terpilih),
             'sekolah' => $namaSekolah,
             'event' => $eventRingkas,
+            'daftar_sesi' => $daftarSesi,
             'diperbarui' => now()->toIso8601String(),
             'diperbarui_jam' => now()->format('H:i:s'),
             'sesi' => [
@@ -330,6 +497,21 @@ class PantauPublik
             fn ($q) => $q->withoutGlobalScopes()->where('event_id', $event->id),
             (int) $event->school_id,
         );
+    }
+
+    /** @return Collection<int, ExamSession> */
+    private function daftarSesiEvent(SchoolEvent $event): Collection
+    {
+        return ExamSession::withoutGlobalScopes()
+            ->where('school_id', $event->school_id)
+            ->whereHas('exam', fn ($q) => $q->withoutGlobalScopes()->where('event_id', $event->id))
+            ->whereNotIn('status', [StatusSesi::Batal->value])
+            ->with([
+                'exam' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'title', 'subject_id', 'event_id'),
+                'exam.subject:id,name',
+            ])
+            ->orderBy('access_opens_at')
+            ->get();
     }
 
     /**

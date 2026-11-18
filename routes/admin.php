@@ -552,6 +552,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('events.pantau');
     Route::get('/events/{event}/pantau/denyut', [PantauPublikController::class, 'denyutEventAdmin'])
         ->name('events.pantau.denyut');
+    Route::get('/events/{event}/pantau/ruang/{ruang}', [PantauPublikController::class, 'ruangEventAdmin'])
+        ->whereNumber('ruang')
+        ->name('events.pantau.ruang');
 
     // Papan satu sesi, dan papan seluruh-event. Sejak 2026-11-17 `/monitoring`
     // adalah DAFTAR SESI - alasan yang sama dengan `/presensi`: kartu per
