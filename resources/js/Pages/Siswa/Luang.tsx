@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
+import { HitungCepat } from './HitungCepat';
 
 /**
  * Permainan waktu luang - wireframe-waktu-luang.html plate 02, 05, 06.
@@ -183,6 +184,7 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
     const [menyimpan, setMenyimpan] = useState(false);
     const [pesan, setPesan] = useState<string | null>(null);
     const [tercatat, setTercatat] = useState<number | null>(rekor);
+    const [modeGame, setModeGame] = useState<'lompat' | 'hitung'>('lompat');
 
     // Prop `rekor` berganti setiap kali halaman dimuat ulang; state di atas
     // hanya nilai awalnya.
@@ -567,6 +569,45 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                 </span>
             }
         >
+            <div className="flex gap-1 border-b border-line pb-2">
+                {(
+                    [
+                        ['lompat', 'Lompat Rintangan'],
+                        ['hitung', 'Hitung Cepat (60d)'],
+                    ] as const
+                ).map(([kunci, label]) => (
+                    <button
+                        key={kunci}
+                        type="button"
+                        onClick={() => {
+                            if (kunci !== 'lompat' && bermain) {
+                                hentikan();
+                                setBermain(false);
+                            }
+                            setPesan(null);
+                            setModeGame(kunci);
+                        }}
+                        className={
+                            'flex-1 rounded-wf border px-3 py-1.5 text-xs font-medium transition-colors ' +
+                            (modeGame === kunci
+                                ? 'border-accent bg-accent-soft text-accent'
+                                : 'border-line bg-surface text-ink-2 hover:bg-surface-2')
+                        }
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+
+            {modeGame === 'hitung' ? (
+                <HitungCepat
+                    habis={habis}
+                    habisKuota={habisKuota}
+                    kuotaBatas={kuota.batas}
+                    sesiLabel={jendela.sesi_berikut?.mapel ?? null}
+                    padaSelesai={(skor, durasiMs) => void kirim(skor, durasiMs)}
+                />
+            ) : (
             <div
                 ref={panggung}
                 className="relative aspect-[16/10] w-full overflow-hidden rounded-wf border border-line bg-surface"
@@ -657,6 +698,7 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                     </div>
                 )}
             </div>
+            )}
 
             {pesan && (
                 <p className="border border-line bg-surface-2 px-2.5 py-2 text-[12px] text-ink-2">
