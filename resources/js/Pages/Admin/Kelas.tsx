@@ -65,15 +65,30 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
     /**
      * Salin satu nilai ke papan klip.
      *
-     * `navigator.clipboard` menolak di luar konteks aman (http:// pada
-     * alamat selain localhost). Admin yang membuka konsol lewat IP LAN -
-     * keadaan yang lazim di sekolah - akan mendapat penolakan yang tidak
-     * berbunyi apa-apa kalau kegagalannya tidak ditangani. Karena itu
-     * cadangannya `document.execCommand`, yang usang tetapi masih bekerja di
-     * seluruh peramban yang dipakai sekarang.
+     * =====================================================================
+     * Tiga jalur kegagalan, dan ketiganya HARUS berbunyi
+     * =====================================================================
+     * Versi pertama fungsi ini gagal tanpa suara pada dua dari tiga jalur,
+     * dan keduanya sudah terjadi di pemakaian nyata:
+     *
+     *   1. nilainya `null` - sebelumnya `return` diam-diam, sehingga tombol
+     *      "Salin tautan" pada baris yang tautannya belum bisa disusun tidak
+     *      berbuat apa pun. Yang menekannya menyimpulkan tombolnya rusak.
+     *   2. `navigator.clipboard` menolak - terjadi di luar konteks aman
+     *      (`http://` selain localhost), dan itu keadaan lazim di sekolah
+     *      yang membuka konsol lewat IP LAN.
+     *   3. `document.execCommand('copy')` mengembalikan `false`. Ia TIDAK
+     *      melempar, sehingga `try/catch` tidak menangkapnya - dan versi
+     *      pertama melaporkan "disalin" untuk penyalinan yang gagal.
+     *
+     * Nilai yang gagal disalin selalu DITULIS di pesannya. Admin yang
+     * menyalin enam kelas berturut-turut harus bisa melanjutkan dengan
+     * mengetik ulang dari layar, bukan menebak apa yang tadi gagal.
      */
     const salin = async (teks: string | null, label: string) => {
-        if (teks === null) {
+        if (teks === null || teks === '') {
+            setTersalin(`${label} belum tersedia untuk kelas ini.`);
+
             return;
         }
 
@@ -83,25 +98,39 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
 
             return;
         } catch {
-            // Jatuh ke cadangan di bawah.
+            // Jatuh ke cadangan di bawah - alasan, bukan keputusasaan.
         }
 
         const kotak = document.createElement('textarea');
         kotak.value = teks;
         kotak.setAttribute('readonly', '');
         kotak.style.position = 'fixed';
+        kotak.style.top = '0';
         kotak.style.opacity = '0';
         document.body.appendChild(kotak);
+
+        // `select()` pada elemen yang belum terlihat di sebagian peramban
+        // memilih rentang kosong; `setSelectionRange` menutupnya.
         kotak.select();
+        kotak.setSelectionRange(0, teks.length);
+
+        let berhasil = false;
 
         try {
-            document.execCommand('copy');
-            setTersalin(`${label} disalin.`);
+            // Nilai baliknya DIPERIKSA - lihat catatan di atas: ia `false`
+            // pada kegagalan, bukan lemparan.
+            berhasil = document.execCommand('copy');
         } catch {
-            setTersalin(`Gagal menyalin. ${label}: ${teks}`);
+            berhasil = false;
         } finally {
             document.body.removeChild(kotak);
         }
+
+        setTersalin(
+            berhasil
+                ? `${label} disalin.`
+                : `Tidak bisa menyalin otomatis. ${label}: ${teks} - salin manual dari teks ini.`,
+        );
     };
 
     /**
@@ -310,19 +339,38 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                                         dua aksi yang paling sering dipakai
                                         adalah klik yang diulang tiga puluh
                                         kali. */}
+                                    {/* Tombol "Salin tautan" hanya aktif bila
+                                        tautannya MEMANG ADA. `wali_url` null
+                                        terjadi saat sekolah belum punya
+                                        `papan_slug` - keadaan yang lazim
+                                        pada sekolah yang belum pernah
+                                        menyalakan papan pengawas - dan
+                                        tombol yang ditekan lalu berkata
+                                        "belum tersedia" lebih buruk daripada
+                                        tombol yang mati dengan sebabnya. */}
                                     <button
                                         type="button"
                                         onClick={() => salin(b.wali_url, 'Tautan')}
-                                        className="text-[11px] text-accent hover:underline"
-                                        title="Salin tautan laman wali"
+                                        disabled={b.wali_url === null}
+                                        className="text-[11px] text-accent hover:underline disabled:cursor-not-allowed disabled:text-ink-3 disabled:no-underline"
+                                        title={
+                                            b.wali_url === null
+                                                ? 'Sekolah ini belum menyalakan papan publik. Nyalakan lebih dulu di Pengaturan → Papan publik.'
+                                                : 'Salin tautan laman wali'
+                                        }
                                     >
                                         Salin tautan
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => salin(b.wali_kode, 'Kode')}
-                                        className="text-[11px] text-accent hover:underline"
-                                        title="Salin kode kelas"
+                                        disabled={b.wali_kode === null}
+                                        className="text-[11px] text-accent hover:underline disabled:cursor-not-allowed disabled:text-ink-3 disabled:no-underline"
+                                        title={
+                                            b.wali_kode === null
+                                                ? 'Kode belum diterbitkan untuk kelas ini.'
+                                                : 'Salin kode kelas'
+                                        }
                                     >
                                         Salin kode
                                     </button>
