@@ -238,7 +238,7 @@ class SchoolClassController
             return back()->with('galat', 'Nyalakan pantau wali lebih dulu sebelum menerbitkan kode.');
         }
 
-        $kode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $kode = $this->kodeBaru();
 
         $kelas->forceFill(['wali_code' => $kode, 'wali_code_at' => now()])->save();
 
@@ -248,6 +248,20 @@ class SchoolClassController
         // menyalinnya. Ia TIDAK ikut di props daftar: kolomnya `[Hidden]`
         // dan laman tidak pernah menerimanya dalam keadaan biasa.
         return back()->with('sukses', "Kode pantau wali {$kelas->name}: {$kode}");
+    }
+
+    /**
+     * Kode kelas enam angka.
+     *
+     * Satu method, bukan `str_pad(random_int(...))` yang disalin ke dua
+     * tempat: kode ini dibagikan lewat grup wali kelas dan diketik ulang
+     * orang tua, jadi bentuknya - enam digit, nol di depan dipertahankan -
+     * adalah kontrak. Dua salinan berarti dua bentuk yang suatu hari
+     * berbeda.
+     */
+    private function kodeBaru(): string
+    {
+        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -268,6 +282,99 @@ class SchoolClassController
         } while (SchoolClass::query()->withoutGlobalScopes()->where('wali_slug', $slug)->exists());
 
         return $slug;
+    }
+
+    /**
+     * Nyalakan pantau wali untuk SELURUH kelas di satu tahun ajaran.
+     *
+     * =====================================================================
+     * Per kelas di transaksinya sendiri, dan hasilnya BERPASANGAN
+     * =====================================================================
+     * Satu transaksi untuk tiga puluh kelas berarti satu slug yang gagal
+     * bentrok membatalkan dua puluh sembilan yang sah - dan Admin melihat
+     * "gagal" tanpa tahu yang mana. Pola yang sama dengan
+     * `SesiService::siapkanBanyak()` dan `ImporPenggunaService`.
+     *
+     * =====================================================================
+     * Foto TIDAK ikut dinyalakan
+     * =====================================================================
+     * Aksi massal ini hanya membuka tautan dan menerbitkan kode. Foto
+     * berita acara memuat wajah siswa lain, dan ia TIDAK BOLEH menyala
+     * sebagai akibat sampingan dari tombol yang berbunyi "nyalakan semua" -
+     * yang ditekan orang yang sedang memikirkan tautan, bukan wajah.
+     *
+     * =====================================================================
+     * Kode yang sudah ada TIDAK diganti
+     * =====================================================================
+     * Kelas yang sudah tayang dilewati seluruhnya, bukan diterbitkan ulang
+     * kodenya. Kode yang sudah beredar di grup wali kelas harus tetap
+     * berlaku; aksi massal yang menggantinya akan memutus tiga puluh
+     * percakapan yang sudah selesai.
+     */
+    public function pantauMassal(Request $request, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('create', SchoolClass::class);
+
+        $data = $request->validate([
+            'academic_year_id' => ['required', 'integer'],
+        ], [], ['academic_year_id' => 'tahun ajaran']);
+
+        $tahun = AcademicYear::findOrFail($data['academic_year_id']);
+
+        $kelas = SchoolClass::query()
+            ->where('academic_year_id', $tahun->id)
+            ->orderBy('name')
+            ->get();
+
+        if ($kelas->isEmpty()) {
+            return back()->with('galat', "Tidak ada kelas di tahun ajaran {$tahun->name}.");
+        }
+
+        $dinyalakan = 0;
+        $dilewati = 0;
+        $gagal = [];
+
+        foreach ($kelas as $satu) {
+            if ($satu->wali_slug !== null) {
+                $dilewati++;
+
+                continue;
+            }
+
+            try {
+                $satu->forceFill([
+                    'wali_slug' => $this->slugUnik($satu),
+                    'wali_code' => $this->kodeBaru(),
+                    'wali_code_at' => now(),
+                ])->save();
+
+                $dinyalakan++;
+            } catch (\Throwable $e) {
+                report($e);
+
+                $gagal[] = $satu->name.': '.mb_substr($e->getMessage(), 0, 120, 'UTF-8');
+            }
+        }
+
+        $logger->log('Menyalakan pantau wali secara massal', $tahun, [
+            'tahun' => $tahun->name,
+            'dinyalakan' => $dinyalakan,
+            'dilewati' => $dilewati,
+            'gagal' => count($gagal),
+        ]);
+
+        $pesan = "{$dinyalakan} kelas dinyalakan.";
+
+        if ($dilewati > 0) {
+            $pesan .= " {$dilewati} kelas sudah tayang dan dilewati - kodenya tidak diganti.";
+        }
+
+        if ($gagal !== []) {
+            $pesan .= ' '.count($gagal).' kelas gagal: '.implode('; ', array_slice($gagal, 0, 3))
+                .(count($gagal) > 3 ? ' dan '.(count($gagal) - 3).' lainnya' : '').'.';
+        }
+
+        return back()->with($dinyalakan > 0 || $gagal === [] ? 'sukses' : 'galat', $pesan);
     }
 
     public function store(Request $request, ActivityLogger $logger): RedirectResponse

@@ -351,3 +351,83 @@ it('menolak foto sebelum kodenya dimasukkan', function () {
     // id berkas yang benar pun berakhir 404.
     $this->get('/wali/'.$this->sekolah->papan_slug.'/foto/1')->assertNotFound();
 });
+
+/* ------------------------------------------------------------ Massal */
+
+it('menyalakan seluruh kelas dalam satu tahun ajaran, dan melewati yang sudah tayang', function () {
+    $data = siapkanWali($this);
+
+    // Kelas kedua di tahun yang sama, belum tayang.
+    $kedua = SchoolClass::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'academic_year_id' => $this->tahun->id,
+        'name' => '7B',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post('/admin/kelas/pantau-massal', ['academic_year_id' => $this->tahun->id])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    $segar = $kedua->refresh();
+
+    // Kelas kedua mendapat slug DAN kode - keduanya lahir bersama, karena
+    // tautan tanpa kode membuka nama saja dan Admin harus menekan dua
+    // tombol untuk satu pekerjaan.
+    expect($segar->wali_slug)->not->toBeNull()
+        ->and($segar->wali_code)->toHaveLength(6);
+
+    // Kelas pertama SUDAH tayang, dan kodenya TIDAK diganti: kode yang
+    // sudah beredar di grup wali kelas harus tetap berlaku.
+    expect($data['kelas']->refresh()->wali_code)->toBe('123456');
+});
+
+it('tidak menyalakan foto lewat aksi massal', function () {
+    $data = siapkanWali($this);
+
+    $kedua = SchoolClass::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'academic_year_id' => $this->tahun->id,
+        'name' => '7C',
+    ]);
+
+    // Bahkan ketika sekolah SUDAH mengizinkan foto, aksi massal tidak
+    // menyalakannya: foto memuat wajah siswa lain, dan ia tidak boleh
+    // menyala sebagai akibat sampingan dari tombol yang ditekan orang yang
+    // sedang memikirkan tautan.
+    $this->sekolah->forceFill(['wali_foto_boleh' => true])->save();
+
+    $this->actingAs($this->admin)
+        ->post('/admin/kelas/pantau-massal', ['academic_year_id' => $this->tahun->id]);
+
+    expect($kedua->refresh()->wali_foto)->toBeFalse();
+});
+
+it('hanya menyentuh kelas di tahun ajaran yang diminta', function () {
+    $data = siapkanWali($this);
+
+    $tahunLain = AcademicYear::factory()->untukSekolah($this->sekolah)->create([
+        'name' => '2027/2028',
+    ]);
+
+    $lain = SchoolClass::factory()->create([
+        'school_id' => $this->sekolah->id,
+        'academic_year_id' => $tahunLain->id,
+        'name' => '8A',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post('/admin/kelas/pantau-massal', ['academic_year_id' => $this->tahun->id]);
+
+    // Kelas tahun depan TIDAK ikut tayang: menyalakan seluruh tahun
+    // sekaligus berarti kelas yang jadwalnya belum ada ikut terbuka.
+    expect($lain->refresh()->wali_slug)->toBeNull();
+});
+
+it('menolak aksi massal tanpa tahun ajaran', function () {
+    $data = siapkanWali($this);
+
+    $this->actingAs($this->admin)
+        ->post('/admin/kelas/pantau-massal', [])
+        ->assertSessionHasErrors('academic_year_id');
+});

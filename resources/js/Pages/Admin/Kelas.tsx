@@ -58,6 +58,63 @@ type Props = {
 };
 
 export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }: Props) {
+    /**
+     * Baris yang SEDANG TAMPIL - `baris` bisa berupa paginator atau objek
+     * `{data,total}`, tergantung ada-tidaknya penyaring.
+     *
+     * Yang dihitung untuk aksi massal adalah halaman ini, BUKAN seluruh
+     * tahun ajaran: tombolnya ada di laman ini, dan angka yang ia sebut
+     * harus sama dengan angka yang bisa dihitung Admin di layar. Server
+     * tetap mengerjakan seluruh tahun - lihat `pantauMassal()` - tetapi
+     * kalimat konfirmasi yang menyebut angka yang tidak terlihat di layar
+     * adalah kalimat yang tidak bisa diperiksa sebelum ditekan.
+     */
+    const dataBaris = Array.isArray(baris) ? baris : (baris.data ?? []);
+
+    /**
+     * Nyalakan pantau wali untuk SELURUH kelas di tahun ajaran yang terbuka.
+     *
+     * =====================================================================
+     * Konfirmasinya menyebut JUMLAH, dan jumlah itu dihitung dari yang
+     * BELUM tayang
+     * =====================================================================
+     * "Nyalakan semua" pada laman yang tiga dari tiga puluh kelasnya sudah
+     * tayang akan berbunyi seolah membuka tiga puluh. Yang dihitung di sini
+     * adalah sisanya, dan kalimatnya menyebut bahwa kode kelas yang sudah
+     * ada TIDAK diganti - itu pertanyaan pertama yang muncul sebelum
+     * menekannya, karena kode lama sudah beredar di grup wali kelas.
+     */
+    const nyalakanMassal = async () => {
+        const belum = dataBaris.filter((b) => !b.wali_tayang).length;
+
+        if (belum === 0) {
+            setTersalin('Semua kelas di tahun ajaran ini sudah tayang.');
+
+            return;
+        }
+
+        const ya = await konfirmasi({
+            judul: `Nyalakan pantau wali untuk ${belum} kelas?`,
+            pesan:
+                `Nama siswa di ${belum} kelas itu bisa dibaca siapa pun yang memegang tautannya. ` +
+                'Setiap kelas mendapat tautan dan kode enam angka sendiri — bagikan lewat grup wali ' +
+                'kelas masing-masing. Kelas yang sudah tayang dilewati, dan kodenya TIDAK diganti. ' +
+                'Foto berita acara tidak ikut dinyalakan.',
+            labelYa: `Nyalakan ${belum} kelas`,
+            labelTidak: 'Jangan',
+        });
+
+        if (!ya) {
+            return;
+        }
+
+        router.post(
+            '/admin/kelas/pantau-massal',
+            { academic_year_id: tahunDipilih?.id ?? null },
+            { preserveScroll: true },
+        );
+    };
+
     const [tambah, setTambah] = useState(false);
     const [ubah, setUbah] = useState<Baris | null>(null);
     const [tersalin, setTersalin] = useState<string | null>(null);
@@ -236,6 +293,14 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                     >
                         Impor
                     </Tombol>
+
+                    {/* Nyalakan massal - hanya dirender bila memang ADA
+                        yang belum tayang. Tombol yang ditekan lalu berkata
+                        "semua sudah tayang" adalah tombol yang mengajarkan
+                        Admin untuk berhenti mempercayainya. */}
+                    {dataBaris.some((b) => !b.wali_tayang) && (
+                        <Tombol onClick={nyalakanMassal}>Nyalakan pantau wali</Tombol>
+                    )}
 
                     <Tombol nada="pri" onClick={() => setTambah(true)}>
                         Tambah kelas

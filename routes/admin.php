@@ -226,6 +226,13 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/kelas/{kelas}/kode-wali', [SchoolClassController::class, 'kodeWali'])
         ->name('kelas.kode-wali');
 
+    // Massal untuk SATU TAHUN AJARAN, bukan seluruh sekolah: kelas selalu
+    // milik satu tahun, dan yang sedang dibuka Admin di laman Kelas adalah
+    // tahun itu. Menyalakan seluruh tahun sekaligus berarti kelas tahun
+    // depan ikut tayang sebelum jadwalnya ada.
+    Route::post('/kelas/pantau-massal', [SchoolClassController::class, 'pantauMassal'])
+        ->name('kelas.pantau-massal');
+
     // Bank soal versi ADMIN - baca saja, ditambahkan 2026-11-14.
     //
     // Sampai sekarang satu-satunya pintu ke bank soal adalah
