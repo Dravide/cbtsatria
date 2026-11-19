@@ -91,6 +91,13 @@ class SchoolClassController
             ->groupBy('class_id')
             ->pluck('jumlah', 'class_id');
 
+        // Slug SEKOLAH dipakai bersama `/papan` dan `/pantau`: satu sekolah
+        // satu alamat publik. Dibaca SEKALI, bukan per baris - seluruh kelas
+        // di halaman ini milik sekolah yang sama, dan `papan_slug` bisa
+        // NULL (sekolah yang tidak pernah menyalakan papannya), sehingga
+        // tautan wali pun tidak punya alamat yang bisa disusun.
+        $papanSlug = School::query()->whereKey($request->user()->school_id)->value('papan_slug');
+
         return Inertia::render('Admin/Kelas', [
             'tahunDipilih' => [
                 'id' => $tahunDipilih->id,
@@ -120,6 +127,28 @@ class SchoolClassController
                 'wali_slug' => $kelas->wali_slug,
                 'wali_tayang' => $kelas->wali_slug !== null,
                 'wali_foto' => (bool) $kelas->wali_foto,
+
+                // ALAMAT dan KODE-nya ikut dikirim, dan keduanya bukan
+                // kelonggaran.
+                //
+                // Alamat: tautan yang tidak bisa dibaca Admin adalah tautan
+                // yang harus ia susun sendiri dari potongan yang ia ingat -
+                // dan `/wali/x-1-a3f9` tidak bisa disusun dari ingatan.
+                //
+                // Kode: kolomnya `[Hidden]` supaya tidak pernah ikut
+                // serialisasi model mana pun, TETAPI prop ini ditulis
+                // eksplisit. Alasannya sama dengan
+                // `EventCommitteeController::index()` yang mengirim kode
+                // pengawas setiap kali: Admin mencetaknya menjadi kartu dan
+                // harus bisa membacanya kapan saja. Kode yang hanya muncul
+                // SEKALI pada respons penerbitannya memaksa Admin
+                // menerbitkan ulang setiap kali ia lupa menyalinnya - dan
+                // penerbitan ulang mengganti kode yang mungkin sudah
+                // beredar di grup wali kelas.
+                'wali_url' => $kelas->wali_slug === null || $papanSlug === null
+                    ? null
+                    : url("/wali/{$papanSlug}/kelas/{$kelas->id}"),
+                'wali_kode' => $kelas->wali_code,
             ]),
             // Daftar wali kelas dibatasi peran Teacher: menawarkan seluruh
             // pengguna berarti menawarkan siswa sebagai wali kelas, dan itu

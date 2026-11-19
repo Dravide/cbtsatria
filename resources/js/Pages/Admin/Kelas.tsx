@@ -45,6 +45,8 @@ type Baris = {
     wali_slug: string | null;
     wali_tayang: boolean;
     wali_foto: boolean;
+    wali_url: string | null;
+    wali_kode: string | null;
 };
 
 type Props = {
@@ -58,6 +60,49 @@ type Props = {
 export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }: Props) {
     const [tambah, setTambah] = useState(false);
     const [ubah, setUbah] = useState<Baris | null>(null);
+    const [tersalin, setTersalin] = useState<string | null>(null);
+
+    /**
+     * Salin satu nilai ke papan klip.
+     *
+     * `navigator.clipboard` menolak di luar konteks aman (http:// pada
+     * alamat selain localhost). Admin yang membuka konsol lewat IP LAN -
+     * keadaan yang lazim di sekolah - akan mendapat penolakan yang tidak
+     * berbunyi apa-apa kalau kegagalannya tidak ditangani. Karena itu
+     * cadangannya `document.execCommand`, yang usang tetapi masih bekerja di
+     * seluruh peramban yang dipakai sekarang.
+     */
+    const salin = async (teks: string | null, label: string) => {
+        if (teks === null) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(teks);
+            setTersalin(`${label} disalin.`);
+
+            return;
+        } catch {
+            // Jatuh ke cadangan di bawah.
+        }
+
+        const kotak = document.createElement('textarea');
+        kotak.value = teks;
+        kotak.setAttribute('readonly', '');
+        kotak.style.position = 'fixed';
+        kotak.style.opacity = '0';
+        document.body.appendChild(kotak);
+        kotak.select();
+
+        try {
+            document.execCommand('copy');
+            setTersalin(`${label} disalin.`);
+        } catch {
+            setTersalin(`Gagal menyalin. ${label}: ${teks}`);
+        } finally {
+            document.body.removeChild(kotak);
+        }
+    };
 
     /**
      * Menyalakan pantau wali untuk satu kelas.
@@ -196,6 +241,16 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                 </BilahFilter>
             </div>
 
+            {/* Umpan balik salin. Toast global akan hilang dalam tiga detik
+                dan Admin yang menyalin enam kode berturut-turut tidak bisa
+                membedakan mana yang sudah - jadi baris ini MENETAP sampai
+                nilai lain disalin. */}
+            {tersalin !== null && (
+                <p className="mb-2 rounded-wf border border-info/25 bg-info-bg px-3 py-1.5 font-mono text-[11px] text-info">
+                    {tersalin}
+                </p>
+            )}
+
             <Tabel<Baris>
                 hal={baris}
                 kunci={(b) => b.id}
@@ -236,20 +291,50 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                     },
                     {
                         judul: 'Pantau wali',
-                        kelas: 'w-32',
+                        kelas: 'w-44',
                         render: (b) =>
                             b.wali_tayang ? (
-                                <span className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                     <Chip nada="ok">tayang</Chip>
+                                    <span
+                                        className="font-mono text-[11px] text-ink-2"
+                                        title="Kode kelas - dibagikan wali kelas ke grup"
+                                    >
+                                        {b.wali_kode ?? '••••••'}
+                                    </span>
+                                    {/* Dua tombol terpisah, bukan satu menu:
+                                        keduanya dipakai BERULANG pada minggu
+                                        ujian - "kirim tautannya lagi ke grup"
+                                        dan "kodenya berubah, kirim yang
+                                        baru" - dan menu tersembunyi untuk
+                                        dua aksi yang paling sering dipakai
+                                        adalah klik yang diulang tiga puluh
+                                        kali. */}
+                                    <button
+                                        type="button"
+                                        onClick={() => salin(b.wali_url, 'Tautan')}
+                                        className="text-[11px] text-accent hover:underline"
+                                        title="Salin tautan laman wali"
+                                    >
+                                        Salin tautan
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => salin(b.wali_kode, 'Kode')}
+                                        className="text-[11px] text-accent hover:underline"
+                                        title="Salin kode kelas"
+                                    >
+                                        Salin kode
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => terbitkanKode(b)}
-                                        className="text-[11px] text-accent hover:underline"
-                                        title="Terbitkan ulang kode kelas - tautannya tidak berubah"
+                                        className="text-[11px] text-ink-3 hover:text-ink"
+                                        title="Terbitkan ulang kode - tautannya tidak berubah"
                                     >
-                                        Kode
+                                        Kode baru
                                     </button>
-                                </span>
+                                </div>
                             ) : (
                                 <button
                                     type="button"

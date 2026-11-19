@@ -286,18 +286,60 @@ it('menolak menyalakan foto bila sekolah belum mengizinkannya', function () {
     expect($data['kelas']->refresh()->wali_foto)->toBeFalse();
 });
 
-it('tidak pernah mengirim kode kelas di props laman Admin', function () {
+it('mengirim kode kelas di props laman Admin, supaya bisa dibaca ulang', function () {
     $data = siapkanWali($this, kode: '654321');
 
-    $props = json_encode(
-        $this->actingAs($this->admin)
-            ->get('/admin/kelas')
-            ->viewData('page')['props'],
-    );
+    $props = $this->actingAs($this->admin)
+        ->get('/admin/kelas')
+        ->viewData('page')['props'];
 
-    // Kolomnya `[Hidden]`, dan laman daftar tidak pernah menerimanya dalam
-    // keadaan biasa. Kode dikirim hanya lewat flash SESUDAH diterbitkan.
-    expect($props)->not->toContain('654321');
+    $baris = collect($props['baris']['data'] ?? $props['baris'])->firstWhere('id', $data['kelas']->id);
+
+    // Kode DIKIRIM, dan itu membalik keputusan versi pertama test ini.
+    //
+    // Alasan lamanya berbunyi "kode hanya lewat flash SESUDAH diterbitkan",
+    // dan itu salah untuk pemakaian nyata: Admin yang lupa menyalinnya pada
+    // respons itu harus menerbitkan ulang - dan penerbitan ulang MENGGANTI
+    // kode yang mungkin sudah beredar di grup wali kelas. Pola yang benar
+    // sudah ada di `EventCommitteeController::index()`, yang mengirim kode
+    // pengawas setiap kali karena Admin mencetaknya menjadi kartu.
+    //
+    // Yang dijaga `[Hidden]` tetap berlaku dan tidak dilanggar di sini:
+    // kolomnya tidak ikut serialisasi MODEL mana pun. Prop ini ditulis
+    // eksplisit, satu per satu, di satu tempat yang bisa diperiksa.
+    expect($baris['wali_kode'])->toBe('654321');
+});
+
+it('mengirim tautan wali yang bisa langsung dibagikan', function () {
+    $data = siapkanWali($this);
+
+    $props = $this->actingAs($this->admin)
+        ->get('/admin/kelas')
+        ->viewData('page')['props'];
+
+    $baris = collect($props['baris']['data'] ?? $props['baris'])->firstWhere('id', $data['kelas']->id);
+
+    // Tautan disusun SERVER, bukan peramban: yang menyusunnya di layar harus
+    // menebak bentuk alamat, dan `/wali/x-1-a3f9` tidak bisa ditebak dari
+    // ingatan.
+    expect($baris['wali_url'])->toContain('/wali/'.$this->sekolah->papan_slug.'/kelas/'.$data['kelas']->id);
+});
+
+it('tidak memberi tautan wali bila sekolah belum punya slug papan', function () {
+    $data = siapkanWali($this);
+
+    // `papan_slug` dipakai bersama `/papan` dan `/pantau`; sekolah yang
+    // belum pernah menyalakan papannya tidak punya alamat publik sama
+    // sekali, sehingga tautan wali pun tidak bisa disusun.
+    $this->sekolah->forceFill(['papan_slug' => null])->save();
+
+    $props = $this->actingAs($this->admin)
+        ->get('/admin/kelas')
+        ->viewData('page')['props'];
+
+    $baris = collect($props['baris']['data'] ?? $props['baris'])->firstWhere('id', $data['kelas']->id);
+
+    expect($baris['wali_url'])->toBeNull();
 });
 
 it('menolak foto sebelum kodenya dimasukkan', function () {
