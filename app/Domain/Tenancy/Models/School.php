@@ -53,6 +53,11 @@ class School extends Model
         return [
             'settings' => 'array',
             'branding' => 'array',
+            // Boolean, bukan integer 0/1 - lihat migrasi `0035`. Laman wali
+            // memeriksa saklar ini bersama saklar kelasnya, dan `0` yang
+            // dibaca sebagai string "0" adalah nilai yang benar-salah
+            // tergantung pemakaiannya.
+            'wali_foto_boleh' => 'boolean',
         ];
     }
 

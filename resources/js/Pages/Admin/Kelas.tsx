@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { konfirmasi } from '@/Components/dialog';
 import {
     BilahFilter,
     Chip,
@@ -41,6 +42,9 @@ type Baris = {
     wali: string | null;
     siswa: number;
     status: string;
+    wali_slug: string | null;
+    wali_tayang: boolean;
+    wali_foto: boolean;
 };
 
 type Props = {
@@ -54,6 +58,58 @@ type Props = {
 export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }: Props) {
     const [tambah, setTambah] = useState(false);
     const [ubah, setUbah] = useState<Baris | null>(null);
+
+    /**
+     * Menyalakan pantau wali untuk satu kelas.
+     *
+     * Kalimat konfirmasinya menyebut APA yang menjadi terbaca, bukan
+     * sekadar "Aktifkan?". Yang dibuka di sini adalah nama tiga puluh anak
+     * ke alamat internet, dan Admin yang menekannya perlu tahu itu sebelum
+     * menekan, bukan sesudah.
+     */
+    const nyalakanWali = async (b: Baris) => {
+        const ya = await konfirmasi({
+            judul: `Buka laman pantau wali untuk ${b.nama}?`,
+            pesan:
+                'Nama ' +
+                b.siswa +
+                ' siswa kelas ini bisa dibaca siapa pun yang memegang tautannya. ' +
+                'Jam masuk, jam mulai, dan lama mengerjakan tetap menuntut kode kelas — ' +
+                'bagikan tautan dan kodenya lewat grup wali kelas, bukan pengumuman sekolah.',
+            labelYa: 'Nyalakan',
+            labelTidak: 'Jangan',
+        });
+
+        if (!ya) {
+            return;
+        }
+
+        router.patch(`/admin/kelas/${b.id}/pantau`, { tayang: true }, { preserveScroll: true });
+    };
+
+    /**
+     * Terbitkan ulang kode kelas.
+     *
+     * Tautannya TIDAK berubah, dan itu ditulis di konfirmasinya: Admin yang
+     * mengira tautannya ikut berganti akan membagikan ulang tautan lama dan
+     * mengira kodenya sudah disampaikan.
+     */
+    const terbitkanKode = async (b: Baris) => {
+        const ya = await konfirmasi({
+            judul: `Terbitkan kode baru untuk ${b.nama}?`,
+            pesan:
+                'Kode lama langsung tidak berlaku. Tautannya tetap sama, jadi Anda hanya ' +
+                'perlu mengirim kode barunya ke grup wali kelas.',
+            labelYa: 'Terbitkan kode',
+            labelTidak: 'Jangan',
+        });
+
+        if (!ya) {
+            return;
+        }
+
+        router.post(`/admin/kelas/${b.id}/kode-wali`, {}, { preserveScroll: true });
+    };
 
     const f = pakaiFilter('/admin/kelas', { cari: filter.cari, ta: String(tahunDipilih?.id ?? '') });
 
@@ -177,6 +233,33 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                         judul: 'Status',
                         kelas: 'w-24',
                         render: (b) => <Chip nada={nadaStatus(b.status)}>{b.status}</Chip>,
+                    },
+                    {
+                        judul: 'Pantau wali',
+                        kelas: 'w-32',
+                        render: (b) =>
+                            b.wali_tayang ? (
+                                <span className="flex items-center gap-2">
+                                    <Chip nada="ok">tayang</Chip>
+                                    <button
+                                        type="button"
+                                        onClick={() => terbitkanKode(b)}
+                                        className="text-[11px] text-accent hover:underline"
+                                        title="Terbitkan ulang kode kelas - tautannya tidak berubah"
+                                    >
+                                        Kode
+                                    </button>
+                                </span>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => nyalakanWali(b)}
+                                    className="text-[11px] text-accent hover:underline"
+                                    title="Buka laman pantau untuk wali kelas ini"
+                                >
+                                    Nyalakan
+                                </button>
+                            ),
                     },
                     {
                         judul: '',

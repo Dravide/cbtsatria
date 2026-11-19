@@ -345,6 +345,41 @@ final class PembatasLaju
     /** Pesan saat denyut melampaui batas - dibaca halaman, bukan orang. */
     public const PESAN_PANTAU = 'Papan ini terlalu sering dimuat ulang dari jaringan ini. Tunggu satu menit, lalu segarkan.';
 
+    /** Nama limiter untuk membuka kode kelas wali - `wireframe-pantau-wali.html`. */
+    public const WALI = 'wali-kelas';
+
+    /**
+     * Percobaan kode kelas wali per IP, per menit.
+     *
+     * Lima, sama dengan pintu ruang dan gerbang ujian: orang yang memegang
+     * kodenya mengetik benar pada percobaan pertama atau kedua, dan lima
+     * kesalahan dalam satu menit berarti yang mengetik bukan pemegangnya.
+     *
+     * ---------------------------------------------------------------------
+     * Mengapa per IP saja tidak cukup, dan pembatas kedua ada
+     * ---------------------------------------------------------------------
+     * Enam angka = satu juta kemungkinan, dan pada lima percobaan per menit
+     * satu alamat IP butuh 138 hari. Tetapi penyerang tidak memakai satu IP.
+     * Yang lebih murah lagi: kode itu berlaku untuk SELURUH kelas sekaligus,
+     * jadi satu tebakan benar membuka tiga puluh anak.
+     *
+     * Karena itu ada batas kedua per (slug, kelas). Angkanya jauh lebih
+     * longgar - dua puluh per menit, sebab satu kelas memang sah dicoba
+     * oleh banyak wali murid sekaligus dari jaringan sekolah yang sama -
+     * tetapi ia menutup satu hal yang tidak bisa ditutup batas per-IP:
+     * penebakan dari banyak IP untuk SATU kelas.
+     */
+    public const WALI_PER_IP = 5;
+
+    /** Percobaan kode per (slug, kelas), per menit - lihat `WALI_PER_IP`. */
+    public const WALI_PER_KELAS = 20;
+
+    /** Pesan saat satu jaringan melampaui batas percobaan kodenya. */
+    public const PESAN_WALI = 'Terlalu banyak percobaan kode. Tunggu satu menit, lalu coba lagi.';
+
+    /** Pesan saat satu KELAS menerima terlalu banyak percobaan. */
+    public const PESAN_WALI_KELAS = 'Kelas ini menerima terlalu banyak percobaan kode. Tunggu satu menit, lalu minta kode baru ke wali kelas.';
+
     /** Nama limiter untuk masuk kios lab `/lab/{slug}/{nomor}`. */
     public const KIOS = 'kios-lab';
 
@@ -442,6 +477,30 @@ final class PembatasLaju
     public static function kunciLomba(int|string $userId): string
     {
         return "lomba:{$userId}";
+    }
+
+    /**
+     * Kunci percobaan kode wali per IP.
+     *
+     * Slug sekolah ikut di dalamnya, dan itu bukan kerapian: satu sekolah
+     * yang papannya ramai tidak boleh menghabiskan jatah sekolah lain dari
+     * jaringan yang sama - dan di lab komputer, "jaringan yang sama" berarti
+     * seluruh kabupaten.
+     */
+    public static function kunciWaliIp(string $slug, string $ip): string
+    {
+        return "wali-ip:{$slug}|{$ip}";
+    }
+
+    /**
+     * Kunci percobaan kode wali per KELAS.
+     *
+     * Menutup satu hal yang tidak bisa ditutup batas per-IP: penebakan dari
+     * banyak IP untuk satu kelas. Lihat `WALI_PER_IP`.
+     */
+    public static function kunciWaliKelas(string $slug, int|string $kelasId): string
+    {
+        return "wali-kelas:{$slug}|{$kelasId}";
     }
 
     /**

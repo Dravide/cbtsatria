@@ -1,0 +1,946 @@
+<title>Pantau Wali Kelas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* ============================================================
+   Pantau wali kelas — laman publik per kelas untuk orang tua
+   Token, primitif .wf/.wd, dan rangka disalin dari
+   wireframe-susulan.html dan wireframe-peluncuran-ujian.html
+   supaya berkas ini terbaca sebagai satu sistem dengan keduanya.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-in{max-width:1180px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 18px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2.05rem}
+.head .lede{color:var(--ink-2);max-width:76ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+/* ---------- seksi dokumen ---------- */
+.sec{margin-top:34px;display:grid;gap:16px}
+.sec > header{display:grid;gap:6px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.sec > header h2{font-size:1.32rem;display:flex;gap:10px;align-items:baseline}
+.sec > header em{font-style:normal;font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:.08em}
+.sec > header p{color:var(--ink-2);font-size:13.5px;max-width:78ch}
+.prose{display:grid;gap:11px;max-width:82ch;color:var(--ink-2);font-size:14px}
+.prose strong{color:var(--ink);font-weight:600}
+.prose ul{margin:0;padding-left:20px;display:grid;gap:5px}
+.prose li::marker{color:var(--accent)}
+.prose .lead{color:var(--ink)}
+
+/* ---------- kartu pilihan ---------- */
+.opt-grid{display:grid;gap:14px;grid-template-columns:1fr}
+@media (min-width:720px){.opt-grid{grid-template-columns:1fr 1fr}}
+.opt{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:14px 15px;display:grid;gap:9px;align-content:start}
+.opt.pick{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));box-shadow:0 0 0 1px var(--accent-soft) inset}
+.opt .oh{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.opt .oh h3{font-size:1rem}
+.opt .oh .badge{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-3)}
+.opt.pick .oh .badge{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.opt p{font-size:13px;color:var(--ink-2)}
+.opt .plus,.opt .minus{display:grid;gap:3px;font-size:12.5px;color:var(--ink-2)}
+.opt .plus b{color:var(--ok)} .opt .minus b{color:var(--bad)}
+.opt .plus div,.opt .minus div{display:grid;grid-template-columns:16px 1fr;gap:6px}
+.opt .plus b::before{content:"+"} .opt .minus b::before{content:"\2212"}
+
+/* ---------- tabel perbandingan ---------- */
+.cmp{width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.cmp th,.cmp td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp thead th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.cmp tbody tr:last-child td{border-bottom:0}
+.cmp td:first-child{color:var(--ink);font-weight:500;white-space:nowrap}
+.cmp .yes{color:var(--ok);font-weight:600}
+.cmp .no{color:var(--bad)}
+.cmp .mid{color:var(--warn)}
+
+/* ---------- langkah bernomor ---------- */
+.steps{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.step .num{font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--accent);background:var(--surface-2);display:grid;place-items:center;border-right:1px solid var(--line)}
+.step .cnt{padding:11px 14px;display:grid;gap:4px}
+.step .cnt b{font-family:var(--font-display);font-size:14px}
+.step .cnt p{font-size:13px;color:var(--ink-2)}
+.step .cnt .who{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- callout ---------- */
+.callout{border-left:3px solid var(--info);background:var(--info-bg);color:var(--ink-2);padding:11px 14px;border-radius:0 var(--r) var(--r) 0;display:grid;gap:5px;font-size:13.5px}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-bg)}
+.callout.bad{border-left-color:var(--bad);background:var(--bad-bg)}
+.callout.ok{border-left-color:var(--ok);background:var(--ok-bg)}
+.callout b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+
+/* ---------- jebakan ---------- */
+.traps{display:grid;gap:12px}
+.trap{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);display:grid;grid-template-columns:minmax(0,1fr);overflow:hidden}
+@media (min-width:720px){.trap{grid-template-columns:220px minmax(0,1fr)}}
+.trap .t-l{background:var(--surface-2);padding:12px 14px;display:grid;gap:5px;align-content:start;border-bottom:1px solid var(--line)}
+@media (min-width:720px){.trap .t-l{border-bottom:0;border-right:1px solid var(--line)}}
+.trap .t-l .no{font-family:var(--font-mono);font-size:11px;color:var(--bad);letter-spacing:.06em}
+.trap .t-l b{font-family:var(--font-display);font-size:13.5px;line-height:1.25}
+.trap .t-r{padding:12px 14px;display:grid;gap:7px;font-size:13px;color:var(--ink-2)}
+.trap .t-r .fix{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:baseline}
+.trap .t-r .fix .k{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+.trap .t-r code{font-size:12px}
+
+/* ---------- kode ---------- */
+pre.code{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;overflow-x:auto;font-family:var(--font-mono);font-size:12px;line-height:1.55;color:var(--ink)}
+pre.code .cm{color:var(--ink-3)}
+pre.code .kw{color:var(--accent);font-weight:500}
+pre.code .st{color:var(--ok)}
+.code-cap{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- primitif wireframe ---------- */
+.wf{position:relative;background:var(--wf-bg);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);color:var(--wf-ink);font-size:10px;line-height:1.35;overflow:hidden;min-width:0}
+.wf.lg{font-size:11.5px}
+.chrome{display:flex;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:6px;height:6px;border-radius:99px;background:var(--wf-dash);flex:none}
+.chrome .url{font-family:var(--font-mono);font-size:9px;color:var(--wf-dim);margin-left:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.chrome .who{margin-left:auto;font-size:9px;color:var(--wf-dim);white-space:nowrap}
+.grid2{display:grid;grid-template-columns:46px minmax(0,1fr);min-height:0}
+.wf.lg .grid2{grid-template-columns:150px minmax(0,1fr)}
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:8px 6px;display:grid;gap:3px;align-content:start;min-width:0}
+.rail .mark{width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);font:700 9px/16px var(--font-display);text-align:center;margin:0 auto 6px}
+.ni{display:flex;gap:6px;align-items:center;padding:4px 5px;border-radius:4px;font-size:9px;color:var(--wf-dim);min-width:0}
+.ni i{width:8px;height:8px;border-radius:2px;background:var(--wf-line);flex:none}
+.ni span{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf.lg .ni{font-size:11px;padding:5px 7px}
+.wf.lg .ni span{display:block}
+.ni.on{background:var(--wf-bg);color:var(--wf-ink);box-shadow:inset 2px 0 0 var(--accent)}
+.ni.on i{background:var(--accent)}
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.sel.ev{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.sp{margin-left:auto}
+.body{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sub{font-size:9px;color:var(--wf-dim)}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.tr{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.tr:last-child{border-bottom:0}
+.tr.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.tr .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.tr .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.chip.vio{background:color-mix(in srgb,var(--accent) 12%,var(--wf-bg));color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.off{opacity:.5}
+.btn.sm{font-size:8px;padding:2px 6px}
+.field{display:grid;gap:3px}
+.field .lb{font-size:9px;color:var(--wf-dim)}
+.input{height:16px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-bg)}
+.check{display:flex;gap:5px;align-items:center;font-size:9px;color:var(--wf-ink)}
+.check i{width:9px;height:9px;border:1px solid var(--wf-dash);border-radius:2px;flex:none}
+.check i.f{background:var(--accent);border-color:var(--accent)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--wf-hair);flex-wrap:wrap}
+.tab{font-size:9px;padding:4px 8px;color:var(--wf-dim);border-bottom:2px solid transparent}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.inbox.ok{border-left-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+
+/* ---------- rangka ponsel ---------- */
+.wd{position:relative;width:270px;max-width:100%;height:auto;min-height:430px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--wf-bg);box-shadow:var(--shadow);color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;font-size:9.5px;line-height:1.35;min-width:0}
+.wd .notch{position:relative;height:15px;background:var(--wf-head);border-bottom:1px solid var(--wf-hair)}
+.wd .notch::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:4px;width:46px;height:5px;border-radius:99px;background:var(--wf-dash)}
+.wd .scr{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
+.wd .hd{display:flex;gap:6px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);min-width:0;flex-wrap:wrap}
+.wd .hd .crumb{font-size:9px;color:var(--wf-dim)}
+.wd .hd b{font-family:var(--font-display);font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd .hd .sp{margin-left:auto}
+.wd .bd{padding:8px;display:grid;gap:7px;align-content:start;overflow:hidden;min-width:0}
+.wd .home{height:17px;background:var(--wf-head);display:grid;place-items:center}
+.wd .home::after{content:"";width:56px;height:4px;border-radius:99px;background:var(--wf-line)}
+.wd .sub{font-size:8.5px;color:var(--wf-dim)}
+.wd .sel,.wd .btn,.wd .chip{font-size:8px;padding:2px 5px}
+.wd .btn.big{font-size:11px;padding:7px 12px;text-align:center;display:block}
+.wd .card{border:1px solid var(--wf-hair);border-radius:8px;background:var(--wf-bg);padding:7px;display:grid;gap:5px;min-width:0}
+.wd .list{border:1px solid var(--wf-hair);border-radius:8px;overflow:hidden;min-width:0}
+.wd .lrow{display:grid;gap:6px;align-items:center;padding:6px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.wd .lrow:last-child{border-bottom:0}
+.wd .lrow.th{background:var(--wf-head);font:500 7.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim);padding:5px 7px}
+.wd .lrow .c{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:8.5px}
+.wd .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;font-size:8.5px}
+.wd .kv .k{color:var(--wf-dim)}
+.wd .kv .v{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right}
+.wd .bar{height:5px;border-radius:99px;background:var(--wf-soft);overflow:hidden}
+.wd .bar i{display:block;height:100%;background:var(--accent)}
+
+/* ---------- galeri ---------- */
+.shots{display:grid;gap:24px;grid-template-columns:1fr}
+@media (min-width:600px){.shots.phones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1000px){.shots.phones{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:820px){.shots.wide{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.shot{display:grid;gap:9px;min-width:0;align-content:start;margin:0}
+.shot.span{grid-column:1/-1}
+.cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cap .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.08em}
+.cap h3{font-size:.95rem}
+.cap .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;font-size:13px;color:var(--ink-2);line-height:1.6}
+.note > * + *{margin-top:5px}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13px}
+
+footer{border-top:1px solid var(--line);margin-top:34px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ pantau wali kelas</span></div>
+    <div class="r">
+      <span>rancangan + wireframe · 6 plate</span><span>pembaca: orang tua / wali</span><span>draft 2026-11-19</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Rancangan teknis + wireframe</div>
+    <h1>Laman publik per kelas untuk orang tua</h1>
+    <p class="lede">Pada hari ujian, orang tua menunggu di rumah tanpa kabar. Satu-satunya cara ia tahu anaknya sudah masuk, sudah mulai, dan sudah selesai adalah menelepon wali kelas — dan wali kelas sedang mengurus tiga puluh anak lain. Halaman ini menetapkan laman yang bisa dibuka orang tua dari ponselnya: daftar siswa satu kelas beserta keadaan masing-masing, dan satu ketukan untuk melihat jam absen, jam mulai, dan berapa lama anaknya mengerjakan.</p>
+    <div class="scope">
+      <span class="tag">tanpa login · /wali/{slug}</span>
+      <span class="tag">opt-in per kelas</span>
+      <span class="tag">nama tampil, NIS tidak</span>
+      <span class="tag">tanpa nilai</span>
+      <span class="tag">tanpa tabel baru</span>
+    </div>
+  </div>
+
+  <!-- ============================ A. BATAS ISI ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>A</em> Batas isinya ditetapkan lebih dulu, bukan belakangan</h2>
+      <p>Tiga laman publik yang sudah ada — <code>/papan</code>, <code>/pantau</code>, <code>/p/{slug}</code> — semuanya punya batas isi yang ditulis di docblock service-nya. Yang ini berbeda dalam satu hal yang menentukan segalanya: <strong>ia menyebut NAMA ANAK.</strong></p>
+    </header>
+
+    <div class="prose">
+      <p class="lead">Ketiga laman publik sebelumnya menyebut ruang, pengawas, dan angka. Tidak satu pun menyebut siswa. Laman ini menyebut nama anak, jam ia masuk, dan berapa lama ia mengerjakan — dan alamatnya di luar <code>auth</code>.</p>
+      <p>Itu bukan alasan untuk tidak membuatnya. Orang tua memang berhak tahu, dan sekolah memang perlu cara menjawab tiga puluh telepon. Yang berubah karena itu bukan keberadaannya, melainkan <strong>tiga penjaga</strong> yang harus ada sejak versi pertama.</p>
+    </div>
+
+    <table class="cmp">
+      <thead>
+        <tr><th>Data</th><th>Tampil?</th><th>Alasan</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Nama siswa</td><td class="yes">ya</td><td>Orang tua harus bisa menemukan anaknya. Tanpa nama, laman ini tidak menjawab apa pun.</td></tr>
+        <tr><td>Kelas</td><td class="yes">ya</td><td>Sudah di judulnya.</td></tr>
+        <tr><td>Ruang &amp; nomor kursi</td><td class="yes">ya</td><td>Orang tua perlu tahu anaknya di mana bila ia datang ke sekolah.</td></tr>
+        <tr><td>Status kehadiran + jam absen</td><td class="yes">ya</td><td>Inti pertanyaan "anaknya sudah masuk belum".</td></tr>
+        <tr><td>Jam mulai mengerjakan</td><td class="yes">ya</td><td>Inti pertanyaan kedua.</td></tr>
+        <tr><td>Lama mengerjakan</td><td class="yes">ya</td><td>Diurai di bagian B — ia bukan satu angka.</td></tr>
+        <tr><td>NIS / NISN</td><td class="no">tidak</td><td>Nomor identitas anak. Orang tua sudah tahu NIS anaknya; orang lain tidak perlu.</td></tr>
+        <tr><td>Username &amp; sandi</td><td class="no">tidak</td><td>Username hanya berbeda satu digit dari NIS, dan ia kunci masuk ujian.</td></tr>
+        <tr><td><strong>Nilai</strong></td><td class="no">tidak</td><td>Nilai baru boleh dibaca setelah dipublikasikan Admin. Laman publik yang membocorkannya lebih dulu memutus kendali sekolah atas hasil.</td></tr>
+        <tr><td>Isi jawaban</td><td class="no">tidak</td><td>Tidak pernah, di laman mana pun, untuk siapa pun.</td></tr>
+        <tr><td>Jumlah pelanggaran</td><td class="mid">opsional</td><td>Keputusan pemilik produk — lihat bagian F.</td></tr>
+        <tr><td>Token ujian</td><td class="no">tidak</td><td>Token adalah kunci masuk. Menampilkannya di laman publik membatalkan gunanya.</td></tr>
+        <tr><td>Nama pengawas ruang</td><td class="yes">ya</td><td>Sudah publik di <code>/papan/{slug}</code>. Orang tua yang datang ke sekolah perlu tahu harus menemui siapa.</td></tr>
+        <tr><td>Foto berita acara</td><td class="mid">sesudah kode · opsional</td><td>Foto ruang memuat <b>wajah siswa lain</b>. Dibatasi di bagian G — kelas harus menyalakannya sendiri, dan Admin bisa mematikannya.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout bad">
+      <b>Penjaga pertama: alamatnya TIDAK lahir sendiri</b>
+      <p>Berbeda dari <code>/papan/{slug}</code> yang menyala untuk seluruh sekolah sekaligus, laman ini <strong>per kelas</strong> dan <strong>opt-in satu per satu</strong>. Kolom <code>classes.wali_slug</code> nullable; kelas yang belum dinyalakan tidak punya alamat sama sekali. Alasannya bukan kerapian: satu sekolah yang menyalakan seluruh kelasnya sekaligus berarti tiga puluh tautan beredar dalam satu pagi, dan tidak ada satu pun yang bisa ditarik kembali tanpa menelepon tiga puluh wali kelas.</p>
+    </div>
+
+    <div class="callout warn">
+      <b>Penjaga kedua: kode kelas, ditulis di grup wali</b>
+      <p>Alamat saja tidak cukup. <code>/wali/smkn1cipanas-a3f9/x-1</code> masih bisa ditebak sebagian — nama sekolah, tahun, dan nama kelas semuanya publik. Karena itu membuka rincian siswa menuntut <strong>kode enam angka</strong> yang dibagikan wali kelas lewat grup kelas, dan kode itu disimpan terenkripsi seperti <code>committee_members.code</code>. Daftar nama boleh terbuka; jam dan durasinya tidak — dan yang paling sensitif di laman ini justru yang paling mudah dibagikan ulang sebagai tangkapan layar.</p>
+    </div>
+
+    <div class="callout ok">
+      <b>Penjaga ketiga: <code>noindex</code> sudah otomatis</b>
+      <p><code>resources/views/app.blade.php</code> memasang <code>&lt;meta name="robots" content="noindex, nofollow, noarchive"&gt;</code> pada SETIAP halaman, dan komentarnya menjelaskan alasannya. Tidak ada yang perlu ditambahkan — cukup jangan dilepas.</p>
+    </div>
+  </section>
+
+  <!-- ============================ B. LAMA MENGERJAKAN ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>B</em> "Berapa menit mengerjakan" bukan satu angka</h2>
+      <p>Permintaan itu terdengar seperti satu kolom, dan di situlah kesalahannya. Tiga angka berbeda bisa disebut "lama mengerjakan", dan orang tua akan membaca yang mana pun sebagai yang ia butuhkan.</p>
+    </header>
+
+    <div class="opt-grid">
+      <div class="opt">
+        <div class="oh"><h3>Selisih jam dinding</h3><span class="badge">ditolak</span></div>
+        <p><code>submitted_at − started_at</code>.</p>
+        <div class="minus">
+          <div><b></b><span>Pada anak yang dikunci 12 menit karena pelanggaran, angkanya <b>termasuk</b> masa terkunci. Orang tua membaca "mengerjakan 58 menit" untuk anak yang efektifnya 20 menit.</span></div>
+        </div>
+      </div>
+
+      <div class="opt pick">
+        <div class="oh"><h3>Tiga angka, diberi nama</h3><span class="badge">dipilih</span></div>
+        <p>Waktu mengerjakan, sisa batas, dan — bila ada — masa terkunci. Ketiganya terpisah.</p>
+        <div class="plus">
+          <div><b></b><span>Orang tua melihat <em>38 dari 90 menit</em>, bukan satu angka yang harus ia tafsirkan sendiri.</span></div>
+          <div><b></b><span>Masa terkunci adalah satu-satunya hal di laman ini yang mungkin perlu percakapan di rumah — dan menyembunyikannya membuat angka totalnya berbohong.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <table class="cmp">
+      <thead>
+        <tr><th>Keadaan anak</th><th>Yang ditampilkan</th><th>Sumbernya</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Belum masuk ujian</td><td class="mid">Jam buka sesi saja</td><td><code>exam_sessions.access_opens_at</code></td></tr>
+        <tr><td>Sedang mengerjakan</td><td>Mulai 09:14 · <b>berjalan 22 menit</b> · sisa 68 menit</td><td><code>attempts.started_at</code>, <code>deadline_at</code></td></tr>
+        <tr><td>Sedang terkunci</td><td>Mulai 09:14 · berjalan 22 menit · <span class="mid">terkunci 6 menit</span></td><td><code>attempts.locked_at</code></td></tr>
+        <tr><td>Selesai mengumpulkan</td><td>Mulai 09:14 · selesai 10:02 · <b>mengerjakan 48 menit</b></td><td><code>submitted_at</code></td></tr>
+        <tr><td>Waktu habis</td><td>Mulai 09:14 · <b>waktu habis 10:44</b> · 90 menit</td><td><code>status = kedaluwarsa</code></td></tr>
+        <tr><td>Tidak hadir</td><td class="no">Tidak ada jam — dan <b>jangan</b> tampilkan nol</td><td><code>attendance_records</code></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <b>Nol menit bukan "belum mengerjakan"</b>
+      <p>Baris "0 menit" untuk anak yang tidak hadir akan dibaca orang tua sebagai anaknya tidak mau mengerjakan. Untuk keadaan itu yang ditampilkan adalah <strong>kalimatnya</strong> — "tercatat tidak hadir pukul 07:32" — bukan angka. Aturan yang sama dengan <code>PapanPengawas</code> yang menyatakan "tidak ada sesi" alih-alih menampilkan daftar kosong.</p>
+    </div>
+  </section>
+
+  <!-- ============================ C. RUTE & DATA ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>C</em> Rute, dan mengapa berbentuk begini</h2>
+      <p>Tiga alamat, semuanya di luar <code>auth</code>, semuanya di bawah slug sekolah yang sudah ada.</p>
+    </header>
+
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <div class="cnt">
+          <b><code>GET /wali/{slug}</code></b>
+          <p>Daftar kelas yang dibuka untuk wali di sekolah itu, beserta ujian yang sedang/akan berlangsung. Kelas yang <code>wali_slug</code>-nya null tidak muncul.</p>
+          <span class="who">publik · tanpa kode</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="cnt">
+          <b><code>GET /wali/{slug}/kelas/{kelas}</code></b>
+          <p>Daftar siswa satu kelas: nama, ruang, kursi, dan chip keadaan. Data jam <strong>belum</strong> dikirim — hanya nama dan chip, yang bisa dibaca siapa pun yang menemukan tautannya.</p>
+          <span class="who">publik · tanpa kode</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="cnt">
+          <b><code>POST /wali/{slug}/kelas/{kelas}</code></b>
+          <p>Kode enam angka → seluruh rincian kelas dalam satu tanggapan: jam absen, jam mulai, durasi, sisa, masa terkunci. Sesi kode disimpan 90 menit, seperti kode ruang.</p>
+          <span class="who">publik · kode wajib · throttle 5/menit</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <b>Mengapa rincian siswa TIDAK punya alamat sendiri</b>
+      <p>Yang menggoda adalah <code>/wali/{slug}/kelas/{kelas}/{siswa}</code> supaya tautannya bisa dibagikan per anak. Itu membuat setiap siswa punya URL yang bisa ditebak dari id yang berurutan — dan satu-satunya hal yang menahannya adalah kode. Nelusuri <code>/…/1201</code>, <code>/…/1202</code> lalu menebak kode sekali untuk seluruh kelas adalah jalan yang jauh lebih pendek daripada yang terlihat.</p>
+      <p>Karena itu rinciannya dibuka <strong>di tempat</strong>: satu ketukan memperluas barisnya, dan seluruh kelas sudah dimuat sekaligus sesudah kodenya benar. Tidak ada URL per anak, tidak ada id yang bisa ditebak.</p>
+    </div>
+
+    <div class="code-cap">Migrasi — satu kolom, dua kolom kode</div>
+    <pre class="code"><span class="cm">// database/migrations/00xx_.._add_wali_link_to_classes.php</span>
+Schema::table(<span class="st">'classes'</span>, <span class="kw">function</span> (Blueprint $table) {
+    <span class="cm">// NULL = laman wali untuk kelas ini tidak ada. Bukan "disembunyikan":</span>
+    <span class="cm">// rute yang tidak pernah lahir tidak bisa ditebak.</span>
+    $table-&gt;string(<span class="st">'wali_slug'</span>, 64)-&gt;nullable()-&gt;unique()-&gt;after(<span class="st">'name'</span>);
+
+    <span class="cm">// Terenkripsi, BUKAN hash - kode ini dibagikan wali kelas lewat grup</span>
+    <span class="cm">// dan harus bisa dibaca ulang Admin yang menerbitkannya.</span>
+    <span class="cm">// Pola yang sama dengan committee_members.code.</span>
+    $table-&gt;text(<span class="st">'wali_code'</span>)-&gt;nullable()-&gt;after(<span class="st">'wali_slug'</span>);
+});</pre>
+
+    <div class="prose">
+      <p><strong>Tidak ada tabel baru.</strong> Seluruh angka yang ditampilkan sudah ada di <code>attendance_records</code>, <code>exam_attempts</code>, dan <code>exam_sessions</code>. Yang ditambahkan hanya dua kolom di <code>classes</code> — dan itu bukan penghematan, melainkan menolak menyimpan salinan fakta yang sudah bisa dibaca.</p>
+    </div>
+  </section>
+
+  <!-- ============================ D. JEBAKAN ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>D</em> Tujuh jebakan</h2>
+      <p>Semuanya berasal dari kode yang ada hari ini. Yang pertama akan menghabiskan satu sore bila tidak diketahui lebih dulu.</p>
+    </header>
+
+    <div class="traps">
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 01</span>
+          <b><code>tanpaTenant()</code> wajib, dan <code>School</code> tidak memakai scope</b>
+        </div>
+        <div class="t-r">
+          <p>Pada permintaan publik belum ada pengguna, jadi <code>SchoolResolver::id()</code> mengembalikan <code>null</code> — dan <code>null</code> berarti <strong>"jangan saring"</strong>, bukan "tidak ada sekolah". Query apa pun yang lupa menyebut <code>school_id</code> akan membaca SELURUH sekolah.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Resolve slug lewat <code>School::query()</code> (tabel induk, memang tak ber-scope), lalu pakai <code>(int) $sekolah-&gt;id</code> di SETIAP query berikutnya — pola yang sama dengan <code>PapanPublikController::sekolah()</code>.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 02</span>
+          <b>Kelas dan siswa tidak punya <code>school_id</code> di URL</b>
+        </div>
+        <div class="t-r">
+          <p>Route model binding mencari <code>classes.id</code> di seluruh tabel. Scope tenant menutupnya <em>hanya bila</em> ada pengguna — dan di sini tidak ada. Kode kelas milik sekolah lain akan ditemukan, dan namanya tayang.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Binding ditulis eksplisit: <code>SchoolClass::where('school_id',$sekolah-&gt;id)-&gt;whereKey($kelas)-&gt;firstOrFail()</code>. 404, bukan 403 — bagi sekolah ini barisnya memang tidak ada.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 03</span>
+          <b>Siswa dicari lewat PENEMPATAN, bukan lewat kelas</b>
+        </div>
+        <div class="t-r">
+          <p>Daftar siswa satu kelas pada hari ujian bukan <code>class_enrollments</code>. Yang menjawab "anak ini ikut ujian apa" adalah <code>exam_participants</code> + <code>exam_session_id</code>. Membacanya dari kelas saja akan menampilkan siswa yang tidak diujikan, dan menyembunyikan siswa yang dipindah susulan.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Mulai dari <code>exam_participants</code> yang <code>class_id</code>-nya cocok dan <code>status = terdaftar</code>, lalu <code>leftJoin</code> attempt dan attendance. Yang tidak punya attempt tetap tampil — justru itu yang dicari orang tua.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 04</span>
+          <b>Sesi yang dibaca: yang BERJALAN, bukan "hari ini"</b>
+        </div>
+        <div class="t-r">
+          <p><code>PapanPengawas</code> sudah menuliskan jebakan ini untuk dirinya sendiri: menyaring dengan tanggal menampilkan sesi kemarin pada pukul 23:50, dan menyembunyikan sesi yang lewat tengah malam. Zona waktunya juga <code>Asia/Jakarta</code> sementara sekolah di WITA/WIT meleset — lihat catatan <code>cbt-zona-waktu</code>.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Saring dengan <code>hard_end_at &gt;= now()</code> dan <code>EventStatus::belumSelesai()</code>, persis <code>PapanPengawas::sesiAktif()</code>. Bila tidak ada yang berjalan, tampilkan sesi terdekat beserta kalimat "belum dimulai" — jangan daftar kosong.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 05</span>
+          <b>Nilai TIDAK boleh ikut, walau kolomnya ada</b>
+        </div>
+        <div class="t-r">
+          <p><code>exam_results</code> sudah terisi begitu attempt dikumpulkan. Laman ini membacanya dengan <code>with()</code> yang malas, lalu satu perubahan kecil mengirimkannya — dan nilai 1.265 anak bocor ke internet sebelum dipublikasikan.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Model yang dimuat disebut namanya di satu tempat (<code>muatan()</code>), dan <code>exam_results</code> tidak ada di daftar itu. Sama seperti <code>PapanPengawas::muatan()</code> yang membatasi <code>supervisor:id,name</code>.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 06</span>
+          <b>Kode kelas dicoba lima kali per menit, dan itu masih terlalu longgar</b>
+        </div>
+        <div class="t-r">
+          <p>Enam angka = 1.000.000 kemungkinan. Pada 5 percobaan/menit, satu alamat IP butuh 138 hari — tetapi penyerang tidak memakai satu IP, dan <code>throttle</code> per-IP tidak melihat itu. Yang lebih murah: kode berlaku untuk SELURUH kelas sekaligus, jadi satu tebakan benar membuka tiga puluh anak.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Pembatas per (sekolah, kelas) di samping per-IP — pola <code>PembatasLaju::kunciLuang()</code>. Sesudah 20 kegagalan, kode kelas itu mati sampai wali kelas menerbitkan yang baru. Dan kode kedaluwarsa bersama sesinya: kode untuk ujian kemarin tidak membuka apa pun.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 07</span>
+          <b>Foto bukan "berkas di disk publik" — dan <code>session_report_files</code> menyimpan lebih dari foto</b>
+        </div>
+        <div class="t-r">
+          <p>Berkas berita acara tinggal di disk <code>local</code> dan keluar HANYA lewat <code>BerkasLaporanController</code>, yang memeriksa apakah pemanggilnya boleh membaca ruang-sesi itu. Laman wali TIDAK punya pemeriksaan itu — ia publik. Menyajikan berkasnya lewat jalur yang sama berarti membuka seluruh berkas berita acara, termasuk tanda tangan dan catatan pengawas.</p>
+          <p>Dan tabelnya lebih lebar dari namanya: <code>session_report_files</code> menyimpan berkas pendukung yang bukan foto, dengan kolom <code>mime</code> yang tidak dibatasi skema.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Rute sendiri (<code>/wali/{slug}/foto/{berkas}</code>) yang, berurutan: (1) memeriksa kode sesi lebih dulu, (2) memastikan <code>berkas.session_report_id</code> milik ruang-sesi yang ADA DI KELAS ITU, (3) menolak <code>sisi != 'sesudah'</code>, (4) menolak <code>mime</code> yang bukan <code>image/*</code>, (5) menolak laporan yang belum <code>final</code>. Tiga pemeriksaan terakhir murah; yang pertama yang menentukan.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  <section class="sec">
+    <header>
+      <h2><em>E</em> Wireframe</h2>
+      <p>Enam plate. Empat pertama adalah ponsel — laman ini dibuka orang tua dari HP, dan tata letak yang hanya enak di desktop tidak akan dipakai dua kali.</p>
+      <p>Plate 06 adalah sisi Admin: dua saklar, karena foto berita acara membawa wajah anak yang bukan anak siapa pun yang membukanya — lihat bagian G.</p>
+    </header>
+
+    <div class="shots phones">
+
+      <!-- ---------------- 01 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">01</span>
+          <h3>Daftar kelas yang dibuka</h3>
+        </div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd">
+              <div style="display:grid;gap:1px;min-width:0">
+                <b>SMPN 1 Cipanas</b>
+                <span class="sub">Pantau kelas · wali murid</span>
+              </div>
+            </div>
+            <div class="bd">
+              <div class="inbox">Pilih kelas anak Anda. Bila kelasnya tidak ada, minta wali kelas membukanya.</div>
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:1fr 54px"><span>Kelas</span><span>Ujian</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 54px">
+                  <span class="c"><b>X-1</b></span>
+                  <span class="c"><span class="chip info">berjalan</span></span>
+                </div>
+                <div class="lrow" style="grid-template-columns:1fr 54px">
+                  <span class="c"><b>X-2</b></span>
+                  <span class="c"><span class="chip info">berjalan</span></span>
+                </div>
+                <div class="lrow" style="grid-template-columns:1fr 54px">
+                  <span class="c"><b>XI-3</b></span>
+                  <span class="c"><span class="chip mute">belum</span></span>
+                </div>
+              </div>
+              <p class="sub" style="text-align:center">Diperbarui 09:41</p>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Kelas yang <b>belum dibuka</b> tidak muncul sama sekali — bukan muncul dengan gembok. Alamat yang tidak pernah lahir lebih kuat daripada alamat yang menolak. Tiga kelas di sini adalah tiga kelas yang wali kelasnya sudah menyalakan.</p>
+      </figure>
+
+      <!-- ---------------- 02 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">02</span>
+          <h3>Satu kelas, sebelum kode</h3>
+        </div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd">
+              <span class="crumb">‹</span>
+              <b>X-1 · Matematika</b>
+            </div>
+            <div class="bd">
+              <div class="card" style="gap:4px">
+                <div class="kv">
+                  <span class="k">Sesi</span><span class="v">09:00–10:30</span>
+                  <span class="k">Peserta</span><span class="v">32 siswa</span>
+                </div>
+              </div>
+
+              <div class="box" style="gap:4px">
+                <span class="lb">Kode kelas</span>
+                <div style="display:flex;gap:5px;align-items:center">
+                  <div class="input" style="flex:1"></div>
+                  <span class="btn pri">Buka</span>
+                </div>
+                <span class="sub">Kode dibagikan wali kelas di grup kelas.</span>
+              </div>
+
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:1fr 58px"><span>Nama</span><span>Ruang</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 58px"><span class="c">Ahmad Fauzi</span><span class="c mono">R-02 · 14</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 58px"><span class="c">Ani Mulyani</span><span class="c mono">R-02 · 15</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 58px"><span class="c">Bagas Pratama</span><span class="c mono">R-02 · 16</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 58px"><span class="c">Citra Dewi</span><span class="c mono">R-03 · 01</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 58px"><span class="c" style="color:var(--wf-dim)">… 28 lagi</span><span class="c"></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note gap">Sebelum kode dimasukkan, yang terlihat hanya <b>nama dan ruang</b> — cukup untuk menjawab "anak saya di ruang mana" tanpa membocorkan jam, durasi, atau riwayat kehadiran. Chip keadaan sengaja <b>tidak</b> ditampilkan di sini: ia sudah bercerita tentang anak itu, dan ia yang paling mungkin difoto lalu disebar.</p>
+      </figure>
+
+      <!-- ---------------- 03 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">03</span>
+          <h3>Daftar dengan keadaan, sesudah kode</h3>
+        </div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd">
+              <span class="crumb">‹</span>
+              <b>X-1 · Matematika</b>
+              <span class="sp"></span>
+              <span class="chip ok">terbuka</span>
+            </div>
+            <div class="bd">
+              <div class="card" style="gap:4px">
+                <div class="kv">
+                  <span class="k">Hadir</span><span class="v">29 / 32</span>
+                  <span class="k">Mengerjakan</span><span class="v">24</span>
+                  <span class="k">Selesai</span><span class="v">5</span>
+                </div>
+                <div class="bar"><i style="width:78%"></i></div>
+              </div>
+
+              <div class="list">
+                <div class="lrow th" style="grid-template-columns:1fr 62px"><span>Nama</span><span>Keadaan</span></div>
+                <div class="lrow" style="grid-template-columns:1fr 62px"><span class="c">Ahmad Fauzi</span><span class="c"><span class="chip info">mengerjakan</span></span></div>
+                <div class="lrow" style="grid-template-columns:1fr 62px"><span class="c">Ani Mulyani</span><span class="c"><span class="chip ok">selesai</span></span></div>
+                <div class="lrow" style="grid-template-columns:1fr 62px"><span class="c">Bagas Pratama</span><span class="c"><span class="chip warn">terkunci</span></span></div>
+                <div class="lrow" style="grid-template-columns:1fr 62px"><span class="c">Citra Dewi</span><span class="c"><span class="chip mute">belum mulai</span></span></div>
+                <div class="lrow" style="grid-template-columns:1fr 62px"><span class="c">Dedi Kurniawan</span><span class="c"><span class="chip bad">tidak hadir</span></span></div>
+                <div class="lrow" style="grid-template-columns:1fr 62px"><span class="c" style="color:var(--wf-dim)">… 27 lagi</span><span class="c"></span></div>
+              </div>
+
+              <div class="inbox">Ketuk nama anak Anda untuk melihat jam masuk, jam mulai, dan lama mengerjakan.</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Tiga angka di kepala — <b>hadir, mengerjakan, selesai</b> — adalah yang dicari orang tua pertama kali, dan menaruhnya di atas berarti ia tidak perlu menyusuri tiga puluh baris untuk jawaban yang berlaku untuk kelasnya. Ringkasan ini tidak pernah menyebut nama siapa pun yang belum hadir.</p>
+      </figure>
+
+      <!-- ---------------- 04 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">04</span>
+          <h3>Rincian satu anak</h3>
+        </div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd">
+              <span class="crumb">‹</span>
+              <b>Bagas Pratama</b>
+            </div>
+            <div class="bd">
+              <div class="card" style="gap:6px">
+                <div style="display:flex;gap:6px;align-items:center">
+                  <b style="font-family:var(--font-display);font-size:11px">Bagas Pratama</b>
+                  <span class="sp"></span>
+                  <span class="chip warn">terkunci</span>
+                </div>
+                <div class="kv">
+                  <span class="k">Ruang</span><span class="v">R-02 · kursi 16</span>
+                  <span class="k">Absen</span><span class="v">07:32</span>
+                  <span class="k">Mulai</span><span class="v">09:06</span>
+                  <span class="k">Mengerjakan</span><span class="v">31 mnt</span>
+                  <span class="k">Terkunci</span><span class="v" style="color:var(--warn)">6 mnt</span>
+                  <span class="k">Sisa batas</span><span class="v">53 mnt</span>
+                </div>
+                <div class="bar"><i style="width:41%"></i></div>
+                <p class="sub">Batas sesi 10:30. Ujian bisa dilanjutkan setelah pengawas membuka kunci.</p>
+              </div>
+
+              <div class="card" style="gap:4px">
+                <span class="lb" style="font:500 8px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)">Riwayat</span>
+                <div class="kv">
+                  <span class="k">07:32</span><span class="v" style="text-align:left">Absen diverifikasi R-02</span>
+                  <span class="k">09:06</span><span class="v" style="text-align:left">Mulai mengerjakan</span>
+                  <span class="k">09:37</span><span class="v" style="text-align:left;color:var(--warn)">Terkunci pengawas</span>
+                </div>
+              </div>
+
+              <div class="card" style="gap:4px">
+                <span class="lb" style="font:500 8px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)">Pengawas ruang</span>
+                <div class="kv">
+                  <span class="k">R-02</span><span class="v" style="text-align:left">Bu Siti Nurhaliza</span>
+                  <span class="k">R-02</span><span class="v" style="text-align:left">Pak Hendra</span>
+                </div>
+              </div>
+
+              <div class="card" style="gap:5px">
+                <div style="display:flex;gap:5px;align-items:center">
+                  <span class="lb" style="font:500 8px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)">Berita acara</span>
+                  <span class="sp"></span>
+                  <span class="chip ok">final</span>
+                </div>
+                <div style="height:62px;border:1px dashed var(--wf-dash);border-radius:6px;display:grid;place-items:center;background:var(--wf-soft);font-size:8px;color:var(--wf-dim)">foto ruang · saat ujian</div>
+                <span class="sub">Diunggah pengawas 09:52. Wajah peserta lain ikut terlihat.</span>
+              </div>
+
+              <div class="inbox warn">Anak Anda sedang menunggu pengawas membuka kunci. Hubungi wali kelas bila lebih dari 15 menit.</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note gap">Ini jawaban dari seluruh laman: <b>absen jam berapa, mulai jam berapa, berapa menit</b>. Perhatikan bahwa "mengerjakan 31 menit" dan "terkunci 6 menit" <b>dipisah</b> — angka total yang menyatukan keduanya akan berbohong tentang anak yang paling butuh penjelasan.</p>
+        <p class="note gap"><b>Pengawas</b> muncul sebagai nama, bukan sebagai tautan — orang tua yang datang ke sekolah perlu tahu harus menemui siapa, dan <code>/papan/{slug}</code> sudah menayangkan nama yang sama. <b>Foto berita acara</b> ada di kartu paling bawah, sesudah riwayat, dan hanya bila laporan ruang itu sudah <code>final</code>. Kalimat "wajah peserta lain ikut terlihat" ditulis di bawahnya bukan sebagai hiasan: ia memperingatkan sebelum menyimpan tangkapan layar, dan itu satu-satunya tempat peringatan itu bisa dibaca tepat pada waktunya.</p>
+      </figure>
+
+      <!-- ---------------- 05 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">05</span>
+          <h3>Sesudah sesi ditutup: kalimat, bukan nol</h3>
+        </div>
+        <div class="wd">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="hd">
+              <span class="crumb">‹</span>
+              <b>X-1 · Matematika</b>
+              <span class="sp"></span>
+              <span class="chip mute">selesai</span>
+            </div>
+            <div class="bd">
+              <div class="card" style="gap:4px">
+                <div class="kv">
+                  <span class="k">Sesi</span><span class="v">09:00–10:30</span>
+                  <span class="k">Hadir</span><span class="v">29 / 32</span>
+                  <span class="k">Menyelesaikan</span><span class="v">28</span>
+                </div>
+              </div>
+
+              <div class="card" style="gap:6px;border-color:var(--wf-dash)">
+                <div style="display:flex;gap:6px;align-items:center">
+                  <b style="font-family:var(--font-display);font-size:11px">Dedi Kurniawan</b>
+                  <span class="sp"></span>
+                  <span class="chip bad">tidak hadir</span>
+                </div>
+                <p class="sub">Tercatat tidak hadir pukul 07:32. Hubungi wali kelas bila menurut Anda ini keliru.</p>
+              </div>
+
+              <div class="inbox ok">Nilai belum diterbitkan. Laman ini tidak pernah menampilkan nilai — lihat pengumuman sekolah.</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div>
+        <p class="note">Untuk anak yang tidak hadir, <b>tidak ada angka sama sekali</b> — yang ada kalimat dan jalan keluarnya. Menampilkan "0 menit" atau "—" di baris ini akan dibaca sebagai tuduhan. Kalimat "nilai belum diterbitkan" ada supaya ketiadaan nilai tidak ditafsirkan sebagai nilai nol.</p>
+      </figure>
+
+      <!-- ---------------- 06 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">06</span>
+          <h3>Admin: menyalakan laman wali per kelas</h3>
+          <span class="path">/admin/kelas</span>
+        </div>
+        <div class="wf lg">
+          <div class="chrome">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">cbt.sekolah.sch.id/admin/kelas</span>
+            <span class="who">Admin</span>
+          </div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark">S</div>
+              <div class="ni"><i></i><span>Dashboard</span></div>
+              <div class="ni"><i></i><span>Tahun ajaran</span></div>
+              <div class="ni on"><i></i><span>Kelas</span></div>
+              <div class="ni"><i></i><span>Mata pelajaran</span></div>
+            </div>
+            <div class="main">
+              <div class="tbar">
+                <span class="sel ev">2026/2027 · Ganjil</span>
+                <span class="sp"></span>
+                <span class="btn">Tambah kelas</span>
+              </div>
+              <div class="body">
+                <div class="inbox">Menyalakan pantau wali membuat nama siswa kelas ini bisa dibaca siapa pun yang memegang tautannya. Rincian jam menuntut kode kelas. Foto hanya tampil bila saklar foto sekolah <b>dan</b> saklar kelas sama-sama menyala.</div>
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:1fr 46px 74px 46px"><span>Kelas</span><span>Siswa</span><span>Pantau wali</span><span>Foto</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 46px 74px 46px">
+                    <span class="c"><b>X-1</b></span><span class="c">32</span>
+                    <span class="c"><span class="chip ok">tayang</span></span>
+                    <span class="c"><span class="chip ok">ya</span></span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:1fr 46px 74px 46px">
+                    <span class="c"><b>X-2</b></span><span class="c">31</span>
+                    <span class="c"><span class="chip ok">tayang</span></span>
+                    <span class="c"><span class="chip mute">tidak</span></span>
+                  </div>
+                  <div class="tr" style="grid-template-columns:1fr 46px 74px 46px">
+                    <span class="c"><b>XI-3</b></span><span class="c">30</span>
+                    <span class="c"><span class="btn sm">Nyalakan</span></span>
+                    <span class="c"><span class="chip mute">tidak</span></span>
+                  </div>
+                </div>
+                <div class="box" style="gap:4px">
+                  <span class="lb">Tautan X-1</span>
+                  <div style="display:flex;gap:5px;align-items:center">
+                    <div class="input" style="flex:1"></div>
+                    <span class="btn sm">Salin</span>
+                    <span class="btn sm">Kode</span>
+                  </div>
+                  <span style="font-size:8px;color:var(--wf-dim)">Bagikan lewat grup wali kelas, bukan pengumuman sekolah.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note gap">Saklar per kelas, bukan satu saklar sekolah — dan tombol <b>Kode</b> menerbitkan ulang enam angka. Menerbitkan ulang <b>tidak</b> mengganti tautannya: tautan yang sudah ditempel di grup tetap berlaku, dan hanya kodenya yang berganti. Mengganti keduanya berarti tiga puluh orang tua harus menemukan tautan barunya di tengah ujian.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============================ G. FOTO & PENGAWAS ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>G</em> Pengawas dan foto berita acara</h2>
+      <p>Dua tambahan yang diminta, dan keduanya membawa akibat yang berbeda jauh. Nama pengawas sudah publik di laman lain. <strong>Foto berita acara belum — dan ia satu-satunya hal di rancangan ini yang bisa memuat wajah anak yang bukan anak siapa pun yang membukanya.</strong></p>
+    </header>
+
+    <div class="prose">
+      <p class="lead">Nama pengawas aman ditambahkan: <code>/papan/{slug}</code> sudah menayangkannya tanpa login sejak 2026-11-14. Yang perlu diputuskan adalah foto.</p>
+      <p>Foto berita acara adalah foto <strong>ruang</strong> — diambil Pengawas saat peserta sedang mengerjakan, dan wajah anak-anak itu ada di dalamnya. Tiga puluh orang tua membuka laman yang sama akan melihat wajah tiga puluh anak. Satu orang tua menyimpan tangkapan layarnya, dan foto itu beredar di grup yang tidak pernah disetujui siapa pun.</p>
+    </div>
+
+    <table class="cmp">
+      <thead>
+        <tr><th>Aspek foto</th><th>Keputusan</th><th>Alasan</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Kapan tampil</td><td class="mid">hanya sesudah kode</td><td>Sebelum kode, laman ini menampilkan nama saja. Foto langsung terlihat berarti tautan yang ditemukan siapa pun membuka wajah seluruh kelas.</td></tr>
+        <tr><td>Bisa dimatikan?</td><td class="yes">ya, per kelas</td><td><code>classes.wali_foto</code> boolean, bawaan <b>mati</b>. Wali kelas yang memutuskan, bukan Admin sekolah — ia yang tahu kelasnya.</td></tr>
+        <tr><td>Ukuran</td><td class="mid">maks 900 px, dikompres</td><td>Foto asli 2–5 MB. Laman ini dibuka orang tua dari kuota seluler, dan foto penuh tidak menambah satu pun informasi yang ia butuhkan.</td></tr>
+        <tr><td>Disajikan lewat</td><td class="yes">controller sendiri</td><td>Bukan <code>public/storage</code>. Berkasnya di disk <code>local</code>, dan satu-satunya jalan keluar adalah rute yang memeriksa kode — pola <code>BerkasLaporanController</code>.</td></tr>
+        <tr><td>Sisi foto yang ditampilkan</td><td class="mid">hanya <code>sesudah</code></td><td>Sejak 2026-11-12 lamannya hanya meminta satu foto dan itu sisi <code>sesudah</code> (labelnya "saat ujian berlangsung"). Sisi <code>sebelum</code> boleh ada di data lama — dan foto ruang kosong tidak menjawab pertanyaan orang tua.</td></tr>
+        <tr><td>Laporan belum <code>final</code></td><td class="no">tidak tampil</td><td>Berita acara <code>draft</code> masih bisa berubah, dan foto di dalamnya belum tentu yang disahkan pengawas.</td></tr>
+        <tr><td>Berkas berjenis lain</td><td class="no">tidak tampil</td><td>Hanya <code>image/*</code>. Tabel yang sama menyimpan berkas pendukung lain, dan laman ini tidak boleh menjadi jalan keluarnya.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <b>Penjaga keempat: foto adalah izin, bukan kelengkapan</b>
+      <p>Berbeda dari empat data lain yang selalu tampil begitu kodenya benar, foto harus <strong>dinyalakan dua kali</strong>: Admin mengizinkannya di tingkat sekolah (<code>schools.wali_foto_boleh</code>), lalu wali kelas menyalakannya untuk kelasnya. Dua saklar untuk satu hal terdengar berlebihan sampai satu sekolah memutuskan "kami tidak menayangkan wajah anak ke internet, titik" — dan yang dibutuhkan saat itu adalah satu tombol yang mematikan seluruhnya, bukan tiga puluh percakapan dengan wali kelas.</p>
+    </div>
+
+    <div class="callout">
+      <b>Alternatif yang ditolak, dan mengapa</b>
+      <p><b>Foto diburamkan wajahnya.</b> Menarik, tetapi tanpa pustaka pengenal wajah ia berarti memburamkan seluruh bagian atas foto — dan foto yang seluruhnya buram tidak membuktikan apa pun. Mendeteksi wajah di server menambah dependensi dan memproses ulang setiap unggahan.</p>
+      <p><b>Hanya foto ruang kosong (<code>sebelum</code>).</b> Aman, tetapi tidak menjawab pertanyaan yang dibawa orang tua: "anak saya benar-benar di ruang itu?". Foto ruang kosong bisa diambil kapan saja, termasuk sehari sebelumnya.</p>
+      <p><b>Foto tidak ditampilkan, hanya "ada / tidak ada".</b> Ini pilihan paling aman, dan ia tetap berguna: orang tua tahu pengawas sudah mengunggah bukti, dan yang ingin melihatnya datang ke sekolah. Bila pemilik produk memilih ini, seluruh bagian G tinggal menjadi satu baris chip — dan tidak ada satu pun perubahan teknis lain yang perlu dibatalkan.</p>
+    </div>
+  </section>
+
+  <!-- ============================ F. PERUBAHAN ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>F</em> Bidang perubahan</h2>
+      <p>Satu migrasi, satu service, satu controller, dua halaman. Tidak ada tabel baru dan tidak ada perubahan pada mesin ujian.</p>
+    </header>
+    <table class="cmp">
+      <thead>
+        <tr><th>Berkas / area</th><th>Perubahan</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>migrasi baru</td><td><code>classes.wali_slug</code> (unique nullable) · <code>classes.wali_code</code> (text, terenkripsi) · <code>classes.wali_foto</code> (boolean, bawaan <code>false</code>) · <code>schools.wali_foto_boleh</code> (boolean, bawaan <code>false</code>).</td></tr>
+        <tr><td><code>PemantauWali</code> (service, <code>Domain/Attendance</code>)</td><td>Baru. Menyusun daftar kelas, daftar siswa, dan rincian satu anak. Semua batas isi hidup di sini — satu tempat untuk diperiksa.</td></tr>
+        <tr><td><code>WaliPublikController</code></td><td>Baru. Tiga aksi. Resolve slug lewat <code>School</code>, lalu pakai <code>school_id</code> hasilnya secara eksplisit di setiap query.</td></tr>
+        <tr><td><code>WaliFotoController</code></td><td>Baru. Menyajikan foto berita acara satu ruang-sesi. <b>Rute terpisah</b> yang memeriksa kode dan kedua saklar sebelum mengalirkan berkas — pola <code>BerkasLaporanController</code>, bukan <code>public/storage</code>.</td></tr>
+        <tr><td><code>routes/web.php</code></td><td>Empat rute di luar <code>auth</code>, <code>POST</code>-nya dan rute foto diberi <code>throttle:wali-kelas</code>.</td></tr>
+        <tr><td><code>PembatasLaju</code></td><td><code>WALI</code>, <code>WALI_PER_IP</code>, <code>WALI_PER_KELAS</code>, <code>kunciWali()</code>.</td></tr>
+        <tr><td><code>Pages/Publik/Wali.tsx</code></td><td>Baru. Tanpa kerangka mana pun — pola <code>Publik/Papan.tsx</code>.</td></tr>
+        <tr><td><code>Pages/Publik/WaliKelas.tsx</code></td><td>Baru. Daftar + rincian yang dibuka di tempat, termasuk kartu pengawas dan foto.</td></tr>
+        <tr><td>Admin laman Kelas</td><td>Saklar tayang, saklar foto, tombol Kode, tombol Salin tautan.</td></tr>
+        <tr><td><code>KelayakanUjian</code>, <code>ExamAttempt</code>, <code>MesinUjian</code></td><td class="yes">tidak disentuh</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <b>Yang sengaja tidak dibangun</b>
+      <p>Tidak ada notifikasi, tidak ada akun orang tua, tidak ada login. Ketiganya menggoda dan ketiganya berarti pekerjaan yang jauh lebih besar — dan pada sekolah yang belum punya data kontak orang tua yang rapi, ketiganya berarti laman yang tidak dipakai. Tautan dan kode menjawab pertanyaan hari ini.</p>
+    </div>
+
+    <div class="callout warn">
+      <b>Keputusan yang perlu diambil pemilik produk</b>
+      <p><b>0. Foto berita acara ditampilkan, atau hanya chip "ada / tidak ada"?</b> Rekomendasi: <b>chip saja</b> pada versi pertama. Ia menjawab "pengawas sudah mengunggah bukti" tanpa menayangkan wajah tiga puluh anak ke internet, dan menyalakannya kelak tidak menuntut perubahan skema — kedua kolomnya sudah ada.</p>
+      <p><b>1.</b> Apakah jumlah pelanggaran ditampilkan ke orang tua? Rekomendasi: <b>ya, sebagai kalimat</b> ("tercatat 3 peringatan berpindah aplikasi"), bukan angka mentah — orang tua berhak tahu, tetapi angka tanpa penjelasan memicu panik yang tidak perlu.</p>
+      <p><b>2.</b> Apakah kelas bisa dibuka per EVENT, bukan per tahun ajaran? Rekomendasi: per kelas, seperti rancangan ini — satu tautan yang tetap berlaku sepanjang tahun lebih mudah dibagikan daripada satu tautan per ujian.</p>
+      <p><b>3.</b> Siapa yang boleh menyalakan: Admin saja, atau wali kelas sendiri? Bila wali kelas, ia butuh peran yang saat ini tidak ada (<code>Role</code> hanya Admin/Guru/Pengawas/Siswa), dan itu pekerjaan tersendiri.</p>
+      <p><b>4.</b> Apakah kode kelas perlu kedaluwarsa harian? Rekomendasi: <b>tidak</b> — kode yang berganti tiap hari akan dibagikan ulang tiap hari lewat grup, dan grup kelas adalah tempat pesan tenggelam.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>School CBT &middot; pantau wali kelas</span>
+    <span>rancangan + wireframe &middot; 6 plate &middot; 7 jebakan</span>
+    <span>sumber: PapanPengawas &middot; PantauPublik &middot; KelayakanUjian &middot; StatusPresensi &middot; ExamAttempt</span>
+  </footer>
+
+</div>

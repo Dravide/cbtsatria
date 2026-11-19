@@ -131,6 +131,10 @@ export default function EventShow({ event, kesiapan, langkah, angka, pantau_url,
             breadcrumb={`/admin/events · ${event.kode} · ${event.status_label}`}
             aksi={
                 <>
+                    <Link href={`/admin/events/${event.id}/peluncuran`}>
+                        <Tombol nada={ready && !ready.boleh ? 'pri' : 'sek'}>Peluncuran</Tombol>
+                    </Link>
+
                     <Link href={pantau_url}>
                         <Tombol>Papan pantau</Tombol>
                     </Link>

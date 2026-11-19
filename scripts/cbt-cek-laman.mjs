@@ -99,6 +99,20 @@ const UJIAN = process.env.CBT_UJIAN ?? '1';
  */
 const TAMU = ['/login', '/lupa-password', `/p/${SLUG}`];
 
+/**
+ * Laman wali - TANPA login, dan dibuka hanya bila kelasnya memang sudah
+ * dinyalakan.
+ *
+ * `CBT_WALI` adalah slug SEKOLAH (`schools.papan_slug`), sama dengan yang
+ * dipakai `/papan` dan `/pantau`. Kelas yang dibuka ditentukan lewat
+ * `CBT_WALI_KELAS` - id `classes.id`. Bila keduanya kosong, laman ini
+ * dilewati: sekolah yang belum menyalakan pantau wali memang tidak punya
+ * alamatnya, dan 404 di sini adalah jawaban yang BENAR.
+ */
+const WALI = process.env.CBT_WALI && process.env.CBT_WALI_KELAS
+    ? [`/wali/${process.env.CBT_WALI}`, `/wali/${process.env.CBT_WALI}/kelas/${process.env.CBT_WALI_KELAS}`]
+    : [];
+
 const ADMIN = [
     '/admin',
     '/admin/sekolah',
@@ -115,6 +129,12 @@ const ADMIN = [
     '/admin/events/create',
     `/admin/events/${EVENT}`,
     `/admin/events/${EVENT}/ubah`,
+    // Peluncuran - ditambahkan 2026-11-19. Dibuka untuk event yang LENGKAP
+    // dan event yang KOSONG sekaligus: laman ini justru paling berguna saat
+    // syaratnya belum beres, dan keadaan itulah yang paling mudah membuat
+    // komponennya melempar.
+    `/admin/events/${EVENT}/peluncuran`,
+    `/admin/events/${EVENT_KOSONG}/peluncuran`,
     `/admin/events/${EVENT}/panitia`,
     `/admin/events/${EVENT}/peserta`,
     `/admin/events/${EVENT}/mapel`,
@@ -239,6 +259,12 @@ async function main() {
 
     try {
         for (const jalur of TAMU) {
+            hasil.push(await periksa(halaman, jalur, { minimal: 200 }));
+        }
+
+        // Laman wali ikut di bagian tamu - ia di luar `auth`, dan yang
+        // membukanya memang tidak punya akun.
+        for (const jalur of WALI) {
             hasil.push(await periksa(halaman, jalur, { minimal: 200 }));
         }
 

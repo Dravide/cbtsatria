@@ -262,5 +262,31 @@ class AppServiceProvider extends ServiceProvider
                 ->response(fn () => response()
                     ->json(['pesan' => PembatasLaju::PESAN_PANTAU], 429)),
         ]);
+
+        // ----------------------------------------------------------------
+        // Kode kelas wali - POST /wali/{slug}/kelas/{kelas}
+        // ----------------------------------------------------------------
+        // Dua limit berdampingan, dan alasannya ada di `PembatasLaju`:
+        // per-IP menahan satu peramban yang menebak, per-KELAS menahan
+        // penebakan dari banyak IP untuk satu kelas. Yang kedua tidak bisa
+        // digantikan yang pertama.
+        //
+        // Galatnya kembali ke laman kelas dengan pesan, bukan JSON: yang
+        // memanggilnya formulir HTML biasa.
+        RateLimiter::for(PembatasLaju::WALI, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::WALI_PER_IP)
+                ->by(PembatasLaju::kunciWaliIp(
+                    (string) $request->route('slug'),
+                    (string) $request->ip(),
+                ))
+                ->response(fn () => back()->with('galat', PembatasLaju::PESAN_WALI)),
+
+            Limit::perMinute(PembatasLaju::WALI_PER_KELAS)
+                ->by(PembatasLaju::kunciWaliKelas(
+                    (string) $request->route('slug'),
+                    (string) $request->route('kelas'),
+                ))
+                ->response(fn () => back()->with('galat', PembatasLaju::PESAN_WALI_KELAS)),
+        ]);
     }
 }

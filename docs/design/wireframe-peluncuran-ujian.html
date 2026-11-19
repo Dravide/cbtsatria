@@ -1,0 +1,1064 @@
+<title>Peluncuran Ujian</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* ============================================================
+   Peluncuran ujian — audit jalur klik + wireframe ruang kendali
+   Token, primitif .wf/.wd, dan rangka disalin dari
+   wireframe-admin.html dan wireframe-susulan.html supaya berkas
+   ini terbaca sebagai satu sistem dengan keduanya.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-in{max-width:1180px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+.head{padding:30px 0 18px;display:grid;gap:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:2.05rem}
+.head .lede{color:var(--ink-2);max-width:76ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+/* ---------- seksi dokumen ---------- */
+.sec{margin-top:34px;display:grid;gap:16px}
+.sec > header{display:grid;gap:6px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.sec > header h2{font-size:1.32rem;display:flex;gap:10px;align-items:baseline}
+.sec > header em{font-style:normal;font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:.08em}
+.sec > header p{color:var(--ink-2);font-size:13.5px;max-width:78ch}
+.prose{display:grid;gap:11px;max-width:82ch;color:var(--ink-2);font-size:14px}
+.prose strong{color:var(--ink);font-weight:600}
+.prose ul{margin:0;padding-left:20px;display:grid;gap:5px}
+.prose li::marker{color:var(--accent)}
+.prose .lead{color:var(--ink)}
+
+/* ---------- kartu pilihan ---------- */
+.opt-grid{display:grid;gap:14px;grid-template-columns:1fr}
+@media (min-width:720px){.opt-grid{grid-template-columns:1fr 1fr}}
+.opt{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:14px 15px;display:grid;gap:9px;align-content:start}
+.opt.pick{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));box-shadow:0 0 0 1px var(--accent-soft) inset}
+.opt .oh{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.opt .oh h3{font-size:1rem}
+.opt .oh .badge{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-3)}
+.opt.pick .oh .badge{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.opt p{font-size:13px;color:var(--ink-2)}
+.opt .plus,.opt .minus{display:grid;gap:3px;font-size:12.5px;color:var(--ink-2)}
+.opt .plus b{color:var(--ok)} .opt .minus b{color:var(--bad)}
+.opt .plus div,.opt .minus div{display:grid;grid-template-columns:16px 1fr;gap:6px}
+.opt .plus b::before{content:"+"} .opt .minus b::before{content:"\2212"}
+
+/* ---------- tabel perbandingan ---------- */
+.cmp{width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.cmp th,.cmp td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp thead th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.cmp tbody tr:last-child td{border-bottom:0}
+.cmp td:first-child{color:var(--ink);font-weight:500;white-space:nowrap}
+.cmp .yes{color:var(--ok);font-weight:600}
+.cmp .no{color:var(--bad)}
+.cmp .mid{color:var(--warn)}
+
+/* ---------- langkah bernomor ---------- */
+.steps{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.step .num{font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--accent);background:var(--surface-2);display:grid;place-items:center;border-right:1px solid var(--line)}
+.step .cnt{padding:11px 14px;display:grid;gap:4px}
+.step .cnt b{font-family:var(--font-display);font-size:14px}
+.step .cnt p{font-size:13px;color:var(--ink-2)}
+.step .cnt .who{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- callout ---------- */
+.callout{border-left:3px solid var(--info);background:var(--info-bg);color:var(--ink-2);padding:11px 14px;border-radius:0 var(--r) var(--r) 0;display:grid;gap:5px;font-size:13.5px}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-bg)}
+.callout.bad{border-left-color:var(--bad);background:var(--bad-bg)}
+.callout.ok{border-left-color:var(--ok);background:var(--ok-bg)}
+.callout b{font-family:var(--font-display);color:var(--ink);font-size:13.5px}
+
+/* ---------- jebakan ---------- */
+.traps{display:grid;gap:12px}
+.trap{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);display:grid;grid-template-columns:minmax(0,1fr);overflow:hidden}
+@media (min-width:720px){.trap{grid-template-columns:220px minmax(0,1fr)}}
+.trap .t-l{background:var(--surface-2);padding:12px 14px;display:grid;gap:5px;align-content:start;border-bottom:1px solid var(--line)}
+@media (min-width:720px){.trap .t-l{border-bottom:0;border-right:1px solid var(--line)}}
+.trap .t-l .no{font-family:var(--font-mono);font-size:11px;color:var(--bad);letter-spacing:.06em}
+.trap .t-l b{font-family:var(--font-display);font-size:13.5px;line-height:1.25}
+.trap .t-r{padding:12px 14px;display:grid;gap:7px;font-size:13px;color:var(--ink-2)}
+.trap .t-r .fix{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:baseline}
+.trap .t-r .fix .k{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+.trap .t-r code{font-size:12px}
+
+/* ---------- kode ---------- */
+pre.code{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;overflow-x:auto;font-family:var(--font-mono);font-size:12px;line-height:1.55;color:var(--ink)}
+pre.code .cm{color:var(--ink-3)}
+pre.code .kw{color:var(--accent);font-weight:500}
+pre.code .st{color:var(--ok)}
+.code-cap{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- primitif wireframe ---------- */
+.wf{position:relative;background:var(--wf-bg);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);color:var(--wf-ink);font-size:10px;line-height:1.35;overflow:hidden;min-width:0}
+.wf.lg{font-size:11.5px}
+.chrome{display:flex;gap:8px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:6px;height:6px;border-radius:99px;background:var(--wf-dash);flex:none}
+.chrome .url{font-family:var(--font-mono);font-size:9px;color:var(--wf-dim);margin-left:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.chrome .who{margin-left:auto;font-size:9px;color:var(--wf-dim);white-space:nowrap}
+.grid2{display:grid;grid-template-columns:46px minmax(0,1fr);min-height:0}
+.wf.lg .grid2{grid-template-columns:150px minmax(0,1fr)}
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:8px 6px;display:grid;gap:3px;align-content:start;min-width:0}
+.rail .mark{width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);font:700 9px/16px var(--font-display);text-align:center;margin:0 auto 6px}
+.ni{display:flex;gap:6px;align-items:center;padding:4px 5px;border-radius:4px;font-size:9px;color:var(--wf-dim);min-width:0}
+.ni i{width:8px;height:8px;border-radius:2px;background:var(--wf-line);flex:none}
+.ni span{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf.lg .ni{font-size:11px;padding:5px 7px}
+.wf.lg .ni span{display:block}
+.ni.on{background:var(--wf-bg);color:var(--wf-ink);box-shadow:inset 2px 0 0 var(--accent)}
+.ni.on i{background:var(--accent)}
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+.tbar{display:flex;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.sel{font-size:9px;padding:2px 6px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-soft);color:var(--wf-ink);white-space:nowrap}
+.sel.ev{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.sp{margin-left:auto}
+.body{padding:9px;display:grid;gap:8px;align-content:start;min-width:0}
+.ph{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{font-family:var(--font-display);font-size:12px}
+.ph .sub{font-size:9px;color:var(--wf-dim)}
+.cols{display:grid;gap:7px;min-width:0}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.box{border:1px dashed var(--wf-dash);border-radius:5px;background:var(--wf-soft);padding:6px;display:grid;gap:5px;min-width:0}
+.box.solid{border-style:solid;border-color:var(--wf-hair);background:var(--wf-bg)}
+.box .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:5px;padding:6px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{display:grid;gap:0;border:1px solid var(--wf-hair);border-radius:5px;overflow:hidden;min-width:0}
+.tr{display:grid;gap:6px;align-items:center;padding:4px 7px;border-bottom:1px solid var(--wf-hair);min-width:0}
+.tr:last-child{border-bottom:0}
+.tr.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.tr .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px}
+.tr .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font:500 8.5px/1 var(--font-mono);padding:2px 6px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+.chip.vio{background:color-mix(in srgb,var(--accent) 12%,var(--wf-bg));color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.btn{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--wf-dash);background:var(--wf-bg);color:var(--wf-ink);white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.off{opacity:.5}
+.btn.sm{font-size:8px;padding:2px 6px}
+.field{display:grid;gap:3px}
+.field .lb{font-size:9px;color:var(--wf-dim)}
+.input{height:16px;border:1px solid var(--wf-dash);border-radius:4px;background:var(--wf-bg)}
+.input.ta{height:34px}
+.check{display:flex;gap:5px;align-items:center;font-size:9px;color:var(--wf-ink)}
+.check i{width:9px;height:9px;border:1px solid var(--wf-dash);border-radius:2px;flex:none}
+.check i.f{background:var(--accent);border-color:var(--accent)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--wf-hair);flex-wrap:wrap}
+.tab{font-size:9px;padding:4px 8px;color:var(--wf-dim);border-bottom:2px solid transparent}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.inbox{border-left:3px solid var(--info);background:var(--info-bg);color:var(--info);padding:6px 8px;border-radius:0 5px 5px 0;font-size:9px}
+.inbox.warn{border-left-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.inbox.bad{border-left-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.inbox.ok{border-left-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+
+/* ---------- galeri ---------- */
+.shots{display:grid;gap:22px;grid-template-columns:1fr}
+@media (min-width:820px){.shots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.shot{display:grid;gap:9px;min-width:0;align-content:start;margin:0}
+.shot.wide{grid-column:1/-1}
+.cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cap .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.08em}
+.cap h3{font-size:.95rem}
+.cap .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;font-size:13px;color:var(--ink-2);line-height:1.6}
+.note > * + *{margin-top:5px}
+.note.gap{border-left-color:var(--warn)}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13px}
+
+/* ---------- diagram ---------- */
+figure.diagram{margin:0;display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 14px}
+figure.diagram svg{width:100%;height:auto;display:block;color:var(--ink)}
+figure.diagram figcaption{font-size:12.5px;color:var(--ink-2);max-width:80ch}
+figure.diagram .dg-legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+figure.diagram .dg-legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+
+footer{border-top:1px solid var(--line);margin-top:34px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ peluncuran ujian</span></div>
+    <div class="r">
+      <span>audit + rancangan · 6 plate</span><span>role: Admin</span><span>draft 2026-11-19</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">Audit jalur klik + wireframe</div>
+    <h1>Menyalakan ujian butuh 9 klik di 4 laman</h1>
+    <p class="lede">Pertanyaan yang diajukan: <em>"saya perlu mengklik beberapa menu untuk memulai ujian"</em>. Jawabannya bukan sekadar "terlalu banyak". Dua belas prasyarat tersebar di delapan laman, dan satu di antaranya — <b>Tandai Siap</b> — terlihat opsional padahal meninggalkannya membuat event terkunci di Draft selamanya meski ujiannya sudah berjalan. Halaman ini mengukur jalur hari ini, menamai empat biayanya, dan menggambar satu laman yang menggantikan seluruh perjalanan itu.</p>
+    <div class="scope">
+      <span class="tag">9 klik · 4 laman · 12 syarat</span>
+      <span class="tag">satu bug: event terkunci Draft</span>
+      <span class="tag">usul: ruang kendali peluncuran</span>
+      <span class="tag">tanpa tabel baru</span>
+    </div>
+  </div>
+
+  <!-- ============================ A. JALUR HARI INI ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>A</em> Jalur hari ini, diukur dari kode</h2>
+      <p>Yang dihitung di sini bukan "rasanya lambat", melainkan permintaan HTTP yang benar-benar harus terjadi sebelum satu siswa bisa menekan <em>Mulai</em>. Semuanya dibaca dari <code>routes/admin.php</code>, <code>ExamJadwalController</code>, dan <code>SesiService</code>.</p>
+    </header>
+
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <div class="cnt">
+          <b>Buka daftar event, pilih satu</b>
+          <p><code>GET /admin/events</code> lalu <code>GET /admin/events/{id}</code>. Di sini tidak ada tombol apa pun yang menyalakan ujian.</p>
+          <span class="who">2 klik</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="cnt">
+          <b>Masuk <em>Jadwal &amp; sesi</em> lewat sidebar</b>
+          <p>Satu-satunya laman yang punya tombol <em>Tambah ujian</em> dan <em>Tambah sesi</em>. Ia tidak bisa dicapai dari tombol mana pun di Ringkasan.</p>
+          <span class="who">1 klik</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="cnt">
+          <b><em>Tambah ujian</em> — modal</b>
+          <p>Mapel, durasi, jumlah attempt, sakelar acak. <code>POST /events/{event}/ujian</code>. Hasilnya satu baris ujian <em>tanpa sesi</em> — belum bisa dinyalakan.</p>
+          <span class="who">1 klik + isi form</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">4</div>
+        <div class="cnt">
+          <b><em>Tambah sesi</em> — modal kedua</b>
+          <p>Tiga waktu (<code>access_opens_at</code>, <code>access_closes_at</code>, <code>hard_end_at</code>) plus pilih ruang. Sesi lahir berstatus <code>Draft</code>.</p>
+          <span class="who">1 klik + isi form</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">5</div>
+        <div class="cnt">
+          <b><em>Siapkan</em> pada baris sesi</b>
+          <p><code>Draft → Siap</code>. Membekukan paket soal, dan itu prasyarat teknis: tanpa langkah ini <em>Buka</em> selalu ditolak.</p>
+          <span class="who">1 klik</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">6</div>
+        <div class="cnt">
+          <b>Terbitkan token — <em>laman lain</em></b>
+          <p><code>/admin/events/{id}/token</code>. Rutenya terpisah dari Jadwal, dan penerbitannya ditolak bila ruangnya belum punya pengawas.</p>
+          <span class="who">1 klik navigasi + 1 klik</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">7</div>
+        <div class="cnt">
+          <b>Kembali ke Jadwal, tekan <em>Buka</em></b>
+          <p><code>Siap → Berjalan</code>. Inilah satu-satunya tombol yang benar-benar membuat siswa bisa masuk.</p>
+          <span class="who">1 klik navigasi + 1 klik</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <b>Dan itu jalur terpendek</b>
+      <p>Sembilan klik di atas mengandaikan <b>seluruh dua belas prasyarat sudah beres</b>. Bila belum, perjalanannya bercabang ke empat laman lain: <em>Penempatan</em> untuk menyebar peserta, <em>Pengawas</em> untuk menugaskan otomatis, <em>Paket soal</em> untuk memasang paket per mapel, dan <em>Kelas &amp; peserta</em> untuk menarik peserta. Masing-masing punya tombol sendiri, dan tidak satu pun memberi tahu bahwa ia adalah langkah berikutnya.</p>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 920 300" role="img" aria-label="Jalur hari ini: delapan laman berbeda dikunjungi untuk satu peluncuran, sementara dua belas syarat kesiapan tersebar di dalamnya.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+          <marker id="arAcc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+          </marker>
+        </defs>
+
+        <text x="20" y="26" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="var(--ink-3)" letter-spacing=".06em">LANGSUNG — WAJIB</text>
+
+        <rect x="20" y="40" width="132" height="46" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+        <text x="86" y="60" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="700" fill="currentColor">Daftar event</text>
+        <text x="86" y="76" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" fill="currentColor" opacity=".7">/admin/events</text>
+
+        <path d="M152,63 L182,63" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+
+        <rect x="184" y="40" width="132" height="46" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+        <text x="250" y="60" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="700" fill="currentColor">Ringkasan</text>
+        <text x="250" y="76" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" fill="currentColor" opacity=".7">/events/{id}</text>
+
+        <path d="M316,63 L346,63" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+
+        <rect x="348" y="34" width="166" height="58" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="431" y="56" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="700" fill="var(--accent)">Jadwal &amp; sesi</text>
+        <text x="431" y="72" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" fill="currentColor" opacity=".8">+ ujian → + sesi</text>
+        <text x="431" y="85" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" fill="currentColor" opacity=".8">Siapkan → Buka</text>
+
+        <path d="M514,63 L544,63" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+
+        <rect x="546" y="40" width="132" height="46" rx="8" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+        <text x="612" y="60" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="700" fill="currentColor">Token</text>
+        <text x="612" y="76" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" fill="currentColor" opacity=".7">/events/{id}/token</text>
+
+        <path d="M678,63 L708,63" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+
+        <rect x="710" y="40" width="190" height="46" rx="8" fill="var(--ok-bg)" stroke="var(--ok)" stroke-width="1.4"/>
+        <text x="805" y="60" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="700" fill="var(--ok)">Siswa bisa masuk</text>
+        <text x="805" y="76" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" fill="currentColor" opacity=".75">gerbang → kerjakan</text>
+
+        <text x="20" y="140" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="var(--ink-3)" letter-spacing=".06em">BERSYARAT — MENGGAGALKAN DIAM-DIAM</text>
+
+        <rect x="20" y="154" width="140" height="42" rx="7" fill="var(--surface)" stroke="var(--bad)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="90" y="172" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor">Kelas &amp; peserta</text>
+        <text x="90" y="186" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="var(--bad)">/peserta</text>
+
+        <rect x="172" y="154" width="140" height="42" rx="7" fill="var(--surface)" stroke="var(--bad)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="242" y="172" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor">Paket soal</text>
+        <text x="242" y="186" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="var(--bad)">/mapel</text>
+
+        <rect x="324" y="154" width="140" height="42" rx="7" fill="var(--surface)" stroke="var(--bad)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="394" y="172" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor">Penempatan</text>
+        <text x="394" y="186" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="var(--bad)">/penempatan</text>
+
+        <rect x="476" y="154" width="140" height="42" rx="7" fill="var(--surface)" stroke="var(--bad)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="546" y="172" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor">Pengawas</text>
+        <text x="546" y="186" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="var(--bad)">/pengawas</text>
+
+        <rect x="628" y="154" width="140" height="42" rx="7" fill="var(--surface)" stroke="var(--bad)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="698" y="172" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor">Ubah event</text>
+        <text x="698" y="186" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="var(--bad)">/ubah</text>
+
+        <rect x="780" y="154" width="120" height="42" rx="7" fill="var(--surface)" stroke="var(--bad)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="840" y="172" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9.5" fill="currentColor">Ruang</text>
+        <text x="840" y="186" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="var(--bad)">/admin/ruang</text>
+
+        <path d="M431,92 L431,120 L86,120 L86,150" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arAcc)"/>
+        <path d="M431,120 L242,120 L242,150" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <path d="M431,120 L394,120 L394,150" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <path d="M431,120 L546,120 L546,150" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3"/>
+
+        <text x="20" y="234" font-family="'IBM Plex Mono',monospace" font-size="10.5" fill="var(--ink-3)" letter-spacing=".06em">TOTAL</text>
+        <text x="20" y="258" font-family="Archivo,sans-serif" font-size="15" font-weight="700" fill="currentColor">8 laman · 12 syarat · 9 klik wajib</text>
+        <text x="20" y="278" font-family="'IBM Plex Mono',monospace" font-size="10" fill="var(--ink-3)">belum termasuk perbaikan bila ada syarat yang belum beres</text>
+      </svg>
+      <div class="dg-legend">
+        <span><i style="border-color:currentColor"></i>perjalanan wajib</span>
+        <span><i style="border-color:var(--accent)"></i>prasyarat yang menahan</span>
+      </div>
+      <figcaption>Baris atas adalah perjalanan yang selalu terjadi. Baris bawah adalah enam laman yang hanya dibuka bila sesuatu belum beres — dan admin baru tahu setelah tombolnya menolak.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================ B. EMPAT BIAYA ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>B</em> Empat biaya, bukan satu</h2>
+      <p>"Terlalu banyak klik" hanya satu dari empat. Tiga sisanya lebih mahal, dan tidak satu pun bisa diperbaiki dengan menghapus tombol.</p>
+    </header>
+
+    <div class="opt-grid">
+      <div class="opt">
+        <div class="oh"><h3>1. Prasyarat tersebar</h3><span class="badge">8 laman</span></div>
+        <p>Dua belas syarat kesiapan tinggal di delapan laman berbeda. <code>EventReadiness</code> sudah menghitungnya dan sudah memberi tautan perbaikan per baris — tetapi hanya di Ringkasan, dan hanya bila Admin membuka tab <em>Kesiapan</em>.</p>
+        <div class="minus">
+          <div><b></b><span>Tautan "perbaikan" menuntun keluar dari Ringkasan, dan tidak menuntun kembali.</span></div>
+          <div><b></b><span>Admin baru melihat syarat yang kurang setelah menekan tombol, bukan sebelumnya.</span></div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="oh"><h3>2. Dua modal berurutan</h3><span class="badge">ujian lalu sesi</span></div>
+        <p>Ujian dan sesinya adalah dua formulir terpisah, padahal tidak ada ujian yang berguna tanpa sesi. <em>Tambah sesi</em> bahkan dimatikan sampai ada ujian, dengan tooltip sebagai satu-satunya penjelasan.</p>
+        <div class="minus">
+          <div><b></b><span>Admin yang mengisi ujian lalu menutup peramban meninggalkan ujian tanpa sesi — tak terlihat, tak bisa dinyalakan.</span></div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="oh"><h3>3. Token di laman lain</h3><span class="badge">/token</span></div>
+        <p>Token menempel pada sesi, tetapi laman penerbitannya terpisah dari laman tempat sesinya dibuat. Penerbitan ditolak bila ruangnya belum punya pengawas — pesan yang benar, di laman yang salah.</p>
+        <div class="minus">
+          <div><b></b><span>Admin yang baru membuat sesi tidak punya petunjuk bahwa langkah berikutnya ada di menu lain.</span></div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="oh"><h3>4. Tidak ada "sekaligus"</h3><span class="badge">satu per baris</span></div>
+        <p><code>LangkahBerikut()</code> menggambar satu tombol per baris sesi: <em>Siapkan</em>, lalu <em>Buka</em>, lalu <em>Tutup</em>. Event dengan dua belas sesi berarti dua belas klik <em>Siapkan</em> dan dua belas klik <em>Buka</em>.</p>
+        <div class="minus">
+          <div><b></b><span><code>SesiService::siapkan()</code> dan <code>mulai()</code> sudah per-sesi; tidak ada jalur massal sama sekali.</span></div>
+          <div><b></b><span>Pada hari-H, membuka dua belas sesi satu per satu saat siswa sudah di depan pintu adalah waktu yang dihabiskan berdiri.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ C. BUG ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>C</em> Satu bug: event terkunci di Draft selamanya</h2>
+      <p>Ini temuan yang paling penting, dan ia bukan soal jumlah klik. Ia soal satu klik yang <strong>terlihat opsional</strong> padahal meninggalkannya merusak keadaan yang tidak bisa dipulihkan lewat UI.</p>
+    </header>
+
+    <div class="prose">
+      <p class="lead">Sebelas prasyarat lainnya hanya menunda. <strong>Tandai Siap</strong> melakukan sesuatu yang berbeda: ia memindahkan event dari <code>Draft</code> ke <code>Siap</code>, dan <code>Draft</code> <em>tidak punya jalan langsung ke <code>Berjalan</code></em>.</p>
+    </div>
+
+    <div class="code-cap">app/Domain/Event/Enums/EventStatus.php</div>
+    <pre class="code"><span class="cm">// Graf transisi — Draft dan Persiapan sama-sama menolak Berjalan.</span>
+self::Draft       =&gt; [self::Preparation, self::Cancelled],
+self::Preparation =&gt; [self::Draft, self::Ready, self::Cancelled],
+self::Ready       =&gt; [self::Ongoing, self::Cancelled],
+self::Ongoing     =&gt; [self::Completed, self::Cancelled],
+
+<span class="cm">// Diperiksa langsung:</span>
+<span class="cm">//   EventStatus::Draft-&gt;bolehPindahKe(EventStatus::Ongoing)       === false</span>
+<span class="cm">//   EventStatus::Preparation-&gt;bolehPindahKe(EventStatus::Ongoing) === false</span></pre>
+
+    <div class="code-cap">app/Domain/Exam/Services/SesiService.php — dipanggil <code>mulai()</code> dan <code>tutup()</code></div>
+    <pre class="code"><span class="kw">private function</span> pindahkanEvent(ExamSession $sesi, EventStatus $tujuan): <span class="kw">void</span>
+{
+    $event = $sesi-&gt;exam?-&gt;event;
+
+    <span class="kw">if</span> (! $event-&gt;status-&gt;bolehPindahKe($tujuan)) {
+        <span class="cm">// Bukan galat. Event yang sudah Berjalan ketika sesi kedua dibuka</span>
+        <span class="cm">// adalah keadaan normal …</span>
+        <span class="kw">return</span>;   <span class="cm">&lt;-- DIAM. Draft -&gt; Berjalan TIDAK diizinkan graf.</span>
+    }
+
+    $this-&gt;status-&gt;pindah($event, $tujuan);
+}</pre>
+
+    <div class="callout bad">
+      <b>Akibatnya, berurutan</b>
+      <p><b>1.</b> Admin melewati <em>Tandai Siap</em> — tombolnya mati bila ada syarat kurang, dan mudah disimpulkan "boleh dilewati". Sesi dibuat, disiapkan, dibuka. Siswa bisa masuk; <code>KelayakanUjian</code> tidak memeriksa status event.</p>
+      <p><b>2.</b> <code>mulai()</code> memanggil <code>pindahkanEvent(Ongoing)</code>. <code>Draft → Ongoing</code> tidak ada di graf, jadi fungsinya <b>kembali tanpa melakukan apa pun dan tanpa pesan</b>. Sesi berjalan; eventnya tetap <code>Draft</code>.</p>
+      <p><b>3.</b> <code>tutup()</code> memanggil <code>pindahkanEvent(Completed)</code>. <code>Draft → Completed</code> juga tidak ada. Event tetap <code>Draft</code> setelah seluruh ujiannya selesai.</p>
+      <p><b>4.</b> <code>PeringatanHariH</code> membaca <code>$event-&gt;status === EventStatus::Ongoing</code>. Peringatan hari-H tidak pernah muncul untuk event yang ujiannya sedang berjalan.</p>
+      <p><b>5.</b> Jalan keluarnya <em>bukan</em> <code>Draft → Persiapan</code>. Itu juga buntu: <code>Persiapan → Berjalan</code> tidak ada di graf (sudah diperiksa lewat tinker, <code>bolehPindahKe(Ongoing)</code> bernilai <code>false</code> untuk <b>keduanya</b>). Satu-satunya jalan adalah <code>Draft → Persiapan → Siap</code> — yaitu tombol yang tadi dilewati. Tidak ada tombol yang memberitahu hal itu.</p>
+    </div>
+
+    <div class="callout warn">
+      <b>Mengapa ini tidak tertangkap test</b>
+      <p><code>pindahkanEvent()</code> sengaja menelan kegagalan karena kasus sahnya nyata: event yang sudah <code>Berjalan</code> ketika sesi kedua dibuka tidak perlu dipindahkan lagi. Yang tidak dibedakan adalah <b>"sudah di tujuan"</b> dan <b>"tidak bisa mencapai tujuan"</b>. Keduanya masuk cabang <code>return</code> yang sama.</p>
+    </div>
+  </section>
+
+  <!-- ============================ D. USUL ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>D</em> Usul: satu ruang kendali, bukan satu tombol ajaib</h2>
+      <p>Yang salah hari ini bukan tombolnya, melainkan tidak adanya tempat yang menjawab <em>"apa lagi yang kurang, dan apa langkah berikutnya"</em>. Menambah tombol "Nyalakan Ujian" tanpa itu hanya memindahkan kebingungan ke dalam satu tombol yang gagal.</p>
+    </header>
+
+    <div class="opt-grid">
+      <div class="opt">
+        <div class="oh"><h3>Tombol "Nyalakan" di Ringkasan</h3><span class="badge">ditolak</span></div>
+        <p>Satu tombol besar di Ringkasan yang mengerjakan seluruh tujuh langkah sekaligus.</p>
+        <div class="minus">
+          <div><b></b><span>Gagal di tengah berarti setengah ujian beberapa sesi siap — keadaan yang lebih sulit dibaca daripada sekarang.</span></div>
+          <div><b></b><span>Tidak menjawab "apa yang kurang"; hanya menolak dengan satu kalimat.</span></div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="oh"><h3>Ruang kendali peluncuran</h3><span class="badge">dipilih</span></div>
+        <p>Satu laman yang memuat seluruh syarat, aksi perbaikan <em>di dalamnya</em>, dan tiga tombol massal. Ringkasan menautkannya sebagai satu-satunya langkah yang disarankan.</p>
+        <div class="plus">
+          <div><b></b><span>Syarat yang kurang terlihat <b>sebelum</b> menekan apa pun.</span></div>
+          <div><b></b><span><em>Tandai Siap</em> menjadi bagian dari alur, bukan pilihan yang bisa terlewat.</span></div>
+          <div><b></b><span>Aksi massal menghapus 24 klik pada event dua belas sesi.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <table class="cmp">
+      <thead>
+        <tr><th>Kebutuhan</th><th>Hari ini</th><th>Ruang kendali</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Melihat syarat yang kurang</td><td class="mid">tab Kesiapan, manual</td><td class="yes">selalu terbuka</td></tr>
+        <tr><td>Memperbaiki tanpa pindah laman</td><td class="no">tidak</td><td class="yes">aksi langsung di baris</td></tr>
+        <tr><td>Membuat ujian + sesi</td><td class="no">dua modal</td><td class="yes">satu modal</td></tr>
+        <tr><td>Menyiapkan 12 sesi</td><td class="no">12 klik</td><td class="yes">1 klik</td></tr>
+        <tr><td>Membuka 12 sesi</td><td class="no">12 klik</td><td class="yes">1 klik</td></tr>
+        <tr><td>Mencegah event terkunci Draft</td><td class="no">tidak</td><td class="yes">langkah wajib di alur</td></tr>
+        <tr><td>Tabel baru</td><td class="yes">nol</td><td class="yes">nol</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout ok">
+      <b>Yang sudah ada dan tidak perlu dibangun</b>
+      <p><code>EventReadiness::periksa()</code> sudah mengembalikan <code>butir[]</code> lengkap dengan <code>keadaan</code>, <code>keterangan</code>, dan <code>perbaikan</code>. <code>LangkahBerikut()</code> sudah tahu tombol mana yang benar untuk setiap status sesi. <code>SesiService::siapkan()</code> dan <code>mulai()</code> sudah idempoten secara alami karena keduanya memeriksa <code>bolehPindahKe()</code>. Ruang kendali merangkai ketiganya — ia tidak menambah aturan baru.</p>
+    </div>
+  </section>
+
+  <!-- ============================ E. WIREFRAME ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>E</em> Wireframe</h2>
+      <p>Enam plate. Plate 02–05 adalah laman baru; plate 06 adalah siswa, yang <strong>tidak berubah</strong> — dan justru itu buktinya bahwa perubahan ini milik konsol.</p>
+    </header>
+
+    <div class="shots">
+
+      <!-- ---------------- 01 ---------------- -->
+      <figure class="shot wide">
+        <div class="cap">
+          <span class="n">01</span>
+          <h3>Hari ini: tombol Nyalakan tidak ada di mana pun</h3>
+          <span class="path">/admin/events/{id}</span>
+        </div>
+        <div class="wf lg">
+          <div class="chrome">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">cbt.sekolah.sch.id/admin/events/4</span>
+            <span class="who">Admin</span>
+          </div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark">S</div>
+              <div class="ni"><i></i><span>Daftar event</span></div>
+              <div class="ni on"><i></i><span>Ringkasan</span></div>
+              <div class="ni"><i></i><span>Kepanitiaan</span></div>
+              <div class="ni"><i></i><span>Pengumuman</span></div>
+              <div class="ni"><i></i><span>Kelas &amp; peserta</span></div>
+              <div class="ni"><i></i><span>Paket soal</span></div>
+              <div class="ni"><i></i><span>Jadwal &amp; sesi</span></div>
+              <div class="ni"><i></i><span>Penempatan</span></div>
+              <div class="ni"><i></i><span>Pengawas</span></div>
+              <div class="ni"><i></i><span>Token</span></div>
+            </div>
+            <div class="main">
+              <div class="tbar">
+                <span class="sel ev">EV-2026-004</span>
+                <span class="btn">Papan pantau</span>
+                <span class="btn">Ubah</span>
+                <span class="btn pri">Tandai Siap</span>
+                <span class="sp"></span>
+                <span class="chip mute">persiapan</span>
+              </div>
+              <div class="body">
+                <div class="inbox warn">Tombol <b>Tandai Siap</b> mati — 3 syarat belum terpenuhi. Tidak ada tombol apa pun yang menyalakan ujian dari laman ini.</div>
+
+                <div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+                  <div class="kpi"><span class="lb">Peserta</span><b>1.265</b></div>
+                  <div class="kpi"><span class="lb">Ujian</span><b>0</b></div>
+                  <div class="kpi"><span class="lb">Kelas</span><b>33</b></div>
+                  <div class="kpi"><span class="lb">Ruang</span><b>33</b></div>
+                  <div class="kpi"><span class="lb">Pengawas</span><b>36</b></div>
+                </div>
+
+                <div class="tabs">
+                  <span class="tab on">ringkasan</span>
+                  <span class="tab">kesiapan <span class="chip bad">3</span></span>
+                </div>
+
+                <div class="tbl">
+                  <div class="tr th" style="grid-template-columns:1fr 70px 90px"><span>Syarat</span><span>Keadaan</span><span>Perbaikan</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 70px 90px"><span class="c">Jadwal ujian tersedia</span><span class="c"><span class="chip bad">belum</span></span><span class="c"><a href="#" style="color:var(--accent)">Jadwal &amp; sesi</a></span></div>
+                  <div class="tr" style="grid-template-columns:1fr 70px 90px"><span class="c">Paket soal ditetapkan</span><span class="c"><span class="chip bad">belum</span></span><span class="c"><a href="#" style="color:var(--accent)">Paket soal</a></span></div>
+                  <div class="tr" style="grid-template-columns:1fr 70px 90px"><span class="c">Token tersedia</span><span class="c"><span class="chip bad">belum</span></span><span class="c"><a href="#" style="color:var(--accent)">Jadwal &amp; sesi</a></span></div>
+                  <div class="tr" style="grid-template-columns:1fr 70px 90px"><span class="c">Peserta terdaftar</span><span class="c"><span class="chip ok">ok</span></span><span class="c">1.265 siswa</span></div>
+                  <div class="tr" style="grid-template-columns:1fr 70px 90px"><span class="c">Pengawas ditugaskan</span><span class="c"><span class="chip ok">ok</span></span><span class="c">36 orang</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note gap">Tiga tombol di kanan atas semuanya <b>tentang event</b>, tidak satu pun <b>tentang ujian</b>. Admin yang ingin menyalakan ujian harus menyimpulkan sendiri bahwa jawabannya ada di menu <em>Jadwal &amp; sesi</em> — dan menu itu tidak menyala, tidak berkedip, dan tidak menandai dirinya sebagai langkah berikutnya.</p>
+      </figure>
+
+      <!-- ---------------- 02 ---------------- -->
+      <figure class="shot wide">
+        <div class="cap">
+          <span class="n">02</span>
+          <h3>Ruang kendali: urutan, bukan daftar</h3>
+          <span class="path">/admin/events/{id}/peluncuran</span>
+        </div>
+        <div class="wf lg">
+          <div class="chrome">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">cbt.sekolah.sch.id/admin/events/4/peluncuran</span>
+            <span class="who">Admin</span>
+          </div>
+          <div class="grid2">
+            <div class="rail">
+              <div class="mark">S</div>
+              <div class="ni"><i></i><span>Daftar event</span></div>
+              <div class="ni"><i></i><span>Ringkasan</span></div>
+              <div class="ni on"><i></i><span>Peluncuran</span></div>
+              <div class="ni"><i></i><span>Kelas &amp; peserta</span></div>
+              <div class="ni"><i></i><span>Paket soal</span></div>
+              <div class="ni"><i></i><span>Jadwal &amp; sesi</span></div>
+              <div class="ni"><i></i><span>Penempatan</span></div>
+              <div class="ni"><i></i><span>Pengawas</span></div>
+              <div class="ni"><i></i><span>Token</span></div>
+            </div>
+            <div class="main">
+              <div class="tbar">
+                <span class="sel ev">EV-2026-004</span>
+                <span class="chip warn">persiapan</span>
+                <span class="sp"></span>
+                <span class="btn">Muat ulang status</span>
+              </div>
+              <div class="body">
+                <div class="ph">
+                  <b>Peluncuran ujian</b>
+                  <span class="sub">4 dari 4 langkah · siap dinyalakan</span>
+                </div>
+
+                <!-- langkah 1 -->
+                <div class="box solid" style="grid-template-columns:22px 1fr auto;align-items:center">
+                  <span class="chip ok">1</span>
+                  <div style="display:grid;gap:2px;min-width:0">
+                    <span style="font:600 10.5px var(--font-display)">Peserta &amp; ruang</span>
+                    <span style="font-size:8.5px;color:var(--wf-dim)">1.265 siswa · 33 kelas · 33 ruang · kursi cukup</span>
+                  </div>
+                  <span class="btn sm">Periksa</span>
+                </div>
+
+                <!-- langkah 2 -->
+                <div class="box solid" style="grid-template-columns:22px 1fr auto;align-items:center">
+                  <span class="chip ok">2</span>
+                  <div style="display:grid;gap:2px;min-width:0">
+                    <span style="font:600 10.5px var(--font-display)">Paket soal</span>
+                    <span style="font-size:8.5px;color:var(--wf-dim)">4 mapel · 42 butir rata-rata · semua terpasang</span>
+                  </div>
+                  <span class="btn sm">Buka</span>
+                </div>
+
+                <!-- langkah 3 -->
+                <div class="box solid" style="grid-template-columns:22px 1fr auto;align-items:center;border-color:var(--warn)">
+                  <span class="chip warn">3</span>
+                  <div style="display:grid;gap:3px;min-width:0">
+                    <span style="font:600 10.5px var(--font-display)">Jadwal, pengawas, token</span>
+                    <span style="font-size:8.5px;color:var(--wf-dim)">12 sesi · 12 ruang berpengawas · 0 bentrok · token belum terbit</span>
+                    <span style="font-size:8.5px;color:var(--warn)">Token bisa diterbitkan sekaligus sesudah sesinya disiapkan.</span>
+                  </div>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+                    <span class="btn sm">Lihat jadwal</span>
+                    <span class="btn sm">Siapkan 12 sesi</span>
+                    <span class="btn sm off" title="Terbitkan token setelah sesi disiapkan">Terbitkan token</span>
+                  </div>
+                </div>
+
+                <!-- langkah 4 -->
+                <div class="box solid" style="grid-template-columns:22px 1fr auto;align-items:center;border-color:var(--accent);background:var(--accent-soft)">
+                  <span class="chip vio">4</span>
+                  <div style="display:grid;gap:3px;min-width:0">
+                    <span style="font:600 10.5px var(--font-display);color:var(--accent)">Tandai event Siap — wajib</span>
+                    <span style="font-size:8.5px;color:var(--wf-ink)">
+                      Tanpa langkah ini event tidak pernah bisa berpindah ke Berjalan, meski ujiannya sudah dimulai.
+                    </span>
+                  </div>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+                    <span class="btn pri">Tandai Siap</span>
+                  </div>
+                </div>
+
+                <div class="inbox">
+                  Setelah Siap, tombol <b>Buka 12 sesi</b> muncul di sini. Siswa lalu bisa masuk pada jam yang dijadwalkan masing-masing sesi.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Urutannya bukan hiasan: <b>setiap langkah adalah prasyarat langkah berikutnya</b>. Token tidak bisa terbit sebelum ada ruang berpengawas; sesi tidak bisa disiapkan sebelum paket soal terpasang; event tidak bisa Siap sebelum semuanya lulus. Yang berubah dari hari ini hanyalah bahwa urutan itu <b>terlihat</b>.</p>
+      </figure>
+
+      <!-- ---------------- 03 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">03</span>
+          <h3>Langkah yang tertahan: perbaikan di tempat</h3>
+          <span class="path">keadaan · 2 syarat kurang</span>
+        </div>
+        <div class="wf">
+          <div class="chrome">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">…/peluncuran</span>
+          </div>
+          <div class="main">
+            <div class="tbar">
+              <span class="sel ev">EV-2026-004</span>
+              <span class="chip warn">persiapan</span>
+            </div>
+            <div class="body">
+              <div class="ph"><b>Peluncuran ujian</b><span class="sub">2 dari 4 langkah tertahan</span></div>
+
+              <div class="box solid" style="grid-template-columns:20px 1fr;align-items:start;border-color:var(--bad)">
+                <span class="chip bad">3</span>
+                <div style="display:grid;gap:4px;min-width:0">
+                  <span style="font:600 10px var(--font-display)">Jadwal, pengawas, token</span>
+                  <div class="tbl">
+                    <div class="tr" style="grid-template-columns:1fr auto"><span class="c">Tetapkan paket: Matematika</span><span class="c"><span class="btn sm">+ Paket</span></span></div>
+                    <div class="tr" style="grid-template-columns:1fr auto"><span class="c">2 ruang belum berpengawas</span><span class="c"><span class="btn sm">Tugaskan</span></span></div>
+                    <div class="tr" style="grid-template-columns:1fr auto"><span class="c">Halaman Matematika · sesi 3 bentrok</span><span class="c"><span class="btn sm">Lihat</span></span></div>
+                    <div class="tr" style="grid-template-columns:1fr auto"><span class="c">Token 12 sesi belum terbit</span><span class="c"><span class="btn sm off">Tertahan</span></span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="box solid" style="grid-template-columns:20px 1fr auto;align-items:center">
+                <span class="chip mute">4</span>
+                <div style="display:grid;gap:2px;min-width:0">
+                  <span style="font:600 10px var(--font-display);color:var(--wf-dim)">Tandai event Siap</span>
+                  <span style="font-size:8.5px;color:var(--wf-dim)">Menunggu langkah 3</span>
+                </div>
+                <span class="btn pri off">Tandai Siap</span>
+              </div>
+
+              <div class="inbox bad">Empat perkara, satu tempat. Tautan “Lihat” membuka laman rincinya di tab baru — kembali ke sini tanpa kehilangan posisi.</div>
+            </div>
+          </div>
+        </div>
+        <p class="note gap">Yang paling mahal hari ini bukan membuka laman Jadwal; ia <b>menemukan</b> bahwa ada yang kurang. Di sini kekurangannya berdiri di depan, beserta tombol perbaikannya — dan tautan yang membuka tab baru justru supaya Admin tidak tersesat kembali.</p>
+      </figure>
+
+      <!-- ---------------- 04 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">04</span>
+          <h3>Siap dinyalakan: satu tombol untuk dua belas sesi</h3>
+          <span class="path">keadaan · siap</span>
+        </div>
+        <div class="wf">
+          <div class="chrome">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">…/peluncuran</span>
+          </div>
+          <div class="main">
+            <div class="tbar">
+              <span class="sel ev">EV-2026-004</span>
+              <span class="chip ok">siap</span>
+              <span class="sp"></span>
+              <span class="btn">Papan pantau</span>
+            </div>
+            <div class="body">
+              <div class="ph"><b>Peluncuran ujian</b><span class="sub">semua langkah lulus</span></div>
+
+              <div class="box solid" style="border-color:var(--ok);background:var(--ok-bg)">
+                <span style="font:600 10px var(--font-display);color:var(--ok)">Semua 12 syarat terpenuhi</span>
+                <span style="font-size:8.5px;color:var(--wf-ink)">Event sudah Siap. Membuka sesi memindahkan event ke Berjalan secara otomatis.</span>
+              </div>
+
+              <div class="cols c3">
+                <div class="kpi"><span class="lb">Sesi</span><b>12</b></div>
+                <div class="kpi"><span class="lb">Ruang</span><b>12</b></div>
+                <div class="kpi"><span class="lb">Pengawas</span><b>36</b></div>
+              </div>
+
+              <div class="tbl">
+                <div class="tr th" style="grid-template-columns:1fr 62px 52px"><span>Waktu</span><span>Status</span><span></span></div>
+                <div class="tr" style="grid-template-columns:1fr 62px 52px"><span class="c mono">07:30–09:00 · 6 sesi</span><span class="c"><span class="chip info">siap</span></span><span class="c"><span class="btn sm">Buka</span></span></div>
+                <div class="tr" style="grid-template-columns:1fr 62px 52px"><span class="c mono">09:15–10:45 · 4 sesi</span><span class="c"><span class="chip info">siap</span></span><span class="c"><span class="btn sm">Buka</span></span></div>
+                <div class="tr" style="grid-template-columns:1fr 62px 52px"><span class="c mono">11:00–12:30 · 2 sesi</span><span class="c"><span class="chip info">siap</span></span><span class="c"><span class="btn sm">Buka</span></span></div>
+              </div>
+
+              <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+                <span class="btn pri">Buka 12 sesi sekarang</span>
+                <span class="btn">Buka hanya yang jamnya tiba</span>
+                <span class="sp"></span>
+                <span style="font-size:8px;color:var(--wf-dim)">token ikut aktif</span>
+              </div>
+
+              <div class="inbox">Sesi yang dibuka lebih awal tetap menolak siswa sampai <code>access_opens_at</code>-nya tiba — <b>Buka</b> mengizinkan pintu, bukan membukanya sebelum waktunya.</div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Dua tombol, dan bedanya nyata. <b>Buka sekarang</b> untuk sekolah yang membuka semua pintu pagi hari; <b>Buka yang jamnya tiba</b> untuk yang ingin event berpindah <em>Berjalan</em> tepat saat sesi pertama dimulai. Keduanya memanggil <code>SesiService::mulai()</code> yang sama, satu kali per sesi.</p>
+      </figure>
+
+      <!-- ---------------- 05 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">05</span>
+          <h3>Ringkasan: pita peluncuran di atas segalanya</h3>
+          <span class="path">/admin/events/{id}</span>
+        </div>
+        <div class="wf">
+          <div class="chrome">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">cbt.sekolah.sch.id/admin/events/4</span>
+            <span class="who">Admin</span>
+          </div>
+          <div class="main">
+            <div class="tbar">
+              <span class="sel ev">EV-2026-004</span>
+              <span class="btn pri">Peluncuran</span>
+              <span class="btn">Papan pantau</span>
+              <span class="btn">Ubah</span>
+              <span class="sp"></span>
+              <span class="chip warn">persiapan</span>
+            </div>
+            <div class="body">
+              <div class="inbox warn" style="border-left-color:var(--accent);background:var(--accent-soft);color:var(--accent)">
+                <b>2 langkah lagi untuk menyalakan ujian.</b> Jadwal &amp; token belum lengkap. <u>Buka peluncuran</u>
+              </div>
+
+              <div class="cols" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+                <div class="kpi"><span class="lb">Peserta</span><b>1.265</b></div>
+                <div class="kpi"><span class="lb">Ujian</span><b>4</b></div>
+                <div class="kpi"><span class="lb">Kelas</span><b>33</b></div>
+                <div class="kpi"><span class="lb">Ruang</span><b>33</b></div>
+                <div class="kpi"><span class="lb">Pengawas</span><b>36</b></div>
+              </div>
+
+              <div class="tabs">
+                <span class="tab on">ringkasan</span>
+                <span class="tab">kesiapan <span class="chip bad">2</span></span>
+              </div>
+              <div class="tbl">
+                <div class="tr th" style="grid-template-columns:1fr 60px"><span>Komponen</span><span>Keadaan</span></div>
+                <div class="tr" style="grid-template-columns:1fr 60px"><span class="c">Kelas &amp; peserta</span><span class="c"><span class="chip ok">lengkap</span></span></div>
+                <div class="tr" style="grid-template-columns:1fr 60px"><span class="c">Paket soal</span><span class="c"><span class="chip ok">lengkap</span></span></div>
+                <div class="tr" style="grid-template-columns:1fr 60px"><span class="c">Jadwal &amp; sesi</span><span class="c"><span class="chip bad">kurang</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Pitanya <b>di atas</b> KPI, bukan di bawah. Admin yang membuka laman ini untuk memeriksa peserta tidak sedang mencari status peluncuran — tetapi ia adalah satu-satunya yang perlu tahu bahwa ada dua langkah tersisa, dan ia hanya akan tahu bila kalimatnya lebih tinggi dari yang lain. Menggantikan <em>Tandai Siap</em> yang mati tanpa penjelasan di plate 01.</p>
+      </figure>
+
+      <!-- ---------------- 06 ---------------- -->
+      <figure class="shot">
+        <div class="cap">
+          <span class="n">06</span>
+          <h3>Siswa: tidak berubah</h3>
+          <span class="path">/siswa</span>
+        </div>
+        <div class="wf">
+          <div class="chrome">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">cbt.sekolah.sch.id/siswa</span>
+            <span class="who">Siswa</span>
+          </div>
+          <div class="main">
+            <div class="tbar"><span class="ph"><b>Jadwal saya</b></span></div>
+            <div class="body">
+              <div class="tbl">
+                <div class="tr th" style="grid-template-columns:1fr 70px 56px"><span>Ujian</span><span>Mulai</span><span>Status</span></div>
+                <div class="tr" style="grid-template-columns:1fr 70px 56px"><span class="c">Matematika · X</span><span class="c mono">07:30</span><span class="c"><span class="chip ok">siap dimulai</span></span></div>
+                <div class="tr" style="grid-template-columns:1fr 70px 56px"><span class="c">B. Indonesia · X</span><span class="c mono">09:15</span><span class="c"><span class="chip mute">besok</span></span></div>
+                <div class="tr" style="grid-template-columns:1fr 70px 56px"><span class="c">Fisika · XI</span><span class="c mono">11:00</span><span class="c"><span class="chip ok">siap</span></span></div>
+              </div>
+              <div class="inbox ok">Presensi Anda sudah diverifikasi Pengawas. Tekan ujian yang jamnya tiba untuk memasukkan token.</div>
+            </div>
+          </div>
+        </div>
+        <p class="note">Tidak ada satu pun perubahan di sisi siswa, dan itu memang tujuannya. <code>EventStatus::tampilKeSiswa()</code> sudah memuat <code>draft</code> sampai <code>selesai</code>; <code>KelayakanUjian</code> tidak membaca status event sama sekali. Seluruh persoalan di halaman ini milik konsol.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============================ F. JEBAKAN ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>F</em> Enam jebakan pelaksanaan</h2>
+      <p>Semuanya berasal dari kode yang ada hari ini, bukan dugaan. Yang pertama sudah dibahas di bagian C dan dicantumkan di sini supaya daftarnya utuh.</p>
+    </header>
+
+    <div class="traps">
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 01</span>
+          <b>Draft tidak punya jalan ke Berjalan</b>
+        </div>
+        <div class="t-r">
+          <p><code>pindahkanEvent()</code> menelan kegagalan secara diam-diam, dan <code>Draft → Ongoing</code> tidak ada di graf. Sesi berjalan, event tetap Draft, selamanya. Diperiksa: <code>Draft</code> <b>dan</b> <code>Persiapan</code> sama-sama menolak <code>Ongoing</code>, jadi satu-satunya jalan adalah lewat <code>Siap</code>.</p>
+          <div class="fix"><span class="k">Diterapkan 2026-11-19</span><span><b>Bukan</b> dengan menolak pembukaan sesi: siswa yang sudah di depan pintu tidak boleh ditahan oleh status administratif, dan percobaan pertama yang menolak memecahkan 36 test. Yang ditambahkan adalah <code>SesiService::eventTertinggal()</code> — penanya yang menjawab "apakah <code>pindahkanEvent()</code> tadi gagal", dan <code>mulaiBanyak()</code> menyebutkannya di pesan hasil. Grafnya tidak disentuh.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 02</span>
+          <b>Aksi massal harus bersinambung, bukan atomik</b>
+        </div>
+        <div class="t-r">
+          <p>“Buka 12 sesi” tidak boleh satu transaksi. Satu sesi yang ditolak <code>mulai()</code> — ruang tanpa pengawas — akan me-rollback sebelas yang sah, dan Admin melihat “gagal” tanpa tahu yang mana.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Per sesi, di dalam <code>DB::transaction</code> sendiri, lalu laporkan hasilnya berpasangan: <em>11 dibuka, 1 ditolak (R-07 belum berpengawas)</em>. Pola yang sama dengan <code>ImporPenggunaService::simpanBaris()</code>.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 03</span>
+          <b><code>siapkan()</code> membekukan paket — jangan diulang</b>
+        </div>
+        <div class="t-r">
+          <p><code>SesiService::siapkan()</code> memanggil <code>bekukanPaketMapel()</code> sebelum berpindah status. Tombol massal yang memanggilnya pada sesi yang <em>sudah</em> Siap akan ditolak <code>bolehPindahKe()</code> — benar — tetapi bila Admin menekannya pada sesi Draft <b>dan</b> Siap dalam satu daftar, hasilnya harus dilaporkan per baris, bukan sebagai satu kegagalan.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Saring dulu di server: hanya sesi berstatus <code>draft</code> yang masuk ke <code>siapkan()</code>. Yang sudah Siap dilewati dengan tenang, dan jumlahnya disebut di pesan sukses.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 04</span>
+          <b><code>mulai()</code> memindahkan event — urutannya penting</b>
+        </div>
+        <div class="t-r">
+          <p><code>mulai()</code> memanggil <code>pindahkanEvent(Ongoing)</code> <em>sebelum</em> menyetel sesi ke Berjalan, di dalam satu transaksi. Bila <code>EventStatusService::pindah()</code> melempar, seluruh pembukaan sesi ikut batal.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Jangan membungkus <code>pindahkanEvent</code> dengan try/catch di pemanggil baru. Bila peringatan ingin ditampilkan, kembalikan lewat nilai balik servis — bukan dengan meredam lemparan yang saat ini memang tidak pernah terjadi karena ada penjaga <code>bolehPindahKe()</code>.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 05</span>
+          <b>Kesiapan dihitung ulang, bukan disimpan</b>
+        </div>
+        <div class="t-r">
+          <p><code>EventReadiness::periksa()</code> menjalankan belasan kueri, termasuk <code>PemasanganPaket::jumlahButir()</code> per mapel. Memanggilnya di pita Ringkasan <b>dan</b> di ruang kendali <b>dan</b> di <code>langkahTersedia()</code> berarti tiga kali biaya yang sama dalam satu permintaan.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Hitung sekali per permintaan dan bagikan lewat satu instance <code>EventReadiness</code> — sudah singleton lewat container, tetapi <code>langkahTersedia()</code> punya <code>$laporan ??= </code> sendiri. Ruang kendali harus menerima hasil yang sama, bukan menghitungnya lagi.</span></div>
+        </div>
+      </div>
+
+      <div class="trap">
+        <div class="t-l">
+          <span class="no">JEBAKAN 06</span>
+          <b>“Buka” mengizinkan pintu, bukan membukanya</b>
+        </div>
+        <div class="t-r">
+          <p>Sesi berstatus <code>Berjalan</code> tetap menolak siswa sampai <code>access_opens_at</code>. Admin yang membuka seluruh sesi pagi hari akan melihat dua belas sesi berstatus berjalan dan siswa yang masih ditolak — dan menyimpulkan pintunya rusak.</p>
+          <div class="fix"><span class="k">Perbaikan</span><span>Kalimatnya ditulis di layar, bukan di dokumen: <em>“Sesi ini akan menerima siswa mulai 09:15.”</em> <code>KelayakanUjian::periksaWaktuSesi()</code> sudah memakai kalimat itu untuk siswa; yang belum ada adalah kalimat yang sama untuk Admin.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================ G. PERUBAHAN ============================ -->
+  <section class="sec">
+    <header>
+      <h2><em>G</em> Bidang perubahan</h2>
+      <p>Tidak ada tabel baru. Tidak ada migrasi. Yang ditambah adalah dua rute, satu laman, dan tiga aksi massal.</p>
+    </header>
+    <table class="cmp">
+      <thead>
+        <tr><th>Berkas / area</th><th>Perubahan</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>migrasi</td><td class="yes">tidak ada</td></tr>
+        <tr><td><code>routes/admin.php</code></td><td>Tiga rute: <code>GET …/peluncuran</code>, <code>POST …/peluncuran/siapkan</code>, <code>POST …/peluncuran/buka</code>. <b>Diterapkan.</b></td></tr>
+        <tr><td><code>EventPeluncuranController</code></td><td>Baru, di <code>Domain/Exam</code>. Merakit empat langkah dari <code>EventReadiness</code> — tidak menghitung syarat baru. <b>Diterapkan.</b></td></tr>
+        <tr><td><code>SesiService::siapkanBanyak()</code> / <code>mulaiBanyak()</code></td><td>Per sesi, transaksi sendiri, hasil berpasangan. <b>Diterapkan.</b></td></tr>
+        <tr><td><code>SesiService::eventTertinggal()</code></td><td>Baru. Menjawab "apakah <code>pindahkanEvent()</code> gagal" — pertanyaan yang dulu tidak pernah diajukan. <b>Diterapkan.</b></td></tr>
+        <tr><td><code>Event/Show.tsx</code></td><td>Tautan <em>Peluncuran</em> di baris aksi. <b>Diterapkan.</b></td></tr>
+        <tr><td><code>AdminLayout</code></td><td>Item menu <em>Peluncuran</em> setelah <em>Ringkasan</em>. <b>Diterapkan.</b></td></tr>
+        <tr><td><code>SesiService::pindahkanEvent()</code></td><td class="mid">Tidak diubah — graf dan perilakunya tetap. Yang ditambah hanya penanya di atas.</td></tr>
+        <tr><td><code>EventController::destroy()</code></td><td class="mid">Tidak diubah — lihat keputusan terbuka di bawah.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <b>Yang sengaja tidak disentuh</b>
+      <p><code>KelayakanUjian</code>, <code>ExamAttempt</code>, <code>MesinUjian</code>, portal pengawas, presensi, token, dan seluruh layar siswa. Semuanya sudah membaca <em>sesi</em>, bukan <em>event</em>, sehingga membuka sesi lewat satu tombol massal tidak mengubah satu pun perilakunya.</p>
+    </div>
+
+    <div class="callout warn">
+      <b>Keputusan yang perlu diambil pemilik produk</b>
+      <p><b>1.</b> Apakah <em>Tandai Siap</em> tetap boleh dilewati? Bila ya, jebakan 01 harus diberi peringatan yang terlihat. Bila tidak, <code>mulai()</code> sebaiknya menolak sesi pada event Draft — tetapi itu memutus alur “coba-coba” yang mungkin dipakai saat latihan.</p>
+      <p><b>2.</b> Apakah <em>Buka 12 sesi</em> boleh dijalankan pada event yang sudah <em>Berjalan</em>? Graf mengizinkan sesi baru dibuka kapan saja, tetapi membuka seluruhnya ulang setelah hari pertama adalah tindakan yang berbeda artinya.</p>
+      <p><b>3.</b> Apakah syarat hapus event (draft + tanpa ujian) dibuka seperti yang dibahas terpisah? Bila ya, ruang kendali harus ikut memuat tombol itu — dan menaruhnya di tempat yang tidak bisa salah tekan.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>School CBT &middot; peluncuran ujian</span>
+    <span>audit + rancangan &middot; 6 plate &middot; 6 jebakan</span>
+    <span>sumber: routes/admin.php &middot; ExamJadwalController &middot; SesiService &middot; EventReadiness &middot; EventStatus</span>
+  </footer>
+
+</div>

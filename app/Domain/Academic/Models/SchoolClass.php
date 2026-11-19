@@ -6,6 +6,7 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Concerns\BelongsToSchool;
 use App\Domain\Tenancy\Scopes\SchoolScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * "berganti TA berarti berganti daftar kelas, bukan menyaring daftar yang sama."
  */
 #[ScopedBy(SchoolScope::class)]
+#[Hidden(['wali_code'])]
 #[Fillable([
     'school_id',
     'academic_year_id',
@@ -32,12 +34,38 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'grade_level',
     'homeroom_teacher_id',
     'status',
+    'wali_slug',
+    'wali_code',
+    'wali_code_at',
+    'wali_foto',
 ])]
 class SchoolClass extends Model
 {
     use BelongsToSchool, HasFactory;
 
     protected $table = 'classes';
+
+    /**
+     * Laman pantau wali - `wireframe-pantau-wali.html`.
+     *
+     * `wali_code` dienkripsi, BUKAN di-hash: kode six-digit ini dibagikan
+     * wali kelas lewat grup, lalu Admin atau wali itu sendiri perlu bisa
+     * MEMBACANYA KEMBALI untuk membagikannya ulang. Alasan yang sama dengan
+     * `EventCommitteeMember::$code`.
+     *
+     * `[Hidden]` dipasang supaya serialisasi model tidak pernah membocorkan
+     * kode ke props Inertia mana pun yang kebetulan mengirim kelas utuh.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'wali_code' => 'encrypted',
+            'wali_code_at' => 'datetime',
+            'wali_foto' => 'boolean',
+        ];
+    }
 
     /** @return BelongsTo<AcademicYear, $this> */
     public function academicYear(): BelongsTo

@@ -10,10 +10,12 @@ use App\Domain\Academic\Services\PenempatanKelas;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
+use App\Domain\Tenancy\Models\School;
 use App\Support\TabelQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -107,6 +109,17 @@ class SchoolClassController
                 'wali' => $kelas->homeroomTeacher?->name,
                 'siswa' => (int) ($jumlahSiswa[$kelas->id] ?? 0),
                 'status' => $kelas->status,
+
+                // Laman pantau wali - `wireframe-pantau-wali.html`.
+                //
+                // Tiga prop, dan yang ketiga bukan hiasan: saklar foto
+                // HANYA benar bila sekolah mengizinkannya. Laman yang
+                // menyalakan tombolnya sendiri akan menampilkan tombol yang
+                // server tolak - dan tombol yang ditolak lebih buruk
+                // daripada tombol yang tidak ada.
+                'wali_slug' => $kelas->wali_slug,
+                'wali_tayang' => $kelas->wali_slug !== null,
+                'wali_foto' => (bool) $kelas->wali_foto,
             ]),
             // Daftar wali kelas dibatasi peran Teacher: menawarkan seluruh
             // pengguna berarti menawarkan siswa sebagai wali kelas, dan itu
@@ -122,10 +135,115 @@ class SchoolClassController
         ]);
     }
 
+    /**
+     * Nyalakan atau matikan pantau wali untuk satu kelas.
+     *
+     * =====================================================================
+     * Slug lahir di sini, dan hanya dari nama kelas
+     * =====================================================================
+     * Alamat internet yang bisa ditentukan peramban adalah alamat yang suatu
+     * hari diisi sesuatu yang bukan nama kelas. Pola dan alasannya sama
+     * dengan `PengaturanPapanController::update()` yang membangkitkan
+     * `schools.papan_slug`.
+     *
+     * Mematikan TIDAK menghapus slug maupun kodenya. Menghapusnya berarti
+     * alamat lama menjadi 404 selamanya, dan menyalakan kembali menghasilkan
+     * alamat baru yang harus ditempel ulang di grup wali kelas.
+     *
+     * Saklar foto diperiksa TERHADAP IZIN SEKOLAH: kelas tidak boleh
+     * menyalakan foto yang sekolahnya belum izinkan. Pesan penolakannya
+     * menyebut laman mana yang harus dibuka lebih dulu.
+     */
+    public function pantau(Request $request, SchoolClass $kelas, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('update', $kelas);
+
+        $data = $request->validate([
+            'tayang' => ['required', 'boolean'],
+            'foto' => ['nullable', 'boolean'],
+        ]);
+
+        $sekolah = School::findOrFail($kelas->school_id);
+        $tayang = (bool) $data['tayang'];
+        $foto = (bool) ($data['foto'] ?? false);
+
+        if ($foto && ! (bool) $sekolah->wali_foto_boleh) {
+            return back()->with(
+                'galat',
+                'Sekolah ini belum mengizinkan foto berita acara tayang di laman wali. '.
+                'Nyalakan izinnya lebih dulu di Pengaturan → Papan publik.',
+            );
+        }
+
+        $kolom = ['wali_foto' => $tayang && $foto];
+
+        if ($tayang && $kelas->wali_slug === null) {
+            $kolom['wali_slug'] = $this->slugUnik($kelas);
+        }
+
+        $kelas->forceFill($kolom)->save();
+
+        $logger->log($tayang ? 'Menyalakan pantau wali' : 'Mematikan pantau wali', $kelas, [
+            'kelas' => $kelas->name,
+            'foto' => $kolom['wali_foto'],
+        ]);
+
+        return back()->with('sukses', $tayang
+            ? "Pantau wali kelas {$kelas->name} dinyalakan."
+            : "Pantau wali kelas {$kelas->name} dimatikan.");
+    }
+
+    /**
+     * Terbitkan ulang kode kelas - enam angka, terenkripsi.
+     *
+     * Menerbitkan ulang TIDAK mengganti slug: tautan yang sudah ditempel di
+     * grup tetap berlaku, dan hanya kodenya yang berganti. Mengganti
+     * keduanya berarti tiga puluh orang tua harus menemukan tautan barunya
+     * di tengah ujian.
+     */
+    public function kodeWali(SchoolClass $kelas, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('update', $kelas);
+
+        if ($kelas->wali_slug === null) {
+            return back()->with('galat', 'Nyalakan pantau wali lebih dulu sebelum menerbitkan kode.');
+        }
+
+        $kode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $kelas->forceFill(['wali_code' => $kode, 'wali_code_at' => now()])->save();
+
+        $logger->log('Menerbitkan kode pantau wali', $kelas, ['kelas' => $kelas->name]);
+
+        // Kode dikirim balik lewat flash supaya Admin bisa langsung
+        // menyalinnya. Ia TIDAK ikut di props daftar: kolomnya `[Hidden]`
+        // dan laman tidak pernah menerimanya dalam keadaan biasa.
+        return back()->with('sukses', "Kode pantau wali {$kelas->name}: {$kode}");
+    }
+
+    /**
+     * Slug unik untuk satu kelas.
+     *
+     * Empat huruf acak di belakang, pola yang sama dengan
+     * `PapanPengawas::slugUnik()`: slug yang hanya dibangkitkan dari nama
+     * kelas akan bertabrakan pada dua sekolah dengan "X-1", dan rute publik
+     * ini di-resolve TANPA konteks tenant - sehingga tabrakan berarti laman
+     * sekolah lain yang tayang.
+     */
+    private function slugUnik(SchoolClass $kelas): string
+    {
+        $awalan = Str::slug($kelas->name) ?: 'kelas';
+
+        do {
+            $slug = Str::limit($awalan, 40, '').'-'.Str::lower(Str::random(4));
+        } while (SchoolClass::query()->withoutGlobalScopes()->where('wali_slug', $slug)->exists());
+
+        return $slug;
+    }
+
     public function store(Request $request, ActivityLogger $logger): RedirectResponse
     {
         Gate::authorize('create', SchoolClass::class);
-
         $data = $request->validate([
             'academic_year_id' => ['required', 'integer'],
             'name' => ['required', 'string', 'max:40'],

@@ -5,6 +5,8 @@ use App\Domain\Attendance\Http\Controllers\PantauPublikController;
 use App\Domain\Attendance\Http\Controllers\PapanPublikController;
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
 use App\Domain\Attendance\Http\Controllers\Siswa\HadirSiswaController;
+use App\Domain\Attendance\Http\Controllers\WaliFotoController;
+use App\Domain\Attendance\Http\Controllers\WaliPublikController;
 use App\Domain\Identity\Http\Controllers\Auth\LoginController;
 use App\Domain\Identity\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\IdentitasController;
@@ -215,6 +217,51 @@ Route::get('/pantau/{slug}/event/{event}/ruang/{ruang}', [PantauPublikController
     ->whereNumber(['event', 'ruang'])
     ->middleware('throttle:'.PembatasLaju::PANTAU)
     ->name('pantau.event.ruang');
+
+/*
+|--------------------------------------------------------------------------
+| Pantau wali per kelas - `/wali/{slug}` dan `/wali/{slug}/kelas/{kelas}`
+|--------------------------------------------------------------------------
+| Ditambahkan 2026-11-19. Menjawab pertanyaan orang tua pada hari ujian:
+| "anak saya sudah masuk belum, mulai jam berapa, berapa lama mengerjakan".
+| Sampai sekarang pertanyaan itu hanya bisa dijawab dengan menelepon wali
+| kelas - yang sedang mengurus tiga puluh anak lain.
+|
+| Di luar `auth`, dan BATAS ISINYA berbeda dari tiga laman publik lain:
+| laman ini menyebut NAMA ANAK. Karena itu tiga penjaganya:
+|
+|   1. `classes.wali_slug` NULL berarti kelasnya tidak punya alamat sama
+|      sekali - rute yang tidak pernah lahir tidak bisa ditebak.
+|   2. Daftar nama dan ruang boleh terbuka; JAM hanya sesudah kode kelas
+|      benar. Yang menuntut kode adalah yang bisa difoto lalu disebar.
+|   3. NILAI tidak pernah dikirim, dalam bentuk apa pun - lihat
+|      `PemantauWali`.
+|
+| Slug SEKOLAH (`schools.papan_slug`) dipakai bersama `/papan` dan
+| `/pantau`: satu sekolah satu alamat publik, bukan tiga yang bisa berbeda.
+| Kelas yang dibuka dipilih per kelas di `/admin/kelas`.
+|
+| `throttle:wali-kelas` hanya pada POST. Yang dibatasi adalah percobaan
+| KODE, bukan pembacaan daftar.
+*/
+Route::get('/wali/{slug}', [WaliPublikController::class, 'tampilkan'])
+    ->name('wali.publik');
+Route::get('/wali/{slug}/kelas/{kelas}', [WaliPublikController::class, 'kelas'])
+    ->whereNumber('kelas')
+    ->name('wali.kelas');
+Route::post('/wali/{slug}/kelas/{kelas}', [WaliPublikController::class, 'buka'])
+    ->whereNumber('kelas')
+    ->middleware('throttle:'.PembatasLaju::WALI)
+    ->name('wali.kelas.buka');
+
+// Foto berita acara - diperiksa SENDIRI, termasuk kodenya. Lima syaratnya
+// ada di `WaliFotoController`; yang pertama adalah kode kelas, karena itu
+// satu-satunya yang membedakan orang tua dari orang yang menemukan
+// tautannya.
+Route::get('/wali/{slug}/foto/{berkas}', [WaliFotoController::class, 'tampilkan'])
+    ->whereNumber('berkas')
+    ->middleware('throttle:'.PembatasLaju::PANTAU)
+    ->name('wali.foto');
 
 /*
 |--------------------------------------------------------------------------

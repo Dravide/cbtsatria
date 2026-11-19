@@ -205,6 +205,95 @@ class SesiService
     }
 
     /**
+     * Event yang tertinggal dari sesinya, atau `null` bila tidak ada.
+     *
+     * =====================================================================
+     * Mengapa ini ADA, dan mengapa bukan penolakan
+     * =====================================================================
+     * `mulai()` sengaja TIDAK menolak sesi pada event yang belum Siap.
+     * Menolaknya berarti siswa yang sudah duduk di depan pintu ditahan oleh
+     * keadaan administratif yang tidak bisa diperbaiki pengawas dari sana -
+     * dan momen terburuk untuk menolak adalah hari-H. Membuka sesi tetap
+     * harus berhasil.
+     *
+     * Yang tidak boleh terjadi adalah kegagalannya TIDAK TERLIHAT. Sampai
+     * 2026-11-19 `pindahkanEvent()` kembali tanpa sepatah kata bila graf
+     * status menolak tujuannya, sehingga `Draft -> Berjalan` (yang memang
+     * tidak ada di graf) meninggalkan event di Draft selamanya: `tutup()`
+     * tidak bisa memindahkannya ke `Selesai`, dan `PeringatanHariH` - yang
+     * membaca `status === Ongoing` - tidak pernah berbunyi.
+     *
+     * Method ini menjawab persis pertanyaan yang dulu tidak pernah diajukan:
+     * "apakah `pindahkanEvent()` tadi GAGAL?". Isinya cermin dari
+     * `pindahkanEvent()`, dan bukan perkiraan: kondisinya sama, urutannya
+     * sama, hanya nilai kembaliannya yang berbeda.
+     *
+     * =====================================================================
+     * Sesi `Siap` menjawab `null`
+     * =====================================================================
+     * Sesi yang belum dibuka tidak menuntut apa pun dari eventnya - Admin
+     * masih boleh memindahkannya sendiri lewat laman Event. Yang dilaporkan
+     * hanya sesi yang SUDAH berjalan (dan sesi terakhir yang sudah ditutup),
+     * karena hanya pada keduanya "event yang tertinggal" berarti sesuatu.
+     *
+     * @return EventStatus|null Tujuan yang gagal dicapai, atau null.
+     */
+    public function eventTertinggal(ExamSession $sesi): ?EventStatus
+    {
+        $tujuan = match ($sesi->status) {
+            StatusSesi::Berjalan => EventStatus::Ongoing,
+            StatusSesi::Selesai => EventStatus::Completed,
+            default => null,
+        };
+
+        if ($tujuan === null) {
+            return null;
+        }
+
+        // Sesi terakhir belum ditutup: event memang belum seharusnya pindah.
+        // Syarat yang sama persis dengan `tutup()` sebelum memanggil
+        // `pindahkanEvent()`.
+        if ($tujuan === EventStatus::Completed && ! $this->semuaTuntas($sesi->exam)) {
+            return null;
+        }
+
+        $event = $sesi->exam?->event;
+
+        // Sudah di tujuan, atau tidak punya event - dua-duanya bukan
+        // ketertinggalan. `pindahkanEvent()` juga melewati keduanya.
+        if ($event === null || $event->status === $tujuan) {
+            return null;
+        }
+
+        // Masih bisa pindah berarti `pindahkanEvent()` belum jalan (mis.
+        // transaksi yang gagal sesudahnya), bukan bahwa grafnya menolak.
+        // Keduanya dilaporkan, sebab akibatnya bagi Admin sama: statusnya
+        // belum berpindah.
+        return $tujuan;
+    }
+
+    /**
+     * Kalimat yang dibaca Admin saat eventnya tertinggal.
+     *
+     * Ditulis di sini, bukan di controller, supaya layar dan pesan tidak
+     * bisa berbeda: yang menyebut sebabnya juga yang mengetahui grafnya.
+     */
+    public function pesanEventTertinggal(ExamSession $sesi): ?string
+    {
+        $tujuan = $this->eventTertinggal($sesi);
+
+        if ($tujuan === null) {
+            return null;
+        }
+
+        $event = $sesi->exam?->event;
+
+        return "Sesi {$sesi->label()} berjalan, tetapi event {$event?->name} masih berstatus "
+            ."{$event?->status->label()}. Tandai event Siap di laman Event supaya statusnya ikut berpindah - "
+            .'tanpa itu eventnya tidak akan pernah tercatat Berjalan maupun Selesai.';
+    }
+
+    /**
      * Tutup sesi: ujian benar-benar berhenti.
      *
      * Sesi terakhir menutup eventnya. Yang menentukan "terakhir" bukan
@@ -228,6 +317,149 @@ class SesiService
 
             return $sesi->refresh();
         });
+    }
+
+    /* --------------------------------------------------- Aksi massal */
+
+    /**
+     * Siapkan seluruh sesi yang masih `Draft`, lalu laporkan per sesi.
+     *
+     * =====================================================================
+     * Per sesi di transaksinya sendiri, dan itu bukan kehati-hatian
+     * =====================================================================
+     * Satu transaksi untuk dua belas sesi berarti satu paket soal yang belum
+     * berisi butir - `PembekuPaket` melempar `ValidationException` - membatalkan
+     * sebelas sesi yang sebenarnya sudah siap. Admin lalu membaca "gagal"
+     * tanpa tahu yang mana, dan mengulanginya menghasilkan kegagalan yang
+     * sama.
+     *
+     * Pola yang dipakai sama dengan `ImporPenggunaService::simpanBaris()`:
+     * tiap baris berdiri sendiri, hasilnya berpasangan, dan yang gagal
+     * membawa sebabnya.
+     *
+     * =====================================================================
+     * Hanya sesi `Draft` yang disentuh
+     * =====================================================================
+     * Sesi yang sudah `Siap` atau lebih jauh DILEWATI dengan tenang, bukan
+     * dilaporkan sebagai galat: Admin yang menekan tombol ini pada jadwal
+     * setengah jadi sedang menyelesaikan pekerjaan, bukan mengulanginya.
+     * Tanpa penyaringan ini, `siapkan()` akan melempar untuk setiap sesi yang
+     * sudah siap dan pesannya terbaca seperti tombolnya rusak.
+     *
+     * @param  iterable<ExamSession>  $sesi
+     * @return array{berhasil: int, dilewati: int, gagal: array<int, array{sesi: string, pesan: string}>}
+     */
+    public function siapkanBanyak(iterable $sesi): array
+    {
+        $berhasil = 0;
+        $dilewati = 0;
+        $gagal = [];
+
+        foreach ($sesi as $satu) {
+            if ($satu->status !== StatusSesi::Draft) {
+                $dilewati++;
+
+                continue;
+            }
+
+            try {
+                $this->siapkan($satu);
+                $berhasil++;
+            } catch (DomainException|ValidationException $e) {
+                $gagal[] = ['sesi' => $satu->label(), 'pesan' => $e->getMessage()];
+            }
+        }
+
+        return ['berhasil' => $berhasil, 'dilewati' => $dilewati, 'gagal' => $gagal];
+    }
+
+    /**
+     * Buka seluruh sesi yang masih `Siap`, lalu laporkan per sesi.
+     *
+     * =====================================================================
+     * Yang dibuka hanya yang sudah Siap
+     * =====================================================================
+     * Sesi `Draft` sengaja DILEWATI, bukan disiapkan diam-diam lebih dulu.
+     * Menyiapkan lalu membuka akan membekukan paket soal tanpa Admin pernah
+     * melihat layar pratinjaunya - dan pembekuan itu tidak bisa dibatalkan
+     * setelah sesinya berjalan. Yang ingin membuka seluruhnya menyiapkan
+     * lebih dulu, dan laman peluncuran menyebutkan bahwa itu langkah
+     * sebelumnya.
+     *
+     * =====================================================================
+     * Kegagalan pertama TIDAK menghentikan sisanya
+     * =====================================================================
+     * Ruang yang belum berpengawas adalah satu-satunya penolakan yang lazim
+     * di sini, dan ia milik SATU ruang - bukan milik seluruh jadwal. Membuka
+     * sebelas sesi lalu berhenti pada yang kedua belas berarti Admin harus
+     * menekan tombol yang sama lagi dan membaca ulang pesan yang sama.
+     *
+     * =====================================================================
+     * `tertinggal` adalah hasil yang BERHASIL, dan tetap harus dibaca
+     * =====================================================================
+     * Sesi yang terbuka pada event Draft membuka pintunya dengan benar -
+     * siswanya boleh masuk - tetapi eventnya tidak ikut berpindah, dan itu
+     * kerusakan yang tidak berbunyi. Ia dihitung `berhasil` (karena memang
+     * berhasil), DAN dicatat di `tertinggal` supaya Admin tahu apa yang
+     * masih harus ia kerjakan di laman Event.
+     *
+     * @param  iterable<ExamSession>  $sesi
+     * @return array{berhasil: int, dilewati: int, gagal: array<int, array{sesi: string, pesan: string}>, tertinggal: array<int, string>}
+     */
+    public function mulaiBanyak(iterable $sesi): array
+    {
+        $berhasil = 0;
+        $dilewati = 0;
+        $gagal = [];
+        $tertinggal = [];
+
+        foreach ($sesi as $satu) {
+            if ($satu->status === StatusSesi::Berjalan) {
+                // Sudah berjalan - keadaan normal untuk sesi kedua yang
+                // dibuka belakangan, dan bukan kegagalan.
+                $dilewati++;
+
+                continue;
+            }
+
+            if ($satu->status !== StatusSesi::Siap) {
+                $dilewati++;
+
+                continue;
+            }
+
+            try {
+                $this->mulai($satu);
+                $berhasil++;
+
+                // Dibaca dari model yang sudah disegarkan: `mulai()` mengubah
+                // dua baris (sesi dan eventnya), dan instance yang dipegang
+                // pemanggil masih memuat status sebelum keduanya.
+                $segar = $satu->refresh();
+                $sebabGagal = $this->eventTertinggal($segar);
+
+                if ($sebabGagal !== null) {
+                    // Sekali saja, walau dua belas sesi tertinggal bersamaan:
+                    // sebabnya satu - eventnya belum Siap - dan dua belas
+                    // salinan kalimat yang sama berhenti dibaca. Kuncinya
+                    // adalah TUJUAN yang gagal dicapai, bukan pesannya:
+                    // kalimatnya menyebut label sesi, jadi dua sesi
+                    // menghasilkan dua teks berbeda untuk satu sebab.
+                    $tertinggal[$sebabGagal->value] ??= $this->pesanEventTertinggal($segar) ?? '';
+                }
+            } catch (DomainException $e) {
+                $gagal[] = ['sesi' => $satu->label(), 'pesan' => $e->getMessage()];
+            }
+        }
+
+        return [
+            'berhasil' => $berhasil,
+            'dilewati' => $dilewati,
+            'gagal' => $gagal,
+            // Nilai, bukan kunci: kuncinya nilai enum, yang tidak berarti apa
+            // pun bagi pemanggil.
+            'tertinggal' => array_values(array_filter($tertinggal)),
+        ];
     }
 
     /**
@@ -479,6 +711,13 @@ class SesiService
             // Bukan galat. Event yang sudah Berjalan ketika sesi kedua dibuka
             // adalah keadaan normal, dan event yang sudah Selesai ketika sesi
             // ketiga ditutup tidak perlu dipindahkan lagi.
+            //
+            // Yang TIDAK boleh terjadi adalah keadaan ini lolos tanpa jejak:
+            // `Draft -> Berjalan` juga sampai ke sini, dan akibatnya eventnya
+            // tertinggal selamanya. Karena itu penanya tersendiri -
+            // `eventTertinggal()` - dan pemanggil yang ingin memberi tahu
+            // Admin memakainya. Menolak `mulai()` di sini bukan pilihan:
+            // siswa sudah di depan pintu.
             return;
         }
 

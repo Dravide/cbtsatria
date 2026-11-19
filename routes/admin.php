@@ -25,6 +25,7 @@ use App\Domain\Event\Http\Controllers\EventParticipantController;
 use App\Domain\Event\Http\Controllers\EventSoalController;
 use App\Domain\Event\Http\Controllers\EventSubjectController;
 use App\Domain\Event\Http\Controllers\PemasanganPaketController;
+use App\Domain\Exam\Http\Controllers\EventPeluncuranController;
 use App\Domain\Exam\Http\Controllers\ExamJadwalController;
 use App\Domain\Exam\Http\Controllers\ExamPenempatanController;
 use App\Domain\Exam\Http\Controllers\ExamPengawasController;
@@ -213,6 +214,18 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/kelas/{kelas}/anggota', [SchoolClassController::class, 'anggota'])->name('kelas.anggota');
     Route::put('/kelas/{kelas}/anggota', [SchoolClassController::class, 'simpanAnggota']);
 
+    // Pantau wali per kelas - `wireframe-pantau-wali.html`.
+    //
+    // Dua aksi terpisah, dan itu bukan kerapian: menyalakan pantau berarti
+    // nama siswa kelas ini bisa dibaca siapa pun yang memegang tautannya,
+    // sementara menerbitkan kode hanya mengganti enam angka. Satu tombol
+    // untuk keduanya berarti setiap penerbitan ulang kode ikut memutuskan
+    // apakah papannya tayang.
+    Route::patch('/kelas/{kelas}/pantau', [SchoolClassController::class, 'pantau'])
+        ->name('kelas.pantau');
+    Route::post('/kelas/{kelas}/kode-wali', [SchoolClassController::class, 'kodeWali'])
+        ->name('kelas.kode-wali');
+
     // Bank soal versi ADMIN - baca saja, ditambahkan 2026-11-14.
     //
     // Sampai sekarang satu-satunya pintu ke bank soal adalah
@@ -318,6 +331,28 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // keterangan hanya membuatnya menebak.
     Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.hapus');
     Route::post('/events/{event}/status', [EventController::class, 'ubahStatus'])->name('events.status');
+
+    /*
+    |----------------------------------------------------------------------
+    | Peluncuran - satu laman untuk menyalakan ujian
+    |----------------------------------------------------------------------
+    | Ditambahkan 2026-11-19. Sebelum ini menyalakan ujian menuntut sembilan
+    | klik di empat laman, dengan dua belas prasyarat yang hanya terlihat di
+    | tab Kesiapan Ringkasan. Yang hilang bukan tombolnya melainkan URUTAN.
+    |
+    | Dua rute POST-nya adalah aksi MASSAL, dan keduanya sengaja tidak
+    | menerima daftar id sesi dari peramban: yang dikerjakan adalah "seluruh
+    | sesi event ini yang statusnya memenuhi syarat", dan penyaringnya ada di
+    | `SesiService`. Rute yang menerima id berarti laman yang menentukan
+    | sesi mana yang boleh dibuka - dan laman yang menentukan itu akan
+    | berbeda dari server begitu keduanya diubah terpisah.
+    */
+    Route::get('/events/{event}/peluncuran', [EventPeluncuranController::class, 'show'])
+        ->name('events.peluncuran');
+    Route::post('/events/{event}/peluncuran/siapkan', [EventPeluncuranController::class, 'siapkan'])
+        ->name('events.peluncuran.siapkan');
+    Route::post('/events/{event}/peluncuran/buka', [EventPeluncuranController::class, 'buka'])
+        ->name('events.peluncuran.buka');
 
     /*
     |----------------------------------------------------------------------

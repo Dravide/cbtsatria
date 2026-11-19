@@ -89,6 +89,11 @@ type MenuEvent = {
 const EVENT: MenuEvent[] = [
     { label: 'Daftar event', href: '', segmen: '', ikon: 'bendera' },
     { label: 'Ringkasan', segmen: '', ikon: 'ringkasan' },
+    // Peluncuran duduk TEPAT sesudah Ringkasan, dan urutannya menentukan:
+    // ia laman kedua yang dibuka Admin menjelang hari-H, dan menu yang
+    // menyembunyikannya di bagian bawah berarti Admin kembali menyusuri
+    // delapan laman seperti sebelum 2026-11-19.
+    { label: 'Peluncuran', segmen: 'peluncuran', ikon: 'bendera' },
     { label: 'Kepanitiaan', segmen: 'panitia', ikon: 'panitia' },
     // Pengumuman duduk tepat setelah kepanitiaan: keduanya soal ORANG, dan
     // pengumuman adalah satu-satunya tulisan event yang dibaca siswa. Ia

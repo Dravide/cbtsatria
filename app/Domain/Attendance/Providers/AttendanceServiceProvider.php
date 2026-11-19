@@ -24,6 +24,7 @@ use App\Domain\Attendance\Services\KuotaPermainan;
 use App\Domain\Attendance\Services\LaporanSesiService;
 use App\Domain\Attendance\Services\MesinUjian;
 use App\Domain\Attendance\Services\PapanPeringkatLuang;
+use App\Domain\Attendance\Services\PemantauWali;
 use App\Domain\Attendance\Services\PembersihRuangSesiService;
 use App\Domain\Attendance\Services\PemindahKeSusulanService;
 use App\Domain\Attendance\Services\PencatatKehadiranService;
@@ -101,6 +102,13 @@ class AttendanceServiceProvider extends ServiceProvider
         $this->app->singleton(PenjagaSkorLuar::class);
         $this->app->singleton(PapanPeringkatLuang::class);
         $this->app->singleton(KuotaPermainan::class);
+
+        // Pantau wali per kelas. Singleton dengan alasan yang sama dengan
+        // service lain di atas: ia tidak menyimpan keadaan, tetapi satu
+        // permintaan laman kelas memanggilnya tiga kali (daftar, sesi,
+        // rincian), dan tiga instance berarti tiga kali menyusun peta yang
+        // sama.
+        $this->app->singleton(PemantauWali::class);
 
         // Kontrak Exam dijawab Attendance. Satu arah - lihat catatan kelas ini.
         $this->app->singleton(PencatatKehadiran::class, PencatatKehadiranService::class);
