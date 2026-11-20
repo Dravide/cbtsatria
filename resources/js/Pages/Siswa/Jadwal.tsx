@@ -1,8 +1,9 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import { formatDurasi } from '@/Components/angka';
 import { DenahKursi, type TempatUjian } from '@/Components/DenahKursi';
+import { konfirmasi } from '@/Components/dialog';
 import { Modal } from '@/Components/ui';
 
 /**
@@ -59,6 +60,9 @@ type Baris = {
     utama: boolean;
     boleh_mulai: boolean;
     selesai: boolean;
+    sedang_berjalan?: boolean;
+    terkunci?: boolean;
+    nilai_terbit?: boolean;
     status: string;
     nada: string;
     /**
@@ -85,6 +89,7 @@ type Props = {
     utama: Baris | null;
     jadwal: Baris[];
     nilai_keluar: boolean;
+    remedial_tersedia?: number;
     pengumuman: Pengumuman[];
     kemajuan: { total: number; selesai: number; terlewat: number; menunggu: number };
     luang: boolean;
@@ -125,14 +130,57 @@ export default function Jadwal({
     utama,
     jadwal,
     nilai_keluar,
+    remedial_tersedia = 0,
     pengumuman,
     kemajuan,
     luang,
 }: Props) {
+    const [online, setOnline] = useState(() =>
+        typeof navigator !== 'undefined' ? navigator.onLine : true,
+    );
+    const [tampilRiwayat, setTampilRiwayat] = useState(false);
+
+    useEffect(() => {
+        const saatOnline = () => setOnline(true);
+        const saatOffline = () => setOnline(false);
+
+        window.addEventListener('online', saatOnline);
+        window.addEventListener('offline', saatOffline);
+
+        return () => {
+            window.removeEventListener('online', saatOnline);
+            window.removeEventListener('offline', saatOffline);
+        };
+    }, []);
+
+    // Segarkan otomatis tiap 15 detik bila ujian utama masih menunggu sesi
+    // dibuka atau menunggu verifikasi presensi dari pengawas.
+    useEffect(() => {
+        const perluSegar =
+            utama !== null &&
+            (!utama.boleh_mulai ||
+                utama.presensi.status === null ||
+                utama.presensi.status === 'pending');
+
+        if (!perluSegar) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            if (navigator.onLine) {
+                router.reload({ only: ['utama', 'jadwal', 'kemajuan', 'pengumuman'] });
+            }
+        }, 15000);
+
+        return () => window.clearInterval(timer);
+    }, [utama?.peserta_id, utama?.boleh_mulai, utama?.presensi.status]);
+
     // Baris yang sudah tampil sebagai pita TIDAK diulang di daftar di
     // bawahnya. Dua kali menyebut ujian yang sama membuat anak menghitungnya
     // dua kali saat ia bertanya "berapa ujian saya hari ini".
     const sisa = jadwal.filter((b) => b.peserta_id !== utama?.peserta_id);
+    const mendatang = sisa.filter((b) => !b.selesai && b.status !== 'terlewat');
+    const riwayat = sisa.filter((b) => b.selesai || b.status === 'terlewat');
 
     return (
         <KerangkaSiswa
@@ -155,6 +203,12 @@ export default function Jadwal({
              * pita itu salah. Yang bisa membatalkan jadwal harus dibaca
              * sebelum jadwalnya.
              */}
+            {!online && (
+                <div className="border border-bad bg-bad-bg px-3 py-2 text-[12px] text-bad">
+                    Koneksi internet terputus. Periksa Wi-Fi ruang ujian sebelum memulai.
+                </div>
+            )}
+
             {pengumuman.length > 0 && (
                 <section className="pengumuman" aria-label="Pengumuman">
                     {pengumuman.map((p) => (
@@ -237,7 +291,28 @@ export default function Jadwal({
                         </p>
                     </div>
                 ) : (
-                    sisa.map((b) => <BarisDaftar key={b.peserta_id} baris={b} />)
+                    <>
+                        {mendatang.map((b) => (
+                            <BarisDaftar key={b.peserta_id} baris={b} />
+                        ))}
+
+                        {riwayat.length > 0 && (
+                            <div className="border-t border-line">
+                                {mendatang.length > 0 ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setTampilRiwayat((v) => !v)}
+                                        className="flex w-full items-center justify-between bg-surface-2/60 px-3 py-2 text-left text-[11px] font-medium text-ink-2"
+                                    >
+                                        <span>Selesai / terlewat ({riwayat.length})</span>
+                                        <span>{tampilRiwayat ? 'Sembunyikan' : 'Tampilkan'}</span>
+                                    </button>
+                                ) : null}
+                                {(mendatang.length === 0 || tampilRiwayat) &&
+                                    riwayat.map((b) => <BarisDaftar key={b.peserta_id} baris={b} />)}
+                            </div>
+                        )}
+                    </>
                 )}
             </section>
 
@@ -247,6 +322,16 @@ export default function Jadwal({
                     <Link href="/siswa/nilai" className="font-medium underline">
                         Lihat nilai
                     </Link>
+                </p>
+            )}
+
+            {remedial_tersedia > 0 && (
+                <p className="keterangan">
+                    Tersedia {remedial_tersedia} soal latihan di{' '}
+                    <Link href="/siswa/luang/remedial" className="font-medium underline">
+                        Klinik Remedial Pribadi
+                    </Link>
+                    .
                 </p>
             )}
         </KerangkaSiswa>
@@ -279,9 +364,17 @@ function BarisDaftar({ baris }: { baris: Baris }) {
             ? baris.presensi.label.toLowerCase()
             : null;
 
+    const tujuan = baris.selesai
+        ? baris.nilai_terbit
+            ? `/siswa/ujian/${baris.peserta_id}/riwayat`
+            : `/siswa/ujian/${baris.peserta_id}/selesai`
+        : baris.terkunci
+            ? `/siswa/ujian/${baris.peserta_id}/terkunci`
+            : `/siswa/ujian/${baris.peserta_id}/gerbang`;
+
     return (
         <Link
-            href={`/siswa/ujian/${baris.peserta_id}/gerbang`}
+            href={tujuan}
             className="daftar-baris flex items-center gap-2 px-3 py-2.5"
         >
             <div className="min-w-0 flex-1">
@@ -348,11 +441,37 @@ function PitaUtama({ baris }: { baris: Baris }) {
         }
 
         const jam = window.setInterval(() => {
-            setSisa((v) => (v === null || v <= 1 ? 0 : v - 1));
+            setSisa((v) => {
+                if (v === null) {
+                    return null;
+                }
+                if (v <= 1) {
+                    window.clearInterval(jam);
+                    router.reload({ only: ['utama', 'jadwal', 'kemajuan', 'pengumuman'] });
+                    return 0;
+                }
+                return v - 1;
+            });
         }, 1000);
 
         return () => window.clearInterval(jam);
     }, [baris.peserta_id, baris.hitung_mundur]);
+
+    const bukaGerbangDenganAlert = async () => {
+        const namaUjian = baris.mapel ?? baris.ujian ?? 'ujian ini';
+        const lanjut = await konfirmasi({
+            judul: baris.sedang_berjalan ? 'Lanjutkan ujian sekarang?' : 'Siap memulai ujian?',
+            pesan: baris.sedang_berjalan
+                ? `Anda akan melanjutkan ${namaUjian}. Jawaban sebelumnya tetap tersimpan. Pastikan koneksi internet stabil.`
+                : `Anda akan masuk ke gerbang ${namaUjian}. Pastikan koneksi stabil, tidak berpindah tab/aplikasi selama ujian, dan token dari pengawas sudah siap.`,
+            labelYa: baris.sedang_berjalan ? 'Ya, lanjutkan' : 'Ya, mulai ujian',
+            labelTidak: 'Batal',
+        });
+
+        if (lanjut) {
+            router.visit(`/siswa/ujian/${baris.peserta_id}/gerbang`);
+        }
+    };
 
     return (
         <section className="pita overflow-hidden">
@@ -455,13 +574,23 @@ function PitaUtama({ baris }: { baris: Baris }) {
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                    {baris.boleh_mulai ? (
+                    {baris.terkunci ? (
                         <Link
-                            href={`/siswa/ujian/${baris.peserta_id}/gerbang`}
+                            href={`/siswa/ujian/${baris.peserta_id}/terkunci`}
                             className="tombol tombol--pri flex-1"
                         >
-                            Mulai ujian
+                            Status terkunci
                         </Link>
+                    ) : baris.boleh_mulai ? (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                void bukaGerbangDenganAlert();
+                            }}
+                            className="tombol tombol--pri flex-1"
+                        >
+                            {baris.sedang_berjalan ? 'Lanjutkan ujian' : 'Mulai ujian'}
+                        </button>
                     ) : (
                         <span
                             className="tombol flex-1"

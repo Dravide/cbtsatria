@@ -5,6 +5,7 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 use App\Domain\Attendance\Enums\StatusPresensi;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
+use App\Domain\Attendance\Services\KlinikRemedialService;
 use App\Domain\Attendance\Services\TempatUjianSiswa;
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventAnnouncement;
@@ -50,7 +51,7 @@ use Inertia\Response;
  */
 class JadwalSiswaController extends SiswaDasar
 {
-    public function index(Request $request, TempatUjianSiswa $tempatUjian): Response
+    public function index(Request $request, TempatUjianSiswa $tempatUjian, KlinikRemedialService $remedial): Response
     {
         $penempatan = ExamParticipant::query()
             ->where('student_id', $request->user()->id)
@@ -65,7 +66,7 @@ class JadwalSiswaController extends SiswaDasar
             ))
             ->with([
                 'exam.subject:id,name',
-                'exam.event:id,name,status',
+                'exam.event:id,name,status,results_published_at',
                 'session',
                 'room.eventRoom.room:id,code,name,location',
             ])
@@ -129,6 +130,7 @@ class JadwalSiswaController extends SiswaDasar
             'utama' => $utama,
             'jadwal' => $baris->all(),
             'nilai_keluar' => $this->adaNilaiKeluar($request->user()->id),
+            'remedial_tersedia' => count($remedial->untukSiswa($request->user()->id)),
             'pengumuman' => $this->pengumumanBerlaku($penempatan),
 
             // Tab "Main" di tabbar - lihat `SiswaDasar::luangTerbuka()`.
@@ -311,6 +313,9 @@ class JadwalSiswaController extends SiswaDasar
             'utama' => $utama,
             'boleh_mulai' => $bolehMulai && ! $selesai,
             'selesai' => $selesai,
+            'sedang_berjalan' => $attempt !== null && $attempt->status === ExamAttempt::STATUS_BERJALAN,
+            'terkunci' => $attempt !== null && $attempt->dikunci(),
+            'nilai_terbit' => $ujian?->event?->hasilTerbit() === true,
 
             // ----------------------------------------------------------
             // Presensi - keadaan yang TIDAK bisa dibaca anak dari mana pun
