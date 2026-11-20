@@ -11,22 +11,22 @@
     <meta charset="utf-8">
     <title>Kartu Akun {{ $kartu['nama'] }}</title>
     <style>
-        @page { margin: 14mm; }
+        @page { margin: 5mm; }
 
         body {
             margin: 0;
             padding: 0;
             font-family: DejaVu Sans, sans-serif;
-            font-size: 9.5px;
+            font-size: 9px;
             color: #111827;
             background: #ffffff;
         }
 
         .kartu {
             border: 1px solid #d1d5db;
-            border-top: 3.5px solid #111827;
-            border-radius: 3mm;
-            padding: 7mm 7.5mm 6mm;
+            border-top: 3px solid #111827;
+            border-radius: 2.5mm;
+            padding: 5.5mm 6mm 5mm;
             background: #ffffff;
         }
 

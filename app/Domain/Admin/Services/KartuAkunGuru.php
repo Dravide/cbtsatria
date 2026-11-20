@@ -50,7 +50,9 @@ use ZipArchive;
  */
 class KartuAkunGuru
 {
-    public const UKURAN = 'a4';
+    public const LEBAR_MM = 115;
+
+    public const POIN_PER_MM = 2.83465;
 
     /**
      * Data kartu untuk sekumpulan guru, siap dirender.
@@ -94,10 +96,16 @@ class KartuAkunGuru
      */
     public function pdf(array $satu, array $sekolah): string
     {
+        $jumlahMapel = count($satu['mapel'] ?? []);
+        $tinggiMm = 104 + ($jumlahMapel > 0 ? 10 + ($jumlahMapel * 7) : 0);
+
+        $lebarPt = round(self::LEBAR_MM * self::POIN_PER_MM, 2);
+        $tinggiPt = round($tinggiMm * self::POIN_PER_MM, 2);
+
         return Pdf::loadView('kartu.akun-guru', [
             'sekolah' => $sekolah,
             'kartu' => $satu,
-        ])->setPaper(self::UKURAN, 'portrait')->output();
+        ])->setPaper([0, 0, $lebarPt, $tinggiPt])->output();
     }
 
     /**
