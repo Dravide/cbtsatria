@@ -73,7 +73,7 @@ class PembersihHtml
         'a' => ['href'],
         'td' => ['colspan', 'rowspan'],
         'th' => ['colspan', 'rowspan'],
-        '*' => ['style'],
+        '*' => ['style', 'dir'],
     ];
 
     /** Properti CSS yang dipertahankan di dalam atribut style. */
@@ -308,6 +308,16 @@ class PembersihHtml
 
                 if ($gaya !== '') {
                     $html .= ' style="'.htmlspecialchars($gaya, ENT_QUOTES, 'UTF-8').'"';
+                }
+
+                continue;
+            }
+
+            if ($nama === 'dir') {
+                $arah = strtolower(trim($atribut->nodeValue ?? ''));
+
+                if (in_array($arah, ['ltr', 'rtl', 'auto'], true)) {
+                    $html .= ' dir="'.$arah.'"';
                 }
 
                 continue;

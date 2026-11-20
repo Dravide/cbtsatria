@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
+import { renderRumusDalamHtml } from '@/lib/matematika';
 
 type Opsi = {
     kunci?: string;
@@ -111,7 +112,7 @@ export default function Remedial({ butir }: Props) {
 
                         <div
                             className="prose prose-sm max-w-none text-[13px] text-ink"
-                            dangerouslySetInnerHTML={{ __html: teksBlok(aktif.soal) }}
+                            dangerouslySetInnerHTML={{ __html: renderRumusDalamHtml(teksBlok(aktif.soal)) }}
                         />
 
                         <div className="space-y-2">
@@ -140,7 +141,7 @@ export default function Remedial({ butir }: Props) {
                                         <span className="font-mono font-semibold">{k}.</span>
                                         <span
                                             className="flex-1"
-                                            dangerouslySetInnerHTML={{ __html: teksBlok(o.teks) }}
+                                            dangerouslySetInnerHTML={{ __html: renderRumusDalamHtml(teksBlok(o.teks)) }}
                                         />
                                     </button>
                                 );

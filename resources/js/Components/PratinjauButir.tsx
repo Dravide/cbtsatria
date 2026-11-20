@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Chip } from '@/Components/ui';
+import { renderRumusDalamHtml } from '@/lib/matematika';
 
 /**
  * Pratinjau satu butir soal - dipakai laman pratinjau soal dan paket.
@@ -87,7 +88,7 @@ export function Html({ nilai, kosong = '—' }: { nilai?: unknown; kosong?: stri
     return (
         <div
             className="text-sm leading-relaxed text-ink [&_b]:font-semibold [&_blockquote]:border-l-2 [&_blockquote]:border-line [&_blockquote]:pl-3 [&_i]:italic [&_ol]:ml-5 [&_ol]:list-decimal [&_p]:my-1.5 [&_sub]:align-sub [&_sub]:text-[0.75em] [&_sup]:align-super [&_sup]:text-[0.75em] [&_table]:my-2 [&_table]:border-collapse [&_td]:border [&_td]:border-line [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-line [&_th]:bg-surface-2 [&_th]:px-2 [&_th]:py-1 [&_ul]:ml-5 [&_ul]:list-disc"
-            dangerouslySetInnerHTML={{ __html: teks }}
+            dangerouslySetInnerHTML={{ __html: renderRumusDalamHtml(teks) }}
         />
     );
 }

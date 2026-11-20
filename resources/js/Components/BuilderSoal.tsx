@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Chip, Field, Kotak, Tombol, kelasInput } from '@/Components/ui';
 import { MediaButir, MediaSoal } from '@/Components/MediaSoal';
+import { renderSatuRumus } from '@/lib/matematika';
 
 /**
  * Penyunting teks berformat untuk soal, tanpa pustaka editor.
@@ -65,6 +66,9 @@ export function EditorSoal({
     ringkas?: boolean;
 }) {
     const ref = useRef<HTMLDivElement>(null);
+    const [bukaRumus, setBukaRumus] = useState(false);
+    const [ekspresiRumus, setEkspresiRumus] = useState('\\frac{a}{b}');
+    const [modeBlokRumus, setModeBlokRumus] = useState(false);
 
     // Lihat catatan kelas: tulis hanya bila kotaknya tidak sedang difokuskan
     // dan isinya memang berbeda. Efek ini juga yang mengisi isi saat pertama
@@ -88,6 +92,30 @@ export function EditorSoal({
         if (ref.current) {
             padaUbah(ref.current.innerHTML);
         }
+    };
+
+    /** Bungkus atau sisipkan paragraf kanan-ke-kiri (Arab). */
+    const sisipRtl = () => {
+        const seleksi = window.getSelection();
+        const teksTerpilih = seleksi?.toString().trim() ?? '';
+
+        if (teksTerpilih !== '') {
+            perintah('insertHTML', `<p dir="rtl" style="text-align: right">${teksTerpilih}</p>`);
+            return;
+        }
+
+        perintah('insertHTML', '<p dir="rtl" style="text-align: right">اكتب النص هنا</p>');
+    };
+
+    /** Sisipkan sintaks LaTeX ($...$ atau $$...$$) ke dalam editor. */
+    const sisipRumus = () => {
+        const isi = ekspresiRumus.trim();
+        if (isi === '') {
+            return;
+        }
+        const sintaks = modeBlokRumus ? `$$${isi}$$` : `$${isi}$`;
+        perintah('insertText', sintaks);
+        setBukaRumus(false);
     };
 
     const semuaTombol: { label: string; judul: string; cmd: string; arg?: string }[] = [
@@ -160,7 +188,61 @@ export function EditorSoal({
                         Tabel
                     </button>
                 )}
+                <button
+                    type="button"
+                    title="Paragraf kanan-ke-kiri (Bahasa Arab)"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={sisipRtl}
+                    className={gayaTombol}
+                >
+                    RTL (Arab)
+                </button>
+                <button
+                    type="button"
+                    title="Sisipkan rumus matematika (LaTeX)"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setBukaRumus((v) => !v)}
+                    className={gayaTombol}
+                >
+                    fx Rumus
+                </button>
             </div>
+
+            {bukaRumus && (
+                <div className="border-b border-line bg-surface-2/40 px-2.5 py-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <input
+                            type="text"
+                            value={ekspresiRumus}
+                            onChange={(e) => setEkspresiRumus(e.target.value)}
+                            placeholder="Contoh: \frac{a}{b} atau \sqrt{x^2 + 1}"
+                            className={kelasInput + ' min-w-[14rem] flex-1 font-mono text-xs'}
+                        />
+                        <label className="flex items-center gap-1 text-[11px] text-ink-2">
+                            <input
+                                type="checkbox"
+                                checked={modeBlokRumus}
+                                onChange={(e) => setModeBlokRumus(e.target.checked)}
+                            />
+                            Baris terpisah ($$)
+                        </label>
+                        <Tombol type="button" nada="pri" onClick={sisipRumus}>
+                            Sisipkan
+                        </Tombol>
+                        <Tombol type="button" onClick={() => setBukaRumus(false)}>
+                            Tutup
+                        </Tombol>
+                    </div>
+                    <div className="mt-1.5 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-ink">
+                        <span className="mr-2 text-[10px] text-ink-3 uppercase">Pratinjau:</span>
+                        <span
+                            dangerouslySetInnerHTML={{
+                                __html: renderSatuRumus(ekspresiRumus, modeBlokRumus),
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
 
             <div
                 ref={ref}

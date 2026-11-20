@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @import './tokens.css';
 @import './konsol-siswa.css';
+@import '@fontsource/noto-sans-sundanese/400.css';
+@import '@fontsource/noto-sans-sundanese/700.css';
+@import '@fontsource/noto-naskh-arabic/400.css';
+@import '@fontsource/noto-naskh-arabic/700.css';
+@import 'katex/dist/katex.min.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -70,7 +75,7 @@
 
     /* Huruf */
     --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
-    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-sans: 'IBM Plex Sans', 'Noto Naskh Arabic', 'Noto Sans Sundanese', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
     /* Bentuk */

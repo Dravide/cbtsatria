@@ -78,9 +78,16 @@ export default function PratinjauPaket({ paket, butir, bolehUbah }: Props) {
             breadcrumb={`/guru/paket / ${paket.nama} / pratinjau`}
             aksi={
                 <>
+                    <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2 print:hidden"
+                    >
+                        Cetak / PDF (Browser)
+                    </button>
                     <Link
                         href={`/guru/paket/${paket.id}`}
-                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2 print:hidden"
                     >
                         Kembali ke paket
                     </Link>

@@ -13,6 +13,7 @@ use App\Domain\Question\Enums\StatusPaket;
 use App\Domain\Question\Models\Question;
 use App\Domain\Question\Models\QuestionPackage;
 use App\Domain\Question\Services\PaketSoalService;
+use App\Domain\Question\Support\PembersihHtml;
 use App\Domain\Tenancy\Models\School;
 use App\Domain\Tenancy\Services\SchoolResolver;
 use Inertia\Testing\AssertableInertia;
@@ -151,4 +152,22 @@ it('mengunduh laporan PDF analisis butir untuk ujian yang diampu', function () {
     $this->get('/guru/analisis/'.$ujian->id.'/unduh')
         ->assertOk()
         ->assertHeader('content-type', 'application/pdf');
+});
+
+it('mempertahankan dir rtl, aksara sunda, dan sintaks latex saat sanitasi html soal', function () {
+    $pembersih = app(PembersihHtml::class);
+
+    $kotor = '<p dir="rtl" style="text-align: right">مَا هٰذَا؟</p>'
+        .'<p dir="hack">ᮊᮌᮍ ᮌᮥᮞ᮪ᮒᮤ</p>'
+        .'<p>Hitung $\\frac{a}{b}$ dan $$\\sqrt{x^2+1}$$</p>';
+
+    $bersih = $pembersih->bersihkan($kotor);
+
+    expect($bersih)
+        ->toContain('dir="rtl"')
+        ->toContain('مَا هٰذَا؟')
+        ->toContain('ᮊᮌᮍ ᮌᮥᮞ᮪ᮒᮤ')
+        ->toContain('$\\frac{a}{b}$')
+        ->toContain('$$\\sqrt{x^2+1}$$')
+        ->not->toContain('dir="hack"');
 });

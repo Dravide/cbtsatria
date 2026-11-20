@@ -4,6 +4,7 @@ import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import { Chip, Inbox, Modal } from '@/Components/ui';
 import { KotakPonsel } from '@/Components/ponsel';
 import { Html } from '@/Components/PratinjauButir';
+import { renderRumusDalamHtml } from '@/lib/matematika';
 import * as layar from '@/Components/layar';
 
 /**
@@ -1386,7 +1387,7 @@ function TeksRumpang({
                     return (
                         <span
                             key={i}
-                            dangerouslySetInnerHTML={{ __html: potongan }}
+                            dangerouslySetInnerHTML={{ __html: renderRumusDalamHtml(potongan) }}
                         />
                     );
                 }
