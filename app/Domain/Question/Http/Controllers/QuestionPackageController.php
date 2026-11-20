@@ -9,9 +9,12 @@ use App\Domain\Question\Models\Question;
 use App\Domain\Question\Models\QuestionPackage;
 use App\Domain\Question\Models\QuestionPackageItem;
 use App\Domain\Question\Services\PaketSoalService;
+use App\Support\Cetak\KopSekolah;
 use App\Support\TabelQuery;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -136,6 +139,7 @@ class QuestionPackageController
                 'milik_saya' => (int) $b->question?->created_by === (int) $request->user()->id,
             ])->all(),
             'ringkasan' => $this->ringkasan($paket),
+            'kisi' => $this->kisi($paket),
             // Panel bank soal - hanya mapel paket ini.
             'bank' => $this->bankSejenis($paket),
             'jenis' => JenisSoal::untukTab(),
@@ -167,6 +171,52 @@ class QuestionPackageController
         return redirect()
             ->route('guru.paket.detail', $paket->id)
             ->with('sukses', 'Paket '.$paket->name.' dibuat. Tambahkan butir dari panel bank soal.');
+    }
+
+    public function unduhNaskah(Request $request, QuestionPackage $paket): HttpResponse
+    {
+        if (! Gate::allows('viewPaket', $paket)) {
+            abort(404, 'Paket tidak ditemukan.');
+        }
+
+        $mode = $request->query('mode') === 'kunci' ? 'kunci' : 'soal';
+
+        $paket->load([
+            'subject:id,name',
+            'butir.question.options',
+        ]);
+
+        $user = $request->user();
+        $sekolah = KopSekolah::dari($user->school);
+
+        $butir = $paket->butir->map(function (QuestionPackageItem $item): array {
+            $soal = $item->question;
+
+            return [
+                'soal_html' => $this->ekstrakHtml($soal?->prompt_json),
+                'opsi' => $soal?->options->sortBy('position')->values()->map(fn ($o) => [
+                    'kunci' => $o->option_key,
+                    'teks_html' => $this->ekstrakHtml($o->content_json),
+                ])->all() ?? [],
+                'kunci_teks' => $soal !== null ? $this->formatKunci($soal) : '',
+                'pembahasan_teks' => $this->ekstrakTeks($soal?->explanation_json),
+            ];
+        })->all();
+
+        $totalBobot = (float) $paket->butir->sum(fn (QuestionPackageItem $b) => $b->bobotBerlaku());
+        $namaBerkas = ($mode === 'kunci' ? 'kunci-' : 'naskah-').str($paket->code ?: $paket->name)->slug().'.pdf';
+
+        return Pdf::loadView('paket.naskah', [
+            'mode' => $mode,
+            'sekolah' => $sekolah,
+            'paket' => [
+                'kode' => $paket->code,
+                'nama' => $paket->name,
+                'mapel' => $paket->subject?->name,
+            ],
+            'butir' => $butir,
+            'totalBobot' => $totalBobot,
+        ])->setPaper('a4', 'portrait')->download($namaBerkas);
     }
 
     public function update(Request $request, QuestionPackage $paket, PaketSoalService $service): RedirectResponse
@@ -347,5 +397,114 @@ class QuestionPackageController
                 'penulis' => $soal->penulis?->name,
             ])
             ->all();
+    }
+
+    /**
+     * Ringkasan kisi-kisi dan peringatan kesiapan paket.
+     *
+     * @return array{
+     *     tingkat: array<string, int>,
+     *     jenis: array<string, int>,
+     *     peringatan: array<int, string>
+     * }
+     */
+    private function kisi(QuestionPackage $paket): array
+    {
+        $butir = $paket->butir;
+        $tingkat = ['mudah' => 0, 'sedang' => 0, 'sulit' => 0, 'belum_diatur' => 0];
+        $jenis = [];
+        $nonAktif = 0;
+        $bobotNol = 0;
+
+        foreach ($butir as $item) {
+            $soal = $item->question;
+
+            if ($soal === null) {
+                continue;
+            }
+
+            $keyTingkat = in_array($soal->difficulty, ['mudah', 'sedang', 'sulit'], true)
+                ? $soal->difficulty
+                : 'belum_diatur';
+            $tingkat[$keyTingkat]++;
+
+            $labelJenis = $soal->question_type->label();
+            $jenis[$labelJenis] = ($jenis[$labelJenis] ?? 0) + 1;
+
+            if ($soal->status !== 'aktif') {
+                $nonAktif++;
+            }
+
+            if ($item->bobotBerlaku() <= 0) {
+                $bobotNol++;
+            }
+        }
+
+        $peringatan = [];
+
+        if ($butir->isEmpty()) {
+            $peringatan[] = 'Paket belum memiliki butir soal.';
+        }
+
+        if ($nonAktif > 0) {
+            $peringatan[] = $nonAktif.' butir berstatus belum aktif (draft/arsip).';
+        }
+
+        if ($bobotNol > 0) {
+            $peringatan[] = $bobotNol.' butir memiliki bobot 0 atau negatif.';
+        }
+
+        return [
+            'tingkat' => $tingkat,
+            'jenis' => $jenis,
+            'peringatan' => $peringatan,
+        ];
+    }
+
+    /** @param array<string, mixed>|null $json */
+    private function ekstrakHtml(?array $json): string
+    {
+        if ($json === null) {
+            return '';
+        }
+
+        if (is_string($json['html'] ?? null) && trim($json['html']) !== '') {
+            return $json['html'];
+        }
+
+        return nl2br(e($this->ekstrakTeks($json)));
+    }
+
+    /** @param array<string, mixed>|null $json */
+    private function ekstrakTeks(?array $json): string
+    {
+        if ($json === null) {
+            return '';
+        }
+
+        $teks = $json['teks'] ?? $json['text'] ?? $json['html'] ?? '';
+
+        return trim(strip_tags((string) $teks));
+    }
+
+    private function formatKunci(Question $soal): string
+    {
+        $kunci = $soal->answer_key_json ?? [];
+
+        if (isset($kunci['kunci']) && is_string($kunci['kunci'])) {
+            return $kunci['kunci'];
+        }
+
+        if (isset($kunci['kunci']) && is_array($kunci['kunci'])) {
+            return implode(', ', array_map('strval', $kunci['kunci']));
+        }
+
+        $benar = $soal->options->where('is_correct', true)->pluck('option_key')->all();
+
+        if ($benar !== []) {
+            return implode(', ', $benar);
+        }
+
+        return '';
     }
 }

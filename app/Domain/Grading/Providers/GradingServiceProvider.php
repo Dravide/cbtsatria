@@ -10,6 +10,7 @@ use App\Domain\Grading\Models\ExamResult;
 use App\Domain\Grading\Models\QuestionAnalysis;
 use App\Domain\Grading\Models\ReportExport;
 use App\Domain\Grading\Policies\GradingPolicy;
+use App\Domain\Grading\Services\AntreanKoreksiGuruService;
 use App\Domain\Grading\Services\PenghapusHasilService;
 use App\Domain\Grading\Services\PenghitungAnalisis;
 use App\Domain\Grading\Services\PenghitungHasil;
@@ -18,6 +19,7 @@ use App\Domain\Grading\Services\PenilaiPengerjaanService;
 use App\Domain\Grading\Services\PenilaiUraian;
 use App\Domain\Grading\Services\PublikasiHasil;
 use App\Domain\Grading\Services\SumberNilaiService;
+use App\Domain\Question\Contracts\AntreanKoreksiGuru;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -76,6 +78,8 @@ class GradingServiceProvider extends ServiceProvider
         // pengerjaan yang dibatalkan harus hilang. Attendance tidak boleh
         // menyentuh `exam_results` sendiri - lihat PenghapusHasil.
         $this->app->singleton(PenghapusHasil::class, PenghapusHasilService::class);
+
+        $this->app->singleton(AntreanKoreksiGuru::class, AntreanKoreksiGuruService::class);
     }
 
     public function boot(): void

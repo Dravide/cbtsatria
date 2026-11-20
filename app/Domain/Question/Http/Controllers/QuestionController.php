@@ -9,8 +9,10 @@ use App\Domain\Question\Enums\JenisSoal;
 use App\Domain\Question\Enums\StatusSoal;
 use App\Domain\Question\Http\Requests\SimpanSoalRequest;
 use App\Domain\Question\Models\Question;
+use App\Domain\Question\Models\QuestionPackage;
 use App\Domain\Question\Services\AmpuanMapel;
 use App\Domain\Question\Services\BankSoalService;
+use App\Domain\Question\Services\PaketSoalService;
 use App\Domain\Question\Services\PenulisSoalAi;
 use App\Domain\Tenancy\Services\PengaturanAiSekolah;
 use App\Support\TabelQuery;
@@ -129,6 +131,18 @@ class QuestionController
             'kuotaAi' => $user->role->value === 'teacher'
                 ? TeacherProfile::untukGuru($user)->ringkasKuotaAi()
                 : null,
+            'paketSaya' => QuestionPackage::query()
+                ->where('created_by', $user->id)
+                ->with('subject:id,name')
+                ->orderByDesc('id')
+                ->get(['id', 'name', 'code', 'subject_id'])
+                ->map(fn (QuestionPackage $p) => [
+                    'id' => $p->id,
+                    'nama' => $p->name,
+                    'kode' => $p->code,
+                    'mapel' => $p->subject?->name,
+                ])
+                ->all(),
         ]);
     }
 
@@ -292,6 +306,51 @@ class QuestionController
         $service->arsipkan($soal);
 
         return back()->with('sukses', 'Soal '.$soal->code.' diarsipkan. Soalnya tetap ada dan bisa dicari dengan filter Arsip.');
+    }
+
+    public function aksiMassal(Request $request, BankSoalService $service, PaketSoalService $paketService): RedirectResponse
+    {
+        $data = $request->validate([
+            'aksi' => ['required', 'in:arsip,masuk_paket'],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'paket_id' => ['required_if:aksi,masuk_paket', 'nullable', 'integer'],
+        ]);
+
+        $soalList = Question::query()->whereIn('id', $data['ids'])->get();
+
+        if ($data['aksi'] === 'arsip') {
+            $diarsipkan = 0;
+
+            foreach ($soalList as $soal) {
+                if (Gate::allows('delete', $soal)) {
+                    $service->arsipkan($soal);
+                    $diarsipkan++;
+                }
+            }
+
+            if ($diarsipkan === 0) {
+                return back()->with('galat', 'Tidak ada soal terpilih yang boleh Anda arsipkan.');
+            }
+
+            return back()->with('sukses', $diarsipkan.' soal diarsipkan.');
+        }
+
+        $paket = QuestionPackage::query()->findOrFail((int) $data['paket_id']);
+        Gate::authorize('ubahPaket', $paket);
+
+        $cocok = $soalList
+            ->filter(fn (Question $s) => (int) $s->subject_id === (int) $paket->subject_id)
+            ->pluck('id')
+            ->all();
+
+        if ($cocok === []) {
+            return back()->with('galat', 'Tidak ada soal terpilih yang sesuai dengan mata pelajaran paket '.$paket->name.'.');
+        }
+
+        $paketService->tambahButir($paket, $cocok);
+
+        return back()->with('sukses', count($cocok).' soal ditambahkan ke paket '.$paket->name.'.');
     }
 
     /* ------------------------------------------------------------- Pembantu */

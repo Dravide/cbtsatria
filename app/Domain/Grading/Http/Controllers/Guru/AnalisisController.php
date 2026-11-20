@@ -9,8 +9,11 @@ use App\Domain\Grading\Models\QuestionAnalysis;
 use App\Domain\Grading\Services\DeteksiKemiripanKursi;
 use App\Domain\Grading\Services\PenghitungAnalisis;
 use App\Domain\Grading\Support\UjianGuru;
+use App\Support\Cetak\KopSekolah;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -84,6 +87,30 @@ class AnalisisController
 
         $ujian = UjianGuru::satu($request->user()->id, $ujian->id);
 
+        return Inertia::render('Guru/Analisis/Ujian', $this->siapkanDataUjian($ujian));
+    }
+
+    public function unduh(Request $request, Exam $ujian): HttpResponse
+    {
+        Gate::authorize('koreksi');
+
+        $ujian = UjianGuru::satu($request->user()->id, $ujian->id);
+        $data = $this->siapkanDataUjian($ujian);
+        $sekolah = KopSekolah::dari($request->user()->school);
+
+        $namaBerkas = 'analisis-'.str($ujian->code ?: $ujian->title)->slug().'.pdf';
+
+        return Pdf::loadView('laporan.analisis', [
+            'sekolah' => $sekolah,
+            'ujian' => $data['ujian'],
+            'baris' => $data['baris'],
+            'kemiripan' => $data['kemiripan_kursi'],
+        ])->setPaper('a4', 'landscape')->download($namaBerkas);
+    }
+
+    /** @return array<string, mixed> */
+    private function siapkanDataUjian(Exam $ujian): array
+    {
         // Butir yang belum dianalisis TETAP ditampilkan - dengan `null` pada
         // setiap angkanya. Menyembunyikannya berarti Guru melihat empat dari
         // empat puluh baris dan menyimpulkan ujiannya cuma empat soal.
@@ -159,7 +186,7 @@ class AnalisisController
             ];
         });
 
-        return Inertia::render('Guru/Analisis/Ujian', [
+        return [
             'ujian' => [
                 'id' => $ujian->id,
                 'judul' => $ujian->title,
@@ -176,7 +203,7 @@ class AnalisisController
                 'daya_beda' => QuestionAnalysis::DAYA_BEDA_MINIMAL,
                 'minimal_peserta' => PenghitungAnalisis::MINIMAL_PESERTA,
             ],
-        ]);
+        ];
     }
 
     /**

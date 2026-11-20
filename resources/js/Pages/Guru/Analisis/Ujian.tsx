@@ -108,6 +108,14 @@ export default function AnalisisUjian({ ujian, baris, ada_analisis, kemiripan_ku
             aksi={
                 <>
                     <span className="self-center text-[11px] text-ink-3">setelah ujian</span>
+                    <a
+                        href={`/guru/analisis/${ujian.id}/unduh`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                    >
+                        Unduh PDF Analisis
+                    </a>
                     <Tombol onClick={hitungUlang} disabled={kirim}>
                         {kirim ? 'Menghitung…' : 'Hitung ulang'}
                     </Tombol>

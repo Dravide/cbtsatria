@@ -114,6 +114,7 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     Route::post('/bank-soal/impor/{batch}/konfirmasi', [QuestionImportController::class, 'konfirmasi'])->name('impor.konfirmasi');
     Route::get('/bank-soal/impor/{batch}/laporan', [QuestionImportController::class, 'laporan'])->name('impor.laporan');
 
+    Route::post('/bank-soal/massal', [QuestionController::class, 'aksiMassal'])->name('bank-soal.massal');
     Route::get('/bank-soal/{soal}/ubah', [QuestionController::class, 'edit'])->name('bank-soal.ubah');
     Route::put('/bank-soal/{soal}', [QuestionController::class, 'update']);
     Route::post('/bank-soal/{soal}/duplikat', [QuestionController::class, 'duplikat'])->name('bank-soal.duplikat');
@@ -160,6 +161,7 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     Route::put('/paket/{paket}/urutan', [QuestionPackageController::class, 'susunUlang'])->name('paket.urutan');
     Route::put('/paket/{paket}/butir/{butir}', [QuestionPackageController::class, 'ubahButir'])->name('paket.butir.ubah');
     Route::delete('/paket/{paket}/butir/{butir}', [QuestionPackageController::class, 'buangButir'])->name('paket.butir.buang');
+    Route::get('/paket/{paket}/naskah', [QuestionPackageController::class, 'unduhNaskah'])->name('paket.naskah');
     Route::get('/paket/{paket}/pratinjau', [PratinjauController::class, 'paket'])->name('paket.pratinjau');
 
     /*
@@ -213,6 +215,7 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     Route::get('/analisis', [AnalisisController::class, 'index'])->name('analisis');
     Route::post('/analisis/{ujian}/hitung-ulang', [AnalisisController::class, 'hitungUlang'])
         ->name('analisis.hitung-ulang');
+    Route::get('/analisis/{ujian}/unduh', [AnalisisController::class, 'unduh'])->name('analisis.unduh');
     Route::get('/analisis/{ujian}', [AnalisisController::class, 'ujian'])->name('analisis.ujian');
 
     Route::get('/sandi', [AkunGuruController::class, 'sandi'])->name('sandi');

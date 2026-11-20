@@ -75,6 +75,17 @@ type Paket = {
     penulis: string | null;
 };
 
+type Kisi = {
+    tingkat: {
+        mudah: number;
+        sedang: number;
+        sulit: number;
+        belum_diatur: number;
+    };
+    jenis: Record<string, number>;
+    peringatan: string[];
+};
+
 type Props = {
     paket: Paket;
     butir: Butir[];
@@ -84,11 +95,12 @@ type Props = {
         objektif: number;
         uraian: number;
     };
+    kisi?: Kisi;
     bank: SoalBank[];
     bolehUbah: boolean;
 };
 
-export default function PaketDetail({ paket, butir, ringkasan, bank, bolehUbah }: Props) {
+export default function PaketDetail({ paket, butir, ringkasan, kisi, bank, bolehUbah }: Props) {
     const [pilihBank, setPilihBank] = useState<number[]>([]);
     const [cari, setCari] = useState('');
     const [identitas, setIdentitas] = useState(false);
@@ -161,6 +173,22 @@ export default function PaketDetail({ paket, butir, ringkasan, bank, bolehUbah }
                     >
                         Pratinjau
                     </Link>
+                    <a
+                        href={`/guru/paket/${paket.id}/naskah?mode=soal`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                    >
+                        Unduh Naskah
+                    </a>
+                    <a
+                        href={`/guru/paket/${paket.id}/naskah?mode=kunci`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                    >
+                        Unduh Kunci
+                    </a>
                     {bolehUbah && (
                         <>
                             <button
@@ -224,6 +252,38 @@ export default function PaketDetail({ paket, butir, ringkasan, bank, bolehUbah }
                 <Kpi label="Objektif" nilai={ringkasan.objektif} />
                 <Kpi label="Uraian" nilai={ringkasan.uraian} />
             </div>
+
+            {kisi && (
+                <div className="mb-3 rounded-wf border border-line bg-surface p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-medium tracking-wide text-ink-2 uppercase">
+                            Kisi-kisi &amp; Pemeriksa Paket
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-3">
+                            <span>Mudah: <strong className="text-ink">{kisi.tingkat.mudah}</strong></span>
+                            <span>Sedang: <strong className="text-ink">{kisi.tingkat.sedang}</strong></span>
+                            <span>Sulit: <strong className="text-ink">{kisi.tingkat.sulit}</strong></span>
+                            {kisi.tingkat.belum_diatur > 0 && (
+                                <span>Belum diatur: <strong className="text-ink">{kisi.tingkat.belum_diatur}</strong></span>
+                            )}
+                        </div>
+                    </div>
+                    {Object.keys(kisi.jenis).length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                            {Object.entries(kisi.jenis).map(([label, jumlah]) => (
+                                <Chip key={label} nada="mute">
+                                    {label}: {jumlah}
+                                </Chip>
+                            ))}
+                        </div>
+                    )}
+                    {kisi.peringatan.length > 0 && (
+                        <div className="mt-2 rounded-wf border border-warn/40 bg-warn/10 px-2.5 py-1.5 text-xs text-warn">
+                            {kisi.peringatan.join(' · ')}
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_18rem]">
                 {/* ------------------------------------------------ Daftar butir */}

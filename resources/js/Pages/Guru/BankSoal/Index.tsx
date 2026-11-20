@@ -78,6 +78,7 @@ type Props = {
     // Hanya SAKLARNYA. Base URL dan nama model tidak dikirim ke peramban.
     ai?: boolean;
     kuotaAi?: KuotaAi | null;
+    paketSaya?: { id: number; nama: string; kode: string; mapel: string | null }[];
 };
 
 export default function BankSoalIndex({
@@ -91,8 +92,10 @@ export default function BankSoalIndex({
     jenisAi = [],
     ai = false,
     kuotaAi: kuotaAwal = null,
+    paketSaya = [],
 }: Props) {
     const [pilih, setPilih] = useState<number[]>([]);
+    const [paketTujuan, setPaketTujuan] = useState<string>('');
     const [modalAi, setModalAi] = useState(false);
     const [kuotaAi, setKuotaAi] = useState<KuotaAi | null>(kuotaAwal);
 
@@ -122,6 +125,28 @@ export default function BankSoalIndex({
         router.post(`/guru/bank-soal/${satu.id}/arsip`, undefined, {
             onSuccess: () => setPilih([]),
         });
+    };
+
+    const arsipkanMassal = () => {
+        if (pilih.length === 0) {
+            return;
+        }
+        router.post(
+            '/guru/bank-soal/massal',
+            { aksi: 'arsip', ids: pilih },
+            { onSuccess: () => setPilih([]) },
+        );
+    };
+
+    const masukkanKePaket = () => {
+        if (pilih.length === 0 || paketTujuan === '') {
+            return;
+        }
+        router.post(
+            '/guru/bank-soal/massal',
+            { aksi: 'masuk_paket', ids: pilih, paket_id: Number(paketTujuan) },
+            { onSuccess: () => setPilih([]) },
+        );
     };
 
     return (
@@ -249,7 +274,11 @@ export default function BankSoalIndex({
                                 type="checkbox"
                                 checked={pilih.includes(b.id)}
                                 onChange={(e) =>
-                                    setPilih(e.target.checked ? [b.id] : [])
+                                    setPilih((prev) =>
+                                        e.target.checked
+                                            ? [...prev, b.id]
+                                            : prev.filter((id) => id !== b.id),
+                                    )
                                 }
                                 aria-label={`Pilih soal ${b.kode}`}
                                 className="align-middle"
@@ -314,12 +343,42 @@ export default function BankSoalIndex({
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-3">
                 <span>
                     {pilih.length === 0
-                        ? 'Tandai satu baris untuk menduplikasi atau mengarsipkannya.'
-                        : satu && !satu.milik_saya
-                          ? 'Soal ini ditulis Guru lain. Anda boleh memakainya di paket, tetapi tidak mengubahnya. Duplikat dulu bila perlu disesuaikan.'
-                          : 'Salinan hasil duplikat menjadi milik Anda sendiri.'}
+                        ? 'Tandai baris untuk aksi satuan atau massal.'
+                        : pilih.length > 1
+                          ? `${pilih.length} soal terpilih.`
+                          : satu && !satu.milik_saya
+                            ? 'Soal ini ditulis Guru lain. Anda boleh memakainya di paket, tetapi tidak mengubahnya. Duplikat dulu bila perlu disesuaikan.'
+                            : 'Salinan hasil duplikat menjadi milik Anda sendiri.'}
                 </span>
-                <span className="ml-auto flex gap-2">
+                <span className="ml-auto flex flex-wrap items-center gap-2">
+                    {pilih.length > 0 && paketSaya.length > 0 && bolehMenulis && (
+                        <>
+                            <select
+                                value={paketTujuan}
+                                onChange={(e) => setPaketTujuan(e.target.value)}
+                                aria-label="Pilih paket tujuan"
+                                className={kelasInput + ' max-w-[13rem]'}
+                            >
+                                <option value="">Masukkan ke paket…</option>
+                                {paketSaya.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.nama} ({p.kode})
+                                    </option>
+                                ))}
+                            </select>
+                            <Tombol
+                                onClick={masukkanKePaket}
+                                disabled={paketTujuan === ''}
+                            >
+                                Tambah ke paket ({pilih.length})
+                            </Tombol>
+                        </>
+                    )}
+                    {pilih.length > 1 && bolehMenulis && (
+                        <Tombol nada="bahaya" onClick={arsipkanMassal}>
+                            Arsipkan terpilih ({pilih.length})
+                        </Tombol>
+                    )}
                     {/* Pratinjau AKTIF untuk baris siapa pun, termasuk soal
                         Guru lain - membacanya memang izin yang diberikan.
                         Karena itu tombolnya tidak memakai `bolehMenulis`, yang

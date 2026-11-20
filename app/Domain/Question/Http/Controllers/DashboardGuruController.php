@@ -4,6 +4,7 @@ namespace App\Domain\Question\Http\Controllers;
 
 use App\Domain\Academic\Models\TeachingAssignment;
 use App\Domain\Identity\Models\User;
+use App\Domain\Question\Contracts\AntreanKoreksiGuru;
 use App\Domain\Question\Models\Question;
 use App\Domain\Question\Models\QuestionPackage;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ use Inertia\Response;
  */
 class DashboardGuruController
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, AntreanKoreksiGuru $antrean): Response
     {
         // Gate-nya `viewAny` atas Question, bukan pemeriksaan peran yang
         // ditulis ulang di sini: middleware `guru` sudah menyaring perannya
@@ -78,7 +79,25 @@ class DashboardGuruController
                     ->where('teacher_id', $user->id)
                     ->distinct()
                     ->count('class_id'),
+                'perlu_koreksi' => $antrean->jumlahMenunggu($user->id),
             ],
+            'ampuan' => TeachingAssignment::query()
+                ->where('teacher_id', $user->id)
+                ->with(['subject:id,name', 'kelas:id,name'])
+                ->get()
+                ->groupBy('subject_id')
+                ->map(fn ($kelompok) => [
+                    'mapel' => $kelompok->first()?->subject?->name ?? 'Mapel',
+                    'kelas' => $kelompok
+                        ->map(fn (TeachingAssignment $t) => $t->kelas?->name)
+                        ->filter()
+                        ->unique()
+                        ->sort()
+                        ->values()
+                        ->all(),
+                ])
+                ->values()
+                ->all(),
             'sandi_bawaan' => Hash::check(User::SANDI_BAWAAN, (string) $user->password),
         ]);
     }

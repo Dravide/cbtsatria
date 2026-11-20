@@ -30,16 +30,23 @@ import { Inbox, Peringatan, TombolTautan } from '@/Components/ui';
  * "Soal saya: 412" hampir selalu ingin menuju soal itu, dan tanpa kartu ini
  * ia harus menemukan sendiri menu di sidebar.
  */
+type Ampuan = {
+    mapel: string;
+    kelas: string[];
+};
+
 type Props = {
     ringkasan: {
         soal: number;
         paket: number;
         kelas: number;
+        perlu_koreksi: number;
     };
+    ampuan?: Ampuan[];
     sandi_bawaan?: boolean;
 };
 
-export default function Dashboard({ ringkasan, sandi_bawaan = false }: Props) {
+export default function Dashboard({ ringkasan, ampuan = [], sandi_bawaan = false }: Props) {
     useEffect(() => {
         if (!sandi_bawaan) {
             return;
@@ -69,6 +76,7 @@ export default function Dashboard({ ringkasan, sandi_bawaan = false }: Props) {
         { label: 'Soal saya', nilai: ringkasan.soal, href: '/guru/bank-soal' },
         { label: 'Paket', nilai: ringkasan.paket, href: '/guru/paket' },
         { label: 'Kelas diampu', nilai: ringkasan.kelas, href: null },
+        { label: 'Perlu dikoreksi', nilai: ringkasan.perlu_koreksi, href: '/guru/koreksi' },
     ];
 
     return (
@@ -123,6 +131,27 @@ export default function Dashboard({ ringkasan, sandi_bawaan = false }: Props) {
                     penugasan mengajar yang diisi Admin di laman Mata pelajaran.
                 </Inbox>
             </div>
+
+            {ampuan.length > 0 && (
+                <div className="mt-4 rounded-wf border border-line bg-surface p-4">
+                    <p className="text-xs font-medium tracking-wide text-ink-2 uppercase">
+                        Mata pelajaran &amp; kelas diampu
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {ampuan.map((a) => (
+                            <div
+                                key={a.mapel}
+                                className="rounded-wf border border-line bg-surface-2/40 px-3 py-2"
+                            >
+                                <p className="text-xs font-medium text-ink">{a.mapel}</p>
+                                <p className="mt-0.5 text-[11px] text-ink-3">
+                                    {a.kelas.length > 0 ? a.kelas.join(', ') : 'Belum ada kelas'}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 <div className="rounded-wf border border-line bg-surface p-4">
