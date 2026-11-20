@@ -111,6 +111,9 @@ class MonitoringController
                 'sesi' => $ruang->session?->label(),
                 'ujian' => $ruang->session?->exam?->title,
                 'berakhir_pada' => $ruang->session?->hard_end_at?->toIso8601String(),
+                'meja_per_baris' => NomorKursi::MEJA_PER_BARIS,
+                'kursi_per_meja' => NomorKursi::KURSI_PER_MEJA,
+                'kapasitas' => $ruang->eventRoom?->kapasitasEfektif() ?? $penempatan->count(),
             ],
             'pelaku' => $konteks->jenisPelaku(),
 
@@ -142,6 +145,8 @@ class MonitoringController
                     // Progres dihitung dari jawaban, dan jawaban adalah Fase 7.
                     // Bentuknya tetap dikirim supaya laman tidak berubah lagi.
                     'progres' => $a?->guard_flags_json['progres'] ?? null,
+                    'nomor_soal' => $a?->guard_flags_json['nomor'] ?? null,
+                    'denyut_pada' => $a?->last_heartbeat_at?->format('H:i:s'),
                     'pelanggaran' => $a?->violation_count ?? 0,
                     'terberat' => $a?->violation_worst_severity ?? 0,
                     'jenis_pelanggaran' => $jenis

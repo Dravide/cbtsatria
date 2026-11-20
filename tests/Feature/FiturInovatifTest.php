@@ -140,6 +140,9 @@ it('mendeteksi radar anomali denah kursi untuk pelanggaran berdekatan', function
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Pengawas/Monitoring')
             ->has('radar_anomali', 1)
+            ->where('ruang.meja_per_baris', 4)
+            ->where('ruang.kursi_per_meja', 2)
+            ->has('kursi.0.nomor_soal')
         );
 });
 

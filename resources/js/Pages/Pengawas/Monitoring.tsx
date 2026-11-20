@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import KerangkaPonsel from '@/Layouts/KerangkaPonsel';
 import { Chip, Inbox, Peringatan } from '@/Components/ui';
 import { KpiPonsel, KotakPonsel } from '@/Components/ponsel';
@@ -46,6 +46,8 @@ type Kursi = {
     status_nada: string;
     terhubung: boolean | null;
     progres: string | null;
+    nomor_soal?: number | null;
+    denyut_pada?: string | null;
     pelanggaran: number;
     terberat: number;
     jenis_pelanggaran: string[];
@@ -73,6 +75,9 @@ type Props = {
         sesi: string | null;
         ujian: string | null;
         berakhir_pada: string | null;
+        meja_per_baris?: number;
+        kursi_per_meja?: number;
+        kapasitas?: number;
     };
     pelaku: string;
     angka: {
@@ -120,8 +125,46 @@ export default function Monitoring({
     const [keterangan, setKeterangan] = useState('');
     const [pesertaId, setPesertaId] = useState<string>('');
     const [kirim, setKirim] = useState(false);
+    const [tampilan, setTampilan] = useState<'denah' | 'daftar'>('denah');
+    const [terbalik, setTerbalik] = useState(false);
+    const [autoSegar, setAutoSegar] = useState(true);
+    const [terpilihId, setTerpilihId] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!autoSegar) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            router.reload({
+                only: ['angka', 'kursi', 'radar_anomali', 'sinyal'],
+            });
+        }, 10000);
+
+        return () => window.clearInterval(timer);
+    }, [autoSegar]);
 
     const terkunci = kursi.filter((k) => k.terkunci);
+    const terpilih = kursi.find((k) => k.peserta_id === terpilihId) ?? null;
+
+    const perMeja = ruang.kursi_per_meja ?? 2;
+    const perBaris = ruang.meja_per_baris ?? 4;
+    const maksKursi = Math.max(
+        ruang.kapasitas ?? 0,
+        ...kursi.map((k) => k.kursi ?? 0),
+    );
+    const petaKursi = new Map<number, Kursi>();
+    for (const k of kursi) {
+        if (k.kursi) {
+            petaKursi.set(k.kursi, k);
+        }
+    }
+    const jumlahMeja = Math.ceil(maksKursi / perMeja);
+    const jumlahBaris = Math.ceil(jumlahMeja / perBaris);
+    const urutanBaris = Array.from({ length: jumlahBaris }, (_, i) => i + 1);
+    if (terbalik) {
+        urutanBaris.reverse();
+    }
 
     const simpanInsiden = (e: React.FormEvent) => {
         e.preventDefault();
@@ -179,7 +222,237 @@ export default function Monitoring({
                 />
             </div>
 
-            <KotakPonsel padat>
+            <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-wf border border-line bg-surface px-2.5 py-1.5">
+                <div className="flex items-center gap-1">
+                    {(['denah', 'daftar'] as const).map((m) => (
+                        <button
+                            key={m}
+                            type="button"
+                            onClick={() => setTampilan(m)}
+                            className={
+                                'rounded-wf px-2.5 py-1 text-[11px] font-medium ' +
+                                (tampilan === m
+                                    ? 'bg-accent text-on-accent'
+                                    : 'bg-surface-2 text-ink-2')
+                            }
+                        >
+                            {m === 'denah' ? 'Denah' : 'Daftar'}
+                        </button>
+                    ))}
+                    {tampilan === 'denah' && (
+                        <button
+                            type="button"
+                            onClick={() => setTerbalik((v) => !v)}
+                            className={
+                                'rounded-wf border px-2 py-1 text-[11px] ' +
+                                (terbalik
+                                    ? 'border-accent bg-accent/10 text-accent'
+                                    : 'border-line bg-surface text-ink-2')
+                            }
+                            title="Balik perspektif depan/belakang kelas"
+                        >
+                            Putar 180°
+                        </button>
+                    )}
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => setAutoSegar((v) => !v)}
+                    className={
+                        'rounded-wf border px-2 py-1 text-[10px] font-medium ' +
+                        (autoSegar
+                            ? 'border-ok/40 bg-ok-bg text-ok'
+                            : 'border-line bg-surface-2 text-ink-3')
+                    }
+                >
+                    {autoSegar ? '● Live 10s' : 'Jeda'}
+                </button>
+            </div>
+
+            {tampilan === 'denah' ? (
+                <KotakPonsel solid padat>
+                    {kursi.length === 0 ? (
+                        <p className="px-1 py-6 text-center text-xs text-ink-3">
+                            Belum ada peserta yang ditempatkan di ruang ini.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {!terbalik && (
+                                <div className="rounded-wf border border-dashed border-line bg-surface-2 py-1 text-center text-[10px] font-medium uppercase tracking-wider text-ink-3">
+                                    Depan · Meja Pengawas
+                                </div>
+                            )}
+
+                            <div className="space-y-1.5">
+                                {urutanBaris.map((b) => {
+                                    const mejaDiBaris = Array.from(
+                                        { length: perBaris },
+                                        (_, idx) => (b - 1) * perBaris + idx + 1,
+                                    ).filter((m) => (m - 1) * perMeja < maksKursi);
+
+                                    if (terbalik) {
+                                        mejaDiBaris.reverse();
+                                    }
+
+                                    return (
+                                        <div
+                                            key={b}
+                                            className="grid gap-1.5"
+                                            style={{
+                                                gridTemplateColumns: `repeat(${perBaris}, minmax(0, 1fr))`,
+                                            }}
+                                        >
+                                            {mejaDiBaris.map((m) => {
+                                                const kursiMeja = Array.from(
+                                                    { length: perMeja },
+                                                    (_, kIdx) => (m - 1) * perMeja + kIdx + 1,
+                                                ).filter((no) => no <= maksKursi);
+
+                                                if (terbalik) {
+                                                    kursiMeja.reverse();
+                                                }
+
+                                                return (
+                                                    <div
+                                                        key={m}
+                                                        className="grid grid-cols-2 gap-1 rounded-wf border border-line/70 bg-surface-2/60 p-1"
+                                                    >
+                                                        {kursiMeja.map((no) => {
+                                                            const k = petaKursi.get(no);
+                                                            if (!k) {
+                                                                return (
+                                                                    <div
+                                                                        key={no}
+                                                                        className="flex min-h-11 flex-col items-center justify-center rounded-wf border border-dashed border-line/60 text-[10px] text-ink-3/60"
+                                                                    >
+                                                                        <span>{String(no).padStart(2, '0')}</span>
+                                                                        <span>·</span>
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            const aktif = terpilihId === k.peserta_id;
+                                                            let warna = 'border-line bg-surface text-ink-3';
+                                                            let isiTengah = '—';
+
+                                                            if (k.terkunci) {
+                                                                warna = 'border-bad bg-bad-bg text-bad';
+                                                                isiTengah = '🔒';
+                                                            } else if (k.terhubung === false) {
+                                                                warna = 'border-warn bg-warn-bg text-warn';
+                                                                isiTengah = '⚡';
+                                                            } else if (k.status === 'berjalan') {
+                                                                warna = 'border-info bg-info-bg text-info';
+                                                                isiTengah = k.nomor_soal ? `#${k.nomor_soal}` : '…';
+                                                            } else if (k.status === 'dikirim' || k.status === 'kedaluwarsa') {
+                                                                warna = 'border-ok bg-ok-bg text-ok';
+                                                                isiTengah = '✓';
+                                                            }
+
+                                                            return (
+                                                                <button
+                                                                    key={no}
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setTerpilihId((id) =>
+                                                                            id === k.peserta_id ? null : k.peserta_id,
+                                                                        )
+                                                                    }
+                                                                    className={
+                                                                        'flex min-h-11 flex-col items-center justify-center rounded-wf border px-0.5 py-0.5 text-center transition ' +
+                                                                        warna +
+                                                                        (aktif ? ' ring-2 ring-accent' : '')
+                                                                    }
+                                                                >
+                                                                    <span className="font-mono text-[9px] leading-none opacity-75">
+                                                                        {String(no).padStart(2, '0')}
+                                                                    </span>
+                                                                    <span className="mt-0.5 font-mono text-[11px] font-bold leading-none">
+                                                                        {isiTengah}
+                                                                    </span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {terbalik && (
+                                <div className="rounded-wf border border-dashed border-line bg-surface-2 py-1 text-center text-[10px] font-medium uppercase tracking-wider text-ink-3">
+                                    Depan · Meja Pengawas
+                                </div>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] text-ink-3">
+                                <span><strong className="text-info">#N</strong> Soal aktif</span>
+                                <span><strong className="text-warn">⚡</strong> Terputus</span>
+                                <span><strong className="text-bad">🔒</strong> Terkunci</span>
+                                <span><strong className="text-ok">✓</strong> Selesai</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {terpilih && (
+                        <div className="mt-2.5 rounded-wf border border-accent bg-surface p-3">
+                            <div className="flex items-start justify-between gap-2">
+                                <div>
+                                    <p className="text-xs font-semibold text-ink">
+                                        Kursi {String(terpilih.kursi).padStart(2, '0')} · {terpilih.nama}
+                                    </p>
+                                    <p className="text-[11px] text-ink-3">
+                                        {[terpilih.nis, terpilih.kelas].filter(Boolean).join(' · ') || 'Peserta'}
+                                    </p>
+                                </div>
+                                <Chip nada={terpilih.status_nada as 'mute'}>
+                                    {terpilih.status_label}
+                                </Chip>
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-ink-2">
+                                {terpilih.nomor_soal != null && (
+                                    <Chip nada="info">Sedang di Soal #{terpilih.nomor_soal}</Chip>
+                                )}
+                                {terpilih.progres && (
+                                    <Chip nada="mute">Progres {terpilih.progres}</Chip>
+                                )}
+                                {terpilih.denyut_pada && (
+                                    <Chip nada="mute">Denyut {terpilih.denyut_pada}</Chip>
+                                )}
+                                {terpilih.terhubung === false && <Chip nada="bad">Terputus</Chip>}
+                                {terpilih.terkunci && <Chip nada="bad">Diblokir / Terkunci</Chip>}
+                            </div>
+
+                            {terpilih.kunci_alasan && (
+                                <p className="mt-1.5 text-[11px] text-bad">
+                                    Alasan kunci: {terpilih.kunci_alasan}
+                                </p>
+                            )}
+
+                            <div className="mt-2.5 flex items-center justify-between gap-2">
+                                <Link
+                                    href={`/pengawas/ruang/${ruang.id}/siswa/${terpilih.peserta_id}`}
+                                    className="inline-grid min-h-9 place-items-center rounded-wf border border-accent bg-accent px-3 text-[11px] font-medium text-on-accent"
+                                >
+                                    {terpilih.terkunci ? 'Detail & Buka Kunci' : 'Lihat Detail Siswa'}
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => setTerpilihId(null)}
+                                    className="text-[11px] text-ink-3"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </KotakPonsel>
+            ) : (
+                <KotakPonsel padat>
                 {/* Kepala daftar menyebut kolom yang BENAR-BENAR ada di
                     barisnya. Sebelumnya ia punya kolom "Flag" selebar
                     `shrink-0` yang tidak berpasangan dengan apa pun -
@@ -242,7 +515,8 @@ export default function Monitoring({
                         </span>
                     </div>
                 ))}
-            </KotakPonsel>
+                </KotakPonsel>
+            )}
 
             {terkunci.length > 0 && (
                 <Peringatan>
