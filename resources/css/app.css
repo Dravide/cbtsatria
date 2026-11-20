@@ -6,6 +6,7 @@
 @import '@fontsource/noto-naskh-arabic/400.css';
 @import '@fontsource/noto-naskh-arabic/700.css';
 @import 'katex/dist/katex.min.css';
+@import 'mathlive/fonts.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

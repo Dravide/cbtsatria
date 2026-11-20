@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Chip, Field, Kotak, Tombol, kelasInput } from '@/Components/ui';
 import { MediaButir, MediaSoal } from '@/Components/MediaSoal';
-import { renderSatuRumus } from '@/lib/matematika';
+import { EditorRumusVisual } from '@/Components/EditorRumusVisual';
 
 /**
  * Penyunting teks berformat untuk soal, tanpa pustaka editor.
@@ -209,39 +209,14 @@ export function EditorSoal({
             </div>
 
             {bukaRumus && (
-                <div className="border-b border-line bg-surface-2/40 px-2.5 py-2 text-xs">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <input
-                            type="text"
-                            value={ekspresiRumus}
-                            onChange={(e) => setEkspresiRumus(e.target.value)}
-                            placeholder="Contoh: \frac{a}{b} atau \sqrt{x^2 + 1}"
-                            className={kelasInput + ' min-w-[14rem] flex-1 font-mono text-xs'}
-                        />
-                        <label className="flex items-center gap-1 text-[11px] text-ink-2">
-                            <input
-                                type="checkbox"
-                                checked={modeBlokRumus}
-                                onChange={(e) => setModeBlokRumus(e.target.checked)}
-                            />
-                            Baris terpisah ($$)
-                        </label>
-                        <Tombol type="button" nada="pri" onClick={sisipRumus}>
-                            Sisipkan
-                        </Tombol>
-                        <Tombol type="button" onClick={() => setBukaRumus(false)}>
-                            Tutup
-                        </Tombol>
-                    </div>
-                    <div className="mt-1.5 rounded-wf border border-line bg-surface px-2.5 py-1.5 text-ink">
-                        <span className="mr-2 text-[10px] text-ink-3 uppercase">Pratinjau:</span>
-                        <span
-                            dangerouslySetInnerHTML={{
-                                __html: renderSatuRumus(ekspresiRumus, modeBlokRumus),
-                            }}
-                        />
-                    </div>
-                </div>
+                <EditorRumusVisual
+                    nilai={ekspresiRumus}
+                    padaUbah={setEkspresiRumus}
+                    modeBlok={modeBlokRumus}
+                    padaUbahModeBlok={setModeBlokRumus}
+                    padaSisipkan={sisipRumus}
+                    padaTutup={() => setBukaRumus(false)}
+                />
             )}
 
             <div
