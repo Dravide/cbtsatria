@@ -12,6 +12,7 @@ use App\Domain\Attendance\Http\Controllers\Siswa\RiwayatSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\SelesaiSiswaController;
 use App\Domain\Attendance\Http\Controllers\Siswa\TerkunciSiswaController;
 use App\Domain\Exam\Http\Controllers\ExamMediaSiswaController;
+use App\Support\PembatasLaju;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -67,7 +68,9 @@ Route::middleware(['auth', 'siswa'])->prefix('siswa')->name('siswa.')->group(fun
     // Plate 24 - laporan pelanggaran dari peramban siswa. Jenisnya TIDAK
     // dipercaya: seluruh keputusan dibuat `PencatatPelanggaran`, termasuk
     // bahwa tingkat 0 tidak pernah menjadi baris. Lihat docblock endpoint-nya.
-    Route::post('/ujian/{peserta}/lapor', [KerjakanSiswaController::class, 'laporkan'])->name('lapor');
+    Route::post('/ujian/{peserta}/lapor', [KerjakanSiswaController::class, 'laporkan'])
+        ->middleware('throttle:'.PembatasLaju::LAPOR)
+        ->name('lapor');
 
     // Media soal yang dibaca peserta. Rutenya memuat {soal} - id snapshot -
     // dan bukan sekadar {media}, supaya berkas dari soal yang belum diujikan

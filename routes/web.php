@@ -213,10 +213,6 @@ Route::get('/pantau/{slug}/event/{event}/denyut', [PantauPublikController::class
     ->whereNumber('event')
     ->middleware('throttle:'.PembatasLaju::PANTAU)
     ->name('pantau.event.denyut');
-Route::get('/pantau/{slug}/event/{event}/ruang/{ruang}', [PantauPublikController::class, 'ruangEventPublik'])
-    ->whereNumber(['event', 'ruang'])
-    ->middleware('throttle:'.PembatasLaju::PANTAU)
-    ->name('pantau.event.ruang');
 
 /*
 |--------------------------------------------------------------------------

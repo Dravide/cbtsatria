@@ -515,6 +515,8 @@ class KerjakanSiswaController extends SiswaDasar
             abort(404);
         }
 
+        $attempt = $this->mesin->tutupBilaKedaluwarsa($attempt);
+
         $valid = $request->validate([
             'jenis' => ['required', 'string', 'max:40'],
             'durasi_ms' => ['nullable', 'integer', 'min:0', 'max:3600000'],

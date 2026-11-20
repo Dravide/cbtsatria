@@ -431,3 +431,23 @@ it('menolak aksi massal tanpa tahun ajaran', function () {
         ->post('/admin/kelas/pantau-massal', [])
         ->assertSessionHasErrors('academic_year_id');
 });
+
+it('membersihkan jatah pembatas laju setelah kode kelas wali benar', function () {
+    $data = siapkanWali($this, kode: '654321');
+    $url = '/wali/'.$this->sekolah->papan_slug.'/kelas/'.$data['kelas']->id;
+
+    // 4 kali salah (batas per IP = 5/menit).
+    for ($i = 0; $i < 4; $i++) {
+        $this->post($url, ['kode' => '000000'])->assertSessionHasErrors('kode');
+    }
+
+    // Percobaan ke-5 benar -> harus membersihkan limiter.
+    $this->post($url, ['kode' => '654321'])
+        ->assertRedirect($url)
+        ->assertSessionHasNoErrors();
+
+    // Percobaan berikutnya (tanpa jeda 1 menit) tidak tertahan 429/galat limiter.
+    $this->post($url, ['kode' => '654321'])
+        ->assertRedirect($url)
+        ->assertSessionMissing('galat');
+});

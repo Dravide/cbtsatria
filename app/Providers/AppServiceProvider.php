@@ -212,6 +212,13 @@ class AppServiceProvider extends ServiceProvider
                     ->json(['pesan' => PembatasLaju::PESAN_LUANG], 429)),
         ]);
 
+        RateLimiter::for(PembatasLaju::LAPOR, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::LAPOR_PER_SISWA)
+                ->by(PembatasLaju::kunciLapor((int) $request->user()?->id))
+                ->response(fn () => response()
+                    ->json(['pesan' => PembatasLaju::PESAN_LAPOR], 429)),
+        ]);
+
         // ----------------------------------------------------------------
         // Denyut keadaan lomba dua pemain - GET /siswa/luang/lomba/{kode}/keadaan
         // ----------------------------------------------------------------

@@ -92,7 +92,7 @@ class PantauPublikController
             'slug' => $slug,
             'potret' => $this->pantau->susunEvent($eventModel, $sesiId),
             'denyut_url' => "/pantau/{$slug}/event/{$eventModel->id}/denyut",
-            'ruang_url_template' => "/pantau/{$slug}/event/{$eventModel->id}/ruang/__RUANG__",
+            'ruang_url_template' => null,
             'papan_url' => "/papan/{$slug}",
             'kembali_url' => null,
         ]);
@@ -108,23 +108,6 @@ class PantauPublikController
         $sesiId = $request->integer('sesi') ?: null;
 
         return response()->json($this->pantau->susunEvent($eventModel, $sesiId));
-    }
-
-    /**
-     * Detail interaktif satu ruang-sesi pada papan Layar PID publik.
-     */
-    public function ruangEventPublik(string $slug, int $event, int $ruang): JsonResponse
-    {
-        $sekolah = $this->sekolah($slug);
-        $eventModel = $this->eventSekolah($sekolah, $event);
-
-        $detail = $this->pantau->detailRuangEvent($eventModel, $ruang);
-
-        if ($detail === null) {
-            abort(404);
-        }
-
-        return response()->json($detail);
     }
 
     /**

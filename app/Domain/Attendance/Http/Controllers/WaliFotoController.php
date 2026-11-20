@@ -73,19 +73,14 @@ class WaliFotoController
         // Berkas ini milik satu ruang-sesi. Kelas yang berhak membacanya
         // adalah kelas yang punya peserta DI ruang-sesi itu - bukan
         // sembarang kelas di sekolah yang sama.
-        $kelas = $this->kelasDari($sekolah, (int) $laporan->exam_session_room_id);
+        $kelas = $this->kelasTerbukaDari($sekolah, (int) $laporan->exam_session_room_id);
 
         if ($kelas === null) {
             abort(404);
         }
 
-        // 1 - kode
-        if (! $this->terbuka($kelas->id)) {
-            abort(404);
-        }
-
-        // 2 - dua saklar
-        if (! (bool) $sekolah->wali_foto_boleh || ! (bool) $kelas->wali_foto) {
+        // 2 - saklar sekolah (saklar kelas sudah disaring di kelasTerbukaDari).
+        if (! (bool) $sekolah->wali_foto_boleh) {
             abort(404);
         }
 
@@ -109,15 +104,14 @@ class WaliFotoController
     }
 
     /**
-     * Kelas yang punya peserta di ruang-sesi ini.
+     * Kelas yang punya peserta di ruang-sesi ini dan sudah dibuka di sesi peramban.
      *
-     * Dibaca dari penempatan, bukan dari daftar anggota kelas: pertanyaan
-     * di sini adalah "kelas mana yang duduk di ruang itu", dan jawabannya
-     * ada di `exam_participants`.
+     * Satu ruang ujian dapat berisi peserta dari lebih dari satu kelas,
+     * sehingga seluruh kelas di ruang itu diperiksa terhadap sesi peramban.
      */
-    private function kelasDari(School $sekolah, int $ruangSesi): ?SchoolClass
+    private function kelasTerbukaDari(School $sekolah, int $ruangSesi): ?SchoolClass
     {
-        $kelasId = ExamParticipant::query()
+        $kelasIds = ExamParticipant::query()
             ->withoutGlobalScopes()
             ->where('school_id', $sekolah->id)
             ->where('exam_session_room_id', $ruangSesi)
@@ -125,9 +119,10 @@ class WaliFotoController
             ->get()
             ->map(fn (ExamParticipant $p) => (int) ($p->pesertaEvent?->class_id ?? 0))
             ->filter()
-            ->first();
+            ->unique()
+            ->values();
 
-        if ($kelasId === null) {
+        if ($kelasIds->isEmpty()) {
             return null;
         }
 
@@ -135,8 +130,10 @@ class WaliFotoController
             ->withoutGlobalScopes()
             ->where('school_id', $sekolah->id)
             ->whereNotNull('wali_slug')
-            ->whereKey($kelasId)
-            ->first();
+            ->where('wali_foto', true)
+            ->whereIn('id', $kelasIds)
+            ->get()
+            ->first(fn (SchoolClass $kelas) => $this->terbuka($kelas->id));
     }
 
     private function terbuka(int $kelas): bool

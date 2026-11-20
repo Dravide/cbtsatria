@@ -308,5 +308,17 @@ it('membuka pantau per event dari admin dan publik per event', function () {
             ->where('potret.ada', true)
             ->where('potret.event.id', $event->id)
             ->where('denyut_url', "/pantau/smk1-uas-ganjil/event/{$event->id}/denyut")
+            ->where('ruang_url_template', null)
         );
+});
+
+it('tidak pernah membuka endpoint detail ruang peserta pada rute publik', function () {
+    $d = siapkanPresensi($this->sekolah, $this->tahun, $this->semester, $this->admin, ['R-01'], 4);
+    $event = $d['event'];
+    $ruangId = $d['ruang'][0]->id;
+
+    app(SchoolResolver::class)->forget();
+
+    $this->getJson("/pantau/smk1-uas-ganjil/event/{$event->id}/ruang/{$ruangId}")
+        ->assertNotFound();
 });

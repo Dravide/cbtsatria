@@ -5,9 +5,9 @@ namespace App\Domain\Attendance\Http\Controllers;
 use App\Domain\Academic\Models\SchoolClass;
 use App\Domain\Attendance\Services\PemantauWali;
 use App\Domain\Tenancy\Models\School;
+use App\Support\PembatasLaju;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -113,14 +113,13 @@ class WaliPublikController
             && hash_equals((string) $model->wali_code, (string) $data['kode']);
 
         if (! $benar) {
-            RateLimiter::hit($this->kunciKelas($slug, $kelas));
-
             throw ValidationException::withMessages([
                 'kode' => 'Kode kelas tidak cocok. Minta ulang ke wali kelas.',
             ]);
         }
 
-        RateLimiter::clear($this->kunciKelas($slug, $kelas));
+        PembatasLaju::bersihkan(PembatasLaju::WALI, PembatasLaju::kunciWaliIp($slug, (string) $request->ip()));
+        PembatasLaju::bersihkan(PembatasLaju::WALI, PembatasLaju::kunciWaliKelas($slug, $kelas));
 
         // Disimpan di SESI, bukan di cookie bertanda tangan: yang perlu
         // bertahan hanya sampai peramban ditutup, dan sesi Laravel sudah
@@ -148,11 +147,6 @@ class WaliPublikController
         $sampai = Session::get(self::SESI_KODE.'.'.$kelas);
 
         return $sampai !== null && now()->getTimestamp() < (int) $sampai;
-    }
-
-    private function kunciKelas(string $slug, int $kelas): string
-    {
-        return 'wali:'.$slug.':'.$kelas;
     }
 
     /**

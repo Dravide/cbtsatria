@@ -110,6 +110,9 @@ final class PembatasLaju
     /** Nama limiter untuk kiriman skor permainan waktu luang. */
     public const LUANG = 'luang-skor';
 
+    /** Nama limiter untuk laporan pelanggaran peramban siswa. */
+    public const LAPOR = 'lapor-pelanggaran';
+
     /**
      * Permintaan AI per Guru, per menit.
      *
@@ -407,6 +410,17 @@ final class PembatasLaju
 
     /** Pesan saat percobaan kios melampaui batas. */
     public const PESAN_KIOS = 'Terlalu banyak percobaan kursi. Panggil pengawas ruang.';
+
+    /** Batas laporan pelanggaran per siswa, per menit. */
+    public const LAPOR_PER_SISWA = 60;
+
+    /** Pesan saat laporan pelanggaran melampaui batas. */
+    public const PESAN_LAPOR = 'Terlalu banyak laporan dalam satu menit.';
+
+    public static function kunciLapor(int|string $userId): string
+    {
+        return "lapor:{$userId}";
+    }
 
     public static function kunciKios(int|string $userId): string
     {
