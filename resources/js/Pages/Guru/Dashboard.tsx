@@ -1,6 +1,8 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useEffect } from 'react';
 import GuruLayout from '@/Layouts/GuruLayout';
-import { Inbox } from '@/Components/ui';
+import { konfirmasi } from '@/Components/dialog';
+import { Inbox, Peringatan, TombolTautan } from '@/Components/ui';
 
 /**
  * Laman Guru 01 - dashboard. Wireframe-peran.html plate 01.
@@ -34,9 +36,35 @@ type Props = {
         paket: number;
         kelas: number;
     };
+    sandi_bawaan?: boolean;
 };
 
-export default function Dashboard({ ringkasan }: Props) {
+export default function Dashboard({ ringkasan, sandi_bawaan = false }: Props) {
+    useEffect(() => {
+        if (!sandi_bawaan) {
+            return;
+        }
+
+        const kunci = 'guru_rekomendasi_sandi_ditampilkan';
+        if (window.sessionStorage.getItem(kunci)) {
+            return;
+        }
+
+        window.sessionStorage.setItem(kunci, '1');
+
+        void konfirmasi({
+            judul: 'Disarankan ganti sandi sekarang',
+            pesan:
+                'Anda masih menggunakan sandi bawaan dari sekolah. ' +
+                'Demi keamanan bank soal dan nilai, sebaiknya ganti sandi Anda sekarang.',
+            labelYa: 'Ganti sandi sekarang',
+            labelTidak: 'Nanti saja',
+        }).then((ya) => {
+            if (ya) {
+                router.visit('/guru/sandi');
+            }
+        });
+    }, [sandi_bawaan]);
     const kpi = [
         { label: 'Soal saya', nilai: ringkasan.soal, href: '/guru/bank-soal' },
         { label: 'Paket', nilai: ringkasan.paket, href: '/guru/paket' },
@@ -46,6 +74,20 @@ export default function Dashboard({ ringkasan }: Props) {
     return (
         <GuruLayout judul="Beranda" breadcrumb="/guru">
             <Head title="Beranda Guru" />
+
+            {sandi_bawaan && (
+                <div className="mb-4">
+                    <Peringatan>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span>
+                                Anda masih memakai sandi bawaan sekolah. Segera ganti sandi demi
+                                keamanan akun dan bank soal Anda.
+                            </span>
+                            <TombolTautan href="/guru/sandi">Ganti sandi sekarang</TombolTautan>
+                        </div>
+                    </Peringatan>
+                </div>
+            )}
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {kpi.map((k) => {

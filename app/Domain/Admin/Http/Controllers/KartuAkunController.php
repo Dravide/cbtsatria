@@ -135,6 +135,10 @@ class KartuAkunController
             ]);
         }
 
+        if (count($kartuGuru) > 1 && function_exists('set_time_limit')) {
+            @set_time_limit(120);
+        }
+
         $jalur = $kartu->zip($kartuGuru, $sekolah);
 
         return response()

@@ -65,10 +65,15 @@ const NILAI: ItemNav[] = [
     { label: 'Analisis butir', href: '/guru/analisis', awalan: false, ikon: 'analisis' },
 ];
 
+const AKUN: ItemNav[] = [
+    { label: 'Ganti sandi', href: '/guru/sandi', awalan: false, ikon: 'kunci' },
+];
+
 export default function GuruLayout({ judul, breadcrumb, aksi, children }: Props) {
     const kelompok: KelompokNav[] = [
         { judul: 'Bank soal', item: BANK_SOAL },
         { judul: 'Nilai', item: NILAI },
+        { judul: 'Akun', item: AKUN },
     ];
 
     return (

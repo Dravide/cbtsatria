@@ -3,10 +3,12 @@
 namespace App\Domain\Question\Http\Controllers;
 
 use App\Domain\Academic\Models\TeachingAssignment;
+use App\Domain\Identity\Models\User;
 use App\Domain\Question\Models\Question;
 use App\Domain\Question\Models\QuestionPackage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -77,6 +79,7 @@ class DashboardGuruController
                     ->distinct()
                     ->count('class_id'),
             ],
+            'sandi_bawaan' => Hash::check(User::SANDI_BAWAAN, (string) $user->password),
         ]);
     }
 }

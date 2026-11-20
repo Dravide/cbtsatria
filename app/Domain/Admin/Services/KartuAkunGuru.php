@@ -96,16 +96,18 @@ class KartuAkunGuru
      */
     public function pdf(array $satu, array $sekolah): string
     {
+        $html = view('kartu.akun-guru', [
+            'sekolah' => $sekolah,
+            'kartu' => $satu,
+        ])->render();
+
         $jumlahMapel = count($satu['mapel'] ?? []);
-        $tinggiMm = 116 + ($jumlahMapel > 0 ? 12 + ($jumlahMapel * 8) : 0);
+        $tinggiMm = 124 + ($jumlahMapel > 0 ? 12 + ($jumlahMapel * 8) : 0);
         $lebarPt = round(self::LEBAR_MM * self::POIN_PER_MM, 2);
 
-        for ($coba = 0; $coba < 4; $coba++) {
+        for ($coba = 0; $coba < 3; $coba++) {
             $tinggiPt = round($tinggiMm * self::POIN_PER_MM, 2);
-            $pdf = Pdf::loadView('kartu.akun-guru', [
-                'sekolah' => $sekolah,
-                'kartu' => $satu,
-            ])->setPaper([0, 0, $lebarPt, $tinggiPt]);
+            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $lebarPt, $tinggiPt]);
 
             $dompdf = $pdf->getDomPDF();
             $dompdf->render();
@@ -114,7 +116,7 @@ class KartuAkunGuru
                 return $dompdf->output();
             }
 
-            $tinggiMm += 18;
+            $tinggiMm += 22;
         }
 
         return $pdf->output();

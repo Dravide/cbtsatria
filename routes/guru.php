@@ -3,6 +3,7 @@
 use App\Domain\Grading\Http\Controllers\Guru\AnalisisController;
 use App\Domain\Grading\Http\Controllers\Guru\KoreksiController;
 use App\Domain\Grading\Http\Controllers\Guru\NilaiController;
+use App\Domain\Question\Http\Controllers\AkunGuruController;
 use App\Domain\Question\Http\Controllers\DashboardGuruController;
 use App\Domain\Question\Http\Controllers\MediaSoalController;
 use App\Domain\Question\Http\Controllers\MediaUnggahController;
@@ -213,4 +214,9 @@ Route::middleware(['auth', 'guru'])->prefix('guru')->name('guru.')->group(functi
     Route::post('/analisis/{ujian}/hitung-ulang', [AnalisisController::class, 'hitungUlang'])
         ->name('analisis.hitung-ulang');
     Route::get('/analisis/{ujian}', [AnalisisController::class, 'ujian'])->name('analisis.ujian');
+
+    Route::get('/sandi', [AkunGuruController::class, 'sandi'])->name('sandi');
+    Route::put('/sandi', [AkunGuruController::class, 'gantiSandi'])
+        ->middleware('throttle:'.PembatasLaju::SANDI)
+        ->name('sandi.simpan');
 });
