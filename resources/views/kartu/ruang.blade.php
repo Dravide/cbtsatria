@@ -5,9 +5,10 @@
     Ditulis tanpa CSS aplikasi, dan itu disengaja
     ---------------------------------------------------------------------
     DomPDF tidak mengenal Tailwind, custom property, maupun flexbox/grid.
-    Berkas ini memakai HTML dengan gaya inline/embedded yang kompatibel
-    dengan DomPDF, namun menyamakan gaya visual editorial minimalis dari
-    `kartu/akun-guru.blade.php` agar seluruh dokumen cetak konsisten.
+    Berkas ini memakai HTML dengan gaya tersemat yang kompatibel dengan
+    DomPDF, menyelaraskan token warna `resources/css/app.css`
+    (#161b24, #4a5565, #d3d9e2, #f2f4f8, #1e4fa3) dengan struktur
+    kartu editorial pada `kartu/akun-guru.blade.php`.
 
     ---------------------------------------------------------------------
     Satu halaman per ruang, dipaksa dengan `page-break-after`
@@ -36,7 +37,7 @@
             padding: 0;
             font-family: DejaVu Sans, sans-serif;
             font-size: 9px;
-            color: #111827;
+            color: #161b24;
             background: #ffffff;
         }
 
@@ -49,18 +50,18 @@
         }
 
         .kartu {
-            border: 1px solid #d1d5db;
-            border-top: 3px solid #111827;
-            border-radius: 2.5mm;
+            border: 1px solid #d3d9e2;
+            border-top: 3px solid #161b24;
+            border-radius: 2mm;
             padding: 8mm 9mm 7mm;
             background: #ffffff;
         }
 
-        /* Kop Minimalis (selaras dengan kartu/akun-guru.blade.php) */
+        /* Kop Minimalis */
         .kop {
             padding-bottom: 4.5mm;
             margin-bottom: 7mm;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e6eaf0;
         }
 
         .kop-table {
@@ -76,27 +77,26 @@
         .sekolah {
             font-size: 12px;
             font-weight: bold;
-            color: #111827;
-            letter-spacing: 0.1px;
+            color: #161b24;
         }
 
         .npsn {
             font-size: 8px;
-            color: #6b7280;
+            color: #4a5565;
             margin-top: 0.6mm;
         }
 
         .lencana {
             display: inline-block;
-            padding: 1mm 2.8mm;
-            border: 1px solid #d1d5db;
-            border-radius: 2mm;
+            padding: 1mm 2.5mm;
+            border: 1px solid #d3d9e2;
+            border-radius: 1.5mm;
             font-size: 7.5px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #374151;
-            background: #f9fafb;
+            letter-spacing: 0.5px;
+            color: #161b24;
+            background: #f2f4f8;
         }
 
         /* Identitas Ruang */
@@ -107,38 +107,38 @@
 
         .label {
             font-size: 8px;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #6b7280;
+            letter-spacing: 0.5px;
+            color: #4a5565;
         }
 
         .kode {
             font-size: 40px;
             font-weight: bold;
-            color: #111827;
+            color: #161b24;
             margin: 1.5mm 0 1mm;
             line-height: 1.1;
-            letter-spacing: 0.5px;
         }
 
         .nama {
             font-size: 15px;
             font-weight: bold;
-            color: #374151;
+            color: #161b24;
             margin: 0 0 1mm;
         }
 
         .lokasi {
             font-size: 10px;
-            color: #6b7280;
+            color: #4a5565;
             margin: 0;
         }
 
         /* Blok QR & Tautan */
         .qr-panel {
-            border: 1px solid #e5e7eb;
-            border-radius: 2.5mm;
-            background: #f9fafb;
+            border: 1px solid #e6eaf0;
+            border-radius: 2mm;
+            background: #f2f4f8;
             padding: 7mm 6mm 6mm;
             text-align: center;
             margin-bottom: 7mm;
@@ -147,8 +147,8 @@
         .qr-bingkai {
             display: inline-block;
             background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 2mm;
+            border: 1px solid #d3d9e2;
+            border-radius: 1.5mm;
             padding: 3.5mm;
         }
 
@@ -160,7 +160,7 @@
 
         .petunjuk {
             font-size: 10px;
-            color: #4b5563;
+            color: #4a5565;
             margin: 5mm 0 3.5mm;
         }
 
@@ -170,8 +170,8 @@
             font-weight: bold;
             color: #1e4fa3;
             background: #ffffff;
-            border: 1px solid #d1d5db;
-            border-radius: 2mm;
+            border: 1px solid #d3d9e2;
+            border-radius: 1.5mm;
             padding: 2.8mm 4.5mm;
             display: inline-block;
             word-break: break-all;
@@ -179,7 +179,7 @@
 
         .kedaluwarsa {
             font-size: 8px;
-            color: #6b7280;
+            color: #4a5565;
             margin-top: 3mm;
         }
 
@@ -187,10 +187,10 @@
         .kosong {
             margin: 14mm 0;
             padding: 10mm 8mm;
-            border: 1.5px dashed #fca5a5;
-            background: #fef2f2;
-            color: #b91c1c;
-            border-radius: 2.5mm;
+            border: 1.5px dashed #9b2530;
+            background: #fae4e6;
+            color: #9b2530;
+            border-radius: 2mm;
             text-align: center;
         }
 
@@ -202,16 +202,16 @@
 
         .kosong-isi {
             font-size: 10px;
-            color: #991b1b;
+            color: #161b24;
             line-height: 1.5;
         }
 
         /* Kaki Kartu */
         .kaki {
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid #e6eaf0;
             padding-top: 3.5mm;
             font-size: 8px;
-            color: #6b7280;
+            color: #4a5565;
             line-height: 1.5;
         }
 
@@ -220,7 +220,7 @@
             border-collapse: collapse;
             margin-top: 2mm;
             font-size: 7.5px;
-            color: #9ca3af;
+            color: #565c68;
         }
     </style>
 </head>
@@ -266,7 +266,7 @@
                 @if ($h['qr'] !== null)
                     <div class="qr-panel">
                         <div class="qr-bingkai">
-                            <img class="qr" src="{{ $h['qr'] }}" alt="QR pintu ruang {{ $h['kode'] }}">
+                            <img class="qr" width="317" height="317" src="{{ $h['qr'] }}" alt="QR pintu ruang {{ $h['kode'] }}">
                         </div>
 
                         <p class="petunjuk">Pindai QR ini untuk membuka pintu ruang.</p>
