@@ -1,7 +1,7 @@
 {{--
     Kartu akun guru - satu kartu satu lembar, PDF siap cetak & bagikan.
-    Dirancang khusus dengan CSS yang didukung penuh oleh DomPDF (table layout,
-    inline/block, tanpa flexbox/grid/CSS variables).
+    Gaya minimalis editorial: bersih, hemat tinta saat dicetak, proporsional
+    saat dibuka di ponsel (WhatsApp), dan 100% kompatibel dengan DomPDF.
 
     Sandi hanya dicetak bila MASIH sandi bawaan (`$kartu['sandi'] !== null`).
 --}}
@@ -11,261 +11,214 @@
     <meta charset="utf-8">
     <title>Kartu Akun {{ $kartu['nama'] }}</title>
     <style>
-        @page { margin: 12mm; }
+        @page { margin: 14mm; }
 
         body {
             margin: 0;
             padding: 0;
             font-family: DejaVu Sans, sans-serif;
-            font-size: 10px;
-            color: #161b24;
+            font-size: 9.5px;
+            color: #111827;
             background: #ffffff;
         }
 
         .kartu {
-            border: 1.5px solid #cbd5e1;
-            border-radius: 5mm;
-            overflow: hidden;
+            border: 1px solid #d1d5db;
+            border-top: 3.5px solid #111827;
+            border-radius: 3mm;
+            padding: 7mm 7.5mm 6mm;
             background: #ffffff;
         }
 
-        /* Header Banner Sekolah */
-        .header {
-            background: #1e4fa3;
-            color: #ffffff;
-            padding: 6mm 7mm 5.5mm;
-            border-bottom: 3px solid #e0a82e;
+        /* Kop Minimalis */
+        .kop {
+            padding-bottom: 4.5mm;
+            margin-bottom: 5.5mm;
+            border-bottom: 1px solid #e5e7eb;
         }
 
-        .header-table {
+        .kop-table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .logo-box {
-            width: 16mm;
-            height: 16mm;
-            background: #ffffff;
-            border-radius: 3mm;
-            text-align: center;
-            vertical-align: middle;
-            padding: 1.5mm;
-        }
-
         .logo {
-            max-height: 13mm;
-            max-width: 13mm;
+            max-height: 11mm;
+            max-width: 22mm;
         }
 
         .sekolah {
-            font-size: 13px;
+            font-size: 11.5px;
             font-weight: bold;
-            letter-spacing: 0.2px;
-            line-height: 1.25;
-            color: #ffffff;
+            color: #111827;
+            letter-spacing: 0.1px;
         }
 
         .npsn {
-            font-size: 8.5px;
-            color: #dbeafe;
-            margin-top: 1mm;
+            font-size: 8px;
+            color: #6b7280;
+            margin-top: 0.6mm;
         }
 
-        .badge-jenis {
+        .lencana {
             display: inline-block;
-            margin-top: 2mm;
-            padding: 1mm 2.8mm;
-            background: #143778;
-            border: 1px solid #60a5fa;
-            border-radius: 2.5mm;
+            padding: 1mm 2.5mm;
+            border: 1px solid #d1d5db;
+            border-radius: 2mm;
             font-size: 7.5px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #f8fafc;
+            color: #374151;
+            background: #f9fafb;
         }
 
-        /* Badan Kartu */
-        .badan {
-            padding: 6.5mm 7mm 6mm;
-        }
-
+        /* Identitas Guru */
         .identitas {
             margin-bottom: 5.5mm;
-            padding-bottom: 4.5mm;
-            border-bottom: 1px solid #e2e8f0;
         }
 
-        .label-kecil {
+        .label {
             font-size: 7.5px;
-            font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            color: #64748b;
+            color: #6b7280;
         }
 
         .nama {
-            font-size: 17px;
+            font-size: 18px;
             font-weight: bold;
-            color: #0f172a;
-            margin: 1mm 0 1.5mm;
+            color: #111827;
+            margin: 0.8mm 0 1mm;
             line-height: 1.2;
         }
 
-        .nip-pill {
-            display: inline-block;
-            padding: 1mm 2.5mm;
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            border-radius: 2mm;
+        .nip {
             font-family: DejaVu Sans Mono, monospace;
-            font-size: 8.5px;
-            color: #334155;
+            font-size: 9px;
+            color: #4b5563;
+            margin: 0;
         }
 
-        /* Kotak Kredensial */
-        .kredensial-box {
-            background: #f4f7fc;
-            border: 1px solid #cbd5e1;
-            border-left: 4px solid #1e4fa3;
-            border-radius: 3mm;
-            padding: 4.5mm 5mm;
-            margin-bottom: 5.5mm;
-        }
-
+        /* Blok Kredensial Minimalis */
         .kredensial-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 5.5mm;
+            border: 1px solid #e5e7eb;
+            border-radius: 2.5mm;
+            background: #f9fafb;
         }
 
-        .kredensial-cell {
+        .kredensial-sel {
+            padding: 4mm 4.5mm;
             vertical-align: top;
-            padding: 0;
         }
 
-        .kredensial-cell-kanan {
+        .kredensial-sel-kanan {
+            padding: 4mm 4.5mm;
             vertical-align: top;
-            padding-left: 5mm;
-            border-left: 1px dashed #cbd5e1;
+            border-left: 1px solid #e5e7eb;
         }
 
-        .nilai-mono {
+        .nilai-akun {
             font-family: DejaVu Sans Mono, monospace;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
-            color: #0f172a;
-            letter-spacing: 0.5px;
+            color: #111827;
+            letter-spacing: 0.4px;
             margin-top: 1.2mm;
             word-break: break-all;
         }
 
-        .sandi-mono {
+        .nilai-sandi {
             font-family: DejaVu Sans Mono, monospace;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             color: #1e4fa3;
             letter-spacing: 1.2px;
             margin-top: 1.2mm;
         }
 
-        .catatan-sandi {
+        .catatan-kecil {
             font-size: 7.5px;
-            color: #9a3412;
+            color: #6b7280;
             margin-top: 1mm;
         }
 
-        /* Tabel Mapel */
-        .mapel-wrap {
+        /* Daftar Mapel Minimalis */
+        .mapel-bagian {
             margin-bottom: 5.5mm;
         }
 
         .mapel-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 2mm;
-            border: 1px solid #e2e8f0;
-        }
-
-        .mapel-table th {
-            background: #f8fafc;
-            color: #475569;
-            font-size: 7.5px;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            text-align: left;
-            padding: 2mm 2.5mm;
-            border-bottom: 1px solid #cbd5e1;
+            margin-top: 1.8mm;
         }
 
         .mapel-table td {
-            padding: 2mm 2.5mm;
+            padding: 1.8mm 0;
+            border-bottom: 1px solid #f3f4f6;
             font-size: 9px;
-            color: #1e293b;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: top;
+            vertical-align: baseline;
         }
 
         .mapel-table tr:last-child td {
             border-bottom: none;
         }
 
-        .kode-chip {
-            display: inline-block;
-            padding: 0.5mm 1.8mm;
-            background: #e3ebf9;
-            color: #1e4fa3;
-            border-radius: 1.5mm;
+        .mapel-kode {
             font-family: DejaVu Sans Mono, monospace;
-            font-size: 7.5px;
-            font-weight: bold;
+            font-size: 8px;
+            color: #6b7280;
+            width: 16%;
+            padding-right: 2mm;
         }
 
-        .kelas-teks {
-            color: #475569;
+        .mapel-nama {
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .mapel-kelas {
+            color: #4b5563;
+            text-align: right;
             font-size: 8.5px;
         }
 
-        /* Info Portal & Footer */
-        .portal-box {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 2.5mm;
-            padding: 3mm 4mm;
+        /* Kaki Kartu */
+        .kaki {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 3.5mm;
             font-size: 8px;
+            color: #6b7280;
             line-height: 1.5;
-            color: #78350f;
         }
 
-        .portal-url {
-            font-family: DejaVu Sans Mono, monospace;
-            font-weight: bold;
-            color: #1e4fa3;
-        }
-
-        .footer {
-            background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            padding: 2.8mm 7mm;
-            font-size: 7.5px;
-            color: #64748b;
-        }
-
-        .footer-table {
+        .kaki-table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 2mm;
+            font-size: 7.5px;
+            color: #9ca3af;
+        }
+
+        .url {
+            font-family: DejaVu Sans Mono, monospace;
+            color: #111827;
         }
     </style>
 </head>
 <body>
     <div class="kartu">
-        <div class="header">
-            <table class="header-table">
+        <div class="kop">
+            <table class="kop-table">
                 <tr>
                     @if (! empty($sekolah['logo']))
-                        <td style="width: 19mm; vertical-align: middle; padding-right: 4mm;">
-                            <div class="logo-box">
-                                <img class="logo" src="{{ $sekolah['logo'] }}" alt="">
-                            </div>
+                        <td style="width: 15mm; vertical-align: middle; padding-right: 3mm;">
+                            <img class="logo" src="{{ $sekolah['logo'] }}" alt="">
                         </td>
                     @endif
                     <td style="vertical-align: middle;">
@@ -273,81 +226,66 @@
                         @if (! empty($sekolah['npsn']))
                             <div class="npsn">NPSN {{ $sekolah['npsn'] }}</div>
                         @endif
-                        <div class="badge-jenis">Kartu Akun Guru</div>
+                    </td>
+                    <td style="vertical-align: middle; text-align: right; width: 36mm;">
+                        <span class="lencana">Kartu Akun Guru</span>
                     </td>
                 </tr>
             </table>
         </div>
 
-        <div class="badan">
-            <div class="identitas">
-                <div class="label-kecil">Nama Lengkap &amp; Identitas</div>
-                <p class="nama">{{ $kartu['nama'] }}</p>
-                <span class="nip-pill">
-                    {{ $kartu['nip'] ? 'NIP '.$kartu['nip'] : 'NIP belum terdata' }}
-                </span>
-            </div>
-
-            <div class="kredensial-box">
-                <table class="kredensial-table">
-                    <tr>
-                        <td class="kredensial-cell" style="width: {{ $kartu['sandi'] !== null ? '55%' : '100%' }};">
-                            <div class="label-kecil">Username Login</div>
-                            <div class="nilai-mono">{{ $kartu['username'] }}</div>
-                        </td>
-                        @if ($kartu['sandi'] !== null)
-                            <td class="kredensial-cell-kanan" style="width: 45%;">
-                                <div class="label-kecil">Sandi Awal</div>
-                                <div class="sandi-mono">{{ $kartu['sandi'] }}</div>
-                                <div class="catatan-sandi">Ganti segera setelah masuk</div>
-                            </td>
-                        @endif
-                    </tr>
-                </table>
-            </div>
-
-            @if (! empty($kartu['mapel']))
-                <div class="mapel-wrap">
-                    <div class="label-kecil">Mata Pelajaran yang Diampu</div>
-                    <table class="mapel-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 18%;">Kode</th>
-                                <th style="width: 47%;">Mata Pelajaran</th>
-                                <th style="width: 35%;">Kelas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($kartu['mapel'] as $mapel)
-                                <tr>
-                                    <td><span class="kode-chip">{{ $mapel['kode'] }}</span></td>
-                                    <td><strong>{{ $mapel['nama'] }}</strong></td>
-                                    <td class="kelas-teks">
-                                        {{ ! empty($mapel['kelas']) ? implode(', ', $mapel['kelas']) : '—' }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-
-            <div class="portal-box">
-                <strong>Petunjuk Penggunaan:</strong>
-                Simpan kartu ini secara pribadi. Gunakan username dan sandi di atas untuk masuk melalui portal
-                <span class="portal-url">{{ url('/login') }}</span>.
-                @if ($kartu['sandi'] !== null)
-                    Demi keamanan, segera ubah sandi awal setelah login pertama kali.
-                @endif
-            </div>
+        <div class="identitas">
+            <span class="label">Pengajar</span>
+            <p class="nama">{{ $kartu['nama'] }}</p>
+            <p class="nip">{{ $kartu['nip'] ? 'NIP '.$kartu['nip'] : 'NIP belum terdata' }}</p>
         </div>
 
-        <div class="footer">
-            <table class="footer-table">
+        <table class="kredensial-table">
+            <tr>
+                <td class="kredensial-sel" style="width: {{ $kartu['sandi'] !== null ? '54%' : '100%' }};">
+                    <span class="label">Username</span>
+                    <div class="nilai-akun">{{ $kartu['username'] }}</div>
+                </td>
+                @if ($kartu['sandi'] !== null)
+                    <td class="kredensial-sel-kanan" style="width: 46%;">
+                        <span class="label">Sandi Awal</span>
+                        <div class="nilai-sandi">{{ $kartu['sandi'] }}</div>
+                        <div class="catatan-kecil">Ubah setelah masuk pertama kali</div>
+                    </td>
+                @endif
+            </tr>
+        </table>
+
+        @if (! empty($kartu['mapel']))
+            <div class="mapel-bagian">
+                <span class="label">Mata Pelajaran yang Diampu</span>
+                <table class="mapel-table">
+                    @foreach ($kartu['mapel'] as $mapel)
+                        <tr>
+                            <td class="mapel-kode">{{ $mapel['kode'] }}</td>
+                            <td class="mapel-nama">{{ $mapel['nama'] }}</td>
+                            <td class="mapel-kelas">
+                                {{ ! empty($mapel['kelas']) ? implode(', ', $mapel['kelas']) : '—' }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </table>
+            </div>
+        @endif
+
+        <div class="kaki">
+            <div>
+                Masuk melalui <span class="url">{{ url('/login') }}</span>.
+                Simpan kartu ini secara pribadi.
+                @if ($kartu['sandi'] !== null)
+                    Sandi di atas adalah sandi awal.
+                @endif
+            </div>
+            <table class="kaki-table">
                 <tr>
-                    <td>Dokumen kredensial resmi sekolah · Jangan disebarluaskan</td>
+                    <td>Kredensial Akun Guru</td>
                     <td style="text-align: right; font-family: DejaVu Sans Mono, monospace;">
-                        Dicetak {{ now()->format('d/m/Y') }}
+                        {{ now()->format('d/m/Y') }}
                     </td>
                 </tr>
             </table>
