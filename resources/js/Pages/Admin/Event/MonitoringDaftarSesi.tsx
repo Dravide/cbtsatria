@@ -1,7 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import DaftarMapel, { MapelEvent } from '@/Components/DaftarMapelEvent';
-import { Chip, Inbox, Kotak, TombolTautan } from '@/Components/ui';
+import { Chip, Inbox, Kotak, Tombol, TombolTautan } from '@/Components/ui';
 
 /**
  * Monitoring - daftar SESI event, titik masuk papan monitoring Admin.
@@ -63,6 +63,16 @@ type Props = {
         terkunci: number;
     };
     mapel: MapelEvent[];
+    sinyal?: {
+        id: number;
+        ruang: string;
+        ruang_nama: string | null;
+        lokasi: string | null;
+        label: string;
+        catatan: string | null;
+        pelapor: string | null;
+        jam: string | null;
+    }[];
     jalur_sesi: string;
     jalur_ruang: string;
 };
@@ -72,6 +82,7 @@ export default function MonitoringDaftarSesi({
     baris,
     angka,
     mapel,
+    sinyal = [],
     jalur_sesi,
     jalur_ruang,
 }: Props) {
@@ -105,6 +116,42 @@ export default function MonitoringDaftarSesi({
             }
         >
             <Head title={`Monitoring · ${event.nama}`} />
+
+            {sinyal.length > 0 && (
+                <div className="mb-3 rounded-wf border border-bad bg-bad-bg/60 p-3">
+                    <p className="text-xs font-semibold text-bad">
+                        Sinyal kendala infrastruktur aktif ({sinyal.length})
+                    </p>
+                    <div className="mt-2 space-y-1.5">
+                        {sinyal.map((s) => (
+                            <div
+                                key={s.id}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-wf border border-line bg-surface px-3 py-2 text-xs"
+                            >
+                                <div>
+                                    <span className="font-mono font-semibold text-ink">{s.ruang}</span>
+                                    {s.lokasi && <span className="text-ink-3"> ({s.lokasi})</span>}
+                                    <span className="mx-1.5 text-ink-3">·</span>
+                                    <span className="font-medium text-bad">{s.label}</span>
+                                    {s.catatan && <span className="ml-1.5 text-ink-2">— {s.catatan}</span>}
+                                    <span className="ml-2 text-[11px] text-ink-3">
+                                        {s.pelapor ? `${s.pelapor} · ` : ''}
+                                        {s.jam}
+                                    </span>
+                                </div>
+                                <Tombol
+                                    nada="sek"
+                                    onClick={() =>
+                                        router.post(`/admin/sinyal/${s.id}/selesai`, {}, { preserveScroll: true })
+                                    }
+                                >
+                                    Tandai ditangani
+                                </Tombol>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Mapel lebih dulu, alasannya sama dengan laman Presensi: papan
                 di bawah disusun dari ruang-sesi, sehingga mapel yang jadwalnya

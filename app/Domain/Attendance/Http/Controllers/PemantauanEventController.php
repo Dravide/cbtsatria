@@ -9,6 +9,7 @@ use App\Domain\Attendance\Models\AttemptQuestion;
 use App\Domain\Attendance\Models\AttendanceRecord;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\ExamViolation;
+use App\Domain\Attendance\Models\RoomSignal;
 use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Attendance\Services\InsidenService;
 use App\Domain\Attendance\Services\KehadiranService;
@@ -837,6 +838,7 @@ class PemantauanEventController
                 'terkunci' => $baris->sum('terkunci'),
             ],
             'mapel' => $this->mapelEvent($event),
+            'sinyal' => $this->sinyalAktif($ruangan),
             'jalur_sesi' => "/admin/events/{$event->id}/monitoring/sesi",
             'jalur_ruang' => "/admin/events/{$event->id}/monitoring/ruang",
         ]);
@@ -893,7 +895,7 @@ class PemantauanEventController
             ];
         })->values();
 
-        return $this->renderMonitoring($event, $baris, $peserta->count(), null);
+        return $this->renderMonitoring($event, $baris, $peserta->count(), null, $ruangan);
     }
 
     /**
@@ -968,11 +970,21 @@ class PemantauanEventController
      *
      * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $baris
      */
-    private function renderMonitoring(SchoolEvent $event, \Illuminate\Support\Collection $baris, int $jumlahPeserta, ?ExamSession $sesi): Response
-    {
+    private function renderMonitoring(
+        SchoolEvent $event,
+        \Illuminate\Support\Collection $baris,
+        int $jumlahPeserta,
+        ?ExamSession $sesi,
+        ?Collection $ruangan = null,
+    ): Response {
+        $ruangIds = $ruangan !== null
+            ? $ruangan->pluck('id')
+            : $baris->pluck('ruang_id')->filter();
+
         return Inertia::render('Admin/Event/Monitoring', [
             'event' => $this->ringkas($event),
             'baris' => $baris->all(),
+            'sinyal' => $this->sinyalAktifDariIds($ruangIds),
 
             // Sesi yang sedang dibuka, bila laman ini adalah laman SATU sesi.
             // Null berarti papan seluruh event - alasan yang sama dengan
@@ -1015,6 +1027,47 @@ class PemantauanEventController
                 'terkunci' => $baris->sum('terkunci'),
             ],
         ]);
+    }
+
+    /**
+     * Sinyal kendala infrastruktur aktif untuk daftar ruang-sesi.
+     *
+     * @param  Collection<int, ExamSessionRoom>  $ruangan
+     * @return array<int, array<string, mixed>>
+     */
+    private function sinyalAktif(Collection $ruangan): array
+    {
+        return $this->sinyalAktifDariIds($ruangan->pluck('id'));
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, mixed>  $ruangIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function sinyalAktifDariIds(\Illuminate\Support\Collection $ruangIds): array
+    {
+        if ($ruangIds->isEmpty()) {
+            return [];
+        }
+
+        return RoomSignal::query()
+            ->whereIn('exam_session_room_id', $ruangIds->all())
+            ->where('status', RoomSignal::STATUS_AKTIF)
+            ->with(['room.eventRoom.room:id,code,name,location', 'room.session:id,session_number'])
+            ->latest('id')
+            ->get()
+            ->map(fn (RoomSignal $s) => [
+                'id' => $s->id,
+                'ruang' => $s->room?->eventRoom?->room?->code ?? 'Ruang',
+                'ruang_nama' => $s->room?->eventRoom?->room?->name,
+                'lokasi' => $s->room?->eventRoom?->room?->location,
+                'jenis' => $s->jenis,
+                'label' => $s->labelJenis(),
+                'catatan' => $s->catatan,
+                'pelapor' => $s->pelapor_nama,
+                'jam' => $s->created_at?->format('H:i'),
+            ])
+            ->all();
     }
 
     /**

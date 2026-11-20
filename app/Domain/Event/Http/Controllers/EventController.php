@@ -80,12 +80,25 @@ class EventController
         // event yang belum tuntas, karena pertanyaan yang dijawab tab itu
         // adalah "apa yang masih perlu saya kerjakan", bukan "apa yang
         // kebetulan berstatus berjalan hari ini".
+        $tahunId = $request->integer('tahun') ?: null;
+        $simulasi = (string) $request->query('simulasi', 'semua');
+
         match ($tab) {
             'draft' => $query->where('status', EventStatus::Draft),
             'selesai' => $query->where('status', EventStatus::Completed),
             'arsip' => $query->whereIn('status', [EventStatus::Archived, EventStatus::Cancelled]),
             default => $query->whereIn('status', EventStatus::belumSelesai()),
         };
+
+        if ($tahunId !== null) {
+            $query->where('academic_year_id', $tahunId);
+        }
+
+        if ($simulasi === 'resmi') {
+            $query->where('is_simulasi', false);
+        } elseif ($simulasi === 'simulasi') {
+            $query->where('is_simulasi', true);
+        }
 
         $halaman = TabelQuery::buat(
             $query,
@@ -112,6 +125,7 @@ class EventController
                 'peserta' => (int) $e->peserta_count,
                 'status' => $e->status->value,
                 'status_label' => $e->status->label(),
+                'is_simulasi' => (bool) $e->is_simulasi,
                 'tahun' => $e->academicYear?->name,
                 'semester' => $e->semester?->name,
                 // Dua syarat tombol Hapus, dan keduanya dikirim sebagai data:
@@ -126,7 +140,12 @@ class EventController
                     default => null,
                 },
             ]),
-            'filter' => ['cari' => $request->query('cari', '')],
+            'filter' => [
+                'cari' => $request->query('cari', ''),
+                'tahun' => $tahunId ? (string) $tahunId : '',
+                'simulasi' => $simulasi,
+            ],
+            'daftar_tahun' => $this->daftarTahun(),
         ]);
     }
 
@@ -137,17 +156,18 @@ class EventController
         $sekolah = School::findOrFail($request->user()->school_id);
         $pengaturan = array_merge(PengaturanBawaan::gabung($sekolah->settings));
 
+        $kunci = max(1, (int) $pengaturan['ambang_pelanggaran']);
+        $tandai = $kunci > 1 ? max(1, min($kunci - 1, (int) ceil($kunci / 2))) : 1;
+
         return Inertia::render('Admin/Event/Form', [
             'event' => null,
-            // Bawaan dari Pengaturan sekolah, ditampilkan sebagai nilai AWAL
-            // tiga field di plate 11. Satu angka sekolah dipakai untuk
-            // ketiganya - sesudah Admin menyimpan, ketiganya punya nilainya
-            // sendiri dan tidak lagi menunjuk ke pengaturan.
+            // Bawaan berjenjang dari Pengaturan sekolah: peringatkan (1) <=
+            // tandai pengawas <= kunci ujian.
             'bawaan' => [
-                'ambang_peringatkan' => (int) $pengaturan['ambang_pelanggaran'],
-                'ambang_tandai_pengawas' => (int) $pengaturan['ambang_pelanggaran'],
-                'ambang_kunci_ujian' => (int) $pengaturan['ambang_pelanggaran'],
-                'enforce_fullscreen' => (bool) $pengaturan['kunci_klik_kanan'],
+                'ambang_peringatkan' => 1,
+                'ambang_tandai_pengawas' => $tandai,
+                'ambang_kunci_ujian' => $kunci,
+                'enforce_fullscreen' => (bool) ($pengaturan['wajib_layar_penuh'] ?? false),
 
                 // Tiga penjaga layar, diteruskan sebagai centang awal di
                 // plate 11 - alasan yang sama dengan ambang: yang disimpan
@@ -441,6 +461,7 @@ class EventController
             'jenis' => $event->event_type,
             'status' => $event->status->value,
             'status_label' => $event->status->label(),
+            'is_simulasi' => (bool) $event->is_simulasi,
             'final' => $event->status->final(),
             'periode' => $this->periode($event),
             'tahun' => $event->academicYear?->name,

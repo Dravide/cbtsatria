@@ -51,6 +51,7 @@ type Props = {
         jenis: string | null;
         status: string;
         status_label: string;
+        is_simulasi?: boolean;
         final: boolean;
         periode: string | null;
         tahun: string | null;
@@ -212,6 +213,13 @@ export default function EventShow({ event, kesiapan, langkah, angka, pantau_url,
             }
         >
             <Head title={event.nama} />
+
+            {event.is_simulasi && (
+                <div className="mb-4 rounded-wf border border-warn bg-warn-bg px-4 py-2.5 text-xs text-warn">
+                    <strong>Mode Gladi Bersih (Simulasi)</strong> — Event ini dibuat khusus untuk latihan
+                    panitia dan pengawas. Aman dihapus setelah latihan selesai.
+                </div>
+            )}
 
             {/* Peringatan status buntu - dan sejak 2026-11-14 hanya Batal.
                 Arsip bisa dibuka kembali, sehingga kalimat "tidak bisa

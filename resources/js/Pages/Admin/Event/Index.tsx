@@ -43,6 +43,7 @@ type Baris = {
     peserta: number;
     status: string;
     status_label: string;
+    is_simulasi?: boolean;
     tahun: string | null;
     semester: string | null;
     boleh_hapus: boolean;
@@ -53,7 +54,8 @@ type Props = {
     tab: string;
     tab_angka: Record<string, number>;
     baris: Paginator<Baris>;
-    filter: { cari: string };
+    filter: { cari: string; tahun?: string; simulasi?: string };
+    daftar_tahun?: { id: number; nama: string; aktif: boolean }[];
 };
 
 const TAB = [
@@ -63,8 +65,13 @@ const TAB = [
     { kunci: 'arsip', label: 'Arsip' },
 ];
 
-export default function EventIndex({ tab, tab_angka, baris, filter }: Props) {
-    const f = pakaiFilter('/admin/events', { cari: filter.cari, tab });
+export default function EventIndex({ tab, tab_angka, baris, filter, daftar_tahun = [] }: Props) {
+    const f = pakaiFilter('/admin/events', {
+        cari: filter.cari,
+        tab,
+        tahun: filter.tahun ?? '',
+        simulasi: filter.simulasi ?? 'semua',
+    });
 
     /**
      * Hapus satu event - dan kalimatnya menyebut APA yang ikut hilang.
@@ -132,7 +139,14 @@ export default function EventIndex({ tab, tab_angka, baris, filter }: Props) {
                             onClick={() =>
                                 router.get(
                                     '/admin/events',
-                                    { ...(filter.cari ? { cari: filter.cari } : {}), tab: t.kunci },
+                                    {
+                                        ...(filter.cari ? { cari: filter.cari } : {}),
+                                        ...(filter.tahun ? { tahun: filter.tahun } : {}),
+                                        ...(filter.simulasi && filter.simulasi !== 'semua'
+                                            ? { simulasi: filter.simulasi }
+                                            : {}),
+                                        tab: t.kunci,
+                                    },
                                     { preserveState: false, preserveScroll: true, replace: true },
                                 )
                             }
@@ -144,6 +158,9 @@ export default function EventIndex({ tab, tab_angka, baris, filter }: Props) {
                             }
                         >
                             {t.label}
+                            <span className="ml-1.5 font-mono text-[11px] opacity-75">
+                                {tab_angka[t.kunci] ?? 0}
+                            </span>
                         </button>
                     );
                 })}
@@ -157,6 +174,29 @@ export default function EventIndex({ tab, tab_angka, baris, filter }: Props) {
                         placeholder="Cari nama atau kode event..."
                         className={kelasInput + ' max-w-xs'}
                     />
+                    {daftar_tahun.length > 0 && (
+                        <select
+                            value={f.nilai.tahun ?? ''}
+                            onChange={(e) => f.ubah('tahun', e.target.value)}
+                            className={kelasInput + ' max-w-[160px]'}
+                        >
+                            <option value="">Semua tahun ajaran</option>
+                            {daftar_tahun.map((t) => (
+                                <option key={t.id} value={String(t.id)}>
+                                    {t.nama}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <select
+                        value={f.nilai.simulasi ?? 'semua'}
+                        onChange={(e) => f.ubah('simulasi', e.target.value)}
+                        className={kelasInput + ' max-w-[150px]'}
+                    >
+                        <option value="semua">Semua jenis</option>
+                        <option value="resmi">Event resmi</option>
+                        <option value="simulasi">Gladi bersih</option>
+                    </select>
                     <Tombol type="submit" nada="pri">
                         Cari
                     </Tombol>
@@ -185,6 +225,11 @@ export default function EventIndex({ tab, tab_angka, baris, filter }: Props) {
                                 <span className="ml-2 font-mono text-[11px] text-ink-3">
                                     {b.kode}
                                 </span>
+                                {b.is_simulasi && (
+                                    <span className="ml-1.5">
+                                        <Chip nada="warn">Simulasi</Chip>
+                                    </span>
+                                )}
                                 {(b.tahun || b.semester) && (
                                     <span className="mt-0.5 block text-[11px] text-ink-3">
                                         {[b.tahun, b.semester].filter(Boolean).join(' · ')}

@@ -86,43 +86,26 @@ type MenuEvent = {
     ikon?: ItemNav['ikon'];
 };
 
-const EVENT: MenuEvent[] = [
-    { label: 'Daftar event', href: '', segmen: '', ikon: 'bendera' },
+const EVENT_PERSIAPAN: MenuEvent[] = [
     { label: 'Ringkasan', segmen: '', ikon: 'ringkasan' },
-    // Peluncuran duduk TEPAT sesudah Ringkasan, dan urutannya menentukan:
-    // ia laman kedua yang dibuka Admin menjelang hari-H, dan menu yang
-    // menyembunyikannya di bagian bawah berarti Admin kembali menyusuri
-    // delapan laman seperti sebelum 2026-11-19.
     { label: 'Peluncuran', segmen: 'peluncuran', ikon: 'bendera' },
     { label: 'Kepanitiaan', segmen: 'panitia', ikon: 'panitia' },
-    // Pengumuman duduk tepat setelah kepanitiaan: keduanya soal ORANG, dan
-    // pengumuman adalah satu-satunya tulisan event yang dibaca siswa. Ia
-    // sengaja BUKAN di kelompok Sistem - isinya berlaku untuk satu event,
-    // bukan untuk sekolah.
     { label: 'Pengumuman', segmen: 'pengumuman', ikon: 'daftar' },
     { label: 'Kelas & peserta', segmen: 'peserta', ikon: 'peserta' },
     { label: 'Paket soal', segmen: 'mapel', ikon: 'paket' },
     { label: 'Jadwal & sesi', segmen: 'jadwal', ikon: 'jam' },
-    // Penempatan duduk SEBELUM Pengawas, dan urutannya bukan selera: ruang
-    // harus terisi lebih dulu sebelum ada yang bisa ditugaskan menjaganya.
-    // Menaruhnya sesudah berarti sidebar menyuruh Admin menugaskan pengawas
-    // untuk ruang yang belum tentu dipakai sesi mana pun.
-    //
-    // `awalan: true` - satu-satunya item event yang memakainya, dan alasannya
-    // sama dengan Ruang: denah kursi beralamat /penempatan/denah, dan Admin
-    // yang membuka denah sedang mengerjakan penempatan. Tanpa awalan ini,
-    // tidak ada satu pun menu yang menyala di laman itu dan ia merasa
-    // tersesat di konsolnya sendiri.
     { label: 'Penempatan', segmen: 'penempatan', awalan: true, ikon: 'peserta' },
     { label: 'Pengawas', segmen: 'pengawas', ikon: 'perisai' },
+];
+
+const EVENT_HARI_H: MenuEvent[] = [
     { label: 'Token', segmen: 'token', ikon: 'kunci' },
     { label: 'Presensi', segmen: 'presensi', ikon: 'presensi' },
     { label: 'Monitoring', segmen: 'monitoring', ikon: 'denyut' },
+];
+
+const EVENT_EVALUASI: MenuEvent[] = [
     { label: 'Hasil', segmen: 'hasil', ikon: 'grafik' },
-    // Laporan BUKAN di bawah event, dan bedanya nyata: plate 22 beralamat
-    // /admin/laporan, dan laporannya mengikuti event AKTIF dari sesi - bukan
-    // event yang idnya ada di URL. Admin yang berpindah event melakukannya
-    // lewat sidebar, dan laporannya ikut berpindah.
     { label: 'Laporan', href: '/admin/laporan', ikon: 'laporan' },
 ];
 
@@ -153,27 +136,23 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
         },
     ];
 
-    // Kelompok event hanya saat satu event dibuka (anatomi butir 1). Saat
-    // tidak ada, kelompok ini tidak dirender sama sekali - bukan kosong.
+    // Kelompok event hanya saat satu event dibuka (anatomi butir 1).
+    // Dibagi menjadi 3 tahap kerja agar sidebar tetap mudah dipindai.
     if (dasarEvent) {
-        kelompok.push({
-            kartuEvent: true,
-            item: EVENT.map((item) => ({
+        const susun = (daftar: MenuEvent[]): ItemNav[] =>
+            daftar.map((item) => ({
                 label: item.label,
-                // Ringkasan dan Daftar event keduanya menunjuk
-                // /admin/events/{id} - yang satu adalah pintu masuk, yang lain
-                // adalah isinya. Hanya satu yang boleh menyala, dan yang
-                // menyala adalah Ringkasan: ia yang sedang dibuka.
-                //
-                // `item.href` menang atas `item.segmen`: Laporan punya alamat
-                // sendiri di luar /admin/events/{id}, karena laporannya
-                // mengikuti event AKTIF, bukan event di URL.
                 href: item.href ?? (item.segmen ? `${dasarEvent}/${item.segmen}` : dasarEvent),
                 awalan: item.awalan ?? false,
                 fase: item.fase,
                 ikon: item.ikon,
-            })),
-        });
+            }));
+
+        kelompok.push(
+            { judul: 'Event · Persiapan', kartuEvent: true, item: susun(EVENT_PERSIAPAN) },
+            { judul: 'Event · Hari-H', item: susun(EVENT_HARI_H) },
+            { judul: 'Event · Evaluasi', item: susun(EVENT_EVALUASI) },
+        );
     }
 
     kelompok.push({ judul: 'Sistem', item: SISTEM });
