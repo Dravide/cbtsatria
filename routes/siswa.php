@@ -139,6 +139,8 @@ Route::middleware(['auth', 'siswa'])->prefix('siswa')->name('siswa.')->group(fun
     */
     Route::get('/luang', [LuangSiswaController::class, 'tampilkan'])->name('luang');
     Route::get('/luang/peringkat', [LuangSiswaController::class, 'peringkat'])->name('luang.peringkat');
+    Route::get('/luang/remedial', [LuangSiswaController::class, 'remedial'])->name('luang.remedial');
+    Route::post('/luang/remedial/cek', [LuangSiswaController::class, 'periksaRemedial'])->name('luang.remedial.cek');
 
     // `throttle:luang-skor` - satu kiriman per permainan yang wajar, dengan
     // kelonggaran untuk anak yang menekan "Main lagi" lalu segera terbentur.

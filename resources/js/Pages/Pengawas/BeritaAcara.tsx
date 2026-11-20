@@ -356,14 +356,69 @@ export default function BeritaAcara({
                 ))}
 
                 {!laporan.final && (
-                    <button
-                        type="button"
-                        onClick={simpanCatatan}
-                        disabled={kirim}
-                        className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink disabled:opacity-50"
-                    >
-                        Simpan catatan
-                    </button>
+                    <div className="flex flex-wrap gap-1.5">
+                        <button
+                            type="button"
+                            onClick={simpanCatatan}
+                            disabled={kirim}
+                            className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface px-3 text-xs text-ink disabled:opacity-50"
+                        >
+                            Simpan catatan
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const SpeechRecognition =
+                                    (window as unknown as { SpeechRecognition?: new () => { lang: string; onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void; start: () => void } }).SpeechRecognition ||
+                                    (window as unknown as { webkitSpeechRecognition?: new () => { lang: string; onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void; start: () => void } }).webkitSpeechRecognition;
+
+                                if (!SpeechRecognition) {
+                                    window.alert('Peramban ini belum mendukung dikte suara.');
+                                    return;
+                                }
+
+                                const rec = new SpeechRecognition();
+                                rec.lang = 'id-ID';
+                                rec.onresult = (e) => {
+                                    const teks = e.results?.[0]?.[0]?.transcript ?? '';
+                                    if (teks) {
+                                        setCatatan((lama) => (lama ? `${lama} ${teks}` : teks));
+                                    }
+                                };
+                                rec.start();
+                            }}
+                            className="inline-grid min-h-11 place-items-center rounded-wf border border-line bg-surface-2 px-3 text-xs text-ink-2"
+                        >
+                            Dikte suara
+                        </button>
+                        <button
+                            type="button"
+                            disabled={kirim || catatan.trim().length < 3}
+                            onClick={async () => {
+                                const cocok = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+                                const csrf = cocok ? decodeURIComponent(cocok[1]) : '';
+                                const res = await fetch(`/pengawas/ruang/${ruang.id}/berita-acara/rapi-ai`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        Accept: 'application/json',
+                                        'X-XSRF-TOKEN': csrf,
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({ teks: catatan }),
+                                });
+                                if (res.ok) {
+                                    const data = (await res.json()) as { catatan?: string };
+                                    if (data.catatan) {
+                                        setCatatan(data.catatan);
+                                    }
+                                }
+                            }}
+                            className="inline-grid min-h-11 place-items-center rounded-wf border border-accent bg-surface px-3 text-xs text-accent disabled:opacity-40"
+                        >
+                            Rapikan AI
+                        </button>
+                    </div>
                 )}
             </KotakPonsel>
 

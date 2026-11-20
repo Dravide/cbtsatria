@@ -76,6 +76,8 @@ Route::middleware('pengawas')->prefix('pengawas')->name('pengawas.')->group(func
     // Plate 15-16
     Route::get('/ruang/{ruang}/monitoring', [MonitoringController::class, 'index'])->name('monitoring');
     Route::post('/ruang/{ruang}/insiden', [MonitoringController::class, 'catatInsiden'])->name('insiden');
+    Route::post('/ruang/{ruang}/sinyal', [MonitoringController::class, 'kirimSinyal'])->name('sinyal');
+    Route::post('/ruang/{ruang}/qr-darurat', [MonitoringController::class, 'terimaQrDarurat'])->name('qr-darurat');
     Route::get('/ruang/{ruang}/siswa/{peserta}', [PelanggaranController::class, 'index'])->name('siswa');
     Route::post('/ruang/{ruang}/siswa/{peserta}/buka', [PelanggaranController::class, 'buka'])->name('siswa.buka');
 
@@ -84,6 +86,7 @@ Route::middleware('pengawas')->prefix('pengawas')->name('pengawas.')->group(func
     Route::post('/ruang/{ruang}/berita-acara/foto', [BeritaAcaraController::class, 'unggahFoto'])->name('berita-acara.foto');
     Route::post('/ruang/{ruang}/berita-acara/ttd', [BeritaAcaraController::class, 'tandaTangan'])->name('berita-acara.ttd');
     Route::post('/ruang/{ruang}/berita-acara/catatan', [BeritaAcaraController::class, 'simpanCatatan'])->name('berita-acara.catatan');
+    Route::post('/ruang/{ruang}/berita-acara/rapi-ai', [BeritaAcaraController::class, 'rapiAi'])->name('berita-acara.rapi-ai');
     Route::post('/ruang/{ruang}/berita-acara/kirim', [BeritaAcaraController::class, 'kirim'])->name('berita-acara.kirim');
     Route::post('/ruang/{ruang}/berita-acara/buka', [BeritaAcaraController::class, 'bukaKembali'])->name('berita-acara.buka');
 });

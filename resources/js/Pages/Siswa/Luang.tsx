@@ -63,6 +63,7 @@ type Props = {
     };
     kelas: string | null;
     kuota: { terpakai: number; sisa: number; batas: number; boleh: boolean };
+    remedial_tersedia?: number;
 };
 
 /** Satu bingkai permainan. */
@@ -149,7 +150,7 @@ const PEMAIN_TINGGI = 26;
 const PEMAIN_LEBAR = 26;
 const KAKI_PEMAIN = 14;
 
-export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props) {
+export default function Luang({ jendela, rekor, peringkat, kelas, kuota, remedial_tersedia = 0 }: Props) {
     const panggung = useRef<HTMLDivElement | null>(null);
     const kanvas = useRef<HTMLCanvasElement | null>(null);
     const keadaan = useRef<Keadaan>({
@@ -800,6 +801,15 @@ export default function Luang({ jendela, rekor, peringkat, kelas, kuota }: Props
                         className="block border border-line bg-surface px-3 py-2 text-center text-[12px] font-medium text-ink-2 hover:bg-surface-2"
                     >
                         Tantang teman (lomba)
+                    </Link>
+                )}
+
+                {remedial_tersedia > 0 && (
+                    <Link
+                        href="/siswa/luang/remedial"
+                        className="block border border-accent bg-accent/10 px-3 py-2 text-center text-[12px] font-medium text-accent hover:bg-accent/15"
+                    >
+                        Klinik remedial pribadi ({remedial_tersedia} soal)
                     </Link>
                 )}
             </div>

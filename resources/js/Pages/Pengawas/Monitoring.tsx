@@ -86,6 +86,22 @@ type Props = {
     kursi: Kursi[];
     insiden: Insiden[];
     jenis_insiden: Record<string, string>;
+    radar_anomali?: {
+        kursi_a: number;
+        nama_a: string;
+        kursi_b: number;
+        nama_b: string;
+        alasan: string;
+    }[];
+    sinyal?: {
+        id: number;
+        jenis: string;
+        label: string;
+        catatan: string | null;
+        status: string;
+        jam: string | null;
+    }[];
+    jenis_sinyal?: Record<string, string>;
 };
 
 export default function Monitoring({
@@ -94,9 +110,13 @@ export default function Monitoring({
     kursi,
     insiden,
     jenis_insiden,
+    radar_anomali = [],
+    sinyal = [],
+    jenis_sinyal = {},
 }: Props) {
     const [bukaInsiden, setBukaInsiden] = useState(false);
     const [jenis, setJenis] = useState('lain');
+    const [paketDarurat, setPaketDarurat] = useState('');
     const [keterangan, setKeterangan] = useState('');
     const [pesertaId, setPesertaId] = useState<string>('');
     const [kirim, setKirim] = useState(false);
@@ -335,6 +355,106 @@ export default function Monitoring({
                 Pengawas hanya melihat siswa di ruangnya. Nama siswa di ruang lain tidak
                 muncul sama sekali, bukan disamarkan.
             </Inbox>
+
+            {radar_anomali.length > 0 && (
+                <KotakPonsel
+                    solid
+                    padat
+                    judul="Radar anomali denah kursi"
+                    kanan={<Chip nada="warn">{radar_anomali.length}</Chip>}
+                >
+                    <div className="space-y-1.5">
+                        {radar_anomali.map((r, idx) => (
+                            <div
+                                key={`${r.kursi_a}-${r.kursi_b}-${idx}`}
+                                className="rounded-wf border border-warn bg-warn/10 px-2.5 py-2 text-xs text-ink"
+                            >
+                                <p className="font-medium">
+                                    Kursi {r.kursi_a} ({r.nama_a}) & Kursi {r.kursi_b} ({r.nama_b})
+                                </p>
+                                <p className="text-[11px] text-ink-2">{r.alasan}</p>
+                            </div>
+                        ))}
+                    </div>
+                </KotakPonsel>
+            )}
+
+            <KotakPonsel
+                solid
+                padat
+                judul="Sinyal teknisi / panitia"
+                kanan={<Chip nada="mute">1 ketuk</Chip>}
+            >
+                <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(jenis_sinyal).map(([kode, label]) => (
+                        <button
+                            key={kode}
+                            type="button"
+                            disabled={kirim}
+                            onClick={() => {
+                                setKirim(true);
+                                router.post(
+                                    `/pengawas/ruang/${ruang.id}/sinyal`,
+                                    { jenis: kode },
+                                    { preserveScroll: true, onFinish: () => setKirim(false) },
+                                );
+                            }}
+                            className="inline-grid min-h-10 place-items-center rounded-wf border border-line bg-surface-2 px-2.5 text-[11px] font-medium text-ink hover:border-accent"
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+                {sinyal.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                        {sinyal.map((s) => (
+                            <div
+                                key={s.id}
+                                className="flex items-center justify-between rounded-wf border border-line bg-surface px-2.5 py-1.5 text-[11px]"
+                            >
+                                <span>
+                                    {s.label} · {s.jam}
+                                </span>
+                                <Chip nada={s.status === 'aktif' ? 'warn' : 'ok'}>
+                                    {s.status === 'aktif' ? 'aktif' : 'ditangani'}
+                                </Chip>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </KotakPonsel>
+
+            <KotakPonsel solid padat judul="Terima paket darurat offline">
+                <p className="text-[11px] text-ink-3">
+                    Jika perangkat siswa putus Wi-Fi total, tempel kode paket darurat dari layar siswa.
+                </p>
+                <textarea
+                    value={paketDarurat}
+                    onChange={(e) => setPaketDarurat(e.target.value)}
+                    rows={2}
+                    placeholder="Tempel kode paket darurat siswa..."
+                    className="mt-1.5 w-full rounded-wf border border-line bg-surface px-2 py-1.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
+                />
+                <button
+                    type="button"
+                    disabled={kirim || paketDarurat.trim().length < 10}
+                    onClick={() => {
+                        setKirim(true);
+                        router.post(
+                            `/pengawas/ruang/${ruang.id}/qr-darurat`,
+                            { paket: paketDarurat.trim() },
+                            {
+                                preserveScroll: true,
+                                onSuccess: () => setPaketDarurat(''),
+                                onFinish: () => setKirim(false),
+                            },
+                        );
+                    }}
+                    className="mt-1.5 inline-grid min-h-10 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent disabled:opacity-50"
+                >
+                    Sinkronkan jawaban darurat
+                </button>
+            </KotakPonsel>
         </KerangkaPonsel>
     );
 }

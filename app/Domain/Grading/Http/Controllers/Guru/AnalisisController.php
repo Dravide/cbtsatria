@@ -2,9 +2,11 @@
 
 namespace App\Domain\Grading\Http\Controllers\Guru;
 
+use App\Domain\Attendance\Models\AttemptQuestion;
 use App\Domain\Exam\Models\Exam;
 use App\Domain\Exam\Models\ExamQuestion;
 use App\Domain\Grading\Models\QuestionAnalysis;
+use App\Domain\Grading\Services\DeteksiKemiripanKursi;
 use App\Domain\Grading\Services\PenghitungAnalisis;
 use App\Domain\Grading\Support\UjianGuru;
 use Illuminate\Http\RedirectResponse;
@@ -42,7 +44,10 @@ use Inertia\Response;
  */
 class AnalisisController
 {
-    public function __construct(private readonly PenghitungAnalisis $analisis) {}
+    public function __construct(
+        private readonly PenghitungAnalisis $analisis,
+        private readonly DeteksiKemiripanKursi $kemiripan,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -89,36 +94,70 @@ class AnalisisController
             ->get()
             ->keyBy('exam_question_id');
 
-        $baris = ExamQuestion::query()
+        $soalDaftar = ExamQuestion::query()
             ->where('exam_id', $ujian->id)
             ->orderBy('position')
-            ->get()
-            ->map(function (ExamQuestion $butir) use ($analisis) {
-                $a = $analisis->get($butir->id);
+            ->get();
 
-                return [
-                    'butir_id' => $butir->id,
-                    'nomor' => $butir->position,
-                    'judul' => $butir->judul,
-                    'jenis' => $butir->jenis->value,
-                    'jenis_label' => $butir->jenis->label(),
-                    'bobot' => $butir->bobotBerlaku(),
-                    // `null` berarti BELUM dihitung, bukan nol. Uraian selalu
-                    // null: daya bedanya tidak dihitung karena penilaiannya
-                    // bergantung pada rubrik, bukan pada benar/salah.
-                    'dijawab' => $a?->answered_count,
-                    'benar' => $a?->correct_count,
-                    'salah' => $a === null ? null : max(0, (int) $a->answered_count - (int) $a->correct_count),
-                    'persen_benar' => $a === null ? null : (float) $a->percent_correct,
-                    // Null saat kelompok atas/bawah tidak cukup besar -
-                    // lihat `PenghitungAnalisis::MINIMAL_PESERTA`. Nol akan
-                    // terbaca sebagai "tidak membedakan sama sekali", dan itu
-                    // putusan yang berbeda.
-                    'daya_beda' => $a?->discrimination === null ? null : (float) $a->discrimination,
-                    'putusan' => $a?->verdict,
-                    'putusan_nada' => $a?->nada(),
-                ];
-            });
+        $telemetri = AttemptQuestion::query()
+            ->whereIn('exam_question_id', $soalDaftar->pluck('id')->all())
+            ->with('jawaban:id,attempt_question_id,answer_json')
+            ->get()
+            ->groupBy('exam_question_id');
+
+        $baris = $soalDaftar->map(function (ExamQuestion $butir) use ($analisis, $telemetri) {
+            $a = $analisis->get($butir->id);
+            $rekaman = $telemetri->get($butir->id, collect());
+            $durasiPositif = $rekaman->pluck('durasi_detik')->filter(fn ($d) => (int) $d > 0);
+            $rataDurasi = $durasiPositif->isEmpty() ? null : (int) round($durasiPositif->avg());
+
+            $opsiMati = [];
+            if ($butir->jenis->value === 'pilihan_ganda' && is_array($butir->opsi_json) && $rekaman->isNotEmpty()) {
+                $terpilih = $rekaman
+                    ->map(fn (AttemptQuestion $aq) => $aq->jawaban?->answer_json['opsi'][0] ?? null)
+                    ->filter()
+                    ->flip();
+
+                foreach ($butir->opsi_json as $o) {
+                    $k = $o['kunci'] ?? $o['option_key'] ?? null;
+                    if ($k !== null && ! $terpilih->has($k)) {
+                        $opsiMati[] = (string) $k;
+                    }
+                }
+            }
+
+            $persen = $a === null ? null : (float) $a->percent_correct;
+            $kuadran = null;
+            if ($rataDurasi !== null && $persen !== null) {
+                $cepat = $rataDurasi <= 45;
+                $benarTinggi = $persen >= 60;
+                $kuadran = match (true) {
+                    $cepat && $benarTinggi => 'Cepat & Benar',
+                    ! $cepat && ! $benarTinggi => 'Lama & Salah',
+                    $cepat && ! $benarTinggi => 'Cepat & Salah',
+                    default => 'Lama & Benar',
+                };
+            }
+
+            return [
+                'butir_id' => $butir->id,
+                'nomor' => $butir->position,
+                'judul' => $butir->judul,
+                'jenis' => $butir->jenis->value,
+                'jenis_label' => $butir->jenis->label(),
+                'bobot' => $butir->bobotBerlaku(),
+                'dijawab' => $a?->answered_count,
+                'benar' => $a?->correct_count,
+                'salah' => $a === null ? null : max(0, (int) $a->answered_count - (int) $a->correct_count),
+                'persen_benar' => $persen,
+                'daya_beda' => $a?->discrimination === null ? null : (float) $a->discrimination,
+                'putusan' => $a?->verdict,
+                'putusan_nada' => $a?->nada(),
+                'rata_durasi_detik' => $rataDurasi,
+                'kuadran' => $kuadran,
+                'opsi_mati' => $opsiMati,
+            ];
+        });
 
         return Inertia::render('Guru/Analisis/Ujian', [
             'ujian' => [
@@ -130,9 +169,7 @@ class AnalisisController
             ],
             'baris' => $baris->all(),
             'ada_analisis' => $analisis->isNotEmpty(),
-            // Ambang ditampilkan supaya kalimat "terlalu mudah" punya angka
-            // yang bisa diperiksa Guru - bukan keputusan yang muncul entah
-            // dari mana.
+            'kemiripan_kursi' => $this->kemiripan->untukUjian($ujian->id),
             'ambang' => [
                 'mudah' => QuestionAnalysis::MUDAH_DI_ATAS,
                 'sulit' => QuestionAnalysis::SULIT_DI_BAWAH,

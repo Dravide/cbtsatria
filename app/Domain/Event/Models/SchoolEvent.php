@@ -74,6 +74,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'show_objectives',
     'show_explanations',
     'gradings_locked',
+    'is_simulasi',
     'created_by',
 ])]
 class SchoolEvent extends Model
@@ -98,6 +99,7 @@ class SchoolEvent extends Model
             'show_objectives' => 'boolean',
             'show_explanations' => 'boolean',
             'gradings_locked' => 'boolean',
+            'is_simulasi' => 'boolean',
         ];
     }
 

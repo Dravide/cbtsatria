@@ -171,6 +171,11 @@ class KerjakanSiswaController extends SiswaDasar
                 'nama' => (string) auth()->user()?->name,
                 'nomor_induk' => (string) auth()->user()?->username,
             ],
+            'qr_secret' => hash_hmac(
+                'sha256',
+                'qr-darurat|'.$attempt->id.'|'.$attempt->started_at?->toIso8601String(),
+                (string) config('app.key'),
+            ),
         ]);
     }
 
@@ -366,7 +371,12 @@ class KerjakanSiswaController extends SiswaDasar
             'isi' => ['array'],
             'versi' => ['nullable', 'integer', 'min:0'],
             'ditandai' => ['nullable', 'boolean'],
+            'durasi_butir' => ['nullable', 'array'],
         ]);
+
+        if (! empty($valid['durasi_butir']) && $attempt->status === ExamAttempt::STATUS_BERJALAN) {
+            $this->catatDurasiButir($attempt, $valid['durasi_butir']);
+        }
 
         $tersimpan = $this->jawaban->simpan(
             $attempt,
@@ -441,7 +451,12 @@ class KerjakanSiswaController extends SiswaDasar
             // tidak mengisi kolom monitoring dengan angka yang tak berarti;
             // jumlah soal satu ujian tidak pernah melewatinya.
             'nomor' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'durasi_butir' => ['nullable', 'array'],
         ]);
+
+        if (! empty($valid['durasi_butir']) && $attempt->status === ExamAttempt::STATUS_BERJALAN) {
+            $this->catatDurasiButir($attempt, $valid['durasi_butir']);
+        }
 
         // Progres ikut dihitung di sini, bukan dikirim peramban: angka yang
         // dibaca pengawas di papan monitoring harus berasal dari jawaban
@@ -551,5 +566,27 @@ class KerjakanSiswaController extends SiswaDasar
         // berarti simpanan tiap milidetik, dan nilai 3600 berarti pekerjaan
         // satu jam yang hilang saat baterainya habis.
         return min(120, max(5, $nilai));
+    }
+
+    /**
+     * Tambahkan delta detik aktif pada butir milik attempt ini.
+     *
+     * @param  array<int|string, mixed>  $delta
+     */
+    private function catatDurasiButir(ExamAttempt $attempt, array $delta): void
+    {
+        foreach ($delta as $butirId => $detik) {
+            $id = (int) $butirId;
+            $nilai = (int) $detik;
+
+            if ($id <= 0 || $nilai <= 0) {
+                continue;
+            }
+
+            AttemptQuestion::query()
+                ->where('id', $id)
+                ->where('exam_attempt_id', $attempt->id)
+                ->increment('durasi_detik', min(3600, $nilai));
+        }
     }
 }

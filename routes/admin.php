@@ -18,6 +18,7 @@ use App\Domain\Admin\Http\Controllers\UserExportController;
 use App\Domain\Admin\Http\Controllers\UserImportController;
 use App\Domain\Attendance\Http\Controllers\PantauPublikController;
 use App\Domain\Attendance\Http\Controllers\PemantauanEventController;
+use App\Domain\Attendance\Http\Controllers\SinyalRuangAdminController;
 use App\Domain\Event\Http\Controllers\EventAnnouncementController;
 use App\Domain\Event\Http\Controllers\EventCommitteeController;
 use App\Domain\Event\Http\Controllers\EventController;
@@ -65,6 +66,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+    Route::post('/events/{event}/gladi-bersih', [EventController::class, 'gladiBersih'])->name('events.gladi-bersih');
+    Route::post('/sinyal/{sinyal}/selesai', [SinyalRuangAdminController::class, 'selesaikan'])->name('sinyal.selesai');
     // 04 - profil sekolah. Tidak ada {id} di URL: sekolahnya adalah
     // sekolah pengguna yang sedang masuk, dan tidak ada bentuk request
     // yang bisa menyebut sekolah lain.

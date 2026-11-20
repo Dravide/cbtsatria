@@ -13,7 +13,10 @@ use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Attendance\Services\LaporanSesiService;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
+use App\Domain\Tenancy\Services\PengaturanAiSekolah;
+use App\Support\Ai\KlienAi;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -284,6 +287,48 @@ class BeritaAcaraController
         }
 
         return back()->with('sukses', 'Berita acara dikirim.');
+    }
+
+    /**
+     * Rapikan dikte suara menjadi catatan berita acara formal menggunakan AI sekolah (atau fallback lokal).
+     */
+    public function rapiAi(
+        ExamSessionRoom $ruang,
+        Request $request,
+        PengaturanAiSekolah $pengaturanAi,
+        KlienAi $klienAi,
+    ): JsonResponse {
+        KonteksRuang::dari($ruang);
+
+        $valid = $request->validate([
+            'teks' => ['required', 'string', 'min:3', 'max:2000'],
+        ]);
+
+        $teks = trim($valid['teks']);
+        $ai = $pengaturanAi->ambil($ruang->school_id);
+
+        if ($ai !== null && $ai->aktif) {
+            try {
+                $hasil = $klienAi->kirim(
+                    $ai,
+                    'Anda asisten penyusun Berita Acara Ujian sekolah di Indonesia. Rapikan teks dikte pengawas berikut menjadi 1-3 poin berita acara yang formal, singkat, dan faktual tanpa menambah fakta baru.',
+                    $teks,
+                );
+
+                return response()->json(['catatan' => trim($hasil)]);
+            } catch (\Throwable) {
+                // Fallback ke perapihan lokal bila penyedia AI tidak dapat dihubungi.
+            }
+        }
+
+        $kalimat = preg_split('/(?<=[.!?])\s+|\n+/', $teks) ?: [$teks];
+        $poin = collect($kalimat)
+            ->map(fn (string $k) => trim($k))
+            ->filter()
+            ->map(fn (string $k) => '- '.ucfirst($k))
+            ->implode("\n");
+
+        return response()->json(['catatan' => $poin !== '' ? $poin : $teks]);
     }
 
     /**

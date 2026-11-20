@@ -48,6 +48,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'display_order',
     'option_order_json',
     'item_order_json',
+    'durasi_detik',
 ])]
 class AttemptQuestion extends Model
 {
@@ -61,6 +62,7 @@ class AttemptQuestion extends Model
             'display_order' => 'integer',
             'option_order_json' => 'array',
             'item_order_json' => 'array',
+            'durasi_detik' => 'integer',
         ];
     }
 

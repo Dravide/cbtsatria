@@ -39,6 +39,18 @@ type Baris = {
     daya_beda: number | null;
     putusan: string | null;
     putusan_nada: string | null;
+    rata_durasi_detik?: number | null;
+    kuadran?: string | null;
+    opsi_mati?: string[];
+};
+
+type KemiripanKursi = {
+    ruang: string;
+    kursi_a: number;
+    nama_a: string;
+    kursi_b: number;
+    nama_b: string;
+    salah_sama: number;
 };
 
 type Props = {
@@ -51,6 +63,7 @@ type Props = {
     };
     baris: Baris[];
     ada_analisis: boolean;
+    kemiripan_kursi?: KemiripanKursi[];
     ambang: {
         mudah: number;
         sulit: number;
@@ -59,7 +72,7 @@ type Props = {
     };
 };
 
-export default function AnalisisUjian({ ujian, baris, ada_analisis, ambang }: Props) {
+export default function AnalisisUjian({ ujian, baris, ada_analisis, kemiripan_kursi = [], ambang }: Props) {
     const [kirim, setKirim] = useState(false);
 
     /**
@@ -218,8 +231,49 @@ export default function AnalisisUjian({ ujian, baris, ada_analisis, ambang }: Pr
                                 <Chip nada={nadaPutusan(b.putusan_nada)}>{b.putusan}</Chip>
                             ),
                     },
+                    {
+                        judul: 'Telemetri',
+                        kelas: 'w-44',
+                        render: (b) => (
+                            <div className="space-y-0.5 text-[11px] text-ink-2">
+                                <div>
+                                    {b.rata_durasi_detik != null ? `${b.rata_durasi_detik} dtk` : '—'}
+                                    {b.kuadran ? ` · ${b.kuadran}` : ''}
+                                </div>
+                                {b.opsi_mati && b.opsi_mati.length > 0 && (
+                                    <div className="text-[10px] text-warn">
+                                        Opsi mati: {b.opsi_mati.join(', ')}
+                                    </div>
+                                )}
+                            </div>
+                        ),
+                    },
                 ]}
             />
+
+            {kemiripan_kursi.length > 0 && (
+                <div className="mt-4 rounded-wf border border-warn bg-surface p-3">
+                    <p className="text-xs font-semibold text-ink">
+                        Korelasi Jawaban Salah Berdekatan (Denah Kursi)
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-ink-3">
+                        Pasangan kursi bersebelahan dengan minimal 3 jawaban salah yang identik.
+                    </p>
+                    <div className="mt-2 space-y-1.5">
+                        {kemiripan_kursi.map((k, i) => (
+                            <div
+                                key={`${k.ruang}-${k.kursi_a}-${k.kursi_b}-${i}`}
+                                className="flex items-center justify-between rounded-wf border border-line bg-surface-2 px-2.5 py-1.5 text-xs"
+                            >
+                                <span>
+                                    <strong className="font-mono">{k.ruang}</strong> · Kursi {k.kursi_a} ({k.nama_a}) & Kursi {k.kursi_b} ({k.nama_b})
+                                </span>
+                                <Chip nada="warn">{k.salah_sama} salah identik</Chip>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
                 Ambang: terlalu mudah di atas {ambang.mudah}%, sulit di bawah {ambang.sulit}%,

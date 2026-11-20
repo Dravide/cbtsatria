@@ -166,6 +166,7 @@ type Props = {
      * pemiliknya.
      */
     tanda_air: { nama: string; nomor_induk: string };
+    qr_secret?: string;
     /**
      * Tiga penjaga layar milik event - `SchoolEvent::detect_split_screen`,
      * `detect_float_window`, `show_watermark`.
@@ -207,8 +208,11 @@ export default function Kerjakan({
     deteksi_layar_terbagi,
     deteksi_jendela_mengambang,
     tanda_air_aktif,
+    qr_secret,
 }: Props) {
     const [indeks, setIndeks] = useState(0);
+    const [kodeDarurat, setKodeDarurat] = useState<string | null>(null);
+    const durasiButirRef = useRef<Record<number, number>>({});
     const [sisa, setSisa] = useState(attempt.sisa_detik);
     const [ringkas, setRingkas] = useState(progres);
     const [tersimpan, setTersimpan] = useState<'diam' | 'proses' | 'ok' | 'galat'>('diam');
@@ -482,9 +486,23 @@ export default function Kerjakan({
     /* -------------------------------------------------------------- Denyut */
 
     useEffect(() => {
+        const aktifId = butir[indeks]?.id;
+        if (!aktifId) {
+            return;
+        }
+        const timer = window.setInterval(() => {
+            durasiButirRef.current[aktifId] = (durasiButirRef.current[aktifId] ?? 0) + 1;
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, [indeks, butir]);
+
+    useEffect(() => {
         const perangkat = idPeramban();
 
         const kirimDenyut = () => {
+            const delta = { ...durasiButirRef.current };
+            durasiButirRef.current = {};
+
             kirimJson(`/siswa/ujian/${peserta.peserta_id}/denyut`, {
                 perangkat,
                 layar_penuh: document.fullscreenElement !== null,
@@ -493,6 +511,7 @@ export default function Kerjakan({
                 // denyutnya tidak dipasang ulang tiap kali anak berpindah
                 // soal - lihat catatan `nomorRef` di atas.
                 nomor: nomorRef.current,
+                durasi_butir: delta,
             })
                 .then((hasil) => {
                     if (!hasil) {
@@ -972,6 +991,43 @@ export default function Kerjakan({
                             : 'Jawaban Anda sementara disimpan di perangkat ini. '}
                         Segera hubungi pengawas jika koneksi tidak kembali sebelum waktu ujian habis.
                     </p>
+                    {qr_secret && (
+                        <div className="mt-2">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const payload = { a: attempt.id, j: jawabanRef.current };
+                                    const json = JSON.stringify(payload);
+                                    const enc = new TextEncoder();
+                                    const key = await window.crypto.subtle.importKey(
+                                        'raw',
+                                        enc.encode(qr_secret),
+                                        { name: 'HMAC', hash: 'SHA-256' },
+                                        false,
+                                        ['sign'],
+                                    );
+                                    const sig = await window.crypto.subtle.sign('HMAC', key, enc.encode(json));
+                                    const hex = Array.from(new Uint8Array(sig))
+                                        .map((b) => b.toString(16).padStart(2, '0'))
+                                        .join('');
+                                    const paket = btoa(JSON.stringify({ ...payload, s: hex }));
+                                    setKodeDarurat(paket);
+                                }}
+                                className="rounded-wf border border-bad bg-surface px-2.5 py-1 text-[11px] font-medium text-bad"
+                            >
+                                Buat Paket Darurat Offline
+                            </button>
+                            {kodeDarurat && (
+                                <textarea
+                                    readOnly
+                                    value={kodeDarurat}
+                                    rows={2}
+                                    onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                                    className="mt-1.5 w-full rounded-wf border border-line bg-surface px-2 py-1 font-mono text-[10px] text-ink"
+                                />
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

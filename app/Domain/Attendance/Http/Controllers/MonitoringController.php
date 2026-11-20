@@ -2,11 +2,16 @@
 
 namespace App\Domain\Attendance\Http\Controllers;
 
+use App\Domain\Attendance\Models\AttemptQuestion;
 use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\ExamIncident;
 use App\Domain\Attendance\Models\ExamViolation;
+use App\Domain\Attendance\Models\RoomSignal;
 use App\Domain\Attendance\Services\InsidenService;
+use App\Domain\Attendance\Services\JawabanService;
 use App\Domain\Attendance\Services\KonteksRuang;
+use App\Domain\Attendance\Services\MesinUjian;
+use App\Domain\Attendance\Services\RadarAnomaliRuang;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Services\NomorKursi;
@@ -46,6 +51,7 @@ class MonitoringController
     public function __construct(
         private readonly InsidenService $insiden,
         private readonly NomorKursi $kursi,
+        private readonly RadarAnomaliRuang $radar,
     ) {}
 
     public function index(ExamSessionRoom $ruang): Response
@@ -160,6 +166,22 @@ class MonitoringController
             ])->all(),
 
             'jenis_insiden' => ExamIncident::JENIS,
+            'radar_anomali' => $this->radar->deteksi($ruang, $penempatan, $attempt),
+            'sinyal' => RoomSignal::query()
+                ->where('exam_session_room_id', $ruang->id)
+                ->latest('id')
+                ->limit(10)
+                ->get()
+                ->map(fn (RoomSignal $s) => [
+                    'id' => $s->id,
+                    'jenis' => $s->jenis,
+                    'label' => $s->labelJenis(),
+                    'catatan' => $s->catatan,
+                    'status' => $s->status,
+                    'jam' => $s->created_at?->format('H:i'),
+                ])
+                ->all(),
+            'jenis_sinyal' => RoomSignal::JENIS,
         ]);
     }
 
@@ -199,5 +221,94 @@ class MonitoringController
         }
 
         return back()->with('sukses', 'Insiden tercatat.');
+    }
+
+    /** Kirim sinyal darurat infrastruktur ke Admin/Teknisi. */
+    public function kirimSinyal(ExamSessionRoom $ruang, Request $request): RedirectResponse
+    {
+        $konteks = KonteksRuang::dari($ruang);
+
+        $valid = $request->validate([
+            'jenis' => ['required', 'string', 'in:'.implode(',', array_keys(RoomSignal::JENIS))],
+            'catatan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        RoomSignal::create([
+            'school_id' => $ruang->school_id,
+            'exam_session_room_id' => $ruang->id,
+            'jenis' => $valid['jenis'],
+            'catatan' => $valid['catatan'] ?? null,
+            'pelapor_id' => $konteks->penggunaId(),
+            'pelapor_nama' => $konteks->pelakuLabel(),
+            'status' => RoomSignal::STATUS_AKTIF,
+        ]);
+
+        return back()->with('sukses', 'Sinyal teknisi terkirim ke panitia/admin.');
+    }
+
+    /** Terima paket jawaban darurat (QR/kode bertanda tangan HMAC) saat perangkat siswa offline. */
+    public function terimaQrDarurat(
+        ExamSessionRoom $ruang,
+        Request $request,
+        JawabanService $jawaban,
+        MesinUjian $mesin,
+    ): RedirectResponse {
+        KonteksRuang::dari($ruang);
+
+        $valid = $request->validate([
+            'paket' => ['required', 'string', 'max:32000'],
+        ]);
+
+        $decoded = json_decode(base64_decode($valid['paket'], true) ?: '', true);
+
+        if (! is_array($decoded) || ! isset($decoded['a'], $decoded['j'], $decoded['s']) || ! is_array($decoded['j'])) {
+            return back()->with('galat', 'Format paket QR darurat tidak valid.');
+        }
+
+        $attempt = ExamAttempt::query()
+            ->whereKey((int) $decoded['a'])
+            ->whereHas('penempatan', fn ($q) => $q->where('exam_session_room_id', $ruang->id))
+            ->first();
+
+        if ($attempt === null) {
+            return back()->with('galat', 'Attempt peserta tidak ditemukan di ruang ini.');
+        }
+
+        $secret = hash_hmac(
+            'sha256',
+            'qr-darurat|'.$attempt->id.'|'.$attempt->started_at?->toIso8601String(),
+            (string) config('app.key'),
+        );
+        $expected = hash_hmac('sha256', json_encode(['a' => $attempt->id, 'j' => $decoded['j']], JSON_UNESCAPED_UNICODE), $secret);
+
+        if (! hash_equals($expected, (string) $decoded['s'])) {
+            return back()->with('galat', 'Tanda tangan paket darurat tidak cocok.');
+        }
+
+        $butirMap = AttemptQuestion::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->get()
+            ->keyBy('id');
+
+        $tersimpan = 0;
+
+        foreach ($decoded['j'] as $butirId => $isi) {
+            $butir = $butirMap->get((int) $butirId);
+
+            if ($butir !== null && is_array($isi)) {
+                $jawaban->simpan($attempt, $butir, $isi);
+                $tersimpan++;
+            }
+        }
+
+        if ($attempt->status === ExamAttempt::STATUS_BERJALAN) {
+            $attempt->forceFill([
+                'status' => ExamAttempt::STATUS_DIKIRIM,
+                'submitted_at' => now(),
+            ])->save();
+            $mesin->tutupBilaKedaluwarsa($attempt);
+        }
+
+        return back()->with('sukses', "Paket darurat diterima ({$tersimpan} jawaban disinkronkan).");
     }
 }

@@ -202,6 +202,12 @@ export default function EventShow({ event, kesiapan, langkah, angka, pantau_url,
                             {l.label}
                         </Tombol>
                     ))}
+                    <Tombol
+                        nada="sek"
+                        onClick={() => router.post(`/admin/events/${event.id}/gladi-bersih`)}
+                    >
+                        Jalankan Gladi Bersih
+                    </Tombol>
                 </>
             }
         >

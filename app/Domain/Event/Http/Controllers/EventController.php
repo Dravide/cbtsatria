@@ -11,6 +11,7 @@ use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Event\Services\EventReadiness;
 use App\Domain\Event\Services\EventRegistrar;
 use App\Domain\Event\Services\EventStatusService;
+use App\Domain\Event\Services\GladiBersihService;
 use App\Domain\Tenancy\Models\School;
 use App\Domain\Tenancy\Support\PengaturanBawaan;
 use App\Support\TabelQuery;
@@ -523,6 +524,23 @@ class EventController
      *
      * @return array<int, string>
      */
+    /** Buat event simulasi "Gladi Bersih Hari-H" dari event yang ada. */
+    public function gladiBersih(Request $request, SchoolEvent $event, GladiBersihService $gladi, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('update', $event);
+
+        $simulasi = $gladi->buatDari($event, (int) $request->user()->id);
+
+        $logger->log('Membuat simulasi gladi bersih', $simulasi, [
+            'sumber_event_id' => $event->id,
+            'sumber_kode' => $event->code,
+        ]);
+
+        return redirect()
+            ->route('admin.events.show', $simulasi)
+            ->with('sukses', 'Event simulasi Gladi Bersih dibuat. Panitia & pengawas dapat berlatih alur hari-H tanpa memengaruhi data resmi.');
+    }
+
     private function jenis(): array
     {
         return [

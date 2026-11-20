@@ -4,6 +4,7 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 
 use App\Domain\Attendance\Models\LeisureGameScore;
 use App\Domain\Attendance\Services\JendelaLuang;
+use App\Domain\Attendance\Services\KlinikRemedialService;
 use App\Domain\Attendance\Services\KuotaPermainan;
 use App\Domain\Attendance\Services\PapanPeringkatLuang;
 use App\Domain\Exam\Models\ExamParticipant;
@@ -45,6 +46,7 @@ class LuangSiswaController extends SiswaDasar
         private readonly JendelaLuang $jendela,
         private readonly PapanPeringkatLuang $papan,
         private readonly KuotaPermainan $kuota,
+        private readonly KlinikRemedialService $remedial,
     ) {}
 
     public function tampilkan(Request $request): Response|RedirectResponse
@@ -83,6 +85,7 @@ class LuangSiswaController extends SiswaDasar
             // menghitungnya sendiri akan menampilkan angka yang berbeda dari
             // yang menolak kirimannya.
             'kuota' => $this->kuota->hariIni($siswa->id, now()),
+            'remedial_tersedia' => count($this->remedial->untukSiswa($siswa->id)),
         ]);
     }
 
@@ -207,6 +210,42 @@ class LuangSiswaController extends SiswaDasar
                 ? 'Skor tersimpan.'
                 : 'Skor ditolak: kiriman ini tidak sesuai dengan permainan yang bisa dihasilkan panggung.',
         ]);
+    }
+
+    /** Klinik remedial mikro pasca-publikasi. */
+    public function remedial(Request $request): Response|RedirectResponse
+    {
+        $siswa = $request->user();
+        $penempatan = $this->penempatan($siswa->id);
+
+        if ($this->jendela->untukSiswa($penempatan, now()) === null) {
+            return redirect()->route('siswa.dashboard')
+                ->with('galat', 'Klinik remedial tertutup selama ujian berlangsung.');
+        }
+
+        return Inertia::render('Siswa/Remedial', [
+            'butir' => $this->remedial->untukSiswa($siswa->id),
+        ]);
+    }
+
+    /** Periksa satu jawaban latihan remedial siswa. */
+    public function periksaRemedial(Request $request): JsonResponse
+    {
+        $siswa = $request->user();
+        $penempatan = $this->penempatan($siswa->id);
+
+        if ($this->jendela->untukSiswa($penempatan, now()) === null) {
+            return response()->json(['pesan' => 'Klinik remedial tertutup selama ujian berlangsung.'], 423);
+        }
+
+        $valid = $request->validate([
+            'attempt_question_id' => ['required', 'integer'],
+            'opsi' => ['required', 'string', 'max:20'],
+        ]);
+
+        return response()->json(
+            $this->remedial->periksaJawaban($siswa->id, (int) $valid['attempt_question_id'], $valid['opsi']),
+        );
     }
 
     /**
