@@ -11,7 +11,7 @@
     <meta charset="utf-8">
     <title>Kartu Akun {{ $kartu['nama'] }}</title>
     <style>
-        @page { margin: 5mm; }
+        @page { margin: 3mm; }
 
         body {
             margin: 0;

@@ -50,7 +50,7 @@ use ZipArchive;
  */
 class KartuAkunGuru
 {
-    public const LEBAR_MM = 115;
+    public const LEBAR_MM = 120;
 
     public const POIN_PER_MM = 2.83465;
 
@@ -97,15 +97,27 @@ class KartuAkunGuru
     public function pdf(array $satu, array $sekolah): string
     {
         $jumlahMapel = count($satu['mapel'] ?? []);
-        $tinggiMm = 104 + ($jumlahMapel > 0 ? 10 + ($jumlahMapel * 7) : 0);
-
+        $tinggiMm = 116 + ($jumlahMapel > 0 ? 12 + ($jumlahMapel * 8) : 0);
         $lebarPt = round(self::LEBAR_MM * self::POIN_PER_MM, 2);
-        $tinggiPt = round($tinggiMm * self::POIN_PER_MM, 2);
 
-        return Pdf::loadView('kartu.akun-guru', [
-            'sekolah' => $sekolah,
-            'kartu' => $satu,
-        ])->setPaper([0, 0, $lebarPt, $tinggiPt])->output();
+        for ($coba = 0; $coba < 4; $coba++) {
+            $tinggiPt = round($tinggiMm * self::POIN_PER_MM, 2);
+            $pdf = Pdf::loadView('kartu.akun-guru', [
+                'sekolah' => $sekolah,
+                'kartu' => $satu,
+            ])->setPaper([0, 0, $lebarPt, $tinggiPt]);
+
+            $dompdf = $pdf->getDomPDF();
+            $dompdf->render();
+
+            if ($dompdf->getCanvas()->get_page_count() <= 1) {
+                return $dompdf->output();
+            }
+
+            $tinggiMm += 18;
+        }
+
+        return $pdf->output();
     }
 
     /**
