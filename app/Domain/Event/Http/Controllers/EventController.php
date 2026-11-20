@@ -51,9 +51,15 @@ use Inertia\Response;
  */
 class EventController
 {
-    public function index(Request $request): Response
+    public function index(Request $request, EventStatusService $status): Response
     {
         Gate::authorize('viewAny', SchoolEvent::class);
+
+        // Sinkronkan status otomatis sebelum menghitung tab & menampilkan daftar.
+        SchoolEvent::query()
+            ->whereNotIn('status', [EventStatus::Archived->value, EventStatus::Cancelled->value])
+            ->get()
+            ->each(fn (SchoolEvent $e) => $status->sinkronkanOtomatis($e));
 
         // Satu query agregat untuk keempat tab. Empat query count terpisah
         // untuk empat angka yang muncul bersamaan adalah empat perjalanan ke
@@ -208,6 +214,8 @@ class EventController
     public function show(Request $request, SchoolEvent $event, EventReadiness $kesiapan, EventStatusService $status): Response
     {
         Gate::authorize('view', $event);
+
+        $event = $status->sinkronkanOtomatis($event);
 
         // Menulis konteks ke sesi - lihat catatan di atas.
         $request->session()->put('event_aktif', $event->id);

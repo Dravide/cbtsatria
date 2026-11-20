@@ -75,6 +75,11 @@ Schedule::command('ujian:tutup-sesi')
     ->everyMinute()
     ->withoutOverlapping();
 
+// Sinkronisasi status event otomatis sesuai jadwal (start_at/end_at) & kesiapan.
+Schedule::command('event:sinkron-status')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 // ---------------------------------------------------------------------------
 // Pangkas ekspor lama - setiap malam pukul 03:00
 // ---------------------------------------------------------------------------

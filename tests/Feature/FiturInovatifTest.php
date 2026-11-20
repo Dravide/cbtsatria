@@ -7,6 +7,7 @@ use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\ExamViolation;
 use App\Domain\Attendance\Models\RoomSignal;
 use App\Domain\Attendance\Models\StudentAnswer;
+use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamQuestion;
@@ -208,4 +209,49 @@ it('membuat event simulasi gladi bersih terisolasi dari event sumber', function 
     $simulasi = SchoolEvent::query()->where('is_simulasi', true)->first();
     expect($simulasi)->not->toBeNull()
         ->and($simulasi->name)->toContain('[GLADI BERSIH]');
+});
+
+it('memperbarui status event otomatis menjadi berjalan saat masa mulai dan selesai saat melewati batas akhir', function () {
+    $eventBerjalan = SchoolEvent::factory()->untukTahun($this->tahun)->create([
+        'school_id' => $this->sekolah->id,
+        'semester_id' => $this->semester->id,
+        'status' => EventStatus::Draft,
+        'start_at' => now()->subHour(),
+        'end_at' => now()->addHours(2),
+    ]);
+
+    $eventSelesai = SchoolEvent::factory()->untukTahun($this->tahun)->create([
+        'school_id' => $this->sekolah->id,
+        'semester_id' => $this->semester->id,
+        'status' => EventStatus::Ongoing,
+        'start_at' => now()->subDays(2),
+        'end_at' => now()->subHour(),
+    ]);
+
+    $eventBatal = SchoolEvent::factory()->untukTahun($this->tahun)->create([
+        'school_id' => $this->sekolah->id,
+        'semester_id' => $this->semester->id,
+        'status' => EventStatus::Cancelled,
+        'start_at' => now()->subHour(),
+        'end_at' => now()->addHours(2),
+    ]);
+
+    masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$eventBerjalan->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('event.status', 'berjalan')
+        );
+
+    $this->get("/admin/events/{$eventSelesai->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('event.status', 'selesai')
+        );
+
+    // Status batal tidak pernah disentuh otomasi.
+    expect($eventBatal->refresh()->status)->toBe(EventStatus::Cancelled);
+
+    // Command artisan juga berjalan sukses.
+    $this->artisan('event:sinkron-status')->assertSuccessful();
 });

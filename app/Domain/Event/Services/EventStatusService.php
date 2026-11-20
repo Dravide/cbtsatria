@@ -4,6 +4,7 @@ namespace App\Domain\Event\Services;
 
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\SchoolEvent;
+use Carbon\CarbonInterface;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -155,5 +156,58 @@ class EventStatusService
         }
 
         return $hasil;
+    }
+
+    /**
+     * Sinkronkan status event secara otomatis berdasarkan jadwal (`start_at`
+     * dan `end_at`) serta kesiapan komponen.
+     *
+     * Status `arsip` dan `batal` adalah tindakan sadar Admin dan tidak pernah
+     * diubah oleh otomasi.
+     */
+    public function sinkronkanOtomatis(SchoolEvent $event, ?CarbonInterface $sekarang = null): SchoolEvent
+    {
+        if (in_array($event->status, [EventStatus::Archived, EventStatus::Cancelled], true)) {
+            return $event;
+        }
+
+        $sekarang ??= now();
+        $target = $this->tentukanStatusOtomatis($event, $sekarang);
+
+        if ($target !== $event->status) {
+            $event->forceFill(['status' => $target])->save();
+
+            return $event->refresh();
+        }
+
+        return $event;
+    }
+
+    private function tentukanStatusOtomatis(SchoolEvent $event, CarbonInterface $sekarang): EventStatus
+    {
+        if ($event->end_at !== null && $sekarang->gt($event->end_at)) {
+            return EventStatus::Completed;
+        }
+
+        if ($event->start_at !== null && $sekarang->gte($event->start_at)) {
+            return EventStatus::Ongoing;
+        }
+
+        // Sebelum jadwal mulai (atau jadwal belum diisi): pertahankan status
+        // bila Admin sudah memindahkannya manual ke Berjalan/Selesai.
+        if (in_array($event->status, [EventStatus::Ongoing, EventStatus::Completed], true)) {
+            return $event->status;
+        }
+
+        if ($this->kesiapan->periksa($event)['lulus']) {
+            return EventStatus::Ready;
+        }
+
+        $adaKomponen = $event->classes()->exists()
+            || $event->subjects()->exists()
+            || $event->rooms()->exists()
+            || $event->participants()->exists();
+
+        return $adaKomponen ? EventStatus::Preparation : EventStatus::Draft;
     }
 }
