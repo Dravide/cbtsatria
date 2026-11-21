@@ -705,15 +705,38 @@ function BarisSesi({
     // tidak bisa diubah lagi, karena peserta mungkin sudah mengerjakan.
     const final = baris.status === 'selesai' || baris.status === 'batal';
 
+    const bagianUjian = baris.ujian.split(/\s*·\s*/);
+    const judulUjian = bagianUjian[0] ?? baris.ujian;
+    const sasaranUjian = bagianUjian.length > 1 ? bagianUjian.slice(1).join(' · ') : null;
+    const daftarKelas =
+        sasaranUjian && sasaranUjian !== 'semua kelas'
+            ? sasaranUjian.split(/\s*,\s*/).filter(Boolean)
+            : [];
+    const ringkasKelas =
+        daftarKelas.length > 3
+            ? `${daftarKelas.slice(0, 3).join(', ')} +${daftarKelas.length - 3} kelas`
+            : sasaranUjian;
+
+    const ringkasRuang =
+        baris.ruang_kode.length > 3
+            ? `${baris.ruang_kode.slice(0, 3).join(', ')} +${baris.ruang_kode.length - 3} ruang`
+            : baris.ruang_kode.join(', ');
+
     return (
         <>
             <tr className="border-b border-line last:border-0 align-top">
                 <td className="px-3 py-2">
-                    <span className="text-sm text-ink">
-                        {baris.ujian.replace(/\s*·\s*semua kelas$/, '')}
-                    </span>
-                    {/·\s*semua kelas$/.test(baris.ujian) && (
+                    <span className="text-sm text-ink">{judulUjian}</span>
+                    {sasaranUjian === 'semua kelas' && (
                         <span className="ml-1.5 text-[11px] text-ink-3">semua kelas</span>
+                    )}
+                    {sasaranUjian && sasaranUjian !== 'semua kelas' && (
+                        <span
+                            className="ml-1.5 text-[11px] text-ink-3"
+                            title={daftarKelas.length > 3 ? sasaranUjian : undefined}
+                        >
+                            &middot; {ringkasKelas}
+                        </span>
                     )}
                     {baris.susulan && (
                         <span className="ml-1.5">
@@ -731,8 +754,15 @@ function BarisSesi({
                             </span>
                         </span>
                     ) : (
-                        <span className="font-mono text-xs text-ink-2">
-                            {baris.ruang_kode.length > 0 ? baris.ruang_kode.join(', ') : '—'}
+                        <span
+                            className="font-mono text-xs text-ink-2"
+                            title={
+                                baris.ruang_kode.length > 3
+                                    ? baris.ruang_kode.join(', ')
+                                    : undefined
+                            }
+                        >
+                            {baris.ruang_kode.length > 0 ? ringkasRuang : '—'}
                         </span>
                     )}
                 </td>
