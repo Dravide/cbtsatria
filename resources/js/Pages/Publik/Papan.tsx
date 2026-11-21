@@ -62,9 +62,8 @@ export default function Papan({ sekolah, slug, sesi, tanpa_pengawas, diperbarui 
 
                         {tanpa_pengawas.length > 0 && (
                             <div className="rounded-wf border border-warn/40 bg-warn-bg px-3 py-2.5 text-xs leading-relaxed text-warn">
-                                <strong>{tanpa_pengawas.length} ruang belum punya pengawas:</strong>{' '}
-                                <span className="font-mono">{tanpa_pengawas.join(', ')}</span>.
-                                Pengawasnya ditetapkan Admin di konsol.
+                                <strong>{tanpa_pengawas.length} ruang-sesi belum punya pengawas.</strong>{' '}
+                                Ketuk jadwal di bawah untuk melihat ruangnya (ditetapkan Admin di konsol).
                             </div>
                         )}
 

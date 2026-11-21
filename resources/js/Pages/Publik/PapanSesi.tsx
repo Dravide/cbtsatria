@@ -86,10 +86,17 @@ export default function PapanSesi({ sekolah, slug, sesi, tanpa_pengawas, diperba
                         </section>
 
                         {tanpa_pengawas.length > 0 && (
-                            <div className="rounded-wf border border-warn/40 bg-warn-bg px-3 py-2.5 text-xs leading-relaxed text-warn">
+                            <div
+                                className="rounded-wf border border-warn/40 bg-warn-bg px-3 py-2.5 text-xs leading-relaxed text-warn"
+                                title={tanpa_pengawas.length > 8 ? tanpa_pengawas.join(', ') : undefined}
+                            >
                                 <strong>{tanpa_pengawas.length} ruang belum punya pengawas:</strong>{' '}
-                                <span className="font-mono">{tanpa_pengawas.join(', ')}</span>.
-                                Pengawasnya ditetapkan Admin di konsol.
+                                <span className="font-mono">
+                                    {tanpa_pengawas.length > 8
+                                        ? `${tanpa_pengawas.slice(0, 6).join(', ')} +${tanpa_pengawas.length - 6} lainnya`
+                                        : tanpa_pengawas.join(', ')}
+                                </span>
+                                . Pengawasnya ditetapkan Admin di konsol.
                             </div>
                         )}
 
