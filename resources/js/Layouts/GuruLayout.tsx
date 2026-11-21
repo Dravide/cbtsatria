@@ -83,6 +83,7 @@ export default function GuruLayout({ judul, breadcrumb, aksi, children }: Props)
             aksi={aksi}
             marka={{ inisial: 'G', nada: 'guru' }}
             kelompok={kelompok}
+            kelasPembungkus="konsol-guru"
         >
             {children}
         </KonsolLayout>

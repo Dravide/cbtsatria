@@ -203,7 +203,9 @@
  * prop berarti menyentuh delapan laman sekaligus - ditunda sampai pass
  * berikutnya).
  */
-.konsol-admin {
+.konsol-admin,
+.konsol-guru,
+.laman-login {
     --font-display: 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif;
     --font-sans: 'Bricolage Grotesque', 'Noto Naskh Arabic', 'Noto Sans Sundanese', system-ui, -apple-system, 'Segoe UI', sans-serif;
     font-family: var(--font-sans);

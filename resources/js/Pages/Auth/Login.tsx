@@ -51,7 +51,7 @@ export default function Login({ errors }: { errors: Record<string, string> }) {
         <>
             <Head title="Masuk" />
 
-            <div className="flex min-h-screen items-center justify-center bg-wf-soft px-4 py-10">
+            <div className="laman-login flex min-h-screen items-center justify-center bg-wf-soft px-4 py-10">
                 <div className="grid w-full max-w-3xl overflow-hidden rounded-wf border border-line bg-surface shadow-wf md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
                     {/* Panel kiri - keterangan. Di layar sempit ia menjadi
                         kepala kartu, bukan panel yang mendorong form ke bawah

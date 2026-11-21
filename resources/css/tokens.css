@@ -94,9 +94,9 @@
     --color-info: oklch(38% 0.012 60);
     --color-info-bg: oklch(92% 0.012 80);
 
-    /* Huruf - dua keluarga dan satu penyimpang, seperti tema ini menuntut. */
-    --font-display: 'Syne', ui-sans-serif, sans-serif;
-    --font-sans: 'Onest', ui-sans-serif, sans-serif;
+    /* Huruf - Bricolage Grotesque untuk konsol siswa. */
+    --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-sans: 'Bricolage Grotesque', 'Noto Naskh Arabic', 'Noto Sans Sundanese', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
     /* Bentuk - Terrazzo tidak pernah membulat */
