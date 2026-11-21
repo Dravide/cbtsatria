@@ -3,6 +3,7 @@
 namespace App\Domain\Attendance\Services;
 
 use App\Domain\Event\Enums\EventStatus;
+use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Models\SupervisionAssignment;
@@ -79,11 +80,27 @@ class PapanPengawas
 
         $sesi = $this->sesiAktif($sekolah);
 
+        $ruangSesiIds = $sesi->flatMap(fn ($s) => $s->rooms->pluck('id'))->values();
+
+        $kelasPerRuangSesi = $ruangSesiIds->isEmpty()
+            ? collect()
+            : ExamParticipant::query()
+                ->join('event_participants', 'event_participants.id', '=', 'exam_participants.event_participant_id')
+                ->join('classes', 'classes.id', '=', 'event_participants.class_id')
+                ->whereIn('exam_participants.exam_session_room_id', $ruangSesiIds)
+                ->where('exam_participants.status', ExamParticipant::STATUS_TERDAFTAR)
+                ->select('exam_participants.exam_session_room_id', 'classes.name as kelas_nama')
+                ->distinct()
+                ->orderBy('classes.name')
+                ->get()
+                ->groupBy('exam_session_room_id')
+                ->map(fn ($items) => $items->pluck('kelas_nama')->values()->all());
+
         return [
             'sekolah' => $sekolah->name,
             'diperbarui' => now()->format('H:i'),
             'ada_slug' => true,
-            'sesi' => $sesi->map(fn ($s) => $this->ringkasSesi($s))->all(),
+            'sesi' => $sesi->map(fn ($s) => $this->ringkasSesi($s, $kelasPerRuangSesi))->all(),
             'tanpa_pengawas' => $sesi
                 ->flatMap(fn ($s) => $s->rooms)
                 ->filter(fn (ExamSessionRoom $r) => $r->supervisors->isEmpty())
@@ -225,8 +242,10 @@ class PapanPengawas
     /**
      * @return array<string, mixed>
      */
-    private function ringkasSesi($sesi): array
+    private function ringkasSesi($sesi, $kelasPerRuangSesi = null): array
     {
+        $kelasPerRuangSesi ??= collect();
+
         return [
             'id' => (int) $sesi->id,
             'label' => $sesi->label(),
@@ -240,6 +259,7 @@ class PapanPengawas
                 'kode' => $r->eventRoom?->room?->code,
                 'nama' => $r->eventRoom?->room?->name,
                 'lokasi' => $r->eventRoom?->room?->location,
+                'kelas' => $kelasPerRuangSesi->get($r->id, []),
                 'pengawas' => $r->supervisors
                     ->map(fn (SupervisionAssignment $t) => [
                         'id' => (int) $t->supervisor_id,

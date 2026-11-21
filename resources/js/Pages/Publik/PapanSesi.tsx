@@ -6,6 +6,7 @@ type Ruang = {
     kode: string | null;
     nama: string | null;
     lokasi: string | null;
+    kelas?: string[];
     pengawas: { id: number; nama: string }[];
 };
 
@@ -40,6 +41,7 @@ export default function PapanSesi({ sekolah, slug, sesi, tanpa_pengawas, diperba
                       r.kode ?? '',
                       r.nama ?? '',
                       r.lokasi ?? '',
+                      ...(r.kelas ?? []),
                       ...r.pengawas.map((p) => p.nama),
                   ]
                       .join(' ')
@@ -147,6 +149,11 @@ export default function PapanSesi({ sekolah, slug, sesi, tanpa_pengawas, diperba
                                                     {r.nama && (
                                                         <span className="mt-0.5 block text-[11px] text-ink-3">
                                                             {r.nama}
+                                                        </span>
+                                                    )}
+                                                    {r.kelas && r.kelas.length > 0 && (
+                                                        <span className="mt-0.5 block text-[11px] text-ink-2">
+                                                            Kelas {r.kelas.join(', ')}
                                                         </span>
                                                     )}
                                                 </td>
