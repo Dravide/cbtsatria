@@ -25,6 +25,11 @@ export default defineConfig({
             '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
         },
     },
+    build: {
+        // EditorRumusVisual sudah di-code-split via React.lazy(), namun
+        // pustaka tunggal `mathlive` (~807 kB) memang melebihi batas bawaan 500 kB.
+        chunkSizeWarningLimit: 900,
+    },
     server: {
         // Port eksplisit, jauh dari 5173 (dipakai bersama proyek lain di mesin
         // ini). strictPort membuat tabrakan gagal dengan jelas, bukan diam-diam

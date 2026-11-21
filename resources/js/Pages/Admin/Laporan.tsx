@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, WhenVisible, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Chip, Inbox, PilihCari, Tombol } from '@/Components/ui';
@@ -74,7 +74,7 @@ type Props = {
      * berpindah halaman.
      */
     ringkasan_kehadiran: { kunci: string; label: string; jumlah: number; nada: string }[];
-    ekspor: Ekspor[];
+    ekspor?: Ekspor[];
 };
 
 export default function Laporan({
@@ -359,65 +359,74 @@ export default function Laporan({
             </div>
 
             {/* ------------------------------------------ Ekspor terakhir */}
-            {ekspor.length > 0 && (
-                <section className="mt-3 rounded-wf border border-line bg-surface">
-                    <header className="border-b border-line px-4 py-2.5">
-                        <h2 className="font-display text-sm font-semibold text-ink">
-                            Ekspor terakhir
-                        </h2>
-                    </header>
+            <WhenVisible
+                data="ekspor"
+                fallback={
+                    <section className="mt-3 rounded-wf border border-line bg-surface px-4 py-3 text-xs text-ink-3">
+                        Memuat riwayat ekspor...
+                    </section>
+                }
+            >
+                {ekspor && ekspor.length > 0 && (
+                    <section className="mt-3 rounded-wf border border-line bg-surface">
+                        <header className="border-b border-line px-4 py-2.5">
+                            <h2 className="font-display text-sm font-semibold text-ink">
+                                Ekspor terakhir
+                            </h2>
+                        </header>
 
-                    <div className="divide-y divide-line/60">
-                        {ekspor.map((e) => (
-                            <div
-                                key={e.id}
-                                className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-xs"
-                            >
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-ink">
-                                        {e.jenis}{' '}
-                                        <span className="ml-1 font-mono text-[11px] text-ink-3">
-                                            .{e.format.toLowerCase()}
-                                        </span>
-                                    </p>
-                                    <p className="mt-0.5 truncate text-[11px] text-ink-3">
-                                        {[
-                                            e.peminta && `oleh ${e.peminta}`,
-                                            e.diminta_pada,
-                                            e.total_baris !== null && `${formatAngka(e.total_baris)} baris`,
-                                            e.ukuran !== null && formatUkuran(e.ukuran),
-                                        ]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                    </p>
-                                    {e.pesan_gagal && (
-                                        <p className="mt-1 line-clamp-2 text-[11px] text-bad">
-                                            {e.pesan_gagal}
+                        <div className="divide-y divide-line/60">
+                            {ekspor.map((e) => (
+                                <div
+                                    key={e.id}
+                                    className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-xs"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-ink">
+                                            {e.jenis}{' '}
+                                            <span className="ml-1 font-mono text-[11px] text-ink-3">
+                                                .{e.format.toLowerCase()}
+                                            </span>
                                         </p>
+                                        <p className="mt-0.5 truncate text-[11px] text-ink-3">
+                                            {[
+                                                e.peminta && `oleh ${e.peminta}`,
+                                                e.diminta_pada,
+                                                e.total_baris !== null && `${formatAngka(e.total_baris)} baris`,
+                                                e.ukuran !== null && formatUkuran(e.ukuran),
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </p>
+                                        {e.pesan_gagal && (
+                                            <p className="mt-1 line-clamp-2 text-[11px] text-bad">
+                                                {e.pesan_gagal}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <Chip nada={nadaChip(e.status_nada)}>{e.status_label}</Chip>
+
+                                    {e.status === 'selesai' ? (
+                                        <Link
+                                            href={`/admin/laporan/berkas/${e.id}`}
+                                            className="rounded-wf border border-line px-2.5 py-1 text-[11px] font-medium text-accent hover:bg-surface-2"
+                                        >
+                                            Unduh
+                                        </Link>
+                                    ) : (
+                                        // Tombol tiada saat belum selesai. Tautan
+                                        // unduh yang berakhir 404 pada ekspor yang
+                                        // masih menunggu adalah tautan yang membuat
+                                        // Admin menyimpulkan berkasnya hilang.
+                                        <span className="w-[3.5rem]" />
                                     )}
                                 </div>
-
-                                <Chip nada={nadaChip(e.status_nada)}>{e.status_label}</Chip>
-
-                                {e.status === 'selesai' ? (
-                                    <Link
-                                        href={`/admin/laporan/berkas/${e.id}`}
-                                        className="rounded-wf border border-line px-2.5 py-1 text-[11px] font-medium text-accent hover:bg-surface-2"
-                                    >
-                                        Unduh
-                                    </Link>
-                                ) : (
-                                    // Tombol tiada saat belum selesai. Tautan
-                                    // unduh yang berakhir 404 pada ekspor yang
-                                    // masih menunggu adalah tautan yang membuat
-                                    // Admin menyimpulkan berkasnya hilang.
-                                    <span className="w-[3.5rem]" />
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
+                            ))}
+                        </div>
+                    </section>
+                )}
+            </WhenVisible>
         </AdminLayout>
     );
 }

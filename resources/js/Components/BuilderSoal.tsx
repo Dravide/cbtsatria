@@ -1,7 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Chip, Field, Kotak, Tombol, kelasInput } from '@/Components/ui';
 import { MediaButir, MediaSoal } from '@/Components/MediaSoal';
-import { EditorRumusVisual } from '@/Components/EditorRumusVisual';
+
+const EditorRumusVisual = lazy(() =>
+    import('@/Components/EditorRumusVisual').then((m) => ({
+        default: m.EditorRumusVisual,
+    })),
+);
 
 /**
  * Penyunting teks berformat untuk soal, tanpa pustaka editor.
@@ -209,14 +214,22 @@ export function EditorSoal({
             </div>
 
             {bukaRumus && (
-                <EditorRumusVisual
-                    nilai={ekspresiRumus}
-                    padaUbah={setEkspresiRumus}
-                    modeBlok={modeBlokRumus}
-                    padaUbahModeBlok={setModeBlokRumus}
-                    padaSisipkan={sisipRumus}
-                    padaTutup={() => setBukaRumus(false)}
-                />
+                <Suspense
+                    fallback={
+                        <div className="mb-2 border border-line bg-wf-soft px-3 py-2 text-xs text-ink-2">
+                            Memuat editor rumus...
+                        </div>
+                    }
+                >
+                    <EditorRumusVisual
+                        nilai={ekspresiRumus}
+                        padaUbah={setEkspresiRumus}
+                        modeBlok={modeBlokRumus}
+                        padaUbahModeBlok={setModeBlokRumus}
+                        padaSisipkan={sisipRumus}
+                        padaTutup={() => setBukaRumus(false)}
+                    />
+                </Suspense>
             )}
 
             <div

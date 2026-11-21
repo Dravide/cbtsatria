@@ -117,7 +117,7 @@ class LaporanController
             // Riwayat ekspor ikut dikirim karena ekspor berjalan di latar
             // belakang: tanpa daftar ini Admin yang menekan tombol lalu
             // berpindah laman tidak punya cara menemukan berkasnya.
-            'ekspor' => ReportExport::query()
+            'ekspor' => Inertia::optional(fn () => ReportExport::query()
                 ->with('peminta:id,name')
                 ->orderByDesc('id')
                 ->limit(12)
@@ -137,7 +137,7 @@ class LaporanController
                     'diminta_pada' => $satu->created_at?->format('d M Y H:i'),
                     'selesai_pada' => $satu->finished_at?->format('d M Y H:i'),
                 ])
-                ->all(),
+                ->all()),
         ]);
     }
 
