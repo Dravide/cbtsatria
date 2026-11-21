@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { konfirmasi, tanyaTeks } from '@/Components/dialog';
 import {
@@ -913,103 +913,204 @@ function AksiLainnya({
     padaUbah: (baris: Baris) => void;
     padaSusulan: (baris: Baris) => void;
 }) {
+    const [menuTerbuka, setMenuTerbuka] = useState(false);
+    const [posisi, setPosisi] = useState<{
+        right: number;
+        top?: number;
+        bottom?: number;
+    }>({ right: 0, top: 0 });
+    const tombolRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    const bukaMenu = () => {
+        if (menuTerbuka) {
+            setMenuTerbuka(false);
+
+            return;
+        }
+
+        const rect = tombolRef.current?.getBoundingClientRect();
+
+        if (rect) {
+            const ruangBawah = window.innerHeight - rect.bottom;
+            const keAtas = ruangBawah < 190 && rect.top > 190;
+
+            setPosisi({
+                right: Math.max(8, window.innerWidth - rect.right),
+                ...(keAtas
+                    ? { bottom: window.innerHeight - rect.top + 4 }
+                    : { top: rect.bottom + 4 }),
+            });
+        }
+
+        setMenuTerbuka(true);
+    };
+
+    useEffect(() => {
+        if (!menuTerbuka) {
+            return;
+        }
+
+        const tutupKlik = (e: MouseEvent) => {
+            const target = e.target as Node;
+
+            if (
+                !menuRef.current?.contains(target) &&
+                !tombolRef.current?.contains(target)
+            ) {
+                setMenuTerbuka(false);
+            }
+        };
+
+        const tutupEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setMenuTerbuka(false);
+            }
+        };
+
+        const tutupGulir = () => setMenuTerbuka(false);
+
+        document.addEventListener('mousedown', tutupKlik);
+        document.addEventListener('keydown', tutupEsc);
+        window.addEventListener('scroll', tutupGulir, true);
+
+        return () => {
+            document.removeEventListener('mousedown', tutupKlik);
+            document.removeEventListener('keydown', tutupEsc);
+            window.removeEventListener('scroll', tutupGulir, true);
+        };
+    }, [menuTerbuka]);
+
     return (
-        <details className="relative">
-            <summary
+        <div className="relative">
+            <button
+                ref={tombolRef}
+                type="button"
+                onClick={bukaMenu}
+                aria-expanded={menuTerbuka}
+                aria-haspopup="menu"
                 className="grid size-8 cursor-pointer place-items-center rounded-wf border border-line text-xs text-ink-2 hover:bg-surface-2 hover:text-ink"
                 title="Tindakan lain"
                 aria-label="Tindakan lain"
             >
                 ⋯
-            </summary>
+            </button>
 
-            <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-wf border border-line bg-surface shadow-wf">
-                <button
-                    type="button"
-                    onClick={() => {
-                        padaBuka();
-                    }}
-                    className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink"
+            {menuTerbuka && (
+                <div
+                    ref={menuRef}
+                    role="menu"
+                    style={posisi}
+                    className="fixed z-50 w-44 overflow-hidden rounded-wf border border-line bg-surface shadow-wf"
                 >
-                    {terbuka ? 'Tutup rincian' : 'Rincian'}
-                </button>
-
-                <button
-                    type="button"
-                    disabled={final}
-                    title={final ? 'Sesi yang sudah selesai atau batal tidak bisa diubah lagi.' : undefined}
-                    onClick={() => padaUbah(baris)}
-                    className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink-3/50"
-                >
-                    Ubah jendela &amp; ruang
-                </button>
-
-                {baris.susulan && (
                     <button
                         type="button"
-                        disabled={final}
-                        onClick={() => padaSusulan(baris)}
-                        className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink-3/50"
-                    >
-                        Daftarkan peserta susulan
-                    </button>
-                )}
-
-                {!final && (
-                    <button
-                        type="button"
-                        onClick={async () => {
-                            const alasan = await tanyaTeks({
-                                judul: `Batalkan ${baris.label}?`,
-                                pesan: 'Token sesi ini dicabut, dan sesi tidak dihitung lagi di jadwal.',
-                                label: 'Alasan pembatalan (boleh dikosongkan)',
-                                petunjuk: 'Alasan ini dibaca Admin berikutnya yang menyusun ulang jadwal.',
-                                wajib: false,
-                                maksimal: 200,
-                                labelYa: 'Batalkan sesi',
-                                labelTidak: 'Jangan',
-                            });
-
-                            if (alasan === null) {
-                                return;
-                            }
-
-                            router.post(
-                                `${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/batal`,
-                                { alasan },
-                                { preserveScroll: true },
-                            );
+                        role="menuitem"
+                        onClick={() => {
+                            setMenuTerbuka(false);
+                            padaBuka();
                         }}
                         className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink"
                     >
-                        Batalkan sesi
+                        {terbuka ? 'Tutup rincian' : 'Rincian'}
                     </button>
-                )}
 
-                <button
-                    type="button"
-                    onClick={async () => {
-                        const setuju = await konfirmasi({
-                            judul: `Hapus ${baris.label}?`,
-                            pesan: 'Pesertanya dilepas dari ruang ini dan harus ditempatkan ulang. Berita acara yang sudah dikirim atau insiden yang tercatat akan menolak penghapusan.',
-                            labelYa: 'Hapus sesi',
-                            nada: 'bahaya',
-                        });
-
-                        if (!setuju) {
-                            return;
+                    <button
+                        type="button"
+                        role="menuitem"
+                        disabled={final}
+                        title={
+                            final
+                                ? 'Sesi yang sudah selesai atau batal tidak bisa diubah lagi.'
+                                : undefined
                         }
+                        onClick={() => {
+                            setMenuTerbuka(false);
+                            padaUbah(baris);
+                        }}
+                        className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink-3/50"
+                    >
+                        Ubah jendela &amp; ruang
+                    </button>
 
-                        router.delete(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}`, {
-                            preserveScroll: true,
-                        });
-                    }}
-                    className="block w-full border-t border-line px-3 py-2 text-left text-xs text-bad hover:bg-bad-bg"
-                >
-                    Hapus sesi
-                </button>
-            </div>
-        </details>
+                    {baris.susulan && (
+                        <button
+                            type="button"
+                            role="menuitem"
+                            disabled={final}
+                            onClick={() => {
+                                setMenuTerbuka(false);
+                                padaSusulan(baris);
+                            }}
+                            className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:text-ink-3/50"
+                        >
+                            Daftarkan peserta susulan
+                        </button>
+                    )}
+
+                    {!final && (
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onClick={async () => {
+                                setMenuTerbuka(false);
+
+                                const alasan = await tanyaTeks({
+                                    judul: `Batalkan ${baris.label}?`,
+                                    pesan: 'Token sesi ini dicabut, dan sesi tidak dihitung lagi di jadwal.',
+                                    label: 'Alasan pembatalan (boleh dikosongkan)',
+                                    petunjuk:
+                                        'Alasan ini dibaca Admin berikutnya yang menyusun ulang jadwal.',
+                                    wajib: false,
+                                    maksimal: 200,
+                                    labelYa: 'Batalkan sesi',
+                                    labelTidak: 'Jangan',
+                                });
+
+                                if (alasan === null) {
+                                    return;
+                                }
+
+                                router.post(
+                                    `${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}/batal`,
+                                    { alasan },
+                                    { preserveScroll: true },
+                                );
+                            }}
+                            className="block w-full px-3 py-2 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink"
+                        >
+                            Batalkan sesi
+                        </button>
+                    )}
+
+                    <button
+                        type="button"
+                        role="menuitem"
+                        onClick={async () => {
+                            setMenuTerbuka(false);
+
+                            const setuju = await konfirmasi({
+                                judul: `Hapus ${baris.label}?`,
+                                pesan: 'Pesertanya dilepas dari ruang ini dan harus ditempatkan ulang. Berita acara yang sudah dikirim atau insiden yang tercatat akan menolak penghapusan.',
+                                labelYa: 'Hapus sesi',
+                                nada: 'bahaya',
+                            });
+
+                            if (!setuju) {
+                                return;
+                            }
+
+                            router.delete(`${jalur}/ujian/${baris.ujian_id}/sesi/${baris.id}`, {
+                                preserveScroll: true,
+                            });
+                        }}
+                        className="block w-full border-t border-line px-3 py-2 text-left text-xs text-bad hover:bg-bad-bg"
+                    >
+                        Hapus sesi
+                    </button>
+                </div>
+            )}
+        </div>
     );
 }
 
