@@ -558,6 +558,18 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // yang setangkup.
     Route::post('/events/{event}/pengawas/tukar', [ExamPengawasController::class, 'tukar'])
         ->name('events.pengawas.tukar');
+    Route::post('/events/{event}/pengawas/aturan', [ExamPengawasController::class, 'simpanAturan'])
+        ->name('events.pengawas.aturan');
+    Route::post('/events/{event}/pengawas/pengecualian', [ExamPengawasController::class, 'togglePengecualian'])
+        ->name('events.pengawas.pengecualian');
+    Route::post('/events/{event}/pengawas/kosongkan-hari', [ExamPengawasController::class, 'kosongkanHari'])
+        ->name('events.pengawas.kosongkan_hari');
+    Route::post('/events/{event}/pengawas/kuota', [ExamPengawasController::class, 'simpanKuota'])
+        ->name('events.pengawas.kuota');
+    Route::post('/events/{event}/pengawas/sesi/{sesi}/otomatis', [ExamPengawasController::class, 'otomatisSesi'])
+        ->name('events.pengawas.sesi.otomatis');
+    Route::post('/events/{event}/pengawas/sesi/{sesi}/kosongkan', [ExamPengawasController::class, 'kosongkanSesi'])
+        ->name('events.pengawas.sesi.kosongkan');
 
     // 18 - token ujian. Pembacaan token MENULIS satu baris riwayat; lihat
     // ExamTokenController.

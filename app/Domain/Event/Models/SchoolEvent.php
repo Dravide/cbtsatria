@@ -64,6 +64,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'end_at',
     'status',
     'violation_thresholds',
+    'pengawas_settings',
     'enforce_fullscreen',
     'detect_split_screen',
     'detect_float_window',
@@ -100,6 +101,50 @@ class SchoolEvent extends Model
             'show_explanations' => 'boolean',
             'gradings_locked' => 'boolean',
             'is_simulasi' => 'boolean',
+            'pengawas_settings' => 'array',
+        ];
+    }
+
+    /**
+     * Aturan penjadwalan pengawas dengan nilai bawaan yang aman.
+     *
+     * @return array{
+     *   maks_per_event: int,
+     *   maks_per_hari: int,
+     *   target_per_ruang: int,
+     *   prioritas: 'merata'|'urutan',
+     *   hormati_pengecualian: bool,
+     *   hindari_wali_kelas: bool,
+     *   hindari_guru_mapel: bool,
+     *   tolak_melebihi_kuota: bool,
+     * }
+     */
+    public function aturanPengawas(): array
+    {
+        $bawaan = [
+            'maks_per_event' => 0,
+            'maks_per_hari' => 0,
+            'target_per_ruang' => 1,
+            'prioritas' => 'merata',
+            'hormati_pengecualian' => true,
+            'hindari_wali_kelas' => false,
+            'hindari_guru_mapel' => false,
+            'tolak_melebihi_kuota' => false,
+        ];
+
+        $tersimpan = is_array($this->pengawas_settings) ? $this->pengawas_settings : [];
+
+        return [
+            'maks_per_event' => max(0, (int) ($tersimpan['maks_per_event'] ?? $bawaan['maks_per_event'])),
+            'maks_per_hari' => max(0, (int) ($tersimpan['maks_per_hari'] ?? $bawaan['maks_per_hari'])),
+            'target_per_ruang' => in_array((int) ($tersimpan['target_per_ruang'] ?? 1), [1, 2], true)
+                ? (int) ($tersimpan['target_per_ruang'] ?? 1)
+                : 1,
+            'prioritas' => ($tersimpan['prioritas'] ?? 'merata') === 'urutan' ? 'urutan' : 'merata',
+            'hormati_pengecualian' => (bool) ($tersimpan['hormati_pengecualian'] ?? $bawaan['hormati_pengecualian']),
+            'hindari_wali_kelas' => (bool) ($tersimpan['hindari_wali_kelas'] ?? $bawaan['hindari_wali_kelas']),
+            'hindari_guru_mapel' => (bool) ($tersimpan['hindari_guru_mapel'] ?? $bawaan['hindari_guru_mapel']),
+            'tolak_melebihi_kuota' => (bool) ($tersimpan['tolak_melebihi_kuota'] ?? $bawaan['tolak_melebihi_kuota']),
         ];
     }
 

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe Penjadwalan &amp; Aturan Pengawas — School CBT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+/* ============================================================
+   Wireframe Penjadwalan & Aturan Pengawas (/admin/events/{id}/pengawas)
+   Menggunakan primitif dan token desain yang sama dengan wireframe-peran.html
+   dan wireframe-admin.html agar selaras sebagai satu sistem.
+   ============================================================ */
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding:0 20px 56px; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin:0 -20px;padding:0 20px}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:14px;flex-wrap:wrap}
+
+.head{padding:28px 0 18px;display:grid;gap:12px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:1.9rem}
+.head .lede{color:var(--ink-2);max-width:78ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.fbtn{font:500 12px/1 var(--font-mono);letter-spacing:.04em;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.fbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+.group{margin-bottom:42px;display:grid;gap:18px}
+.group[hidden]{display:none}
+.group > header{display:grid;gap:5px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.group > header h2{font-size:1.25rem;display:flex;gap:10px;align-items:baseline}
+.group > header em{font-style:normal;font-family:var(--font-mono);font-size:12px;color:var(--accent)}
+.group > header p{color:var(--ink-2);font-size:13.5px;max-width:80ch}
+
+.shot{display:grid;gap:8px;min-width:0;align-content:start}
+.shot > .cap{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.shot .n{font-family:var(--font-mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+.shot h3{font-size:.98rem}
+.shot .path{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.shot .note{font-size:12.5px;color:var(--ink-2);line-height:1.55}
+
+.wf{
+  position:relative;background:var(--wf-bg);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+  color:var(--wf-ink);display:grid;grid-template-rows:auto minmax(0,1fr);font-size:11.5px;line-height:1.4;overflow:hidden;
+}
+.chrome{display:flex;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:7px;height:7px;border-radius:99px;background:var(--wf-dash)}
+.chrome .url{font-family:var(--font-mono);font-size:10px;color:var(--wf-dim);margin-left:4px}
+
+.grid2{display:grid;grid-template-columns:160px minmax(0,1fr);min-height:0}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:10px 8px;display:grid;gap:3px;align-content:start}
+.rail .mark{width:20px;height:20px;border-radius:5px;background:var(--accent);color:var(--on-accent);font:700 10px/20px var(--font-display);text-align:center;margin-bottom:8px}
+.ni{display:flex;gap:7px;align-items:center;padding:5px 7px;border-radius:5px;font-size:11px;color:var(--wf-dim)}
+.ni.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.ni i{width:8px;height:8px;border-radius:2px;background:currentColor;opacity:.55;flex:none}
+.ni-grp{font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--wf-dim);padding:8px 7px 2px}
+
+.main{padding:14px 16px;display:grid;gap:12px;align-content:start;min-width:0}
+.mhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--wf-hair);padding-bottom:10px}
+.mhead h4{font-size:1rem}
+.mhead .sub{font-family:var(--font-mono);font-size:10px;color:var(--wf-dim)}
+.btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;border:1px solid var(--wf-line);background:var(--wf-bg);font-size:11px;font-weight:500;color:var(--wf-ink)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.btn.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--wf-hair);padding-bottom:0}
+.tab{padding:7px 11px;font-size:11.5px;color:var(--wf-dim);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{border:1px solid var(--wf-hair);border-radius:6px;background:var(--wf-bg);padding:8px 10px}
+.kpi .kl{font-size:10px;color:var(--wf-dim)}
+.kpi .kv{font-family:var(--font-mono);font-size:18px;font-weight:600;margin-top:2px}
+.kpi .kv.ok{color:var(--ok)} .kpi .kv.warn{color:var(--warn)} .kpi .kv.bad{color:var(--bad)}
+
+.box{border:1px solid var(--wf-line);border-radius:6px;background:var(--wf-bg);overflow:hidden}
+.box-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 11px;background:var(--wf-soft);border-bottom:1px solid var(--wf-hair);font-weight:600;font-size:11.5px}
+.box-b{padding:10px 11px}
+
+.formgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fld{display:grid;gap:3px}
+.fld label{font-size:10px;font-weight:600;color:var(--wf-dim);text-transform:uppercase;letter-spacing:.04em}
+.inp{border:1px solid var(--wf-line);border-radius:5px;background:var(--wf-bg);padding:5px 8px;font-size:11px;font-family:var(--font-body);color:var(--wf-ink)}
+.inp.mono{font-family:var(--font-mono)}
+.hint{font-size:10px;color:var(--wf-dim)}
+
+.checks{display:flex;flex-wrap:wrap;gap:14px;padding-top:8px;margin-top:8px;border-top:1px solid var(--wf-hair);font-size:11px;color:var(--ink-2)}
+.chk{display:flex;align-items:center;gap:6px}
+.chk b{display:inline-grid;place-items:center;width:13px;height:13px;border-radius:3px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-size:9px}
+.chk.off b{background:var(--wf-bg);border-color:var(--wf-line);color:transparent}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{text-align:left;padding:6px 9px;background:var(--wf-soft);border-bottom:1px solid var(--wf-hair);color:var(--wf-dim);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--wf-hair);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:99px;font-family:var(--font-mono);font-size:10px;font-weight:500;background:var(--wf-soft);color:var(--wf-ink);border:1px solid var(--wf-hair)}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:transparent}
+.chip.accent{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+
+.cell-toggle{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:5px;font-family:var(--font-mono);font-size:10px;border:1px dashed var(--wf-dash)}
+.cell-toggle.ok{background:var(--ok-bg);color:var(--ok);border-style:solid;border-color:var(--ok)}
+.cell-toggle.off{background:var(--bad-bg);color:var(--bad);border-style:solid;border-color:var(--bad)}
+.cell-toggle.busy{background:var(--accent-soft);color:var(--accent);border-style:solid;border-color:var(--accent)}
+
+.alert{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:7px 10px;font-size:11px}
+.alert.bad{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+
+.callout{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:10px 12px;font-size:12.5px;color:var(--ink-2);display:grid;gap:4px}
+.callout strong{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="top-in">
+    <div class="brand">School CBT <span>/ Wireframe Penjadwalan Pengawas</span></div>
+    <div class="r">
+      <span>Rute: /admin/events/{event}/pengawas</span>
+      <span>4 Plate</span>
+      <span>Pra-eksekusi</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="head">
+    <span class="eyebrow">Desain Interaksi &amp; Aturan Bisnis</span>
+    <h1>Penempatan &amp; Aturan Pengawas Ujian</h1>
+    <p class="lede">
+      Rancangan antarmuka dan aturan penjadwalan pengawas untuk menangani batas maksimal tugas mengawas selama event,
+      batas tugas per hari, pengecualian pengawas pada sesi atau hari tertentu (<em>dikosongkan</em>), preferensi netralitas
+      (tidak mengawas di kelas wali / mapel sendiri), serta penugasan otomatis yang adil dan merata.
+    </p>
+    <div class="scope">
+      <span class="tag">01 · Ringkasan &amp; Aturan Otomatis</span>
+      <span class="tag">02 · Ketersediaan &amp; Pengecualian Sesi</span>
+      <span class="tag">03 · Penugasan Manual &amp; Peringatan</span>
+      <span class="tag">04 · Rekap Beban Pengawas</span>
+    </div>
+  </section>
+
+  <nav class="filters" aria-label="Filter plate">
+    <button class="fbtn on" data-f="all">Semua Plate (4)</button>
+    <button class="fbtn" data-f="g1">01 · Ringkasan &amp; Aturan</button>
+    <button class="fbtn" data-f="g2">02 · Ketersediaan Sesi</button>
+    <button class="fbtn" data-f="g3">03 · Penugasan per Sesi</button>
+    <button class="fbtn" data-f="g4">04 · Rekap Beban</button>
+  </nav>
+
+  <!-- ========================================================= PLATE 01 -->
+  <section class="group" data-g="g1">
+    <header>
+      <h2><em>Plate 01</em> Laman Utama Pengawas — Aturan &amp; Jadwal Pengawasan</h2>
+      <p>
+        Admin dapat langsung mengatur batas maksimal mengawas dan aturan distribusi di panel atas sebelum menekan
+        <strong>Tugaskan otomatis</strong>, lalu meninjau ringkasan per sesi maupun tabel jadwal pengawasan lengkap di bawahnya.
+      </p>
+    </header>
+
+    <article class="shot">
+      <div class="cap">
+        <span class="n">01A</span>
+        <h3>Tab Ringkasan &amp; Panel Pengaturan Penempatan</h3>
+        <span class="path">/admin/events/1/pengawas</span>
+      </div>
+
+      <div class="wf">
+        <div class="chrome">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url">/admin/events/1/pengawas</span>
+        </div>
+        <div class="grid2">
+          <aside class="rail">
+            <div class="mark">S</div>
+            <div class="ni-grp">Event · Hari-H</div>
+            <div class="ni"><i></i>Jadwal &amp; sesi</div>
+            <div class="ni"><i></i>Penempatan</div>
+            <div class="ni on"><i></i>Pengawas</div>
+            <div class="ni"><i></i>Token</div>
+            <div class="ni"><i></i>Presensi</div>
+          </aside>
+          <main class="main">
+            <div class="mhead">
+              <div>
+                <h4>Pengawas &amp; penempatan ruang</h4>
+                <div class="sub">/admin/events · ASAS-2026 · Pengawas</div>
+              </div>
+              <div class="btns">
+                <span class="btn">Simpan aturan</span>
+                <span class="btn pri">Tugaskan otomatis</span>
+              </div>
+            </div>
+
+            <div class="tabs">
+              <div class="tab on">Jadwal &amp; Aturan</div>
+              <div class="tab">Ketersediaan &amp; Pengecualian (28)</div>
+              <div class="tab">Rekap Beban Mengawas</div>
+            </div>
+
+            <div class="kpis">
+              <div class="kpi"><div class="kl">Ruang-sesi</div><div class="kv">264</div></div>
+              <div class="kpi"><div class="kl">Pengawas ditugaskan</div><div class="kv ok">240</div></div>
+              <div class="kpi"><div class="kl">Ruang tanpa pengawas</div><div class="kv bad">24</div></div>
+              <div class="kpi"><div class="kl">Melebihi batas / bentrok</div><div class="kv warn">2</div></div>
+            </div>
+
+            <div class="box">
+              <div class="box-h">
+                <span>Aturan penempatan pengawas (berlaku untuk Event ini)</span>
+                <span class="chip accent">Tersimpan otomatis</span>
+              </div>
+              <div class="box-b">
+                <div class="formgrid">
+                  <div class="fld">
+                    <label>Maks. mengawas / event</label>
+                    <div class="inp mono">4</div>
+                    <div class="hint">0 = tanpa batas</div>
+                  </div>
+                  <div class="fld">
+                    <label>Maks. mengawas / hari</label>
+                    <div class="inp mono">2</div>
+                    <div class="hint">Cegah pengawas penuh seharian</div>
+                  </div>
+                  <div class="fld">
+                    <label>Pengawas per ruang</label>
+                    <div class="inp mono">1 pengawas</div>
+                    <div class="hint">1 atau 2 pengawas per ruang</div>
+                  </div>
+                  <div class="fld">
+                    <label>Prioritas pembagian</label>
+                    <div class="inp">Merata (beban terkecil dulu)</div>
+                    <div class="hint">Bandingkan beban tiap calon</div>
+                  </div>
+                </div>
+                <div class="checks">
+                  <div class="chk"><b>✓</b> Hormati sesi yang dikosongkan</div>
+                  <div class="chk"><b>✓</b> Hindari wali kelas di ruang kelasnya sendiri</div>
+                  <div class="chk"><b>✓</b> Hindari guru mapel di ujian mapelnya sendiri</div>
+                  <div class="chk off"><b>✓</b> Tolak penugasan manual jika melebihi kuota</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="box">
+              <div class="box-h">
+                <span>Jadwal pengawasan (264 ruang-sesi)</span>
+                <div class="btns">
+                  <span class="inp">Cari ruang, kelas, atau pengawas...</span>
+                  <span class="inp">Semua sesi ▾</span>
+                </div>
+              </div>
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Hari &amp; Tanggal</th>
+                    <th>Sesi &amp; Ujian</th>
+                    <th>Ruang &amp; Kelas</th>
+                    <th>Pengawas</th>
+                    <th>Beban</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Senin, 01 Des 2026</strong><br><span class="hint">07:30–09:00</span></td>
+                    <td><code>Sesi 1</code><br>ASAS - PAI</td>
+                    <td><code>R-01</code> · Lab 1<br><span class="hint">Kelas 7A</span></td>
+                    <td><span class="chip">Bu Ani Sari, S.Pd</span></td>
+                    <td><span class="chip ok">2 / 4</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Senin, 01 Des 2026</strong><br><span class="hint">09:30–11:00</span></td>
+                    <td><code>Sesi 2</code><br>ASAS - B. Indonesia</td>
+                    <td><code>R-02</code> · Ruang 02<br><span class="hint">Kelas 7B</span></td>
+                    <td><span class="chip bad">Belum ada pengawas</span></td>
+                    <td><span class="hint">—</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Keputusan Desain 01:</strong>
+        <span>Aturan disimpan di tingkat <code>school_events</code> (kolom JSON/pengaturan pengawas) sehingga Admin tidak perlu mengulang setelan setiap kali menekan <em>Tugaskan otomatis</em>.</span>
+      </div>
+    </article>
+  </section>
+
+  <!-- ========================================================= PLATE 02 -->
+  <section class="group" data-g="g2">
+    <header>
+      <h2><em>Plate 02</em> Matriks Ketersediaan &amp; Pengecualian Pengawas</h2>
+      <p>
+        Menjawab kebutuhan: <em>"pengawas dapat dikosongkan di sesi tertentu"</em> dan <em>"kuota maksimal per pengawas bisa disesuaikan"</em>
+        (misalnya Waka/Koordinator hanya mengawas maksimal 2 kali, atau Pak Budi dikosongkan pada Selasa Sesi 1 karena MGMP).
+      </p>
+    </header>
+
+    <article class="shot">
+      <div class="cap">
+        <span class="n">02A</span>
+        <h3>Tab Ketersediaan &amp; Pengecualian Sesi / Hari</h3>
+        <span class="path">/admin/events/1/pengawas?tab=ketersediaan</span>
+      </div>
+
+      <div class="wf">
+        <div class="chrome">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url">/admin/events/1/pengawas?tab=ketersediaan</span>
+        </div>
+        <div class="grid2">
+          <aside class="rail">
+            <div class="mark">S</div>
+            <div class="ni-grp">Event · Hari-H</div>
+            <div class="ni"><i></i>Jadwal &amp; sesi</div>
+            <div class="ni on"><i></i>Pengawas</div>
+          </aside>
+          <main class="main">
+            <div class="mhead">
+              <div>
+                <h4>Ketersediaan &amp; Kuota Pengawas</h4>
+                <div class="sub">Klik sel sesi untuk mengosongkan (liburkan) atau mengaktifkan pengawas</div>
+              </div>
+              <div class="btns">
+                <span class="inp">Cari nama pengawas...</span>
+                <span class="btn">Kosongkan per hari ▾</span>
+              </div>
+            </div>
+
+            <div class="tabs">
+              <div class="tab">Jadwal &amp; Aturan</div>
+              <div class="tab on">Ketersediaan &amp; Pengecualian (28)</div>
+              <div class="tab">Rekap Beban Mengawas</div>
+            </div>
+
+            <div class="box">
+              <div class="box-h">
+                <span>Matriks pengawas × sesi</span>
+                <div class="btns">
+                  <span class="chip ok">✓ Tersedia</span>
+                  <span class="chip bad">✕ Dikosongkan</span>
+                  <span class="chip accent">R-XX Bertugas</span>
+                </div>
+              </div>
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Pengawas</th>
+                    <th>Maks. Tugas</th>
+                    <th>Sen 01/12 · S1</th>
+                    <th>Sen 01/12 · S2</th>
+                    <th>Sel 02/12 · S1</th>
+                    <th>Sel 02/12 · S2</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Bu Ani Sari, S.Pd</strong><br><span class="hint">Wali 7A · Mapel PAI</span></td>
+                    <td><div class="inp mono" style="width:58px">4</div></td>
+                    <td><span class="cell-toggle busy">R-01</span></td>
+                    <td><span class="cell-toggle ok">✓ Tersedia</span></td>
+                    <td><span class="cell-toggle off">✕ Kosong (MGMP)</span></td>
+                    <td><span class="cell-toggle ok">✓ Tersedia</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pak Budi Santoso</strong><br><span class="hint">Koordinator · B. Indo</span></td>
+                    <td><div class="inp mono" style="width:58px">2</div></td>
+                    <td><span class="cell-toggle off">✕ Kosong</span></td>
+                    <td><span class="cell-toggle off">✕ Kosong</span></td>
+                    <td><span class="cell-toggle busy">R-05</span></td>
+                    <td><span class="cell-toggle ok">✓ Tersedia</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Ibu Dewi Lestari</strong><br><span class="hint">Pengawas Eksternal</span></td>
+                    <td><div class="inp mono" style="width:58px">6</div></td>
+                    <td><span class="cell-toggle busy">R-03</span></td>
+                    <td><span class="cell-toggle busy">R-03</span></td>
+                    <td><span class="cell-toggle ok">✓ Tersedia</span></td>
+                    <td><span class="cell-toggle ok">✓ Tersedia</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Cara Kerja Pengecualian:</strong>
+        <span>
+          1) Mengklik sel <em>✓ Tersedia</em> mengubahnya jadi <em>✕ Dikosongkan</em> (dengan catatan opsional seperti "MGMP" atau "Wali kelas").
+          2) Tombol <strong>Kosongkan per hari</strong> membolehkan Admin meliburkan pengawas untuk 1 hari penuh sekaligus (bukan klik satu per satu sesi).
+          3) Kolom <strong>Maks. Tugas</strong> per orang mengesampingkan batas global jika diisi (misal Waka/Koordinator cukup 2 kali, pengawas eksternal bisa 6 kali).
+        </span>
+      </div>
+    </article>
+  </section>
+
+  <!-- ========================================================= PLATE 03 -->
+  <section class="group" data-g="g3">
+    <header>
+      <h2><em>Plate 03</em> Penugasan Manual &amp; Peringatan Aturan per Sesi</h2>
+      <p>
+        Saat Admin menugaskan pengawas secara manual di laman sesi, daftar calon langsung menampilkan sisa kuota,
+        status pengecualian, dan status bentrok agar Admin tidak salah pilih.
+      </p>
+    </header>
+
+    <article class="shot">
+      <div class="cap">
+        <span class="n">03A</span>
+        <h3>Laman Sesi — Pilihan Calon dengan Indikator Kuota &amp; Status</h3>
+        <span class="path">/admin/events/1/pengawas/sesi/12</span>
+      </div>
+
+      <div class="wf">
+        <div class="chrome">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url">/admin/events/1/pengawas/sesi/12</span>
+        </div>
+        <div class="grid2">
+          <aside class="rail">
+            <div class="mark">S</div>
+            <div class="ni"><i></i>Jadwal &amp; sesi</div>
+            <div class="ni on"><i></i>Pengawas</div>
+          </aside>
+          <main class="main">
+            <div class="mhead">
+              <div>
+                <h4>Sesi 2 · ASAS - Bahasa Indonesia</h4>
+                <div class="sub">Senin, 01 Des 2026 · 09:30–11:00 · 33 ruang</div>
+              </div>
+              <div class="btns">
+                <span class="btn">← Kembali</span>
+                <span class="btn warn">Kosongkan pengawas sesi ini</span>
+                <span class="btn pri">Tugaskan otomatis sesi ini</span>
+              </div>
+            </div>
+
+            <div class="alert">
+              <strong>Catatan aturan:</strong> 2 pengawas sedang dikosongkan pada sesi ini (Pak Budi, Bu Rina). 3 pengawas sudah mencapai batas maksimal harian (2/2).
+            </div>
+
+            <div class="box">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Ruang &amp; Kelas</th>
+                    <th>Pengawas Terpasang</th>
+                    <th>Tambah Pengawas (dengan status kuota)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>R-01</code> · Lab 1<br><span class="hint">Kelas 7A · 32 peserta</span></td>
+                    <td><span class="chip">Bu Ani Sari (2/4) ×</span></td>
+                    <td>
+                      <div class="inp" style="max-width:290px">Pilih pengawas… ▾</div>
+                      <div class="hint" style="margin-top:4px">
+                        • Bu Siti (1/4) — tersedia<br>
+                        • Pak Dedi (4/4) — <span style="color:var(--warn)">kuota event penuh</span><br>
+                        • Pak Budi (1/2) — <span style="color:var(--bad)">dikosongkan di sesi ini</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>R-02</code> · Ruang 02<br><span class="hint">Kelas 7B · 32 peserta</span></td>
+                    <td><span class="chip bad">Belum ada pengawas</span></td>
+                    <td>
+                      <div class="btns">
+                        <span class="inp" style="min-width:210px">Bu Siti (1/4 · tersedia) ▾</span>
+                        <span class="btn pri">Tugaskan</span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </main>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ========================================================= PLATE 04 -->
+  <section class="group" data-g="g4">
+    <header>
+      <h2><em>Plate 04</em> Rekapitulasi Beban &amp; Pemerataan Pengawas</h2>
+      <p>
+        Memastikan pembagian tugas benar-benar adil sebelum kartu panitia dicetak: Admin dapat melihat siapa yang paling banyak
+        dan paling sedikit mengawas, beserta daftar ruang dan tanggalnya.
+      </p>
+    </header>
+
+    <article class="shot">
+      <div class="cap">
+        <span class="n">04A</span>
+        <h3>Tab Rekap Beban Mengawas</h3>
+        <span class="path">/admin/events/1/pengawas?tab=rekap</span>
+      </div>
+
+      <div class="wf">
+        <div class="chrome">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url">/admin/events/1/pengawas?tab=rekap</span>
+        </div>
+        <div class="grid2">
+          <aside class="rail">
+            <div class="mark">S</div>
+            <div class="ni"><i></i>Jadwal &amp; sesi</div>
+            <div class="ni on"><i></i>Pengawas</div>
+          </aside>
+          <main class="main">
+            <div class="mhead">
+              <div>
+                <h4>Rekap Beban Pengawas</h4>
+                <div class="sub">Total 28 pengawas · Rata-rata 3.4 sesi/pengawas</div>
+              </div>
+              <div class="btns">
+                <span class="btn">Cetak Jadwal Pengawas (PDF)</span>
+              </div>
+            </div>
+
+            <div class="tabs">
+              <div class="tab">Jadwal &amp; Aturan</div>
+              <div class="tab">Ketersediaan &amp; Pengecualian (28)</div>
+              <div class="tab on">Rekap Beban Mengawas</div>
+            </div>
+
+            <div class="box">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Nama Pengawas</th>
+                    <th>Total Mengawas</th>
+                    <th>Sesi Dikosongkan</th>
+                    <th>Daftar Tugas (Hari, Sesi, Ruang)</th>
+                    <th>Status Kuota</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Bu Ani Sari, S.Pd</strong><br><span class="hint">Guru · Wali 7A</span></td>
+                    <td><code>3 / 4</code></td>
+                    <td><span class="hint">1 sesi (Sel S1)</span></td>
+                    <td>Sen S1 (<code>R-01</code>), Sen S2 (<code>R-04</code>), Rab S1 (<code>R-08</code>)</td>
+                    <td><span class="chip ok">Aman</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pak Budi Santoso</strong><br><span class="hint">Koordinator</span></td>
+                    <td><code>2 / 2</code></td>
+                    <td><span class="hint">2 sesi (Sen S1, S2)</span></td>
+                    <td>Sel S1 (<code>R-05</code>), Rab S2 (<code>R-02</code>)</td>
+                    <td><span class="chip info">Penuh</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pak Dedi Kurniawan</strong><br><span class="hint">Guru</span></td>
+                    <td><code>5 / 4</code></td>
+                    <td><span class="hint">—</span></td>
+                    <td>Sen S1, Sen S2, Sel S1, Sel S2, Rab S1</td>
+                    <td><span class="chip warn">Melebihi batas (+1)</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </main>
+        </div>
+      </div>
+    </article>
+  </section>
+</div>
+
+<script>
+document.querySelectorAll('.fbtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    const f = btn.dataset.f;
+    document.querySelectorAll('.group').forEach(g => {
+      g.hidden = f !== 'all' && g.dataset.g !== f;
+    });
+  });
+});
+</script>
+</body>
+</html>

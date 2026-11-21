@@ -8,6 +8,7 @@ use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Models\SupervisionAssignment;
+use App\Domain\Exam\Models\SupervisorSessionExclusion;
 use App\Domain\Exam\Services\PengawasService;
 use App\Domain\Identity\Models\User;
 use DomainException;
@@ -155,21 +156,79 @@ class ExamPengawasController
         // layar yang bertengkar dengan dirinya sendiri.
         $tanpaPengawas = $penugasan->ruangTanpaPengawas($event);
 
+        $aturan = $penugasan->aturan($event);
+        $bebanEvent = $penugasan->bebanEvent($event);
+        $kuotaPerOrang = $penugasan->kuotaPerOrang($event);
+        $pengecualian = $penugasan->pengecualianEvent($event);
+        $calonUsers = $penugasan->calonPengawas($event);
+
+        $penugasanPerPengawas = [];
+        foreach ($ruangan as $r) {
+            foreach ($r->supervisors as $t) {
+                if ($t->status !== 'aktif') {
+                    continue;
+                }
+                $penugasanPerPengawas[$t->supervisor_id][] = [
+                    'sesi_id' => $r->exam_session_id,
+                    'sesi_label' => $r->session?->label() ?? 'Sesi',
+                    'ujian' => $r->session?->exam?->subject?->name ?? $r->session?->exam?->title,
+                    'tanggal' => $r->session?->access_opens_at?->format('d M'),
+                    'jam' => $r->session?->access_opens_at?->format('H:i'),
+                    'ruang' => $r->eventRoom?->room?->code ?? '—',
+                ];
+            }
+        }
+
+        $matriks = collect($calonUsers)->map(function (User $u) use (
+            $aturan,
+            $bebanEvent,
+            $kuotaPerOrang,
+            $pengecualian,
+            $sesi,
+            $penugasanPerPengawas,
+        ): array {
+            $terpakai = $bebanEvent[$u->id] ?? 0;
+            $maksKhusus = $kuotaPerOrang[$u->id] ?? null;
+            $maks = $maksKhusus !== null ? $maksKhusus : $aturan['maks_per_event'];
+            $dikecualikanSesi = [];
+            $alasanSesi = [];
+            foreach ($sesi as $s) {
+                $kunci = "{$s->id}:{$u->id}";
+                if (array_key_exists($kunci, $pengecualian)) {
+                    $dikecualikanSesi[] = $s->id;
+                    if ($pengecualian[$kunci] !== null) {
+                        $alasanSesi[(string) $s->id] = $pengecualian[$kunci];
+                    }
+                }
+            }
+
+            $statusKuota = 'aman';
+            if ($maks > 0 && $terpakai > $maks) {
+                $statusKuota = 'melebihi';
+            } elseif ($maks > 0 && $terpakai === $maks) {
+                $statusKuota = 'penuh';
+            }
+
+            return [
+                'id' => $u->id,
+                'nama' => $u->name,
+                'username' => $u->username,
+                'peran' => $u->role->label(),
+                'terpakai' => $terpakai,
+                'maks' => $maks,
+                'maks_khusus' => $maksKhusus,
+                'dikecualikan_sesi' => $dikecualikanSesi,
+                'alasan_sesi' => $alasanSesi,
+                'penugasan' => $penugasanPerPengawas[$u->id] ?? [],
+                'status_kuota' => $statusKuota,
+            ];
+        })->values()->all();
+
+        $melebihiBatas = collect($matriks)->where('status_kuota', 'melebihi')->count();
+
         return Inertia::render('Admin/Event/Pengawas', [
             'event' => $this->ringkas($event),
             'baris' => $baris,
-
-            // Baris yang SAMA, dikelompokkan per SESI.
-            //
-            // Laman ini menugaskan pengawas per ruang-sesi, tetapi pertanyaan
-            // yang dijawab Admin saat menyusunnya adalah "siapa pengawas sesi
-            // ini" - dan tabel datar membuat R-01 muncul berkali-kali lintas
-            // sesi, sehingga kelompoknya harus disusun sendiri dengan mata.
-            //
-            // Barisnya tidak berubah satu pun; yang berubah hanya bentuk
-            // penyajiannya. Penugasan tetap menempel pada ruang-sesi
-            // (`exam_session_room_id`), karena pengawas sesi pagi belum tentu
-            // pengawas sesi siang.
             'per_sesi' => $this->kelompokkanPerSesi($sesi, $ruangan, $kelasPerRuangSesi),
 
             'angka' => [
@@ -178,23 +237,16 @@ class ExamPengawasController
                 'tanpa_pengawas' => $tanpaPengawas,
                 'saran_per_ruang' => PengawasService::SARAN_PER_RUANG,
                 'minimal_per_ruang' => PengawasService::MINIMAL_PER_RUANG,
+                'melebihi_batas' => $melebihiBatas,
             ],
 
-            // Ruang yang punya pengawas, tetapi belum mencapai sasaran per
-            // ruang. Sejak 2026-11-16 sasarannya SATU, sehingga daftar ini
-            // hanya berisi ruang yang NOL pengawas - dan itu sudah dilaporkan
-            // sebagai `angka.tanpa_pengawas` serta chip per sesi.
-            //
-            // Prop-nya tetap dikirim supaya bentuk balasan tidak berubah
-            // diam-diam; isinya kosong kecuali sekolah menaikkan sasarannya
-            // kelak.
             'saran' => collect($baris)
                 ->filter(fn (array $b) => count($b['pengawas']) > 0
                     && count($b['pengawas']) < PengawasService::SARAN_PER_RUANG)
                 ->values()
                 ->all(),
 
-            'calon' => collect($penugasan->calonPengawas($event))
+            'calon' => collect($calonUsers)
                 ->map(fn (User $u) => [
                     'id' => $u->id,
                     'nama' => $u->name,
@@ -204,20 +256,22 @@ class ExamPengawasController
                 ->values()
                 ->all(),
 
-            // Sesi-sesi yang dilewati, hanya id-nya: laman ini menampilkan
-            // RINGKASAN, dan daftar ruang + tombol Tugaskan pindah ke laman
-            // sesi masing-masing. Tanpa ini, tiga puluh tiga ruang per sesi
-            // menumpuk ke bawah dan daftar sesinya sendiri tenggelam.
+            'aturan' => $aturan,
+            'matriks' => $matriks,
+            'sesi_kolom' => $sesi->map(fn (ExamSession $s) => [
+                'id' => $s->id,
+                'label' => $s->label(),
+                'ujian' => $s->exam?->subject?->name ?? $s->exam?->title,
+                'tanggal' => $s->access_opens_at?->format('d M'),
+                'tanggal_iso' => $s->access_opens_at?->toDateString(),
+                'jam' => $s->access_opens_at?->format('H:i'),
+            ])->values()->all(),
+            'beban_pengawas' => collect($matriks)->mapWithKeys(fn (array $m) => [
+                $m['id'] => ['terpakai' => $m['terpakai'], 'maks' => $m['maks']],
+            ])->all(),
+
             'jalur_sesi' => "/admin/events/{$event->id}/pengawas/sesi",
 
-            // Sesi tanpa ruang tidak bisa ditugaskan: penugasan menempel pada
-            // ruang-sesi, dan sesi tanpa ruang tidak punya tempat untuk
-            // menempel. Daftarnya dikirim supaya halaman bisa mengatakan itu,
-            // alih-alih menampilkan tabel kosong tanpa penjelasan.
-            //
-            // Dibandingkan terhadap `$semuaRuangan`, BUKAN `$ruangan` yang
-            // sudah disaring: sesi yang belum punya peserta tetap punya ruang,
-            // dan menyatakannya sebagai "tanpa ruang" adalah laporan yang salah.
             'sesi_tanpa_ruang' => $sesi
                 ->reject(fn (ExamSession $s) => $semuaRuangan->contains('exam_session_id', $s->id))
                 ->map(fn (ExamSession $s) => [
@@ -283,6 +337,11 @@ class ExamPengawasController
                 ->all(),
         ])->all();
 
+        $aturan = $penugasan->aturan($event);
+        $bebanEvent = $penugasan->bebanEvent($event);
+        $kuotaPerOrang = $penugasan->kuotaPerOrang($event);
+        $pengecualian = $penugasan->pengecualianEvent($event);
+
         return Inertia::render('Admin/Event/PengawasSesi', [
             'event' => $this->ringkas($event),
             'sesi' => [
@@ -298,23 +357,34 @@ class ExamPengawasController
                 'susulan' => $sesi->susulan(),
             ],
             'ruang' => $daftarRuang,
+            'aturan' => $aturan,
 
             'angka' => [
                 'ruang' => count($daftarRuang),
                 'tanpa_pengawas' => collect($daftarRuang)
                     ->filter(fn (array $r) => $r['pengawas'] === [])
                     ->count(),
-                'saran_per_ruang' => PengawasService::SARAN_PER_RUANG,
+                'saran_per_ruang' => $aturan['target_per_ruang'],
                 'minimal_per_ruang' => PengawasService::MINIMAL_PER_RUANG,
             ],
 
             'calon' => collect($penugasan->calonPengawas($event))
-                ->map(fn (User $u) => [
-                    'id' => $u->id,
-                    'nama' => $u->name,
-                    'username' => $u->username,
-                    'peran' => $u->role->label(),
-                ])
+                ->map(function (User $u) use ($aturan, $bebanEvent, $kuotaPerOrang, $pengecualian, $sesi): array {
+                    $terpakai = $bebanEvent[$u->id] ?? 0;
+                    $maks = $kuotaPerOrang[$u->id] ?? $aturan['maks_per_event'];
+                    $kunci = "{$sesi->id}:{$u->id}";
+
+                    return [
+                        'id' => $u->id,
+                        'nama' => $u->name,
+                        'username' => $u->username,
+                        'peran' => $u->role->label(),
+                        'terpakai' => $terpakai,
+                        'maks' => $maks,
+                        'dikecualikan' => array_key_exists($kunci, $pengecualian),
+                        'alasan_pengecualian' => $pengecualian[$kunci] ?? null,
+                    ];
+                })
                 ->values()
                 ->all(),
 
@@ -425,6 +495,192 @@ class ExamPengawasController
         }
 
         return back()->with('sukses', $pesan);
+    }
+
+    public function simpanAturan(
+        Request $request,
+        SchoolEvent $event,
+        PengawasService $service,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $data = $request->validate([
+            'maks_per_event' => ['required', 'integer', 'min:0', 'max:50'],
+            'maks_per_hari' => ['required', 'integer', 'min:0', 'max:20'],
+            'target_per_ruang' => ['required', 'integer', 'in:1,2'],
+            'prioritas' => ['required', 'string', 'in:merata,urutan'],
+            'hormati_pengecualian' => ['required', 'boolean'],
+            'hindari_wali_kelas' => ['required', 'boolean'],
+            'hindari_guru_mapel' => ['required', 'boolean'],
+            'tolak_melebihi_kuota' => ['required', 'boolean'],
+        ]);
+
+        $aturan = $service->simpanAturan($event, $data);
+        $logger->log('Memperbarui aturan penjadwalan pengawas', $event, $aturan);
+
+        return back()->with('sukses', 'Aturan penjadwalan pengawas disimpan.');
+    }
+
+    public function togglePengecualian(
+        Request $request,
+        SchoolEvent $event,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $data = $request->validate([
+            'exam_session_id' => ['required', 'integer'],
+            'supervisor_id' => ['required', 'integer'],
+            'reason' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $sesi = ExamSession::query()->with('exam')->find($data['exam_session_id']);
+        abort_unless($sesi !== null && $sesi->exam?->event_id === $event->id, 404);
+
+        $existing = SupervisorSessionExclusion::query()
+            ->where('event_id', $event->id)
+            ->where('exam_session_id', $sesi->id)
+            ->where('supervisor_id', $data['supervisor_id'])
+            ->first();
+
+        if ($existing !== null) {
+            $existing->delete();
+            $logger->log('Mengaktifkan kembali ketersediaan pengawas di sesi', $event, $data);
+
+            return back()->with('sukses', 'Pengawas ditandai tersedia pada sesi tersebut.');
+        }
+
+        SupervisorSessionExclusion::query()->create([
+            'school_id' => $event->school_id,
+            'event_id' => $event->id,
+            'exam_session_id' => $sesi->id,
+            'supervisor_id' => (int) $data['supervisor_id'],
+            'reason' => $data['reason'] ?: null,
+            'created_by' => (int) $request->user()->id,
+        ]);
+
+        $logger->log('Mengosongkan ketersediaan pengawas di sesi', $event, $data);
+
+        return back()->with('sukses', 'Pengawas dikosongkan pada sesi tersebut.');
+    }
+
+    public function kosongkanHari(
+        Request $request,
+        SchoolEvent $event,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $data = $request->validate([
+            'supervisor_id' => ['required', 'integer'],
+            'tanggal' => ['required', 'date'],
+            'reason' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $idSesiHari = ExamSession::query()
+            ->whereIn('exam_id', $event->exams()->pluck('id'))
+            ->whereDate('access_opens_at', $data['tanggal'])
+            ->pluck('id');
+
+        $dibuat = 0;
+        foreach ($idSesiHari as $sesiId) {
+            $baris = SupervisorSessionExclusion::query()->firstOrCreate(
+                [
+                    'event_id' => $event->id,
+                    'exam_session_id' => $sesiId,
+                    'supervisor_id' => (int) $data['supervisor_id'],
+                ],
+                [
+                    'school_id' => $event->school_id,
+                    'reason' => $data['reason'] ?: 'Libur / izin harian',
+                    'created_by' => (int) $request->user()->id,
+                ],
+            );
+
+            if ($baris->wasRecentlyCreated) {
+                $dibuat++;
+            }
+        }
+
+        $logger->log('Mengosongkan pengawas satu hari penuh', $event, [
+            'supervisor_id' => $data['supervisor_id'],
+            'tanggal' => $data['tanggal'],
+            'sesi' => $dibuat,
+        ]);
+
+        return back()->with('sukses', "{$dibuat} sesi pada tanggal tersebut dikosongkan.");
+    }
+
+    public function simpanKuota(
+        Request $request,
+        SchoolEvent $event,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $data = $request->validate([
+            'supervisor_id' => ['required', 'integer'],
+            'maks_mengawas' => ['nullable', 'integer', 'min:0', 'max:50'],
+        ]);
+
+        $updated = $event->committee()
+            ->where('user_id', (int) $data['supervisor_id'])
+            ->update(['maks_mengawas' => $data['maks_mengawas']]);
+
+        abort_unless($updated > 0, 404);
+
+        $logger->log('Memperbarui kuota mengawas pengawas', $event, $data);
+
+        return back()->with('sukses', 'Kuota pengawas diperbarui.');
+    }
+
+    public function otomatisSesi(
+        Request $request,
+        SchoolEvent $event,
+        ExamSession $sesi,
+        PengawasService $service,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+        $sesi->loadMissing('exam');
+        abort_unless($sesi->exam?->event_id === $event->id, 404);
+
+        try {
+            $hasil = $service->tugaskanOtomatis($event, (int) $request->user()->id, $sesi->id);
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $logger->log('Menugaskan pengawas otomatis per sesi', $event, ['sesi_id' => $sesi->id, ...$hasil]);
+
+        if ($hasil['penugasan'] === 0 && $hasil['dilewati'] === 0) {
+            return back()->with('sukses', 'Setiap ruang pada sesi ini sudah punya pengawas yang cukup.');
+        }
+
+        $pesan = "{$hasil['penugasan']} penugasan dibuat di {$hasil['ruang']} ruang.";
+
+        if ($hasil['dilewati'] > 0) {
+            return back()->with('galat', $pesan." {$hasil['dilewati']} calon dilewati karena kuota/pengecualian/bentrok.");
+        }
+
+        return back()->with('sukses', $pesan);
+    }
+
+    public function kosongkanSesi(
+        SchoolEvent $event,
+        ExamSession $sesi,
+        PengawasService $service,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+        $sesi->loadMissing('exam');
+        abort_unless($sesi->exam?->event_id === $event->id, 404);
+
+        $dihapus = $service->kosongkanSesi($sesi);
+        $logger->log('Mengosongkan penugasan pengawas satu sesi', $event, ['sesi_id' => $sesi->id, 'dihapus' => $dihapus]);
+
+        return back()->with('sukses', "{$dihapus} penugasan pengawas pada sesi ini dihapus.");
     }
 
     /* ------------------------------------------------------------ Pembantu */

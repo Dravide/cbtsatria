@@ -83,6 +83,47 @@ type SesiKelompok = {
     ruang_tanpa_pengawas: string[];
 };
 
+type AturanPengawas = {
+    maks_per_event: number;
+    maks_per_hari: number;
+    target_per_ruang: number;
+    prioritas: 'merata' | 'urutan';
+    hormati_pengecualian: boolean;
+    hindari_wali_kelas: boolean;
+    hindari_guru_mapel: boolean;
+    tolak_melebihi_kuota: boolean;
+};
+
+type MatriksBaris = {
+    id: number;
+    nama: string;
+    username: string;
+    peran: string;
+    terpakai: number;
+    maks: number;
+    maks_khusus: number | null;
+    dikecualikan_sesi: number[];
+    alasan_sesi: Record<string, string>;
+    penugasan: {
+        sesi_id: number | null;
+        sesi_label: string;
+        ujian: string | null;
+        tanggal: string | null;
+        jam: string | null;
+        ruang: string;
+    }[];
+    status_kuota: 'aman' | 'penuh' | 'melebihi';
+};
+
+type SesiKolom = {
+    id: number;
+    label: string;
+    ujian: string | null;
+    tanggal: string | null;
+    tanggal_iso: string | null;
+    jam: string | null;
+};
+
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     baris: Baris[];
@@ -93,8 +134,13 @@ type Props = {
         tanpa_pengawas: number;
         saran_per_ruang: number;
         minimal_per_ruang: number;
+        melebihi_batas?: number;
     };
     calon: { id: number; nama: string; username: string; peran: string }[];
+    aturan?: AturanPengawas;
+    matriks?: MatriksBaris[];
+    sesi_kolom?: SesiKolom[];
+    beban_pengawas?: Record<number, { terpakai: number; maks: number }>;
     sesi_tanpa_ruang: { id: number; label: string; ujian: string | null }[];
     /** Alamat laman sesi - dikirim server supaya bentuk rutenya satu tempat. */
     jalur_sesi: string;
@@ -106,10 +152,22 @@ export default function EventPengawas({
     per_sesi,
     angka,
     calon,
+    aturan,
+    matriks = [],
+    sesi_kolom = [],
+    beban_pengawas = {},
     sesi_tanpa_ruang,
     jalur_sesi,
 }: Props) {
     const jalur = `/admin/events/${event.id}`;
+    const tabAwal = (() => {
+        if (typeof window === 'undefined') {
+            return 'jadwal';
+        }
+        const param = new URLSearchParams(window.location.search).get('tab');
+        return param === 'ketersediaan' || param === 'rekap' ? param : 'jadwal';
+    })();
+    const [tab, setTab] = useState<'jadwal' | 'ketersediaan' | 'rekap'>(tabAwal);
 
     return (
         <AdminLayout
@@ -142,21 +200,49 @@ export default function EventPengawas({
         >
             <Head title={`Pengawas · ${event.nama}`} />
 
-            {/* Tiga angka, dan yang ketiga yang menentukan: ruang tanpa
-                pengawas adalah ruang yang siswanya tidak akan bisa masuk. */}
-            <div className="mb-3 grid gap-3 sm:grid-cols-3">
+            <div className="mb-3 grid gap-3 sm:grid-cols-4">
                 <KPI label="Ruang" nilai={angka.ruang} catatan="seluruh sesi" />
                 <KPI
                     label="Pengawas ditugaskan"
                     nilai={angka.ditugaskan}
                     nada="ok"
-                    catatan={`${angka.minimal_per_ruang} pengawas per ruang`}
+                    catatan={`${aturan?.target_per_ruang ?? angka.minimal_per_ruang} pengawas per ruang`}
                 />
                 <KPI
                     label="Ruang tanpa pengawas"
                     nilai={angka.tanpa_pengawas}
                     nada={angka.tanpa_pengawas > 0 ? 'bad' : 'ok'}
                 />
+                <KPI
+                    label="Melebihi batas"
+                    nilai={angka.melebihi_batas ?? 0}
+                    nada={(angka.melebihi_batas ?? 0) > 0 ? 'warn' : 'ok'}
+                    catatan={aturan && aturan.maks_per_event > 0 ? `batas ${aturan.maks_per_event}×/event` : 'tanpa batas'}
+                />
+            </div>
+
+            <div className="mb-4 flex flex-wrap gap-1 border-b border-line">
+                {(
+                    [
+                        ['jadwal', 'Jadwal & Aturan'],
+                        ['ketersediaan', `Ketersediaan & Pengecualian (${matriks.length})`],
+                        ['rekap', 'Rekap Beban Mengawas'],
+                    ] as const
+                ).map(([kunci, label]) => (
+                    <button
+                        key={kunci}
+                        type="button"
+                        onClick={() => setTab(kunci)}
+                        className={
+                            'border-b-2 px-3 py-2 text-xs font-medium transition-colors ' +
+                            (tab === kunci
+                                ? 'border-accent text-accent'
+                                : 'border-transparent text-ink-3 hover:text-ink')
+                        }
+                    >
+                        {label}
+                    </button>
+                ))}
             </div>
 
             {calon.length === 0 && baris.length > 0 && (
@@ -181,47 +267,56 @@ export default function EventPengawas({
                 </div>
             )}
 
-            {/* --------------------------------------------------- per SESI */}
-            {/* Satu kartu per sesi. Isinya RINGKASAN - daftar ruang dan
-                tombol Tugaskan ada di laman sesinya, karena tiga puluh tiga
-                ruang per sesi yang dirender di sini menenggelamkan daftar
-                sesinya sendiri. */}
-            {per_sesi.length === 0 ? (
-                <Kotak>
-                    <p className="text-sm text-ink-3">
-                        Belum ada ruang yang dipakai sesi mana pun. Susun jadwalnya terlebih
-                        dahulu di laman <strong>Jadwal &amp; sesi</strong>.
-                    </p>
-                </Kotak>
-            ) : (
-                <div className="space-y-2">
-                    {per_sesi.map((s) => (
-                        <KartuSesi key={s.id} sesi={s} jalur_sesi={jalur_sesi} />
-                    ))}
-                </div>
+            {tab === 'jadwal' && (
+                <>
+                    {aturan && <PanelAturan jalur={jalur} aturan={aturan} />}
+
+                    {per_sesi.length === 0 ? (
+                        <Kotak>
+                            <p className="text-sm text-ink-3">
+                                Belum ada ruang yang dipakai sesi mana pun. Susun jadwalnya terlebih
+                                dahulu di laman <strong>Jadwal &amp; sesi</strong>.
+                            </p>
+                        </Kotak>
+                    ) : (
+                        <div className="space-y-2">
+                            {per_sesi.map((s) => (
+                                <KartuSesi key={s.id} sesi={s} jalur_sesi={jalur_sesi} />
+                            ))}
+                        </div>
+                    )}
+
+                    {baris.length > 0 && (
+                        <JadwalPengawasan
+                            baris={baris}
+                            per_sesi={per_sesi}
+                            jalur_sesi={jalur_sesi}
+                            beban_pengawas={beban_pengawas}
+                        />
+                    )}
+
+                    {per_sesi.some((s) => s.jumlah_pengawas > 0) && (
+                        <div className="mt-3">
+                            <Inbox>
+                                Satu pengawas per ruang sudah sah, sesinya tetap bisa dibuka.
+                                Menambah pengawas kedua sebaiknya dilakukan pada sesi yang pengawasnya
+                                cukup, karena ruang yang benar-benar tidak akan bisa dibuka siswanya
+                                hanyalah ruang yang belum punya pengawas sama sekali.
+                            </Inbox>
+                        </div>
+                    )}
+                </>
             )}
 
-            {baris.length > 0 && (
-                <JadwalPengawasan
-                    baris={baris}
-                    per_sesi={per_sesi}
-                    jalur_sesi={jalur_sesi}
+            {tab === 'ketersediaan' && (
+                <MatriksKetersediaan
+                    jalur={jalur}
+                    matriks={matriks}
+                    sesi_kolom={sesi_kolom}
                 />
             )}
 
-            {/* Saran, BUKAN temuan. Ruang yang berisi satu pengawas sudah
-                memenuhi syarat PRD §9.6 dan sesinya tetap bisa dibuka - yang
-                menghalangi hanya ruang tanpa pengawas sama sekali. */}
-            {per_sesi.some((s) => s.jumlah_pengawas > 0) && (
-                <div className="mt-3">
-                    <Inbox>
-                        Satu pengawas per ruang sudah sah, sesinya tetap bisa dibuka.
-                        Menambah pengawas kedua sebaiknya dilakukan pada sesi yang pengawasnya
-                        cukup, karena ruang yang benar-benar tidak akan bisa dibuka siswanya
-                        hanyalah ruang yang belum punya pengawas sama sekali.
-                    </Inbox>
-                </div>
-            )}
+            {tab === 'rekap' && <RekapBeban matriks={matriks} />}
         </AdminLayout>
     );
 }
@@ -310,10 +405,12 @@ function JadwalPengawasan({
     baris,
     per_sesi,
     jalur_sesi,
+    beban_pengawas,
 }: {
     baris: Baris[];
     per_sesi: SesiKelompok[];
     jalur_sesi: string;
+    beban_pengawas: Record<number, { terpakai: number; maks: number }>;
 }) {
     const [sesiDipilih, setSesiDipilih] = useState<number>(0);
     const [cari, setCari] = useState('');
@@ -439,14 +536,24 @@ function JadwalPengawasan({
                                             <Chip nada="bad">Belum ada pengawas</Chip>
                                         ) : (
                                             <div className="flex flex-wrap gap-1.5">
-                                                {b.pengawas.map((p) => (
-                                                    <span
-                                                        key={p.id}
-                                                        className="inline-flex items-center rounded-wf border border-line bg-wf-soft px-2 py-0.5 text-xs text-ink"
-                                                    >
-                                                        {p.nama ?? '—'}
-                                                    </span>
-                                                ))}
+                                                {b.pengawas.map((p) => {
+                                                    const beban = beban_pengawas[p.user_id];
+                                                    return (
+                                                        <span
+                                                            key={p.id}
+                                                            className="inline-flex items-center gap-1 rounded-wf border border-line bg-wf-soft px-2 py-0.5 text-xs text-ink"
+                                                        >
+                                                            <span>{p.nama ?? '—'}</span>
+                                                            {beban && (
+                                                                <span className="font-mono text-[10px] text-ink-3">
+                                                                    {beban.maks > 0
+                                                                        ? `${beban.terpakai}/${beban.maks}`
+                                                                        : `${beban.terpakai}×`}
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </td>
@@ -499,5 +606,460 @@ function KPI({
             </p>
             {catatan && <p className="mt-0.5 text-[11px] text-ink-3">{catatan}</p>}
         </div>
+    );
+}
+
+function PanelAturan({ jalur, aturan }: { jalur: string; aturan: AturanPengawas }) {
+    const [form, setForm] = useState<AturanPengawas>(aturan);
+    const [terbuka, setTerbuka] = useState(false);
+
+    const simpan = () => {
+        router.post(`${jalur}/pengawas/aturan`, form, { preserveScroll: true });
+    };
+
+    return (
+        <section className="mb-3 rounded-wf border border-line bg-surface px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h2 className="text-sm font-medium text-ink">Aturan penjadwalan pengawas</h2>
+                    <p className="text-[11px] text-ink-3">
+                        Maks. event:{' '}
+                        <span className="font-mono text-ink">
+                            {form.maks_per_event > 0 ? `${form.maks_per_event}×` : 'bebas'}
+                        </span>{' '}
+                        · Maks. hari:{' '}
+                        <span className="font-mono text-ink">
+                            {form.maks_per_hari > 0 ? `${form.maks_per_hari}×` : 'bebas'}
+                        </span>{' '}
+                        · Target ruang: <span className="font-mono text-ink">{form.target_per_ruang}</span> ·
+                        Prioritas: <span className="font-mono text-ink">{form.prioritas}</span>
+                    </p>
+                </div>
+                <Tombol nada="sek" onClick={() => setTerbuka((v) => !v)}>
+                    {terbuka ? 'Tutup aturan' : 'Ubah aturan'}
+                </Tombol>
+            </div>
+
+            {terbuka && (
+                <div className="mt-3 border-t border-line pt-3">
+                    <div className="grid gap-3 sm:grid-cols-4">
+                        <label className="text-xs text-ink-2">
+                            <span className="mb-1 block">Maks. tugas / event (0 = bebas)</span>
+                            <input
+                                type="number"
+                                min={0}
+                                max={50}
+                                value={form.maks_per_event}
+                                onChange={(e) =>
+                                    setForm({ ...form, maks_per_event: Math.max(0, Number(e.target.value)) })
+                                }
+                                className={kelasInput()}
+                            />
+                        </label>
+                        <label className="text-xs text-ink-2">
+                            <span className="mb-1 block">Maks. tugas / hari (0 = bebas)</span>
+                            <input
+                                type="number"
+                                min={0}
+                                max={20}
+                                value={form.maks_per_hari}
+                                onChange={(e) =>
+                                    setForm({ ...form, maks_per_hari: Math.max(0, Number(e.target.value)) })
+                                }
+                                className={kelasInput()}
+                            />
+                        </label>
+                        <label className="text-xs text-ink-2">
+                            <span className="mb-1 block">Target pengawas / ruang</span>
+                            <select
+                                value={form.target_per_ruang}
+                                onChange={(e) =>
+                                    setForm({ ...form, target_per_ruang: Number(e.target.value) })
+                                }
+                                className={kelasInput()}
+                            >
+                                <option value={1}>1 pengawas</option>
+                                <option value={2}>2 pengawas</option>
+                            </select>
+                        </label>
+                        <label className="text-xs text-ink-2">
+                            <span className="mb-1 block">Prioritas pembagian</span>
+                            <select
+                                value={form.prioritas}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        prioritas: e.target.value === 'urutan' ? 'urutan' : 'merata',
+                                    })
+                                }
+                                className={kelasInput()}
+                            >
+                                <option value="merata">Merata (beban terkecil dulu)</option>
+                                <option value="urutan">Sesuai urutan daftar</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-ink-2">
+                        {(
+                            [
+                                ['hormati_pengecualian', 'Hormati sesi dikosongkan'],
+                                ['hindari_wali_kelas', 'Hindari wali kelas peserta'],
+                                ['hindari_guru_mapel', 'Hindari guru mapel ujian'],
+                                ['tolak_melebihi_kuota', 'Tolak penugasan manual melebihi kuota'],
+                            ] as const
+                        ).map(([kunci, label]) => (
+                            <label key={kunci} className="inline-flex items-center gap-1.5">
+                                <input
+                                    type="checkbox"
+                                    checked={form[kunci]}
+                                    onChange={(e) => setForm({ ...form, [kunci]: e.target.checked })}
+                                />
+                                <span>{label}</span>
+                            </label>
+                        ))}
+                    </div>
+
+                    <div className="mt-3 flex justify-end">
+                        <Tombol nada="pri" onClick={simpan}>
+                            Simpan aturan
+                        </Tombol>
+                    </div>
+                </div>
+            )}
+        </section>
+    );
+}
+
+function MatriksKetersediaan({
+    jalur,
+    matriks,
+    sesi_kolom,
+}: {
+    jalur: string;
+    matriks: MatriksBaris[];
+    sesi_kolom: SesiKolom[];
+}) {
+    const [cari, setCari] = useState('');
+    const [orangId, setOrangId] = useState<number>(matriks[0]?.id ?? 0);
+    const tanggalUnik = Array.from(
+        new Set(sesi_kolom.map((s) => s.tanggal_iso).filter((v): v is string => Boolean(v))),
+    );
+    const [tanggal, setTanggal] = useState<string>(tanggalUnik[0] ?? '');
+    const [alasan, setAlasan] = useState('');
+    const [kuotaDraft, setKuotaDraft] = useState<Record<number, string>>({});
+
+    const tersaring = matriks.filter((m) => {
+        const q = cari.trim().toLowerCase();
+        if (!q) {
+            return true;
+        }
+        return m.nama.toLowerCase().includes(q) || m.username.toLowerCase().includes(q);
+    });
+
+    const toggleSesi = (sesiId: number, supervisorId: number) => {
+        router.post(
+            `${jalur}/pengawas/pengecualian`,
+            { exam_session_id: sesiId, supervisor_id: supervisorId },
+            { preserveScroll: true },
+        );
+    };
+
+    const kosongkanHari = () => {
+        if (!orangId || !tanggal) {
+            return;
+        }
+        router.post(
+            `${jalur}/pengawas/kosongkan-hari`,
+            { supervisor_id: orangId, tanggal, reason: alasan || null },
+            { preserveScroll: true, onSuccess: () => setAlasan('') },
+        );
+    };
+
+    const simpanKuota = (supervisorId: number, nilai: string) => {
+        const parsed = nilai.trim() === '' ? null : Math.max(0, Number(nilai));
+        router.post(
+            `${jalur}/pengawas/kuota`,
+            { supervisor_id: supervisorId, maks_mengawas: parsed },
+            { preserveScroll: true },
+        );
+    };
+
+    return (
+        <section className="space-y-3">
+            <Kotak>
+                <div className="flex flex-wrap items-end gap-2">
+                    <label className="text-xs text-ink-2">
+                        <span className="mb-1 block">Cari pengawas</span>
+                        <input
+                            type="search"
+                            value={cari}
+                            onChange={(e) => setCari(e.target.value)}
+                            placeholder="Nama atau username..."
+                            className={kelasInput('w-56')}
+                        />
+                    </label>
+
+                    {matriks.length > 0 && tanggalUnik.length > 0 && (
+                        <>
+                            <label className="text-xs text-ink-2">
+                                <span className="mb-1 block">Kosongkan satu hari</span>
+                                <select
+                                    value={orangId}
+                                    onChange={(e) => setOrangId(Number(e.target.value))}
+                                    className={kelasInput('w-48')}
+                                >
+                                    {matriks.map((m) => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.nama}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="text-xs text-ink-2">
+                                <span className="mb-1 block">Tanggal</span>
+                                <select
+                                    value={tanggal}
+                                    onChange={(e) => setTanggal(e.target.value)}
+                                    className={kelasInput('w-36')}
+                                >
+                                    {tanggalUnik.map((t) => (
+                                        <option key={t} value={t}>
+                                            {t}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="text-xs text-ink-2">
+                                <span className="mb-1 block">Alasan (opsional)</span>
+                                <input
+                                    type="text"
+                                    value={alasan}
+                                    onChange={(e) => setAlasan(e.target.value)}
+                                    placeholder="Izin / rapat"
+                                    className={kelasInput('w-40')}
+                                />
+                            </label>
+                            <Tombol nada="sek" onClick={kosongkanHari}>
+                                Kosongkan hari
+                            </Tombol>
+                        </>
+                    )}
+                </div>
+            </Kotak>
+
+            <div className="overflow-x-auto rounded-wf border border-line bg-surface">
+                <table className="w-full border-collapse text-left text-xs">
+                    <thead>
+                        <tr className="border-b border-line bg-surface-2/60 text-[11px] uppercase text-ink-3">
+                            <th className="px-3 py-2">Pengawas</th>
+                            <th className="px-3 py-2">Kuota Khusus</th>
+                            {sesi_kolom.map((s) => (
+                                <th key={s.id} className="px-2 py-2 text-center">
+                                    <div className="font-mono text-ink">{s.label}</div>
+                                    <div className="text-[10px] font-normal lowercase">
+                                        {s.tanggal ?? '—'} {s.jam ?? ''}
+                                    </div>
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                        {tersaring.length === 0 ? (
+                            <tr>
+                                <td
+                                    colSpan={2 + sesi_kolom.length}
+                                    className="px-3 py-6 text-center text-ink-3"
+                                >
+                                    Belum ada calon pengawas.
+                                </td>
+                            </tr>
+                        ) : (
+                            tersaring.map((m) => {
+                                const draft =
+                                    kuotaDraft[m.id] ??
+                                    (m.maks_khusus !== null ? String(m.maks_khusus) : '');
+                                return (
+                                    <tr key={m.id}>
+                                        <td className="px-3 py-2">
+                                            <div className="font-medium text-ink">{m.nama}</div>
+                                            <div className="font-mono text-[10px] text-ink-3">
+                                                {m.terpakai}/{m.maks > 0 ? m.maks : '∞'} tugas
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    max={50}
+                                                    placeholder="Default"
+                                                    value={draft}
+                                                    onChange={(e) =>
+                                                        setKuotaDraft({
+                                                            ...kuotaDraft,
+                                                            [m.id]: e.target.value,
+                                                        })
+                                                    }
+                                                    className={kelasInput('w-20 py-1 text-xs')}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => simpanKuota(m.id, draft)}
+                                                    className="rounded-wf border border-line px-2 py-1 text-[11px] text-ink hover:bg-surface-2"
+                                                >
+                                                    Simpan
+                                                </button>
+                                            </div>
+                                        </td>
+                                        {sesi_kolom.map((s) => {
+                                            const dikecualikan = m.dikecualikan_sesi.includes(s.id);
+                                            const tugas = m.penugasan.find((p) => p.sesi_id === s.id);
+                                            return (
+                                                <td key={s.id} className="px-2 py-2 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleSesi(s.id, m.id)}
+                                                        title={
+                                                            dikecualikan
+                                                                ? 'Klik untuk tandai tersedia'
+                                                                : 'Klik untuk kosongkan di sesi ini'
+                                                        }
+                                                        className={
+                                                            'rounded-wf border px-2 py-1 text-[11px] font-medium ' +
+                                                            (dikecualikan
+                                                                ? 'border-bad/40 bg-bad/10 text-bad'
+                                                                : tugas
+                                                                  ? 'border-accent/40 bg-accent/10 text-accent'
+                                                                  : 'border-line bg-wf-soft text-ink-2 hover:border-ink-3')
+                                                        }
+                                                    >
+                                                        {dikecualikan
+                                                            ? 'Kosong'
+                                                            : tugas
+                                                              ? tugas.ruang
+                                                              : 'Tersedia'}
+                                                    </button>
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    );
+}
+
+function RekapBeban({ matriks }: { matriks: MatriksBaris[] }) {
+    const [cari, setCari] = useState('');
+    const [filterStatus, setFilterStatus] = useState<'semua' | 'penuh' | 'aman'>('semua');
+
+    const tersaring = matriks.filter((m) => {
+        if (filterStatus === 'penuh' && m.status_kuota === 'aman') {
+            return false;
+        }
+        if (filterStatus === 'aman' && m.status_kuota !== 'aman') {
+            return false;
+        }
+        const q = cari.trim().toLowerCase();
+        if (!q) {
+            return true;
+        }
+        return m.nama.toLowerCase().includes(q) || m.username.toLowerCase().includes(q);
+    });
+
+    return (
+        <section className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+                <input
+                    type="search"
+                    value={cari}
+                    onChange={(e) => setCari(e.target.value)}
+                    placeholder="Cari nama pengawas..."
+                    className={kelasInput('w-60')}
+                />
+                <select
+                    value={filterStatus}
+                    onChange={(e) =>
+                        setFilterStatus(
+                            e.target.value === 'penuh' || e.target.value === 'aman'
+                                ? e.target.value
+                                : 'semua',
+                        )
+                    }
+                    className={kelasInput('w-44')}
+                >
+                    <option value="semua">Semua status kuota</option>
+                    <option value="aman">Aman</option>
+                    <option value="penuh">Penuh / Melebihi</option>
+                </select>
+            </div>
+
+            <div className="overflow-x-auto rounded-wf border border-line bg-surface">
+                <table className="w-full border-collapse text-left text-xs">
+                    <thead>
+                        <tr className="border-b border-line bg-surface-2/60 text-[11px] uppercase text-ink-3">
+                            <th className="px-3 py-2">Pengawas</th>
+                            <th className="px-3 py-2">Peran</th>
+                            <th className="px-3 py-2">Total Tugas</th>
+                            <th className="px-3 py-2">Sesi Dikosongkan</th>
+                            <th className="px-3 py-2">Daftar Penugasan</th>
+                            <th className="px-3 py-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                        {tersaring.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-3 py-6 text-center text-ink-3">
+                                    Tidak ada data pengawas yang cocok.
+                                </td>
+                            </tr>
+                        ) : (
+                            tersaring.map((m) => (
+                                <tr key={m.id}>
+                                    <td className="px-3 py-2.5 font-medium text-ink">{m.nama}</td>
+                                    <td className="px-3 py-2.5 text-ink-2">{m.peran}</td>
+                                    <td className="px-3 py-2.5 font-mono text-ink">
+                                        {m.terpakai} / {m.maks > 0 ? m.maks : '∞'}
+                                    </td>
+                                    <td className="px-3 py-2.5 font-mono text-ink-2">
+                                        {m.dikecualikan_sesi.length} sesi
+                                    </td>
+                                    <td className="px-3 py-2.5">
+                                        {m.penugasan.length === 0 ? (
+                                            <span className="text-ink-3">—</span>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-1">
+                                                {m.penugasan.map((p, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        className="rounded-wf border border-line bg-wf-soft px-2 py-0.5 font-mono text-[11px] text-ink"
+                                                    >
+                                                        {p.sesi_label} · {p.ruang}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="px-3 py-2.5">
+                                        {m.status_kuota === 'melebihi' ? (
+                                            <Chip nada="bad">Melebihi batas</Chip>
+                                        ) : m.status_kuota === 'penuh' ? (
+                                            <Chip nada="warn">Penuh</Chip>
+                                        ) : (
+                                            <Chip nada="ok">Aman</Chip>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     );
 }

@@ -2,11 +2,14 @@
 
 namespace App\Domain\Exam\Services;
 
+use App\Domain\Academic\Models\TeachingAssignment;
 use App\Domain\Event\Models\EventCommitteeMember;
 use App\Domain\Event\Models\SchoolEvent;
+use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Exam\Models\SupervisionAssignment;
+use App\Domain\Exam\Models\SupervisorSessionExclusion;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
 use DomainException;
@@ -84,6 +87,109 @@ class PengawasService
     ) {}
 
     /**
+     * @return array{
+     *   maks_per_event: int,
+     *   maks_per_hari: int,
+     *   target_per_ruang: int,
+     *   prioritas: 'merata'|'urutan',
+     *   hormati_pengecualian: bool,
+     *   hindari_wali_kelas: bool,
+     *   hindari_guru_mapel: bool,
+     *   tolak_melebihi_kuota: bool,
+     * }
+     */
+    public function aturan(SchoolEvent $event): array
+    {
+        return $event->aturanPengawas();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function simpanAturan(SchoolEvent $event, array $data): array
+    {
+        $event->forceFill([
+            'pengawas_settings' => [
+                'maks_per_event' => max(0, (int) ($data['maks_per_event'] ?? 0)),
+                'maks_per_hari' => max(0, (int) ($data['maks_per_hari'] ?? 0)),
+                'target_per_ruang' => in_array((int) ($data['target_per_ruang'] ?? 1), [1, 2], true)
+                    ? (int) ($data['target_per_ruang'] ?? 1)
+                    : 1,
+                'prioritas' => ($data['prioritas'] ?? 'merata') === 'urutan' ? 'urutan' : 'merata',
+                'hormati_pengecualian' => (bool) ($data['hormati_pengecualian'] ?? true),
+                'hindari_wali_kelas' => (bool) ($data['hindari_wali_kelas'] ?? false),
+                'hindari_guru_mapel' => (bool) ($data['hindari_guru_mapel'] ?? false),
+                'tolak_melebihi_kuota' => (bool) ($data['tolak_melebihi_kuota'] ?? false),
+            ],
+        ])->save();
+
+        return $event->aturanPengawas();
+    }
+
+    public function kosongkanSesi(ExamSession $sesi): int
+    {
+        $idRuang = $sesi->rooms()->pluck('id');
+
+        if ($idRuang->isEmpty()) {
+            return 0;
+        }
+
+        return SupervisionAssignment::query()
+            ->whereIn('exam_session_room_id', $idRuang)
+            ->delete();
+    }
+
+    /** @return array<int, ?int> */
+    public function kuotaPerOrang(SchoolEvent $event): array
+    {
+        return $event->committee()
+            ->whereNotNull('user_id')
+            ->pluck('maks_mengawas', 'user_id')
+            ->map(fn ($v) => $v !== null ? (int) $v : null)
+            ->all();
+    }
+
+    /** @return array<string, ?string> */
+    public function pengecualianEvent(SchoolEvent $event): array
+    {
+        return SupervisorSessionExclusion::query()
+            ->where('event_id', $event->id)
+            ->get(['exam_session_id', 'supervisor_id', 'reason'])
+            ->mapWithKeys(fn (SupervisorSessionExclusion $e) => [
+                "{$e->exam_session_id}:{$e->supervisor_id}" => $e->reason,
+            ])
+            ->all();
+    }
+
+    /** @return array<int, int> */
+    public function bebanEvent(SchoolEvent $event): array
+    {
+        $idExam = $event->exams()->pluck('id');
+
+        if ($idExam->isEmpty()) {
+            return [];
+        }
+
+        $idRuang = ExamSessionRoom::query()
+            ->whereIn('exam_session_id', ExamSession::query()->whereIn('exam_id', $idExam)->pluck('id'))
+            ->pluck('id');
+
+        if ($idRuang->isEmpty()) {
+            return [];
+        }
+
+        return SupervisionAssignment::query()
+            ->whereIn('exam_session_room_id', $idRuang)
+            ->where('status', 'aktif')
+            ->selectRaw('supervisor_id, COUNT(*) as total')
+            ->groupBy('supervisor_id')
+            ->pluck('total', 'supervisor_id')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+    }
+
+    /**
      * Tugaskan seorang pengawas ke satu ruang-sesi.
      *
      * @param  array<string, mixed>  $data  start_at / end_at opsional.
@@ -94,6 +200,80 @@ class PengawasService
             throw ValidationException::withMessages([
                 'supervisor_id' => 'Hanya akun Pengawas atau Guru yang bisa ditugaskan mengawas.',
             ]);
+        }
+
+        $ruang->loadMissing('session.exam.event');
+        $sesi = $ruang->session;
+        $event = $sesi?->exam?->event;
+
+        if ($event !== null && $sesi !== null) {
+            $aturan = $this->aturan($event);
+
+            if ($aturan['tolak_melebihi_kuota']) {
+                if ($aturan['hormati_pengecualian']) {
+                    $dikecualikan = SupervisorSessionExclusion::query()
+                        ->where('event_id', $event->id)
+                        ->where('exam_session_id', $sesi->id)
+                        ->where('supervisor_id', $pengawas->id)
+                        ->exists();
+
+                    if ($dikecualikan) {
+                        throw ValidationException::withMessages([
+                            'supervisor_id' => "{$pengawas->name} dikosongkan pada sesi ini.",
+                        ]);
+                    }
+                }
+
+                $kuotaKhusus = $event->committee()
+                    ->where('user_id', $pengawas->id)
+                    ->value('maks_mengawas');
+                $maksEvent = $kuotaKhusus !== null ? (int) $kuotaKhusus : $aturan['maks_per_event'];
+
+                if ($maksEvent > 0) {
+                    $idRuangEvent = ExamSessionRoom::query()
+                        ->whereIn('exam_session_id', ExamSession::query()
+                            ->whereIn('exam_id', $event->exams()->pluck('id'))
+                            ->pluck('id'))
+                        ->pluck('id');
+
+                    $sudahEvent = SupervisionAssignment::query()
+                        ->where('supervisor_id', $pengawas->id)
+                        ->where('status', 'aktif')
+                        ->whereIn('exam_session_room_id', $idRuangEvent)
+                        ->where('exam_session_room_id', '!=', $ruang->id)
+                        ->count();
+
+                    if ($sudahEvent >= $maksEvent) {
+                        throw ValidationException::withMessages([
+                            'supervisor_id' => "{$pengawas->name} sudah mencapai batas {$maksEvent}× mengawas pada event ini.",
+                        ]);
+                    }
+                }
+
+                if ($aturan['maks_per_hari'] > 0 && $sesi->access_opens_at !== null) {
+                    $tanggal = $sesi->access_opens_at->toDateString();
+                    $idSesiHari = ExamSession::query()
+                        ->whereIn('exam_id', $event->exams()->pluck('id'))
+                        ->whereDate('access_opens_at', $tanggal)
+                        ->pluck('id');
+                    $idRuangHari = ExamSessionRoom::query()
+                        ->whereIn('exam_session_id', $idSesiHari)
+                        ->pluck('id');
+
+                    $sudahHari = SupervisionAssignment::query()
+                        ->where('supervisor_id', $pengawas->id)
+                        ->where('status', 'aktif')
+                        ->whereIn('exam_session_room_id', $idRuangHari)
+                        ->where('exam_session_room_id', '!=', $ruang->id)
+                        ->count();
+
+                    if ($sudahHari >= $aturan['maks_per_hari']) {
+                        throw ValidationException::withMessages([
+                            'supervisor_id' => "{$pengawas->name} sudah mencapai batas {$aturan['maks_per_hari']}× mengawas pada hari tersebut.",
+                        ]);
+                    }
+                }
+            }
         }
 
         return DB::transaction(function () use ($ruang, $pengawas, $olehUserId, $data) {
@@ -225,7 +405,7 @@ class PengawasService
      *
      * @return array{ruang: int, penugasan: int, dilewati: int}
      */
-    public function tugaskanOtomatis(SchoolEvent $event, ?int $olehUserId = null): array
+    public function tugaskanOtomatis(SchoolEvent $event, ?int $olehUserId = null, ?int $khususSesiId = null): array
     {
         $calon = $this->calonPengawas($event);
 
@@ -235,62 +415,149 @@ class PengawasService
             );
         }
 
+        $aturan = $this->aturan($event);
+        $target = $aturan['target_per_ruang'];
+
+        $idSesiEvent = ExamSession::query()
+            ->whereIn('exam_id', $event->exams()->pluck('id'))
+            ->when($khususSesiId !== null, fn ($q) => $q->where('id', $khususSesiId))
+            ->pluck('id');
+
         $ruangan = ExamSessionRoom::query()
-            ->whereIn('exam_session_id', ExamSession::query()
-                ->whereIn('exam_id', $event->exams()->pluck('id'))
-                ->pluck('id'))
-            ->with(['supervisors', 'session'])
+            ->whereIn('exam_session_id', $idSesiEvent)
+            ->with(['supervisors', 'session.exam'])
             ->orderBy('exam_session_id')
             ->orderBy('id')
             ->get();
+
+        $kuotaPerOrang = $this->kuotaPerOrang($event);
+        $pengecualian = $aturan['hormati_pengecualian'] ? $this->pengecualianEvent($event) : [];
+
+        // Muat beban awal seluruh event agar penugasan per-sesi maupun penuh
+        // tetap menghitung kuota event & kuota harian dengan akurat.
+        $bebanEvent = [];
+        $bebanHari = [];
+        $semuaRuangEvent = ExamSessionRoom::query()
+            ->whereIn('exam_session_id', ExamSession::query()
+                ->whereIn('exam_id', $event->exams()->pluck('id'))
+                ->pluck('id'))
+            ->with(['session:id,access_opens_at', 'supervisors:id,exam_session_room_id,supervisor_id,status'])
+            ->get();
+
+        foreach ($semuaRuangEvent as $sr) {
+            $tgl = $sr->session?->access_opens_at?->toDateString() ?? '';
+            foreach ($sr->supervisors as $sup) {
+                if ($sup->status !== 'aktif') {
+                    continue;
+                }
+                $bebanEvent[$sup->supervisor_id] = ($bebanEvent[$sup->supervisor_id] ?? 0) + 1;
+                if ($tgl !== '') {
+                    $bebanHari[$sup->supervisor_id][$tgl] = ($bebanHari[$sup->supervisor_id][$tgl] ?? 0) + 1;
+                }
+            }
+        }
+
+        $guruMapel = [];
+        if ($aturan['hindari_guru_mapel']) {
+            TeachingAssignment::query()
+                ->where('school_id', $event->school_id)
+                ->get(['subject_id', 'teacher_id'])
+                ->each(function ($ta) use (&$guruMapel): void {
+                    $guruMapel[(int) $ta->subject_id][(int) $ta->teacher_id] = true;
+                });
+        }
+
+        $waliKelasRuang = [];
+        if ($aturan['hindari_wali_kelas'] && $ruangan->isNotEmpty()) {
+            ExamParticipant::query()
+                ->join('event_participants', 'event_participants.id', '=', 'exam_participants.event_participant_id')
+                ->join('classes', 'classes.id', '=', 'event_participants.class_id')
+                ->whereIn('exam_participants.exam_session_room_id', $ruangan->pluck('id'))
+                ->where('exam_participants.status', ExamParticipant::STATUS_TERDAFTAR)
+                ->whereNotNull('classes.homeroom_teacher_id')
+                ->select('exam_participants.exam_session_room_id', 'classes.homeroom_teacher_id')
+                ->distinct()
+                ->get()
+                ->each(function ($row) use (&$waliKelasRuang): void {
+                    $waliKelasRuang[(int) $row->exam_session_room_id][(int) $row->homeroom_teacher_id] = true;
+                });
+        }
 
         $dibuat = 0;
         $tersentuh = [];
         $dilewati = [];
 
-        // Satu putaran, satu target. Dulu ada dua - MINIMAL lalu SARAN - dan
-        // itu masuk akal selama saran (2) berbeda dari minimal (1). Sejak
-        // sekolah memakai satu pengawas per ruang, keduanya sama, dan dua
-        // putaran dengan target sama hanya mengulang pekerjaan yang sama.
-        foreach ([self::SARAN_PER_RUANG] as $target) {
-            foreach ($ruangan as $r) {
-                $kurang = $target - $r->supervisors->count();
+        foreach ($ruangan as $r) {
+            $kurang = $target - $r->supervisors->count();
 
+            if ($kurang <= 0) {
+                continue;
+            }
+
+            $tgl = $r->session?->access_opens_at?->toDateString() ?? '';
+            $subjectId = (int) ($r->session?->exam?->subject_id ?? 0);
+
+            // Urutkan calon sesuai prioritas: 'merata' mendahulukan beban terkecil,
+            // sedangkan penalti lunak (wali kelas / guru mapel) ditaruh di belakang
+            // agar tetap dihindari selama masih ada calon lain.
+            $kandidat = collect($calon)->sortBy(function (User $orang, int $idx) use (
+                $aturan,
+                $bebanEvent,
+                $guruMapel,
+                $waliKelasRuang,
+                $r,
+                $subjectId,
+            ): array {
+                $penaltiWali = ($aturan['hindari_wali_kelas'] && isset($waliKelasRuang[$r->id][$orang->id])) ? 1 : 0;
+                $penaltiMapel = ($aturan['hindari_guru_mapel'] && $subjectId > 0 && isset($guruMapel[$subjectId][$orang->id])) ? 1 : 0;
+                $beban = $aturan['prioritas'] === 'merata' ? ($bebanEvent[$orang->id] ?? 0) : 0;
+
+                return [$penaltiWali + $penaltiMapel, $beban, $idx];
+            });
+
+            foreach ($kandidat as $orang) {
                 if ($kurang <= 0) {
+                    break;
+                }
+
+                if ($r->supervisors->contains('supervisor_id', $orang->id)) {
                     continue;
                 }
 
-                foreach ($calon as $orang) {
-                    if ($kurang <= 0) {
-                        break;
-                    }
+                if (isset($pengecualian["{$r->exam_session_id}:{$orang->id}"])) {
+                    $dilewati[$orang->id] = true;
 
-                    $sudah = $r->supervisors->contains('supervisor_id', $orang->id);
-
-                    if ($sudah) {
-                        continue;
-                    }
-
-                    try {
-                        $this->tugaskan($r, $orang, $olehUserId);
-                        $dibuat++;
-                        $kurang--;
-                        $tersentuh[$r->id] = true;
-                    } catch (ValidationException) {
-                        // Bentrok - coba orang berikutnya. Dihitung sekali per
-                        // ORANG, bukan sekali per percobaan: calon yang sama
-                        // dicoba lagi di putaran kedua, dan "2 calon dilewati"
-                        // untuk satu orang yang bentrok adalah angka yang
-                        // membuat Admin mencari orang kedua yang tidak ada.
-                        $dilewati[$orang->id] = true;
-                    }
+                    continue;
                 }
 
-                // Dibaca ulang supaya orang berikutnya tidak dipilih dua kali
-                // untuk ruang yang sama, dan supaya putaran kedua melihat
-                // penugasan yang baru saja dibuat putaran pertama.
-                $r->load('supervisors');
+                $maksEvent = $kuotaPerOrang[$orang->id] ?? $aturan['maks_per_event'];
+                if ($maksEvent > 0 && ($bebanEvent[$orang->id] ?? 0) >= $maksEvent) {
+                    $dilewati[$orang->id] = true;
+
+                    continue;
+                }
+
+                if ($aturan['maks_per_hari'] > 0 && $tgl !== '' && ($bebanHari[$orang->id][$tgl] ?? 0) >= $aturan['maks_per_hari']) {
+                    $dilewati[$orang->id] = true;
+
+                    continue;
+                }
+
+                try {
+                    $this->tugaskan($r, $orang, $olehUserId);
+                    $dibuat++;
+                    $kurang--;
+                    $tersentuh[$r->id] = true;
+                    $bebanEvent[$orang->id] = ($bebanEvent[$orang->id] ?? 0) + 1;
+                    if ($tgl !== '') {
+                        $bebanHari[$orang->id][$tgl] = ($bebanHari[$orang->id][$tgl] ?? 0) + 1;
+                    }
+                } catch (ValidationException) {
+                    $dilewati[$orang->id] = true;
+                }
             }
+
+            $r->load('supervisors');
         }
 
         return [

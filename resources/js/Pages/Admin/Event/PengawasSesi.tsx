@@ -58,7 +58,16 @@ type Props = {
         saran_per_ruang: number;
         minimal_per_ruang: number;
     };
-    calon: { id: number; nama: string; username: string; peran: string }[];
+    calon: {
+        id: number;
+        nama: string;
+        username: string;
+        peran: string;
+        terpakai?: number;
+        maks?: number;
+        dikecualikan?: boolean;
+        alasan_pengecualian?: string | null;
+    }[];
     jalur_induk: string;
 };
 
@@ -92,7 +101,7 @@ export default function PengawasSesi({
 
         router.post(
             `${jalur}/pengawas/ruang/${idRuang}`,
-            { user_id: orangId },
+            { supervisor_id: orangId },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -110,17 +119,33 @@ export default function PengawasSesi({
         router.delete(`${jalur}/pengawas/${tugasId}`, { preserveScroll: true });
     };
 
+    const otomatisSesi = () => {
+        router.post(`${jalur}/pengawas/sesi/${sesi.id}/otomatis`, {}, { preserveScroll: true });
+    };
+
+    const kosongkanSesi = () => {
+        router.post(`${jalur}/pengawas/sesi/${sesi.id}/kosongkan`, {}, { preserveScroll: true });
+    };
+
     return (
         <AdminLayout
             judul={`Pengawas ${sesi.label}`}
             breadcrumb={`/admin/events · ${event.kode} · Pengawas · ${sesi.label}`}
             aksi={
-                <Link
-                    href={jalur_induk}
-                    className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
-                >
-                    Kembali ke daftar sesi
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Tombol nada="pri" disabled={calon.length === 0 || ruang.length === 0} onClick={otomatisSesi}>
+                        Tugaskan otomatis sesi ini
+                    </Tombol>
+                    <Tombol nada="sek" disabled={ruang.length === 0} onClick={kosongkanSesi}>
+                        Kosongkan sesi ini
+                    </Tombol>
+                    <Link
+                        href={jalur_induk}
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                    >
+                        Kembali ke daftar sesi
+                    </Link>
+                </div>
             }
         >
             <Head title={`Pengawas ${sesi.label} · ${event.nama}`} />
@@ -243,11 +268,22 @@ export default function PengawasSesi({
                                                 <PilihCari
                                                     label="Pengawas"
                                                     nilai={orangId}
-                                                    pilihan={calon.map((c) => ({
-                                                        id: c.id,
-                                                        label: c.nama ?? c.username ?? '—',
-                                                        ket: c.peran,
-                                                    }))}
+                                                    pilihan={calon.map((c) => {
+                                                        const kuota =
+                                                            c.maks && c.maks > 0
+                                                                ? `${c.terpakai ?? 0}/${c.maks}`
+                                                                : `${c.terpakai ?? 0}×`;
+                                                        const status = c.dikecualikan
+                                                            ? `dikosongkan di sesi ini${c.alasan_pengecualian ? ` (${c.alasan_pengecualian})` : ''}`
+                                                            : c.maks && c.maks > 0 && (c.terpakai ?? 0) >= c.maks
+                                                              ? 'kuota penuh'
+                                                              : 'tersedia';
+                                                        return {
+                                                            id: c.id,
+                                                            label: c.nama ?? c.username ?? '—',
+                                                            ket: `${c.peran} · ${kuota} · ${status}`,
+                                                        };
+                                                    })}
                                                     padaPilih={(id) => setOrangId(id)}
                                                     kosong="Tidak ada pengawas yang cocok."
                                                 />

@@ -90,6 +90,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'code_issued_at',
     'scope',
     'status',
+    'maks_mengawas',
 ])]
 class EventCommitteeMember extends Model
 {
@@ -109,6 +110,7 @@ class EventCommitteeMember extends Model
             // terbaca di basis data - lihat catatan kelas.
             'code' => 'encrypted',
             'code_issued_at' => 'datetime',
+            'maks_mengawas' => 'integer',
         ];
     }
 
