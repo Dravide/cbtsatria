@@ -190,31 +190,15 @@ class PapanPengawas
 
         $layak = fn ($q) => $q
             ->where('school_id', $sekolah->id)
-            ->whereIn('status', $statusAktif)
-            // Jendelanya sudah lewat = tidak ada yang sedang mengawas, apa
-            // pun status barisnya.
-            ->where('hard_end_at', '>=', $sekarang);
+            ->whereIn('status', $statusAktif);
 
-        $berjalan = ExamSession::query()
-            ->whereHas('exam.event', $layak)
-            ->where('status', 'berjalan')
-            ->with($this->muatan())
-            ->orderBy('access_opens_at')
-            ->limit(self::MAKS_SESI)
-            ->get();
-
-        if ($berjalan->isNotEmpty()) {
-            return $berjalan;
-        }
-
-        // Tidak ada yang berjalan: sesi TERDEKAT yang belum berakhir.
-        // Papan yang menampilkan sesi kemarin akan menjawab pertanyaan yang
-        // tidak ditanyakan siapa pun pada pagi hari ujian.
         return ExamSession::query()
             ->whereHas('exam.event', $layak)
+            ->where('status', '!=', 'batal')
+            ->where('hard_end_at', '>=', $sekarang)
             ->with($this->muatan())
             ->orderBy('access_opens_at')
-            ->limit(self::MAKS_SESI)
+            ->orderBy('id')
             ->get();
     }
 
@@ -248,6 +232,7 @@ class PapanPengawas
             'label' => $sesi->label(),
             'ujian' => $sesi->exam?->title,
             'mapel' => $sesi->exam?->subject?->name,
+            'hari_tanggal' => $sesi->access_opens_at?->locale('id')->translatedFormat('l, d M Y'),
             'jam' => $this->jam($sesi),
             'status' => $sesi->status->value,
             'ruang' => $sesi->rooms->map(fn (ExamSessionRoom $r) => [

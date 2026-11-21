@@ -21,6 +21,7 @@ type Sesi = {
     label: string;
     ujian: string | null;
     mapel: string | null;
+    hari_tanggal?: string | null;
     jam: string;
     status: string;
     ruang: Ruang[];
@@ -69,6 +70,14 @@ export default function Papan({ sekolah, slug, sesi, tanpa_pengawas, diperbarui 
 
                         {sesi.map((s) => {
                             const kurang = s.ruang.filter((r) => r.pengawas.length === 0).length;
+                            const mapel = s.mapel?.trim() ?? '';
+                            const ujian = s.ujian?.trim() ?? '';
+                            const judul =
+                                ujian !== '' &&
+                                mapel !== '' &&
+                                !ujian.toLowerCase().includes(mapel.toLowerCase())
+                                    ? `${mapel} · ${ujian}`
+                                    : ujian || mapel || 'Ujian';
 
                             return (
                                 <Link
@@ -78,12 +87,19 @@ export default function Papan({ sekolah, slug, sesi, tanpa_pengawas, diperbarui 
                                 >
                                     <div className="flex items-baseline justify-between gap-2">
                                         <span className="font-display text-sm font-semibold text-ink">
-                                            {[s.mapel, s.ujian].filter(Boolean).join(' · ') || 'Ujian'}
+                                            {judul}
                                         </span>
-                                        <span className="shrink-0 font-mono text-[11px] text-ink-2">
-                                            {s.jam}
-                                        </span>
+                                        {s.status === 'berjalan' && (
+                                            <span className="shrink-0 rounded-wf bg-ok-bg px-1.5 py-0.5 text-[10px] font-medium text-ok">
+                                                Berjalan
+                                            </span>
+                                        )}
                                     </div>
+
+                                    <p className="mt-1 font-mono text-[11px] text-ink-2">
+                                        {s.hari_tanggal ? `${s.hari_tanggal} · ` : ''}
+                                        {s.jam}
+                                    </p>
 
                                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
                                         <span className="font-mono text-[11px] text-ink-3">

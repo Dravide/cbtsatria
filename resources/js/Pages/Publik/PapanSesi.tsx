@@ -14,6 +14,7 @@ type Sesi = {
     label: string;
     ujian: string | null;
     mapel: string | null;
+    hari_tanggal?: string | null;
     jam: string;
     status: string;
     ruang: Ruang[];
@@ -47,7 +48,12 @@ export default function PapanSesi({ sekolah, slug, sesi, tanpa_pengawas, diperba
                   return teks.includes(q);
               });
 
-    const judulUjian = [sesi.mapel, sesi.ujian].filter(Boolean).join(' · ') || 'Ujian';
+    const mapel = sesi.mapel?.trim() ?? '';
+    const ujian = sesi.ujian?.trim() ?? '';
+    const judulUjian =
+        ujian !== '' && mapel !== '' && !ujian.toLowerCase().includes(mapel.toLowerCase())
+            ? `${mapel} · ${ujian}`
+            : ujian || mapel || 'Ujian';
 
     return (
         <>
@@ -74,6 +80,7 @@ export default function PapanSesi({ sekolah, slug, sesi, tanpa_pengawas, diperba
                                 {judulUjian}
                             </h1>
                             <p className="mt-1 font-mono text-xs text-ink-2">
+                                {sesi.hari_tanggal ? `${sesi.hari_tanggal} · ` : ''}
                                 {sesi.label} · {sesi.jam} · {sesi.ruang.length} ruang
                             </p>
                         </section>
