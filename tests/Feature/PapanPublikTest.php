@@ -438,3 +438,23 @@ it('mengirim dua penugasan yang bisa ditukar dari laman Pengawas', function () {
         ->and($pengawas->pluck('user_id')->unique())->toHaveCount(2)
         ->and($pengawas->every(fn (array $p) => isset($p['nama'])))->toBeTrue();
 });
+
+it('menampilkan halaman rincian ruang dan pengawas per sesi, dan 404 jika sesi tidak ditemukan', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    $this->actingAs($this->admin)->patch('/admin/papan', ['aktif' => true]);
+    $slug = $this->sekolah->fresh()->papan_slug;
+
+    app(SesiService::class)->mulai($data['sesi'], $this->admin->id);
+
+    $page = $this->get("/papan/{$slug}/sesi/{$data['sesi']->id}")
+        ->assertOk()
+        ->viewData('page');
+
+    expect($page['component'])->toBe('Publik/PapanSesi')
+        ->and($page['props']['sesi']['id'])->toBe($data['sesi']->id)
+        ->and($page['props']['sesi']['ruang'])->toHaveCount(1)
+        ->and($page['props']['sesi']['ruang'][0]['pengawas'][0]['nama'])->toBe($data['pengawas']->name);
+
+    $this->get("/papan/{$slug}/sesi/999999")->assertNotFound();
+});

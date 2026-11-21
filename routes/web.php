@@ -176,6 +176,9 @@ Route::post('/lab/{slug}/{nomor}', [KiosLabController::class, 'masuk'])
 | slug, di controller.
 */
 Route::get('/papan/{slug}', [PapanPublikController::class, 'tampilkan'])->name('papan.publik');
+Route::get('/papan/{slug}/sesi/{sesi}', [PapanPublikController::class, 'sesi'])
+    ->whereNumber('sesi')
+    ->name('papan.sesi');
 Route::get('/papan/{slug}/pengawas/{supervisor}', [PapanPublikController::class, 'pengawas'])
     ->whereNumber('supervisor')
     ->name('papan.pengawas');

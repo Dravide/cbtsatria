@@ -53,6 +53,32 @@ class PapanPublikController
         ]);
     }
 
+    public function sesi(string $slug, int $sesi): Response
+    {
+        $sekolah = $this->sekolah($slug);
+
+        $isi = $this->papan->susun($sekolah);
+        $sesiItem = collect($isi['sesi'])->firstWhere('id', $sesi);
+
+        if ($sesiItem === null) {
+            abort(404);
+        }
+
+        $tanpaPengawas = collect($sesiItem['ruang'])
+            ->filter(fn (array $r) => $r['pengawas'] === [])
+            ->map(fn (array $r) => $r['kode'] ?? 'R-?')
+            ->values()
+            ->all();
+
+        return Inertia::render('Publik/PapanSesi', [
+            'sekolah' => $sekolah->name,
+            'slug' => $slug,
+            'sesi' => $sesiItem,
+            'tanpa_pengawas' => $tanpaPengawas,
+            'diperbarui' => $isi['diperbarui'],
+        ]);
+    }
+
     public function pengawas(string $slug, int $supervisor): Response
     {
         $sekolah = $this->sekolah($slug);
