@@ -7,6 +7,7 @@ use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Tenancy\Models\School;
+use App\Domain\Tenancy\Support\IdentitasAplikasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Inertia\Middleware;
@@ -120,6 +121,15 @@ class HandleInertiaRequests extends Middleware
             // kosong. Kelompok yang tampil tanpa isi adalah kelompok yang
             // membuat Admin mengira ada yang rusak.
             'eventAktif' => fn () => $this->eventAktif($request),
+
+            'identitas' => function (): array {
+                $nilai = IdentitasAplikasi::nilai();
+
+                return [
+                    'nama' => $nilai['nama'],
+                    'logo' => $nilai['logo'],
+                ];
+            },
         ];
     }
 

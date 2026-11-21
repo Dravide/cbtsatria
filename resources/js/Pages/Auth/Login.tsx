@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import Ikon from '@/Components/Ikon';
 import { kelasInput } from '@/Components/ui';
@@ -34,6 +34,9 @@ import { MEREK } from '@/merek';
  * tidak lagi wajib.
  */
 export default function Login({ errors }: { errors: Record<string, string> }) {
+    const { identitas } = usePage().props as unknown as {
+        identitas?: { nama: string; logo: string | null };
+    };
     const { data, setData, post, processing } = useForm({
         username: '',
         password: '',
@@ -57,9 +60,22 @@ export default function Login({ errors }: { errors: Record<string, string> }) {
                         kepala kartu, bukan panel yang mendorong form ke bawah
                         lipatan. */}
                     <aside className="border-b border-line bg-wf-soft px-6 py-7 md:border-r md:border-b-0 md:px-7 md:py-9">
-                        <p className="font-display text-xl font-semibold tracking-tight text-accent">
-                            {MEREK}
-                        </p>
+                        {identitas?.logo ? (
+                            <div className="flex items-center gap-2">
+                                <img
+                                    src={identitas.logo}
+                                    alt={identitas.nama || MEREK}
+                                    className="h-6 w-auto max-w-[160px] object-contain"
+                                />
+                                <span className="shrink-0 rounded border border-accent/30 bg-accent-soft px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-accent uppercase">
+                                    BETA
+                                </span>
+                            </div>
+                        ) : (
+                            <p className="font-display text-xl font-semibold tracking-tight text-accent">
+                                {identitas?.nama || MEREK}
+                            </p>
+                        )}
                         <p className="mt-2 text-sm leading-relaxed text-ink-2">
                             Satu platform, banyak sekolah.
                         </p>

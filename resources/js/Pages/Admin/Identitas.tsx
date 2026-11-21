@@ -40,6 +40,7 @@ type Props = {
         ikon_url: string | null;
         ikon_sizes: string | null;
         apple_url: string;
+        logo_url?: string | null;
     };
     bawaan: {
         ikon_url: string;
@@ -67,6 +68,13 @@ const IKON = [
         label: 'Ikon iOS',
         petunjuk: 'PNG 180x180 piksel. iOS tidak membaca ikon manifest.',
         accept: 'image/png,.png',
+    },
+    {
+        jenis: 'logo',
+        label: 'Logo khusus (Sidebar & Login)',
+        petunjuk:
+            'PNG, SVG, WebP, atau JPG (bebas rasio, disarankan wordmark horizontal), maksimal 1 MB. Menggantikan teks merek di atas sidebar /admin, /guru, dan halaman /login.',
+        accept: 'image/png,image/svg+xml,image/webp,image/jpeg,.png,.svg,.webp,.jpg,.jpeg',
     },
 ] as const;
 
@@ -110,6 +118,9 @@ export default function Identitas({ identitas, bawaan }: Props) {
         }
         if (jenis === 'ikon') {
             return identitas.ikon_url;
+        }
+        if (jenis === 'logo') {
+            return identitas.logo_url ?? null;
         }
 
         return identitas.apple_url === bawaan.apple_url ? null : identitas.apple_url;
@@ -247,6 +258,7 @@ export default function Identitas({ identitas, bawaan }: Props) {
  * yang berwarna putih akan tampak "tidak terunggah" di atas permukaan putih.
  */
 function BarisIkon({
+    jenis,
     label,
     petunjuk,
     accept,
@@ -268,7 +280,12 @@ function BarisIkon({
 
     return (
         <div className="flex flex-wrap items-center gap-3 border-b border-line/60 pb-4 last:border-0 last:pb-0">
-            <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-wf border border-line bg-surface-2">
+            <div
+                className={
+                    'grid shrink-0 place-items-center overflow-hidden rounded-wf border border-line bg-surface-2 ' +
+                    (jenis === 'logo' ? 'h-14 w-28' : 'size-14')
+                }
+            >
                 {url ? (
                     <img src={url} alt="" className="size-full object-contain p-1" />
                 ) : (

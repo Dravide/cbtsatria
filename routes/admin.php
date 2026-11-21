@@ -129,10 +129,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/sekolah/identitas', [IdentitasAplikasiController::class, 'edit'])->name('sekolah.identitas');
     Route::put('/sekolah/identitas', [IdentitasAplikasiController::class, 'update']);
     Route::post('/sekolah/identitas/ikon/{jenis}', [IdentitasAplikasiController::class, 'unggahIkon'])
-        ->whereIn('jenis', ['favicon', 'ikon', 'apple'])
+        ->whereIn('jenis', ['favicon', 'ikon', 'apple', 'logo'])
         ->name('sekolah.identitas.ikon');
     Route::delete('/sekolah/identitas/ikon/{jenis}', [IdentitasAplikasiController::class, 'hapusIkon'])
-        ->whereIn('jenis', ['favicon', 'ikon', 'apple'])
+        ->whereIn('jenis', ['favicon', 'ikon', 'apple', 'logo'])
         ->name('sekolah.identitas.ikon.hapus');
 
     // 05 - pengguna

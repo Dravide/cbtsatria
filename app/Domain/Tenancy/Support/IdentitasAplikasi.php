@@ -51,6 +51,7 @@ final class IdentitasAplikasi
         'favicon' => 'favicon_path',
         'ikon' => 'ikon_path',
         'apple' => 'apple_path',
+        'logo' => 'logo_path',
     ];
 
     /**
@@ -64,7 +65,8 @@ final class IdentitasAplikasi
      *     ikon: array<int, array{src: string, sizes: string, type: string}>,
      *     apple: string,
      *     favicon: string|null,
-     *     favicon_png: string|null
+     *     favicon_png: string|null,
+     *     logo: string|null
      * }
      */
     public static function nilai(?School $sekolah = null): array
@@ -91,6 +93,7 @@ final class IdentitasAplikasi
         }
 
         $favicon = $tersimpan['favicon_path'] ?? null;
+        $logoPath = $tersimpan['logo_path'] ?? null;
 
         return [
             'nama' => $nama,
@@ -110,6 +113,7 @@ final class IdentitasAplikasi
             // ukuran sendiri dari daftar `sizes`, dan satu favicon SVG/ICO
             // yang salah ukuran membuat tab menampilkan ikon buram.
             'favicon_png' => $tersimpan['favicon_png_path'] ?? null,
+            'logo' => is_string($logoPath) && $logoPath !== '' ? '/storage/'.$logoPath : null,
         ];
     }
 

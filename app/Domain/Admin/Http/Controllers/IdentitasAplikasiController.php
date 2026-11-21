@@ -57,6 +57,7 @@ class IdentitasAplikasiController
                 'ikon_url' => $nilai['ikon'][0]['src'] ?? null,
                 'ikon_sizes' => $nilai['ikon'][0]['sizes'] ?? null,
                 'apple_url' => $nilai['apple'],
+                'logo_url' => $nilai['logo'],
             ],
             // Ikon bawaan ikut dikirim supaya layar bisa MENYEBUT bahwa yang
             // sedang tampil adalah bawaan, bukan hasil unggahan - Admin yang
@@ -135,13 +136,16 @@ class IdentitasAplikasiController
             // Ikon manifest WAJIB persegi >= 192px - lihat alasannya di bawah.
             'ikon' => ['required', 'file', 'mimes:png', 'max:1024'],
             'apple' => ['required', 'file', 'mimes:png', 'max:1024'],
+            'logo' => ['required', 'file', 'mimes:png,svg,webp,jpg,jpeg', 'max:1024'],
         };
 
         $request->validate(['berkas' => $aturan], [
             'berkas.required' => 'Pilih berkasnya lebih dulu.',
-            'berkas.mimes' => $jenis === 'favicon'
-                ? 'Favicon harus PNG, SVG, atau ICO.'
-                : 'Ikon harus berupa PNG.',
+            'berkas.mimes' => match ($jenis) {
+                'favicon' => 'Favicon harus PNG, SVG, atau ICO.',
+                'logo' => 'Logo harus PNG, SVG, WebP, atau JPG.',
+                default => 'Ikon harus berupa PNG.',
+            },
             'berkas.max' => 'Berkas terlalu besar. Maksimum 1 MB.',
         ], ['berkas' => 'berkas']);
 
