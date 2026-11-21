@@ -653,7 +653,7 @@ function PanelAturan({ jalur, aturan }: { jalur: string; aturan: AturanPengawas 
                                 onChange={(e) =>
                                     setForm({ ...form, maks_per_event: Math.max(0, Number(e.target.value)) })
                                 }
-                                className={kelasInput()}
+                                className={kelasInput}
                             />
                         </label>
                         <label className="text-xs text-ink-2">
@@ -666,7 +666,7 @@ function PanelAturan({ jalur, aturan }: { jalur: string; aturan: AturanPengawas 
                                 onChange={(e) =>
                                     setForm({ ...form, maks_per_hari: Math.max(0, Number(e.target.value)) })
                                 }
-                                className={kelasInput()}
+                                className={kelasInput}
                             />
                         </label>
                         <label className="text-xs text-ink-2">
@@ -676,7 +676,7 @@ function PanelAturan({ jalur, aturan }: { jalur: string; aturan: AturanPengawas 
                                 onChange={(e) =>
                                     setForm({ ...form, target_per_ruang: Number(e.target.value) })
                                 }
-                                className={kelasInput()}
+                                className={kelasInput}
                             >
                                 <option value={1}>1 pengawas</option>
                                 <option value={2}>2 pengawas</option>
@@ -692,7 +692,7 @@ function PanelAturan({ jalur, aturan }: { jalur: string; aturan: AturanPengawas 
                                         prioritas: e.target.value === 'urutan' ? 'urutan' : 'merata',
                                     })
                                 }
-                                className={kelasInput()}
+                                className={kelasInput}
                             >
                                 <option value="merata">Merata (beban terkecil dulu)</option>
                                 <option value="urutan">Sesuai urutan daftar</option>
@@ -796,7 +796,7 @@ function MatriksKetersediaan({
                             value={cari}
                             onChange={(e) => setCari(e.target.value)}
                             placeholder="Nama atau username..."
-                            className={kelasInput('w-56')}
+                            className={kelasInput + ' w-56'}
                         />
                     </label>
 
@@ -807,7 +807,7 @@ function MatriksKetersediaan({
                                 <select
                                     value={orangId}
                                     onChange={(e) => setOrangId(Number(e.target.value))}
-                                    className={kelasInput('w-48')}
+                                    className={kelasInput + ' w-48'}
                                 >
                                     {matriks.map((m) => (
                                         <option key={m.id} value={m.id}>
@@ -821,7 +821,7 @@ function MatriksKetersediaan({
                                 <select
                                     value={tanggal}
                                     onChange={(e) => setTanggal(e.target.value)}
-                                    className={kelasInput('w-36')}
+                                    className={kelasInput + ' w-36'}
                                 >
                                     {tanggalUnik.map((t) => (
                                         <option key={t} value={t}>
@@ -837,7 +837,7 @@ function MatriksKetersediaan({
                                     value={alasan}
                                     onChange={(e) => setAlasan(e.target.value)}
                                     placeholder="Izin / rapat"
-                                    className={kelasInput('w-40')}
+                                    className={kelasInput + ' w-40'}
                                 />
                             </label>
                             <Tombol nada="sek" onClick={kosongkanHari}>
@@ -901,7 +901,7 @@ function MatriksKetersediaan({
                                                             [m.id]: e.target.value,
                                                         })
                                                     }
-                                                    className={kelasInput('w-20 py-1 text-xs')}
+                                                    className={kelasInput + ' w-20 py-1 text-xs'}
                                                 />
                                                 <button
                                                     type="button"
@@ -980,7 +980,7 @@ function RekapBeban({ matriks }: { matriks: MatriksBaris[] }) {
                     value={cari}
                     onChange={(e) => setCari(e.target.value)}
                     placeholder="Cari nama pengawas..."
-                    className={kelasInput('w-60')}
+                    className={kelasInput + ' w-60'}
                 />
                 <select
                     value={filterStatus}
@@ -991,7 +991,7 @@ function RekapBeban({ matriks }: { matriks: MatriksBaris[] }) {
                                 : 'semua',
                         )
                     }
-                    className={kelasInput('w-44')}
+                    className={kelasInput + ' w-44'}
                 >
                     <option value="semua">Semua status kuota</option>
                     <option value="aman">Aman</option>
