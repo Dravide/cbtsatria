@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Chip, Kotak, Tombol, kelasInput } from '@/Components/ui';
+import { Chip, Kotak, PilihCari, Tombol, kelasInput } from '@/Components/ui';
 
 /**
  * Pantau publik aktivitas ujian - `/pantau/{slug}`, tanpa login.
@@ -488,30 +488,25 @@ export default function Pantau({ slug, potret: awal, denyut_url, ruang_url_templ
                     </header>
 
                     {daftarSesi.length > 1 && (
-                        <div className="flex flex-wrap items-center gap-1.5 border-b border-line bg-surface-2/40 px-3 py-2">
-                            <span className="mr-1 text-[11px] text-ink-3">Sesi:</span>
-                            {daftarSesi.map((s) => {
-                                const aktif = s.id === sesi?.id;
-
-                                return (
-                                    <button
-                                        key={s.id}
-                                        type="button"
-                                        onClick={() => pilihSesi(s.id)}
-                                        className={
-                                            'rounded-wf border px-2.5 py-1 text-[11px] transition-colors ' +
-                                            (aktif
-                                                ? 'border-accent bg-accent-soft font-medium text-accent'
-                                                : 'border-line bg-surface text-ink-2 hover:bg-surface-2')
+                        <div className="border-b border-line bg-surface-2/40 px-3 py-2">
+                            <div className="max-w-md">
+                                <PilihCari
+                                    label="Sesi"
+                                    nilai={sesi?.id ?? sesiId}
+                                    pilihan={daftarSesi.map((s) => ({
+                                        id: s.id,
+                                        label: [s.mapel, s.label].filter(Boolean).join(' · '),
+                                        ket: [s.tanggal, s.jam].filter(Boolean).join(' · ') || null,
+                                    }))}
+                                    padaPilih={(id) => {
+                                        if (id !== null) {
+                                            pilihSesi(id);
                                         }
-                                    >
-                                        {[s.mapel, s.label].filter(Boolean).join(' · ')}
-                                        <span className="ml-1.5 font-mono text-[10px] opacity-75">
-                                            {s.jam}
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                                    }}
+                                    placeholder="Pilih sesi ujian…"
+                                    kosong="Sesi tidak ditemukan."
+                                />
+                            </div>
                         </div>
                     )}
 
@@ -531,8 +526,14 @@ export default function Pantau({ slug, potret: awal, denyut_url, ruang_url_templ
                                 {/* ---------- kepala sesi ---------- */}
                                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                                     <span className="font-display text-sm font-semibold text-ink">
-                                        {[sesi?.mapel, sesi?.ujian].filter(Boolean).join(' · ') ||
-                                            'Ujian'}
+                                        {(() => {
+                                            const mapel = sesi?.mapel?.trim() ?? '';
+                                            const ujian = sesi?.ujian?.trim() ?? '';
+                                            if (ujian && mapel && ujian.toLowerCase().includes(mapel.toLowerCase())) {
+                                                return ujian;
+                                            }
+                                            return [mapel, ujian].filter(Boolean).join(' · ') || 'Ujian';
+                                        })()}
                                     </span>
                                     <span className="font-mono text-[11px] text-ink-2">
                                         {sesi?.label} · {sesi?.tanggal} · {sesi?.jam}
