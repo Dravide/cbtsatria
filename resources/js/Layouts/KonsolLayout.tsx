@@ -71,6 +71,7 @@ type Props = {
     /** Kotak penanda di kiri atas - "S" untuk Admin, "G" untuk Guru. */
     marka: { inisial: string; nada: 'admin' | 'guru' };
     kelompok: KelompokNav[];
+    kelasPembungkus?: string;
     children: ReactNode;
 };
 
@@ -91,6 +92,7 @@ export default function KonsolLayout({
     aksi,
     marka,
     kelompok,
+    kelasPembungkus,
     children,
 }: Props) {
     const { auth, tahunAktif, eventAktif } = usePage().props as unknown as {
@@ -112,7 +114,7 @@ export default function KonsolLayout({
         jalur === item.href || (item.awalan === true && jalur.startsWith(item.href + '/'));
 
     return (
-        <div className="flex min-h-screen bg-paper">
+        <div className={`flex min-h-screen bg-paper${kelasPembungkus ? ` ${kelasPembungkus}` : ''}`}>
             {/* Rails ikon + label. Di layar sempit ia menyusut jadi bar atas
                 mendatar supaya isi laman tetap punya lebar penuh. */}
             <aside className="sticky top-0 flex h-auto w-full shrink-0 flex-col border-b border-line bg-surface md:h-screen md:w-60 md:border-r md:border-b-0">
