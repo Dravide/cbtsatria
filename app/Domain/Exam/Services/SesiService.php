@@ -163,6 +163,8 @@ class SesiService
 
         $sesi->forceFill(['status' => StatusSesi::Siap])->save();
 
+        $this->terbitkanTokenOtomatis($sesi);
+
         return $sesi->refresh();
     }
 
@@ -200,8 +202,29 @@ class SesiService
 
             $sesi->forceFill(['status' => StatusSesi::Berjalan])->save();
 
+            $this->terbitkanTokenOtomatis($sesi);
+
             return $sesi->refresh();
         });
+    }
+
+    /**
+     * Terbitkan token otomatis bila sesi belum punya token aktif serta sudah
+     * memiliki ruang dan seluruh ruangnya sudah punya pengawas.
+     */
+    private function terbitkanTokenOtomatis(ExamSession $sesi): void
+    {
+        if ($sesi->tokenAktif() !== null) {
+            return;
+        }
+
+        if ($sesi->rooms()->doesntExist() || $this->ruangTanpaPengawas($sesi) !== []) {
+            return;
+        }
+
+        $oleh = auth()->id();
+
+        app(TokenSesi::class)->terbitkan($sesi, $oleh !== null ? (int) $oleh : null);
     }
 
     /**
