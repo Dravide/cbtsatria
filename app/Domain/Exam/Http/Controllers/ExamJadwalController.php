@@ -72,6 +72,63 @@ class ExamJadwalController
     {
         Gate::authorize('view', $event);
 
+        return Inertia::render('Admin/Event/Jadwal', $this->muatanJadwal($event, $konflik, $penempatan, $susulan));
+    }
+
+    /**
+     * Laman pengelolaan sesi untuk SATU ujian.
+     */
+    public function sesi(
+        SchoolEvent $event,
+        Exam $ujian,
+        KonflikJadwal $konflik,
+        PenempatanService $penempatan,
+        ExamSusulanService $susulan,
+    ): Response {
+        Gate::authorize('view', $event);
+
+        if ((int) $ujian->event_id !== (int) $event->id) {
+            abort(404);
+        }
+
+        $muatan = $this->muatanJadwal($event, $konflik, $penempatan, $susulan);
+
+        $ujianAktif = collect($muatan['ujian'])->firstWhere('id', $ujian->id);
+
+        if ($ujianAktif === null) {
+            abort(404);
+        }
+
+        $barisUjian = collect($muatan['baris'])
+            ->where('ujian_id', $ujian->id)
+            ->values()
+            ->all();
+
+        $sesiIds = collect($barisUjian)->pluck('id')->all();
+
+        $temuanUjian = collect($muatan['temuan'])
+            ->filter(fn (array $t) => $t['sesi_id'] === null || in_array($t['sesi_id'], $sesiIds, true))
+            ->values()
+            ->all();
+
+        return Inertia::render('Admin/Event/Sesi', [
+            ...$muatan,
+            'ujian_aktif' => $ujianAktif,
+            'baris' => $barisUjian,
+            'temuan' => $temuanUjian,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function muatanJadwal(
+        SchoolEvent $event,
+        KonflikJadwal $konflik,
+        PenempatanService $penempatan,
+        ExamSusulanService $susulan,
+    ): array {
+
         $ujian = $event->exams()
             ->with('subject:id,code,name')
             ->withCount('sessions')
@@ -133,7 +190,7 @@ class ExamJadwalController
             ->groupBy('exam_session_id')
             ->pluck('jumlah', 'exam_session_id');
 
-        return Inertia::render('Admin/Event/Jadwal', [
+        return [
             'event' => $this->ringkas($event),
 
             'baris' => $sesi->map(fn (ExamSession $s) => [
@@ -319,7 +376,7 @@ class ExamJadwalController
                 'konflik' => count($semuaTemuan),
                 'belum_ditempatkan' => $penempatan->belumDitempatkan($event),
             ],
-        ]);
+        ];
     }
 
     /* -------------------------------------------------------- Ujian (§9.2) */
