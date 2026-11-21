@@ -118,6 +118,26 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
     const [tambah, setTambah] = useState(false);
     const [ubah, setUbah] = useState<Baris | null>(null);
     const [tersalin, setTersalin] = useState<string | null>(null);
+    const [pilih, setPilih] = useState<number[]>([]);
+
+    const cetakKartu = (id?: number[]) => {
+        const parameter = new URLSearchParams();
+
+        if (id && id.length > 0) {
+            id.forEach((satu) => parameter.append('kelas[]', String(satu)));
+        } else {
+            parameter.set('semua', '1');
+
+            if (tahunDipilih?.id) {
+                parameter.set('ta', String(tahunDipilih.id));
+            }
+            if (filter.cari) {
+                parameter.set('cari', filter.cari);
+            }
+        }
+
+        window.open(`/admin/kelas/kartu?${parameter.toString()}`, '_blank', 'noopener');
+    };
 
     /**
      * Salin satu nilai ke papan klip.
@@ -294,6 +314,15 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                         Impor
                     </Tombol>
 
+                    {dataBaris.length > 0 && (
+                        <Tombol
+                            onClick={() => cetakKartu()}
+                            title="Unduh kartu pantau wali seluruh kelas pada penyaring ini (satu PDF per kelas, dibungkus ZIP)"
+                        >
+                            Kartu wali
+                        </Tombol>
+                    )}
+
                     {/* Nyalakan massal - hanya dirender bila memang ADA
                         yang belum tayang. Tombol yang ditekan lalu berkata
                         "semua sudah tayang" adalah tombol yang mengajarkan
@@ -332,6 +361,18 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                         Terapkan
                     </Tombol>
                     <Tombol onClick={f.reset}>Reset</Tombol>
+
+                    {pilih.length > 0 && (
+                        <span className="ml-auto flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-ink-3">{pilih.length} terpilih</span>
+                            <Tombol
+                                onClick={() => cetakKartu(pilih)}
+                                title="Unduh kartu pantau wali untuk kelas yang dicentang"
+                            >
+                                Kartu terpilih
+                            </Tombol>
+                        </span>
+                    )}
                 </BilahFilter>
             </div>
 
@@ -350,6 +391,25 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                 kunci={(b) => b.id}
                 kosong="Belum ada kelas di tahun ajaran ini."
                 kolom={[
+                    {
+                        judul: '',
+                        kelas: 'w-10',
+                        render: (b) => (
+                            <input
+                                type="checkbox"
+                                checked={pilih.includes(b.id)}
+                                onChange={(e) =>
+                                    setPilih((p) =>
+                                        e.target.checked
+                                            ? [...p, b.id]
+                                            : p.filter((x) => x !== b.id),
+                                    )
+                                }
+                                className="size-4 accent-accent"
+                                aria-label={`Pilih ${b.nama}`}
+                            />
+                        ),
+                    },
                     {
                         judul: 'Kelas',
                         render: (b) => (
@@ -461,9 +521,17 @@ export default function Kelas({ tahunDipilih, daftarTahun, baris, wali, filter }
                     },
                     {
                         judul: '',
-                        kelas: 'w-40 text-right',
+                        kelas: 'w-52 text-right',
                         render: (b) => (
                             <span className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => cetakKartu([b.id])}
+                                    className="text-xs text-accent hover:underline"
+                                    title={`Unduh PDF kartu pantau wali ${b.nama}`}
+                                >
+                                    Kartu
+                                </button>
                                 <Link
                                     href={`/admin/kelas/${b.id}/anggota`}
                                     className="text-xs text-accent hover:underline"

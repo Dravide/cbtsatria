@@ -5,6 +5,7 @@ use App\Domain\Admin\Http\Controllers\ActivityLogController;
 use App\Domain\Admin\Http\Controllers\DashboardController;
 use App\Domain\Admin\Http\Controllers\IdentitasAplikasiController;
 use App\Domain\Admin\Http\Controllers\KartuAkunController;
+use App\Domain\Admin\Http\Controllers\KartuKelasController;
 use App\Domain\Admin\Http\Controllers\MasterImportController;
 use App\Domain\Admin\Http\Controllers\PengaturanAiController;
 use App\Domain\Admin\Http\Controllers\PengaturanPapanController;
@@ -212,6 +213,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // bagian dari path: berganti TA berarti berganti daftar, dan URL
     // yang berubah adalah cara paling jujur menyatakannya.
     Route::get('/kelas', [SchoolClassController::class, 'index'])->name('kelas');
+    Route::get('/kelas/kartu', [KartuKelasController::class, 'unduh'])->name('kelas.kartu');
     Route::post('/kelas', [SchoolClassController::class, 'store']);
     Route::put('/kelas/{kelas}', [SchoolClassController::class, 'update']);
     Route::get('/kelas/{kelas}/anggota', [SchoolClassController::class, 'anggota'])->name('kelas.anggota');
