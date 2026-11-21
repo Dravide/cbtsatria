@@ -103,16 +103,33 @@ class ExamPengawasController
                 && $idUjianBerpeserta->contains($r->session->exam_id),
         );
 
+        $kelasPerRuangSesi = $ruangan->isEmpty()
+            ? collect()
+            : ExamParticipant::query()
+                ->join('event_participants', 'event_participants.id', '=', 'exam_participants.event_participant_id')
+                ->join('classes', 'classes.id', '=', 'event_participants.class_id')
+                ->whereIn('exam_participants.exam_session_room_id', $ruangan->pluck('id'))
+                ->where('exam_participants.status', ExamParticipant::STATUS_TERDAFTAR)
+                ->select('exam_participants.exam_session_room_id', 'classes.name as kelas_nama')
+                ->distinct()
+                ->orderBy('classes.name')
+                ->get()
+                ->groupBy('exam_session_room_id')
+                ->map(fn ($items) => $items->pluck('kelas_nama')->values()->all());
+
         $baris = $ruangan->map(fn (ExamSessionRoom $r) => [
             'id' => $r->id,
             'ruang' => $r->eventRoom?->room?->code,
             'ruang_nama' => $r->eventRoom?->room?->name,
             'kapasitas' => $r->kapasitasEfektif(),
+            'kelas' => $kelasPerRuangSesi->get($r->id, []),
             'sesi' => $r->session?->label(),
             'sesi_id' => $r->session?->id,
             'ujian' => $r->session?->exam?->subject?->name ?? $r->session?->exam?->title,
             'jam' => $r->session?->access_opens_at?->format('H:i'),
+            'selesai' => $r->session?->hard_end_at?->format('H:i'),
             'tanggal' => $r->session?->access_opens_at?->format('d M'),
+            'hari_tanggal' => $r->session?->access_opens_at?->locale('id')->translatedFormat('l, d M Y'),
 
             // Pengawas dikirim sebagai daftar, bukan dua kolom tetap: PRD §9.6
             // mengizinkan lebih dari dua pengawas per ruang, dan kolom tetap
@@ -153,7 +170,7 @@ class ExamPengawasController
             // penyajiannya. Penugasan tetap menempel pada ruang-sesi
             // (`exam_session_room_id`), karena pengawas sesi pagi belum tentu
             // pengawas sesi siang.
-            'per_sesi' => $this->kelompokkanPerSesi($sesi, $ruangan),
+            'per_sesi' => $this->kelompokkanPerSesi($sesi, $ruangan, $kelasPerRuangSesi),
 
             'angka' => [
                 'ruang' => $ruangan->count(),
@@ -517,10 +534,12 @@ class ExamPengawasController
      * @param  Collection<int, ExamSessionRoom>  $ruangan  Sudah disaring.
      * @return array<int, array<string, mixed>>
      */
-    private function kelompokkanPerSesi($sesi, $ruangan): array
+    private function kelompokkanPerSesi($sesi, $ruangan, $kelasPerRuangSesi = null): array
     {
+        $kelasPerRuangSesi ??= collect();
+
         return $sesi
-            ->map(function (ExamSession $s) use ($ruangan) {
+            ->map(function (ExamSession $s) use ($ruangan, $kelasPerRuangSesi) {
                 $ruangSesi = $ruangan
                     ->where('exam_session_id', $s->id)
                     ->values();
@@ -537,6 +556,7 @@ class ExamPengawasController
                     'ruang' => $r->eventRoom?->room?->code,
                     'ruang_nama' => $r->eventRoom?->room?->name,
                     'kapasitas' => $r->kapasitasEfektif(),
+                    'kelas' => $kelasPerRuangSesi->get($r->id, []),
                     'peserta' => (int) $r->terisi,
                     'pengawas' => $r->supervisors
                         ->map(fn (SupervisionAssignment $t) => [
@@ -564,6 +584,7 @@ class ExamPengawasController
                     'label' => $s->label(),
                     'ujian' => $s->exam?->subject?->name ?? $s->exam?->title,
                     'tanggal' => $s->access_opens_at?->format('d M'),
+                    'hari_tanggal' => $s->access_opens_at?->locale('id')->translatedFormat('l, d M Y'),
                     'jam' => $s->access_opens_at?->format('H:i'),
                     'selesai' => $s->hard_end_at?->format('H:i'),
                     'status' => $s->status->value,

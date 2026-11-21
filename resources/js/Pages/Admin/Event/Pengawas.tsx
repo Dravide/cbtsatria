@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Chip, Inbox, Kotak, Peringatan, Tombol } from '@/Components/ui';
+import { Chip, Inbox, Kotak, Peringatan, Tombol, kelasInput } from '@/Components/ui';
 
 /**
  * Pengawas & penempatan ruang - wireframe plate 17, PRD §9.6.
@@ -44,11 +45,14 @@ type Baris = {
     ruang: string | null;
     ruang_nama: string | null;
     kapasitas: number;
+    kelas?: string[];
     sesi: string | null;
     sesi_id: number | null;
     ujian: string | null;
     jam: string | null;
+    selesai?: string | null;
     tanggal: string | null;
+    hari_tanggal?: string | null;
     pengawas: PengawasBaris[];
     peserta: number;
 };
@@ -58,6 +62,7 @@ type SesiKelompok = {
     label: string;
     ujian: string | null;
     tanggal: string | null;
+    hari_tanggal?: string | null;
     jam: string | null;
     selesai: string | null;
     status: string;
@@ -69,6 +74,7 @@ type SesiKelompok = {
         ruang: string | null;
         ruang_nama: string | null;
         kapasitas: number;
+        kelas?: string[];
         peserta: number;
         pengawas: PengawasBaris[];
     }[];
@@ -195,6 +201,14 @@ export default function EventPengawas({
                 </div>
             )}
 
+            {baris.length > 0 && (
+                <JadwalPengawasan
+                    baris={baris}
+                    per_sesi={per_sesi}
+                    jalur_sesi={jalur_sesi}
+                />
+            )}
+
             {/* Saran, BUKAN temuan. Ruang yang berisi satu pengawas sudah
                 memenuhi syarat PRD §9.6 dan sesinya tetap bisa dibuka - yang
                 menghalangi hanya ruang tanpa pengawas sama sekali. */}
@@ -289,6 +303,171 @@ function TombolTautanKeLamanSesi({
         >
             Atur pengawas {per_sesi[0].label}
         </Link>
+    );
+}
+
+function JadwalPengawasan({
+    baris,
+    per_sesi,
+    jalur_sesi,
+}: {
+    baris: Baris[];
+    per_sesi: SesiKelompok[];
+    jalur_sesi: string;
+}) {
+    const [sesiDipilih, setSesiDipilih] = useState<number>(0);
+    const [cari, setCari] = useState('');
+
+    const tersaring = baris.filter((b) => {
+        if (sesiDipilih !== 0 && b.sesi_id !== sesiDipilih) {
+            return false;
+        }
+
+        if (cari.trim() !== '') {
+            const q = cari.trim().toLowerCase();
+            const teks = [
+                b.hari_tanggal ?? b.tanggal ?? '',
+                b.sesi ?? '',
+                b.ujian ?? '',
+                b.ruang ?? '',
+                b.ruang_nama ?? '',
+                ...(b.kelas ?? []),
+                ...b.pengawas.map((p) => p.nama ?? ''),
+            ]
+                .join(' ')
+                .toLowerCase();
+
+            if (!teks.includes(q)) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    return (
+        <section className="mt-4 overflow-hidden rounded-wf border border-line bg-surface">
+            <header className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-2/40 px-4 py-2.5">
+                <h2 className="font-display text-sm font-semibold text-ink">
+                    Jadwal pengawasan ({tersaring.length})
+                </h2>
+
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                    <input
+                        value={cari}
+                        onChange={(e) => setCari(e.target.value)}
+                        placeholder="Cari ruang, kelas, atau pengawas..."
+                        className={kelasInput + ' w-56'}
+                    />
+
+                    <select
+                        value={sesiDipilih}
+                        onChange={(e) => setSesiDipilih(Number(e.target.value))}
+                        className={kelasInput + ' w-auto'}
+                        aria-label="Filter sesi jadwal pengawasan"
+                    >
+                        <option value={0}>Semua sesi</option>
+                        {per_sesi.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.label} · {s.ujian ?? '—'}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </header>
+
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[48rem] text-sm">
+                    <thead>
+                        <tr className="border-b border-line bg-surface-2/50 text-left text-[11px] font-medium text-ink-3">
+                            <th className="px-3 py-2">Hari &amp; Tanggal</th>
+                            <th className="px-3 py-2">Sesi &amp; Ujian</th>
+                            <th className="px-3 py-2">Ruang &amp; Kelas</th>
+                            <th className="px-3 py-2">Pengawas</th>
+                            <th className="w-20 px-3 py-2 text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                        {tersaring.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} className="px-4 py-6 text-center text-xs text-ink-3">
+                                    Tidak ada jadwal pengawasan yang cocok.
+                                </td>
+                            </tr>
+                        ) : (
+                            tersaring.map((b) => (
+                                <tr key={b.id} className="align-top hover:bg-surface-2/30">
+                                    <td className="px-3 py-2.5">
+                                        <div className="text-xs font-medium text-ink">
+                                            {b.hari_tanggal ?? b.tanggal ?? '—'}
+                                        </div>
+                                        <div className="mt-0.5 font-mono text-[11px] text-ink-3">
+                                            {b.jam ?? '—'}
+                                            {b.selesai ? `–${b.selesai}` : ''}
+                                        </div>
+                                    </td>
+
+                                    <td className="px-3 py-2.5">
+                                        <div className="font-mono text-xs font-medium text-ink">
+                                            {b.sesi ?? '—'}
+                                        </div>
+                                        <div className="mt-0.5 text-xs text-ink-2">
+                                            {b.ujian ?? '—'}
+                                        </div>
+                                    </td>
+
+                                    <td className="px-3 py-2.5">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="font-mono text-xs font-medium text-ink">
+                                                {b.ruang ?? '—'}
+                                            </span>
+                                            {b.ruang_nama && (
+                                                <span className="text-xs text-ink-3">
+                                                    · {b.ruang_nama}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="mt-0.5 text-[11px] text-ink-2">
+                                            {b.kelas && b.kelas.length > 0
+                                                ? `Kelas ${b.kelas.join(', ')}`
+                                                : `${b.peserta} peserta`}
+                                        </div>
+                                    </td>
+
+                                    <td className="px-3 py-2.5">
+                                        {b.pengawas.length === 0 ? (
+                                            <Chip nada="bad">Belum ada pengawas</Chip>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {b.pengawas.map((p) => (
+                                                    <span
+                                                        key={p.id}
+                                                        className="inline-flex items-center rounded-wf border border-line bg-wf-soft px-2 py-0.5 text-xs text-ink"
+                                                    >
+                                                        {p.nama ?? '—'}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+
+                                    <td className="px-3 py-2.5 text-right">
+                                        {b.sesi_id !== null && (
+                                            <Link
+                                                href={`${jalur_sesi}/${b.sesi_id}`}
+                                                className="text-xs font-medium text-accent hover:underline"
+                                            >
+                                                Atur →
+                                            </Link>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     );
 }
 
