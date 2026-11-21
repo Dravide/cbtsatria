@@ -44,7 +44,7 @@ export default function Wali({ sekolah, slug, kelas }: Props) {
         <>
             <Head title={`Pantau kelas · ${sekolah}`} />
 
-            <div className="min-h-screen bg-paper">
+            <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col sm:border-x sm:border-line">
                     <header className="border-b border-line bg-surface px-4 py-3">
                         <h1 className="text-sm font-semibold text-ink">{sekolah}</h1>

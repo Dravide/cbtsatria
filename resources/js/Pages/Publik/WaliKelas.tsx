@@ -140,7 +140,7 @@ export default function WaliKelas({
         <>
             <Head title={`${kelas.nama} · ${sekolah}`} />
 
-            <div className="min-h-screen bg-paper">
+            <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col sm:border-x sm:border-line">
                     <header className="flex items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
                         <Link

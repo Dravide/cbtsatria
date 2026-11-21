@@ -61,7 +61,7 @@ export default function PapanSesi({ sekolah, slug, sesi, tanpa_pengawas, diperba
         <>
             <Head title={`${judulUjian} · ${sesi.label} · ${sekolah}`} />
 
-            <div className="min-h-screen bg-paper">
+            <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[34rem] flex-col sm:border-x sm:border-line">
                     <header className="flex items-baseline gap-2 border-b border-line bg-surface px-3 py-2.5">
                         <Link

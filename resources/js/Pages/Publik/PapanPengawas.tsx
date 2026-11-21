@@ -44,7 +44,7 @@ export default function PapanPengawas({ sekolah, slug, nama, ruang, diperbarui }
         <>
             <Head title={`${nama ?? 'Pengawas'} · ${sekolah}`} />
 
-            <div className="min-h-screen bg-paper">
+            <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[34rem] flex-col sm:border-x sm:border-line">
                     <header className="flex items-baseline gap-2 border-b border-line bg-surface px-3 py-2.5">
                         <Link href={`/papan/${slug}`} className="shrink-0 text-[11px] text-ink-3 hover:text-ink">

@@ -205,7 +205,8 @@
  */
 .konsol-admin,
 .konsol-guru,
-.laman-login {
+.laman-login,
+.laman-publik {
     --font-display: 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif;
     --font-sans: 'Bricolage Grotesque', 'Noto Naskh Arabic', 'Noto Sans Sundanese', system-ui, -apple-system, 'Segoe UI', sans-serif;
     font-family: var(--font-sans);

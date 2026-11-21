@@ -427,7 +427,7 @@ export default function Pantau({ slug, potret: awal, denyut_url, ruang_url_templ
         <>
             <Head title={`Pantau ujian · ${potret?.sekolah ?? slug}`} />
 
-            <div className="min-h-screen bg-paper">
+            <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[64rem] flex-col sm:border-x sm:border-line">
                     <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line bg-surface px-3 py-2.5">
                         {kembali_url && (
