@@ -582,6 +582,30 @@ export function DaftarCentangCari<T extends string | number = number>({
     const semuaTersaringDipilih =
         tersaring.length > 0 && tersaring.every((p) => nilai.includes(p.id));
 
+    const daftarTingkat = [
+        ...new Set(
+            pilihan
+                .map((p) => p.tingkat?.trim())
+                .filter((t): t is string => Boolean(t)),
+        ),
+    ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const semuaDipilih =
+        pilihan.length > 0 && pilihan.every((p) => nilai.includes(p.id));
+
+    const pilihHanyaTingkat = (tingkat: string) => {
+        const idsTingkat = pilihan
+            .filter((p) => p.tingkat?.trim() === tingkat)
+            .map((p) => p.id);
+
+        const hanyaTingkatIni =
+            idsTingkat.length > 0 &&
+            nilai.length === idsTingkat.length &&
+            idsTingkat.every((id) => nilai.includes(id));
+
+        padaUbah(hanyaTingkatIni ? [] : idsTingkat);
+    };
+
     return (
         <div>
             <p className="mb-1.5 text-xs font-medium text-ink-2">{label}</p>
@@ -616,6 +640,61 @@ export function DaftarCentangCari<T extends string | number = number>({
                         </button>
                     )}
                 </div>
+
+                {(pilihan.length > 0 || daftarTingkat.length > 0) && (
+                    <div className="flex flex-wrap items-center gap-1.5 border-b border-line bg-wf-soft/60 px-2 py-1.5">
+                        <button
+                            type="button"
+                            onClick={() =>
+                                padaUbah(semuaDipilih ? [] : pilihan.map((p) => p.id))
+                            }
+                            className={
+                                'rounded-wf border px-2 py-0.5 text-[11px] font-medium transition-colors ' +
+                                (semuaDipilih
+                                    ? 'border-accent bg-accent-soft text-accent'
+                                    : 'border-line bg-surface text-ink-2 hover:bg-surface-2')
+                            }
+                        >
+                            Semua kelas
+                        </button>
+
+                        {daftarTingkat.map((tingkat) => {
+                            const idsTingkat = pilihan
+                                .filter((p) => p.tingkat?.trim() === tingkat)
+                                .map((p) => p.id);
+                            const aktif =
+                                idsTingkat.length > 0 &&
+                                nilai.length === idsTingkat.length &&
+                                idsTingkat.every((id) => nilai.includes(id));
+
+                            return (
+                                <button
+                                    key={tingkat}
+                                    type="button"
+                                    onClick={() => pilihHanyaTingkat(tingkat)}
+                                    className={
+                                        'rounded-wf border px-2 py-0.5 text-[11px] font-medium transition-colors ' +
+                                        (aktif
+                                            ? 'border-accent bg-accent-soft text-accent'
+                                            : 'border-line bg-surface text-ink-2 hover:bg-surface-2')
+                                    }
+                                >
+                                    Tingkat {tingkat}
+                                </button>
+                            );
+                        })}
+
+                        {nilai.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => padaUbah([])}
+                                className="ml-auto text-[11px] text-ink-3 hover:text-ink hover:underline"
+                            >
+                                Kosongkan
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 <div className="max-h-44 overflow-y-auto p-1">
                     {tersaring.length === 0 ? (
