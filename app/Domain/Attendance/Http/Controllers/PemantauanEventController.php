@@ -1366,7 +1366,7 @@ class PemantauanEventController
     private function beritaAcara(Collection $ruangan): Collection
     {
         if ($ruangan->isEmpty()) {
-            return collect();
+            return new Collection();
         }
 
         return SessionReport::query()
