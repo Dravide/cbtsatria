@@ -44,6 +44,7 @@ final class PengaturanBawaan
 {
     /** @var array<string, mixed> */
     public const NILAI = [
+        'wajib_token_ujian' => true,
         'durasi_token_menit' => 15,
 
         // Satu angka, dipakai untuk KETIGA ambang di plate 11 saat event

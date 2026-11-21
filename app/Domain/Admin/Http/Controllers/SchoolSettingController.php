@@ -78,6 +78,7 @@ class SchoolSettingController
         Gate::authorize('kelolaPengaturan', $sekolah);
 
         $data = $request->validate([
+            'wajib_token_ujian' => ['required', 'boolean'],
             'durasi_token_menit' => ['required', 'integer', 'min:1', 'max:240'],
             'ambang_pelanggaran' => ['required', 'integer', 'min:1', 'max:50'],
             'simpan_otomatis_detik' => ['required', 'integer', 'min:5', 'max:300'],

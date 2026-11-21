@@ -5,6 +5,8 @@ namespace App\Domain\Attendance\Http\Controllers\Siswa;
 use App\Domain\Attendance\Services\KelayakanUjian;
 use App\Domain\Attendance\Services\MesinUjian;
 use App\Domain\Exam\Models\ExamParticipant;
+use App\Domain\Tenancy\Models\School;
+use App\Domain\Tenancy\Support\PengaturanBawaan;
 use App\Support\PembatasLaju;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,6 +87,8 @@ class GerbangSiswaController extends SiswaDasar
         // `resources/js/Pages/Siswa/Gerbang.tsx`.
         $sesi = $peserta->session;
         $berToken = $sesi !== null && $sesi->tokenAktif() !== null;
+        $sekolah = School::query()->find($peserta->school_id);
+        $wajibToken = (bool) (PengaturanBawaan::gabung($sekolah?->settings)['wajib_token_ujian'] ?? true);
 
         return Inertia::render('Siswa/Gerbang', [
             'peserta' => $this->ringkasPeserta($peserta),
@@ -96,6 +100,7 @@ class GerbangSiswaController extends SiswaDasar
             ],
 
             'ber_token' => $berToken,
+            'wajib_token' => $wajibToken,
 
             // Siswa yang mencoba lagi setelah keluar karena sinyal putus
             // harus tahu bahwa jawabannya masih ada - jadi tombolnya berbunyi

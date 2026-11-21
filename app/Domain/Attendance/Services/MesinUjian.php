@@ -9,6 +9,8 @@ use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamQuestion;
 use App\Domain\Exam\Models\ExamSession;
 use App\Domain\Exam\Services\TokenSesi;
+use App\Domain\Tenancy\Models\School;
+use App\Domain\Tenancy\Support\PengaturanBawaan;
 use DomainException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -94,8 +96,10 @@ class MesinUjian
         // Syarat 9 - token. Diperiksa di sini, bukan di gerbang: token adalah
         // kredensial yang diketik SAAT memulai, dan laman gerbang yang
         // menolak karena token salah sebelum siswa sempat mengetiknya adalah
-        // laman yang tidak bisa dipakai.
-        $this->periksaToken($peserta->session, $kodeToken);
+        // laman yang tidak bisa dipakai. Bisa dimatikan dari /admin/pengaturan.
+        if ($this->wajibToken($peserta)) {
+            $this->periksaToken($peserta->session, $kodeToken);
+        }
 
         return DB::transaction(function () use ($peserta) {
             // Baris peserta yang terkunci: dua permintaan bersamaan
@@ -140,6 +144,14 @@ class MesinUjian
      * keduanya, dan siswa yang menebak-nebak penyebabnya akan menanyakan hal
      * yang salah ke pengawas.
      */
+    private function wajibToken(ExamParticipant $peserta): bool
+    {
+        $sekolah = School::query()->find($peserta->school_id);
+        $pengaturan = PengaturanBawaan::gabung($sekolah?->settings);
+
+        return (bool) ($pengaturan['wajib_token_ujian'] ?? true);
+    }
+
     private function periksaToken(?ExamSession $sesi, ?string $kodeToken): void
     {
         if ($sesi === null) {

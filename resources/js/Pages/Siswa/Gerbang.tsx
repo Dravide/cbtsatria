@@ -69,6 +69,7 @@ type Props = {
     peserta: Peserta;
     layak: { boleh: boolean; alasan: string | null; petunjuk: string | null };
     ber_token: boolean;
+    wajib_token?: boolean;
     melanjutkan: boolean;
     sisa_detik: number | null;
     aturan: string[];
@@ -82,6 +83,7 @@ export default function Gerbang({
     peserta,
     layak,
     ber_token,
+    wajib_token = true,
     melanjutkan,
     sisa_detik,
     aturan,
@@ -107,7 +109,8 @@ export default function Gerbang({
     // hanya bisa diketahui dengan menanyakan ulang ke server. Tanpa
     // penyegaran, siswa yang duduk di depan laman ini akan menunggu selamanya
     // walau Admin sudah menerbitkannya semenit kemudian.
-    const menungguToken = layak.boleh && !ber_token;
+    const butuhToken = wajib_token ?? true;
+    const menungguToken = butuhToken && layak.boleh && !ber_token;
 
     const menyegarSendiri = menungguPresensi || menungguToken;
 
@@ -160,7 +163,7 @@ export default function Gerbang({
 
     const labelTombol = form.processing
         ? 'Menyiapkan…'
-        : !ber_token
+        : butuhToken && !ber_token
           ? 'Menunggu token'
           : melanjutkan
             ? 'Lanjutkan ujian'
@@ -219,7 +222,7 @@ export default function Gerbang({
                         <button
                             type="submit"
                             form="gerbang-mulai"
-                            disabled={form.processing || !ber_token}
+                            disabled={form.processing || (butuhToken && !ber_token)}
                             className="tombol tombol--pri w-full"
                         >
                             {labelTombol}
@@ -241,6 +244,7 @@ export default function Gerbang({
                     form={form}
                     kirim={kirim}
                     berToken={ber_token}
+                    wajibToken={butuhToken}
                     melanjutkan={melanjutkan}
                     sisaDetik={sisa_detik}
                     aturan={aturan}
@@ -360,6 +364,7 @@ function SiapMulai({
     form,
     kirim,
     berToken,
+    wajibToken,
     melanjutkan,
     sisaDetik,
     aturan,
@@ -368,6 +373,7 @@ function SiapMulai({
     form: ReturnType<typeof useForm<{ token: string }>>;
     kirim: (e: React.FormEvent) => void;
     berToken: boolean;
+    wajibToken: boolean;
     melanjutkan: boolean;
     sisaDetik: number | null;
     aturan: string[];
@@ -379,7 +385,12 @@ function SiapMulai({
         // tombol itu. Tanpa id, tombol di luar form tidak mengirimkan apa pun.
         <form id="gerbang-mulai" onSubmit={kirim} className="grid justify-items-center gap-3 py-4">
             <p className="max-w-[22rem] text-[12px] leading-relaxed text-ink-2">
-                {berToken ? (
+                {!wajibToken ? (
+                    <>
+                        Presensi Anda sudah diverifikasi Pengawas. Tekan tombol di bawah untuk
+                        langsung memulai ujian.
+                    </>
+                ) : berToken ? (
                     <>
                         Presensi Anda sudah diverifikasi Pengawas. Token ujian ditulis di papan
                         tulis ruang {ruang ?? 'ujian'}.
@@ -393,50 +404,33 @@ function SiapMulai({
                 )}
             </p>
 
-            {/* Kotak token tetap tampil walau tokennya belum terbit. Yang
-                berubah hanya tombolnya: mati sampai tokennya ada. Menyembunyikan
-                kotaknya akan membuat laman ini tampak selesai - dan siswa yang
-                melihatnya akan menekan tombol yang memang tidak bisa dipakai. */}
-            <div className="w-[9.5rem]">
-                {/* Token dibaca dari papan tulis lalu diketik di ponsel, jadi
-                    ia diminta dalam huruf besar dengan keyboard yang tidak
-                    mengoreksi ejaan. `autoCorrect`, `autoCapitalize`, dan
-                    `spellCheck` dimatikan karena koreksi otomatis ponsel
-                    mengubah kode acak menjadi kata yang mirip - dan siswa
-                    melihat tokennya "salah" padahal yang salah adalah
-                    ponselnya.
+            {wajibToken && (
+                <>
+                    <div className="w-[9.5rem]">
+                        <Field label="" galat={form.errors.token}>
+                            <input
+                                value={form.data.token}
+                                onChange={(e) => form.setData('token', e.target.value.toUpperCase())}
+                                disabled={!berToken}
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="characters"
+                                spellCheck={false}
+                                inputMode="text"
+                                maxLength={12}
+                                placeholder="— — — — — —"
+                                className={
+                                    kelasInput + ' text-center font-mono text-base disabled:opacity-50'
+                                }
+                            />
+                        </Field>
+                    </div>
 
-                    Huruf besarnya datang dari NILAINYA (`toUpperCase` di
-                    bawah), bukan dari `text-transform` di sini. Dulu kelas
-                    `uppercase` berdiri di baris ini bersama jarak huruf
-                    0,35em, dan keduanya dicatat lantai 67: yang menuliskan
-                    huruf besar dua kali adalah dua tempat yang bisa
-                    berselisih, dan jarak huruf sememat itu tidak menambah
-                    keterbacaan satu huruf pun. */}
-                <Field label="" galat={form.errors.token}>
-                    <input
-                        value={form.data.token}
-                        onChange={(e) => form.setData('token', e.target.value.toUpperCase())}
-                        disabled={!berToken}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="characters"
-                        spellCheck={false}
-                        inputMode="text"
-                        maxLength={12}
-                        placeholder="— — — — — —"
-                        className={kelasInput + ' text-center font-mono text-base disabled:opacity-50'}
-                    />
-                </Field>
-            </div>
-
-            {/* Tombol "Mulai" TIDAK di sini: ia tinggal di bilah melayang
-                `KerangkaSiswa` dan menunjuk form ini lewat `form="gerbang-mulai"`.
-                Lihat catatan di `Gerbang()`. */}
-
-            {/* Satu kalimat, dan hanya saat tokennya memang belum ada: laman
-                ini menyegar sendiri, dan menyebutnya sekali di sini cukup. */}
-            {!berToken && <p className="catatan">Halaman ini menyegar sendiri setiap 15 detik</p>}
+                    {!berToken && (
+                        <p className="catatan">Halaman ini menyegar sendiri setiap 15 detik</p>
+                    )}
+                </>
+            )}
 
             {/* Siswa yang kembali setelah sinyalnya putus harus tahu waktunya
                 sudah berjalan sejak tadi - kalimat ini yang mencegahnya

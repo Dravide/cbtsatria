@@ -31,6 +31,7 @@ import { Field, Inbox, Kotak, Peringatan, Tombol, kelasInput } from '@/Component
  */
 type Props = {
     pengaturan: {
+        wajib_token_ujian: boolean;
         durasi_token_menit: number;
         ambang_pelanggaran: number;
         simpan_otomatis_detik: number;
@@ -236,6 +237,19 @@ export default function Pengaturan({ pengaturan, ai }: Props) {
                                             className={kelasInput + ' font-mono'}
                                         />
                                     </Field>
+                                </div>
+
+                                <div className="mt-4 border-t border-line pt-3">
+                                    <Centang
+                                        label="Wajib masukkan token saat siswa memulai ujian"
+                                        nilai={data.wajib_token_ujian}
+                                        padaUbah={(v) => setData('wajib_token_ujian', v)}
+                                    />
+                                    <p className="mt-1 pl-6 text-[11px] leading-relaxed text-ink-3">
+                                        Bila dimatikan, siswa di konsol /siswa bisa langsung menekan
+                                        Mulai ujian setelah presensinya diverifikasi tanpa mengetik
+                                        token sesi.
+                                    </p>
                                 </div>
                             </Kotak>
                         )}
