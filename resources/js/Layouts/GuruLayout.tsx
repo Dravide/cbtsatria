@@ -42,6 +42,10 @@ type Props = {
     children: ReactNode;
 };
 
+const UMUM: ItemNav[] = [
+    { label: 'Dashboard', href: '/guru', awalan: false, ikon: 'dashboard' },
+];
+
 const BANK_SOAL: ItemNav[] = [
     // Bank soal berdiri di luar event - soal adalah milik Guru dan sekolah,
     // bukan milik satu ujian (wireframe plate 02). Karena itu tidak ada
@@ -71,6 +75,7 @@ const AKUN: ItemNav[] = [
 
 export default function GuruLayout({ judul, breadcrumb, aksi, children }: Props) {
     const kelompok: KelompokNav[] = [
+        { judul: 'Umum', item: UMUM },
         { judul: 'Bank Soal', item: BANK_SOAL },
         { judul: 'Penilaian', item: NILAI },
         { judul: 'Akun Saya', item: AKUN },
