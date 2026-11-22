@@ -232,16 +232,27 @@ function PapanFormulir({ sekolah }: { sekolah: Props['sekolah'] }) {
 
                 {aktif ? (
                     <>
-                        <div className="rounded-wf border border-line bg-surface-2 px-2.5 py-2">
-                            <p className="text-[11px] text-ink-3">Alamat papan</p>
-                            <a
-                                href={`/papan/${sekolah.papan_slug}`}
-                                target="_blank"
-                                rel="noopener"
-                                className="mt-0.5 block break-all font-mono text-[11px] text-accent hover:underline"
-                            >
-                                /papan/{sekolah.papan_slug}
-                            </a>
+                        <div className="space-y-1.5 rounded-wf border border-line bg-surface-2 px-2.5 py-2">
+                            <p className="text-[11px] text-ink-3">Alamat laman publik</p>
+                            {[
+                                { label: 'Papan pengawas', path: `/papan/${sekolah.papan_slug}` },
+                                { label: 'Pantau live', path: `/pantau/${sekolah.papan_slug}` },
+                                { label: 'Jadwal & pengumuman', path: `/jadwal/${sekolah.papan_slug}` },
+                                { label: 'Cek ruang & kursi', path: `/ruang/${sekolah.papan_slug}` },
+                                { label: 'Pantau wali', path: `/wali/${sekolah.papan_slug}` },
+                            ].map((item) => (
+                                <div key={item.path} className="flex items-baseline justify-between gap-2">
+                                    <span className="shrink-0 text-[11px] text-ink-2">{item.label}</span>
+                                    <a
+                                        href={item.path}
+                                        target="_blank"
+                                        rel="noopener"
+                                        className="truncate font-mono text-[11px] text-accent hover:underline"
+                                    >
+                                        {item.path}
+                                    </a>
+                                </div>
+                            ))}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">

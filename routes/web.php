@@ -1,9 +1,11 @@
 <?php
 
+use App\Domain\Attendance\Http\Controllers\JadwalPublikController;
 use App\Domain\Attendance\Http\Controllers\KiosLabController;
 use App\Domain\Attendance\Http\Controllers\PantauPublikController;
 use App\Domain\Attendance\Http\Controllers\PapanPublikController;
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
+use App\Domain\Attendance\Http\Controllers\RuangPublikController;
 use App\Domain\Attendance\Http\Controllers\Siswa\HadirSiswaController;
 use App\Domain\Attendance\Http\Controllers\WaliFotoController;
 use App\Domain\Attendance\Http\Controllers\WaliPublikController;
@@ -261,6 +263,32 @@ Route::get('/wali/{slug}/foto/{berkas}', [WaliFotoController::class, 'tampilkan'
     ->whereNumber('berkas')
     ->middleware('throttle:'.PembatasLaju::PANTAU)
     ->name('wali.foto');
+
+/*
+|--------------------------------------------------------------------------
+| Jadwal & pengumuman event publik - `/jadwal/{slug}`
+|--------------------------------------------------------------------------
+| Menampilkan seluruh jadwal sesi lintas hari dan pengumuman resmi panitia
+| yang sedang berlaku untuk event aktif/siap/selesai. Menggunakan slug
+| sekolah (`schools.papan_slug`) yang sama dengan `/papan`, `/pantau`, dan
+| `/wali`. Tidak memuat data personal siswa, kursi, maupun token.
+*/
+Route::get('/jadwal/{slug}', [JadwalPublikController::class, 'tampilkan'])
+    ->name('jadwal.publik');
+
+/*
+|--------------------------------------------------------------------------
+| Cek ruang & nomor kursi publik - `/ruang/{slug}`
+|--------------------------------------------------------------------------
+| Menjawab pertanyaan siswa/orang tua sebelum masuk ruangan: "Saya di ruang
+| mana dan kursi berapa?" Menggunakan pasangan kelas + NIS dan dibatasi
+| `throttle:ruang-publik` pada POST agar tidak bisa dipindai massal.
+*/
+Route::get('/ruang/{slug}', [RuangPublikController::class, 'tampilkan'])
+    ->name('ruang.publik');
+Route::post('/ruang/{slug}', [RuangPublikController::class, 'cari'])
+    ->middleware('throttle:'.PembatasLaju::RUANG)
+    ->name('ruang.publik.cari');
 
 /*
 |--------------------------------------------------------------------------

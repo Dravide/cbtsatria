@@ -113,6 +113,15 @@ final class PembatasLaju
     /** Nama limiter untuk laporan pelanggaran peramban siswa. */
     public const LAPOR = 'lapor-pelanggaran';
 
+    /** Nama limiter untuk pencarian ruang & kursi publik `/ruang/{slug}`. */
+    public const RUANG = 'ruang-publik';
+
+    /** Percobaan cari ruang per IP, per menit. */
+    public const RUANG_PER_IP = 20;
+
+    /** Pesan saat pencarian ruang melampaui batas. */
+    public const PESAN_RUANG = 'Terlalu banyak pencarian dari jaringan ini. Tunggu satu menit, lalu coba lagi.';
+
     /**
      * Permintaan AI per Guru, per menit.
      *
@@ -515,6 +524,12 @@ final class PembatasLaju
     public static function kunciWaliKelas(string $slug, int|string $kelasId): string
     {
         return "wali-kelas:{$slug}|{$kelasId}";
+    }
+
+    /** Kunci pencarian ruang & kursi publik per IP + slug sekolah. */
+    public static function kunciRuangIp(string $slug, string $ip): string
+    {
+        return "ruang-ip:{$slug}|{$ip}";
     }
 
     /**

@@ -295,5 +295,19 @@ class AppServiceProvider extends ServiceProvider
                 ))
                 ->response(fn () => back()->with('galat', PembatasLaju::PESAN_WALI_KELAS)),
         ]);
+
+        // ----------------------------------------------------------------
+        // Cek ruang & kursi publik - POST /ruang/{slug}
+        // ----------------------------------------------------------------
+        RateLimiter::for(PembatasLaju::RUANG, fn (Request $request) => [
+            Limit::perMinute(PembatasLaju::RUANG_PER_IP)
+                ->by(PembatasLaju::kunciRuangIp(
+                    (string) $request->route('slug'),
+                    (string) $request->ip(),
+                ))
+                ->response(fn () => redirect()
+                    ->route('ruang.publik', ['slug' => $request->route('slug')])
+                    ->with('galat', PembatasLaju::PESAN_RUANG)),
+        ]);
     }
 }
