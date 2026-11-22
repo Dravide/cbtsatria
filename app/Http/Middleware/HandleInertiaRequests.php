@@ -122,7 +122,7 @@ class HandleInertiaRequests extends Middleware
             // membuat Admin mengira ada yang rusak.
             'eventAktif' => fn () => $this->eventAktif($request),
 
-            'identitas' => function (): array {
+            'identitasAplikasi' => function (): array {
                 $nilai = IdentitasAplikasi::nilai();
 
                 return [

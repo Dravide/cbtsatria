@@ -95,11 +95,11 @@ export default function KonsolLayout({
     kelasPembungkus,
     children,
 }: Props) {
-    const { auth, tahunAktif, eventAktif, identitas } = usePage().props as unknown as {
+    const { auth, tahunAktif, eventAktif, identitasAplikasi } = usePage().props as unknown as {
         auth: { pengguna: { nama: string; peran_label: string } | null };
         tahunAktif: string | null;
         eventAktif: { id: number; kode: string; nama: string; status_label: string } | null;
-        identitas?: { nama: string; logo: string | null };
+        identitasAplikasi?: { nama: string; logo: string | null };
     };
 
     const jalur = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -120,11 +120,11 @@ export default function KonsolLayout({
                 mendatar supaya isi laman tetap punya lebar penuh. */}
             <aside className="sticky top-0 flex h-auto w-full shrink-0 flex-col border-b border-line bg-surface md:h-screen md:w-60 md:border-r md:border-b-0">
                 <div className="flex items-center gap-2 px-4 py-4">
-                    {identitas?.logo ? (
+                    {identitasAplikasi?.logo ? (
                         <>
                             <img
-                                src={identitas.logo}
-                                alt={identitas.nama || MEREK}
+                                src={identitasAplikasi.logo}
+                                alt={identitasAplikasi.nama || MEREK}
                                 className="h-5 w-auto max-w-[136px] object-contain"
                             />
                             <span className="shrink-0 rounded border border-accent/30 bg-accent-soft px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-accent uppercase">
@@ -142,7 +142,7 @@ export default function KonsolLayout({
                                 {marka.inisial}
                             </span>
                             <span className="truncate font-display text-sm font-semibold text-ink">
-                                {identitas?.nama || MEREK}
+                                {identitasAplikasi?.nama || MEREK}
                             </span>
                         </>
                     )}
