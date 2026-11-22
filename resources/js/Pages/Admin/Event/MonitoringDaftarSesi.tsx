@@ -171,7 +171,7 @@ export default function MonitoringDaftarSesi({
                 di bawah disusun dari ruang-sesi, sehingga mapel yang jadwalnya
                 belum dibuat tidak muncul satu kali pun. */}
             <div className="mb-3">
-                <DaftarMapel mapel={mapel} denganPresensi={false} />
+                <DaftarMapel mapel={mapel} denganPresensi={false} sebagaiModal />
             </div>
 
             <div className="mb-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">

@@ -1,4 +1,5 @@
-import { Chip, Kotak } from '@/Components/ui';
+import { useEffect, useState } from 'react';
+import { Chip, Kotak, Tombol } from '@/Components/ui';
 
 /**
  * Mata pelajaran event - termasuk yang BELUM dijadwalkan.
@@ -63,15 +64,87 @@ export default function DaftarMapel({
     mapel,
     /** Menampilkan kolom presensi. Monitoring tidak punya angka presensi. */
     denganPresensi,
+    sebagaiModal = false,
 }: {
     mapel: MapelEvent[];
     denganPresensi: boolean;
+    sebagaiModal?: boolean;
 }) {
+    const [terbuka, setTerbuka] = useState(false);
+
+    useEffect(() => {
+        if (!terbuka) {
+            return;
+        }
+        const tutupEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setTerbuka(false);
+            }
+        };
+        window.addEventListener('keydown', tutupEsc);
+        return () => window.removeEventListener('keydown', tutupEsc);
+    }, [terbuka]);
+
     if (mapel.length === 0) {
         return null;
     }
 
     const terjadwal = mapel.filter((m) => m.keadaan === 'terjadwal').length;
+
+    if (sebagaiModal) {
+        return (
+            <>
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-wf border border-line bg-surface px-4 py-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-medium text-ink">Mata pelajaran event</span>
+                        <Chip nada={terjadwal === mapel.length ? 'ok' : 'warn'}>
+                            {terjadwal} dari {mapel.length} terjadwal
+                        </Chip>
+                        <span className="text-[11px] text-ink-3">
+                            termasuk yang belum dijadwalkan
+                        </span>
+                    </div>
+                    <Tombol nada="sek" onClick={() => setTerbuka(true)}>
+                        Lihat daftar mapel
+                    </Tombol>
+                </div>
+
+                {terbuka && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                        onClick={() => setTerbuka(false)}
+                    >
+                        <div
+                            className="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-wf border border-line bg-surface shadow-wf"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between gap-3 border-b border-line bg-surface-2/60 px-4 py-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="font-display text-sm font-semibold text-ink">
+                                        Mata pelajaran event
+                                    </h2>
+                                    <Chip nada={terjadwal === mapel.length ? 'ok' : 'warn'}>
+                                        {terjadwal} dari {mapel.length} terjadwal
+                                    </Chip>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setTerbuka(false)}
+                                    className="rounded-wf px-2 py-1 text-xs text-ink-3 hover:bg-surface-2 hover:text-ink"
+                                    aria-label="Tutup modal"
+                                >
+                                    ✕ Tutup
+                                </button>
+                            </div>
+                            <div className="overflow-y-auto p-4">
+                                <TabelMapel mapel={mapel} denganPresensi={denganPresensi} />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </>
+        );
+    }
 
     return (
         <Kotak
@@ -87,6 +160,20 @@ export default function DaftarMapel({
                 </>
             }
         >
+            <TabelMapel mapel={mapel} denganPresensi={denganPresensi} />
+        </Kotak>
+    );
+}
+
+function TabelMapel({
+    mapel,
+    denganPresensi,
+}: {
+    mapel: MapelEvent[];
+    denganPresensi: boolean;
+}) {
+    return (
+        <>
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[36rem] text-xs">
                     <thead>
@@ -176,6 +263,6 @@ export default function DaftarMapel({
                 dijadwalkan tidak punya baris di sana, dan itulah yang perlu dikerjakan
                 berikutnya di <span className="font-medium">Jadwal &amp; sesi</span>.
             </p>
-        </Kotak>
+        </>
     );
 }
