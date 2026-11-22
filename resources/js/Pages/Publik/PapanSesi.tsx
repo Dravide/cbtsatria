@@ -156,6 +156,11 @@ export default function PapanSesi({ sekolah, slug, sesi, tanpa_pengawas, diperba
                                                             Kelas {r.kelas.join(', ')}
                                                         </span>
                                                     )}
+                                                    {r.lokasi && (
+                                                        <span className="mt-0.5 block text-[11px] text-ink-3 sm:hidden">
+                                                            {r.lokasi}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-3 py-2 align-top">
                                                     {r.pengawas.length === 0 ? (

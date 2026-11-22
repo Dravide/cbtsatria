@@ -92,6 +92,11 @@ export default function PapanPengawas({ sekolah, slug, nama, ruang, diperbarui }
                                                         {r.nama}
                                                     </span>
                                                 )}
+                                                {r.lokasi && (
+                                                    <span className="mt-0.5 block text-[11px] text-ink-3 sm:hidden">
+                                                        {r.lokasi}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="hidden px-3 py-2 align-top text-[11px] text-ink-3 sm:table-cell">
                                                 {r.lokasi ?? '—'}
