@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 
 /**
@@ -134,6 +134,9 @@ export default function WaliKelas({
         });
     };
 
+    const { identitasAplikasi } = usePage().props as unknown as {
+        identitasAplikasi?: { nama: string; logo: string | null };
+    };
     const rinci = terbuka ? (siswa as SiswaRinci[]) : null;
 
     return (
@@ -142,23 +145,34 @@ export default function WaliKelas({
 
             <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col sm:border-x sm:border-line">
-                    <header className="flex items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
-                        <Link
-                            href={`/wali/${slug}`}
-                            className="shrink-0 rounded px-1 text-sm text-ink-3 hover:text-ink"
-                            aria-label="Kembali ke daftar kelas"
-                        >
-                            ‹
-                        </Link>
-                        <span className="min-w-0 flex-1 truncate text-xs font-semibold text-ink">
-                            {kelas.nama}
-                            {sesi?.mapel ? ` · ${sesi.mapel}` : ''}
-                        </span>
-                        {terbuka && (
-                            <span className="shrink-0 rounded-full border border-ok/30 bg-ok-bg px-2 py-0.5 font-mono text-[10px] text-ok">
-                                terbuka
-                            </span>
+                    <header className="flex flex-col gap-2 border-b border-line bg-surface px-3 py-2.5">
+                        {identitasAplikasi?.logo && (
+                            <div className="flex justify-center border-b border-line/60 pb-2">
+                                <img
+                                    src={identitasAplikasi.logo}
+                                    alt={identitasAplikasi.nama || sekolah}
+                                    className="h-5 w-auto max-w-[144px] object-contain"
+                                />
+                            </div>
                         )}
+                        <div className="flex items-center gap-2">
+                            <Link
+                                href={`/wali/${slug}`}
+                                className="shrink-0 rounded px-1 text-sm text-ink-3 hover:text-ink"
+                                aria-label="Kembali ke daftar kelas"
+                            >
+                                ‹
+                            </Link>
+                            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-ink">
+                                {kelas.nama}
+                                {sesi?.mapel ? ` · ${sesi.mapel}` : ''}
+                            </span>
+                            {terbuka && (
+                                <span className="shrink-0 rounded-full border border-ok/30 bg-ok-bg px-2 py-0.5 font-mono text-[10px] text-ok">
+                                    terbuka
+                                </span>
+                            )}
+                        </div>
                     </header>
 
                     <main className="flex-1 px-3 py-3">

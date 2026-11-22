@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 /**
  * Pantau wali - daftar kelas yang dibuka - `/wali/{slug}`, tanpa login.
@@ -40,17 +40,32 @@ type Props = {
 };
 
 export default function Wali({ sekolah, slug, kelas }: Props) {
+    const { identitasAplikasi } = usePage().props as unknown as {
+        identitasAplikasi?: { nama: string; logo: string | null };
+    };
+
     return (
         <>
             <Head title={`Pantau kelas · ${sekolah}`} />
 
             <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col sm:border-x sm:border-line">
-                    <header className="border-b border-line bg-surface px-4 py-3">
-                        <h1 className="text-sm font-semibold text-ink">{sekolah}</h1>
-                        <p className="mt-0.5 text-[11px] text-ink-3">
-                            Pantau kelas · untuk wali murid
-                        </p>
+                    <header className="flex flex-col gap-2 border-b border-line bg-surface px-4 py-3">
+                        {identitasAplikasi?.logo && (
+                            <div className="flex justify-center border-b border-line/60 pb-2">
+                                <img
+                                    src={identitasAplikasi.logo}
+                                    alt={identitasAplikasi.nama || sekolah}
+                                    className="h-5 w-auto max-w-[144px] object-contain"
+                                />
+                            </div>
+                        )}
+                        <div>
+                            <h1 className="text-sm font-semibold text-ink">{sekolah}</h1>
+                            <p className="mt-0.5 text-[11px] text-ink-3">
+                                Pantau kelas · untuk wali murid
+                            </p>
+                        </div>
                     </header>
 
                     <main className="flex-1 px-3 py-3">
