@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { Chip, Inbox, Peringatan, UmpanBalik } from '@/Components/ui';
 
 /**
@@ -47,6 +47,9 @@ type Props = {
 };
 
 export default function Pintu({ slug, ruang, berlaku, alasan, sekolah }: Props) {
+    const { identitasAplikasi } = usePage().props as unknown as {
+        identitasAplikasi?: { nama: string; logo: string | null };
+    };
     const { data, setData, post, processing, errors } = useForm({ kode: '' });
 
     const kirim = (e: React.FormEvent) => {
@@ -61,7 +64,15 @@ export default function Pintu({ slug, ruang, berlaku, alasan, sekolah }: Props) 
             <div className="min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col sm:border-x sm:border-line">
                     <header className="flex items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
-                        <span className="text-[11px] text-ink-3">Pengawas ruang</span>
+                        {identitasAplikasi?.logo ? (
+                            <img
+                                src={identitasAplikasi.logo}
+                                alt={identitasAplikasi.nama || sekolah || 'Pengawas ruang'}
+                                className="h-5 w-auto max-w-[136px] shrink-0 object-contain"
+                            />
+                        ) : (
+                            <span className="text-[11px] text-ink-3">Pengawas ruang</span>
+                        )}
                         <span className="ml-auto">
                             <Chip nada="info">tautan ruang</Chip>
                         </span>

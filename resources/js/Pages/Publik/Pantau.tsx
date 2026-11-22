@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chip, Kotak, PilihCari, Tombol, kelasInput } from '@/Components/ui';
 
@@ -186,6 +186,9 @@ const LABEL_LAPORAN: Record<Ruang['laporan'], { teks: string; nada: 'ok' | 'warn
 };
 
 export default function Pantau({ slug, potret: awal, denyut_url, ruang_url_template, kembali_url }: Props) {
+    const { identitasAplikasi } = usePage().props as unknown as {
+        identitasAplikasi?: { nama: string; logo: string | null };
+    };
     const [potret, setPotret] = useState<Potret | null>(awal);
     const [toast, setToast] = useState<Toast[]>([]);
     const [galat, setGalat] = useState<string | null>(null);
@@ -429,17 +432,27 @@ export default function Pantau({ slug, potret: awal, denyut_url, ruang_url_templ
 
             <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[64rem] flex-col sm:border-x sm:border-line">
-                    <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line bg-surface px-3 py-2.5">
-                        {kembali_url && (
-                            <Link
-                                href={kembali_url}
-                                className="text-xs text-ink-3 hover:text-ink"
-                            >
-                                ← Kembali ke event
-                            </Link>
+                    <header className="flex flex-col gap-2 border-b border-line bg-surface px-3 py-2.5">
+                        {identitasAplikasi?.logo && (
+                            <div className="flex justify-center border-b border-line/60 pb-2">
+                                <img
+                                    src={identitasAplikasi.logo}
+                                    alt={identitasAplikasi.nama || potret?.sekolah || slug}
+                                    className="h-5 w-auto max-w-[144px] object-contain"
+                                />
+                            </div>
                         )}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                            {kembali_url && (
+                                <Link
+                                    href={kembali_url}
+                                    className="text-xs text-ink-3 hover:text-ink"
+                                >
+                                    ← Kembali ke event
+                                </Link>
+                            )}
 
-                        <span className="truncate text-xs font-medium text-ink">
+                            <span className="truncate text-xs font-medium text-ink">
                             {potret?.event
                                 ? `${potret.sekolah} · ${potret.event.nama}`
                                 : (potret?.sekolah ?? slug)}
@@ -485,6 +498,7 @@ export default function Pantau({ slug, potret: awal, denyut_url, ruang_url_templ
                                 </span>
                             )}
                         </span>
+                        </div>
                     </header>
 
                     {daftarSesi.length > 1 && (

@@ -77,7 +77,7 @@ export default function KerangkaPonsel({
     children,
     aksiBawah,
 }: Props) {
-    const { auth, pengawasRuang } = usePage().props as unknown as {
+    const { auth, pengawasRuang, identitasAplikasi } = usePage().props as unknown as {
         auth: { pengguna: { nama: string; peran_label: string } | null };
         pengawasRuang: {
             ruang_id: number;
@@ -89,6 +89,7 @@ export default function KerangkaPonsel({
             slug: string;
             pengawas: string | null;
         } | null;
+        identitasAplikasi?: { nama: string; logo: string | null };
     };
 
     const lewatTautan = pengawasRuang !== null;
@@ -100,8 +101,18 @@ export default function KerangkaPonsel({
             <div className={'min-h-screen bg-paper' + (gelap ? ' konsol-pengawas' : '')}>
                 <div className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col border-line bg-paper sm:border-x">
                     {bilah && (
-                        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur">
-                            <div className="flex min-w-0 items-center gap-2">
+                        <header className="sticky top-0 z-20 flex flex-col gap-1.5 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur">
+                            {identitasAplikasi?.logo && (
+                                <div className="flex justify-center border-b border-line/60 pb-1.5">
+                                    <img
+                                        src={identitasAplikasi.logo}
+                                        alt={identitasAplikasi.nama}
+                                        className="h-5 w-auto max-w-[136px] object-contain"
+                                    />
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <div className="flex min-w-0 items-center gap-2">
                                 {kiri ?? (
                                     <Chip nada={lewatTautan ? 'info' : 'mute'}>
                                         {pengawasRuang?.ruang ?? auth.pengguna?.peran_label ?? 'Pengawas'}
@@ -159,6 +170,7 @@ export default function KerangkaPonsel({
                                         Keluar
                                     </Link>
                                 )}
+                            </div>
                             </div>
                         </header>
                     )}

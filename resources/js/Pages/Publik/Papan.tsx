@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 /**
@@ -50,6 +50,9 @@ function judulSesi(s: Sesi): string {
 }
 
 export default function Papan({ sekolah, slug, sesi, tanpa_pengawas, diperbarui }: Props) {
+    const { identitasAplikasi } = usePage().props as unknown as {
+        identitasAplikasi?: { nama: string; logo: string | null };
+    };
     const [cari, setCari] = useState('');
     const q = cari.trim().toLowerCase();
 
@@ -89,11 +92,22 @@ export default function Papan({ sekolah, slug, sesi, tanpa_pengawas, diperbarui 
 
             <div className="laman-publik min-h-screen bg-paper">
                 <div className="mx-auto flex min-h-screen w-full max-w-[34rem] flex-col sm:border-x sm:border-line">
-                    <header className="flex items-baseline gap-2 border-b border-line bg-surface px-3 py-2.5">
-                        <span className="truncate text-xs font-medium text-ink">{sekolah}</span>
-                        <span className="ml-auto shrink-0 font-mono text-[11px] text-ink-3">
-                            {diperbarui}
-                        </span>
+                    <header className="flex flex-col gap-2 border-b border-line bg-surface px-3 py-2.5">
+                        {identitasAplikasi?.logo && (
+                            <div className="flex justify-center border-b border-line/60 pb-2">
+                                <img
+                                    src={identitasAplikasi.logo}
+                                    alt={identitasAplikasi.nama || sekolah}
+                                    className="h-5 w-auto max-w-[144px] object-contain"
+                                />
+                            </div>
+                        )}
+                        <div className="flex items-baseline gap-2">
+                            <span className="truncate text-xs font-medium text-ink">{sekolah}</span>
+                            <span className="ml-auto shrink-0 font-mono text-[11px] text-ink-3">
+                                {diperbarui}
+                            </span>
+                        </div>
                     </header>
 
                     <main className="flex-1 space-y-2.5 px-3 py-4">
