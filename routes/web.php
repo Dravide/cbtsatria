@@ -5,6 +5,7 @@ use App\Domain\Attendance\Http\Controllers\KiosLabController;
 use App\Domain\Attendance\Http\Controllers\PantauPublikController;
 use App\Domain\Attendance\Http\Controllers\PapanPublikController;
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
+use App\Domain\Attendance\Http\Controllers\PortalPublikController;
 use App\Domain\Attendance\Http\Controllers\RuangPublikController;
 use App\Domain\Attendance\Http\Controllers\Siswa\HadirSiswaController;
 use App\Domain\Attendance\Http\Controllers\TvPublikController;
@@ -304,6 +305,17 @@ Route::get('/tv/{slug}', [TvPublikController::class, 'tampilkan'])
 Route::get('/tv/{slug}/denyut', [TvPublikController::class, 'denyut'])
     ->middleware('throttle:'.PembatasLaju::PANTAU)
     ->name('tv.denyut');
+
+/*
+|--------------------------------------------------------------------------
+| Portal 1 pintu laman publik sekolah - `/info/{slug}`
+|--------------------------------------------------------------------------
+| Satu alamat (dan satu QR cetak) yang merangkum seluruh laman publik
+| sekolah: jadwal, cek ruang, pantau wali, papan pengawas, pantau live,
+| dan layar IFP/TV. Memakai `schools.papan_slug` yang sama.
+*/
+Route::get('/info/{slug}', [PortalPublikController::class, 'tampilkan'])
+    ->name('portal.publik');
 
 /*
 |--------------------------------------------------------------------------

@@ -5,9 +5,12 @@ namespace App\Domain\Admin\Http\Controllers;
 use App\Domain\Attendance\Services\PapanPengawas;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Tenancy\Models\School;
+use App\Support\Qr\KodeQr;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Menyalakan dan mematikan papan publik pengawas - `/admin/papan`.
@@ -81,6 +84,32 @@ class PengaturanPapanController
         $sekolah->forceFill(['papan_slug' => null])->save();
 
         return back()->with('galat', 'Papan publik dimatikan. Alamat lamanya berhenti berlaku.');
+    }
+
+    /**
+     * Poster cetak 1 QR untuk portal publik sekolah (`/info/{slug}`).
+     */
+    public function poster(Request $request): View
+    {
+        $sekolah = $this->sekolah($request);
+
+        Gate::authorize('view', $sekolah);
+
+        if ($sekolah->papan_slug === null) {
+            abort(404);
+        }
+
+        $portalUrl = url('/info/'.$sekolah->papan_slug);
+        $logoUrl = $sekolah->logo_path
+            ? Storage::disk('public')->url($sekolah->logo_path)
+            : null;
+
+        return view('kartu.portal-publik', [
+            'sekolah' => $sekolah,
+            'portalUrl' => $portalUrl,
+            'qrDataUri' => KodeQr::dataUri($portalUrl, 360),
+            'logoUrl' => $logoUrl,
+        ]);
     }
 
     private function sekolah(Request $request): School

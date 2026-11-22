@@ -235,6 +235,7 @@ function PapanFormulir({ sekolah }: { sekolah: Props['sekolah'] }) {
                         <div className="space-y-1.5 rounded-wf border border-line bg-surface-2 px-2.5 py-2">
                             <p className="text-[11px] text-ink-3">Alamat laman publik</p>
                             {[
+                                { label: 'Portal 1 pintu (1 QR)', path: `/info/${sekolah.papan_slug}` },
                                 { label: 'Papan pengawas', path: `/papan/${sekolah.papan_slug}` },
                                 { label: 'Pantau live', path: `/pantau/${sekolah.papan_slug}` },
                                 { label: 'Layar IFP / TV', path: `/tv/${sekolah.papan_slug}` },
@@ -258,6 +259,14 @@ function PapanFormulir({ sekolah }: { sekolah: Props['sekolah'] }) {
 
                         <div className="flex flex-wrap items-center gap-2">
                             <Chip nada="ok">menyala</Chip>
+                            <a
+                                href="/admin/papan/poster"
+                                target="_blank"
+                                rel="noopener"
+                                className="inline-flex items-center rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                            >
+                                Cetak poster QR
+                            </a>
                             <Tombol
                                 nada="bahaya"
                                 onClick={async () => {

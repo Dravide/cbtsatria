@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe · Portal Publik 1 Pintu (/info/{slug})</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+  --wf-bg:#ffffff;
+  --wf-soft:#f5f7fa;
+  --wf-line:#c6cedb;
+  --wf-hair:#e6eaf0;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 12px 28px -18px rgba(16,22,32,.32);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding:0 16px 64px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;line-height:1.18;letter-spacing:-.02em}
+p{margin:0}
+code{
+  font-family:var(--font-mono);
+  font-size:.85em;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  padding:1px 5px;
+  border-radius:4px;
+}
+.wrap{max-width:1180px;margin:0 auto}
+
+.top{
+  border-bottom:1px solid var(--line);
+  background:var(--surface);
+  margin:0 -16px;
+  padding:0 16px;
+}
+.top-in{
+  max-width:1180px;
+  margin:0 auto;
+  padding:12px 0;
+  display:flex;
+  gap:14px;
+  align-items:baseline;
+  flex-wrap:wrap;
+}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{
+  margin-left:auto;
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--ink-3);
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.head{padding:30px 0 18px;display:grid;gap:12px}
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--accent);
+  font-weight:500;
+}
+.head h1{font-size:2rem}
+.head .lede{color:var(--ink-2);max-width:78ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  padding:3px 9px;
+  border-radius:99px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  color:var(--ink-2);
+}
+
+.sec{margin-top:34px;display:grid;gap:18px}
+.sec > header{display:grid;gap:6px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.sec > header h2{font-size:1.3rem;display:flex;gap:10px;align-items:baseline}
+.sec > header em{
+  font-style:normal;
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--accent);
+  letter-spacing:.08em;
+}
+.sec > header p{color:var(--ink-2);font-size:13.5px;max-width:80ch}
+
+.plates{
+  display:grid;
+  gap:22px;
+  grid-template-columns:1fr;
+  align-items:start;
+}
+@media (min-width:860px){
+  .plates.two{grid-template-columns:1fr 1fr}
+  .plates.three{grid-template-columns:repeat(3,1fr)}
+}
+
+.plate{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  display:grid;
+}
+.plate-head{
+  padding:11px 14px;
+  border-bottom:1px solid var(--line);
+  background:var(--wf-soft);
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+}
+.plate-head strong{font-family:var(--font-display);font-size:13px}
+.plate-head span{font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.plate-body{padding:18px;background:#e9edf3;display:flex;justify-content:center}
+.plate-note{
+  padding:12px 14px;
+  border-top:1px solid var(--line);
+  font-size:12.5px;
+  color:var(--ink-2);
+  background:var(--surface);
+}
+
+/* ---------- Mockup Ponsel ---------- */
+.phone{
+  width:100%;
+  max-width:370px;
+  background:var(--wf-bg);
+  border:1px solid var(--wf-line);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 8px 24px -16px rgba(16,22,32,.35);
+  display:flex;
+  flex-direction:column;
+}
+.urlbar{
+  background:var(--wf-soft);
+  border-bottom:1px solid var(--wf-hair);
+  padding:7px 12px;
+  font-family:var(--font-mono);
+  font-size:10.5px;
+  color:var(--wf-dim);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.p-header{
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--wf-hair);
+  background:var(--surface);
+  display:grid;
+  gap:8px;
+}
+.logo-box{
+  display:flex;
+  justify-content:center;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--wf-hair);
+}
+.logo-pill{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:12px;
+  letter-spacing:.04em;
+  color:var(--accent);
+  background:var(--accent-soft);
+  border:1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  padding:4px 12px;
+  border-radius:6px;
+}
+.school-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:8px;
+}
+.school-name{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--ink)}
+.school-sub{font-size:11px;color:var(--ink-3);margin-top:2px}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-family:var(--font-mono);
+  font-size:10px;
+  font-weight:500;
+  padding:2px 8px;
+  border-radius:99px;
+  white-space:nowrap;
+}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 25%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border:1px solid color-mix(in srgb,var(--info) 25%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.mute{background:var(--surface-2);color:var(--ink-3);border:1px solid var(--line)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+.p-main{
+  padding:12px;
+  background:var(--wf-soft);
+  display:grid;
+  gap:12px;
+}
+.alert-card{
+  background:var(--warn-bg);
+  border:1px solid color-mix(in srgb, var(--warn) 32%, transparent);
+  border-radius:8px;
+  padding:10px 12px;
+  display:grid;
+  gap:3px;
+}
+.alert-card .at{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  font-size:11.5px;
+  font-weight:600;
+  color:var(--warn);
+}
+.alert-card p{font-size:11.5px;color:var(--ink-2);line-height:1.45}
+
+.status-strip{
+  background:var(--surface);
+  border:1px solid var(--wf-hair);
+  border-radius:8px;
+  padding:10px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+.status-strip strong{font-size:12px;color:var(--ink);display:block}
+.status-strip span{font-size:11px;color:var(--ink-3);font-family:var(--font-mono)}
+
+.group-label{
+  font-family:var(--font-mono);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--ink-3);
+  padding:0 2px;
+}
+.menu-list{
+  background:var(--surface);
+  border:1px solid var(--wf-hair);
+  border-radius:10px;
+  overflow:hidden;
+}
+.menu-item{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:11px 12px;
+  border-bottom:1px solid var(--wf-hair);
+}
+.menu-item:last-child{border-bottom:0}
+.ico{
+  width:34px;
+  height:34px;
+  border-radius:8px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  display:grid;
+  place-items:center;
+  font-family:var(--font-mono);
+  font-size:11px;
+  font-weight:600;
+  flex-shrink:0;
+}
+.ico.sec-ico{background:var(--surface-2);color:var(--ink-2)}
+.mi-body{min-width:0;flex:1}
+.mi-title{font-size:12.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px}
+.mi-desc{font-size:11px;color:var(--ink-3);line-height:1.35;margin-top:1px}
+.mi-path{font-family:var(--font-mono);font-size:10px;color:var(--wf-dim);margin-top:2px}
+.chev{color:var(--wf-dim);font-size:15px;font-family:var(--font-mono)}
+
+.p-footer{
+  padding:10px 14px;
+  border-top:1px solid var(--wf-hair);
+  background:var(--surface);
+  text-align:center;
+  display:grid;
+  gap:6px;
+}
+.p-footer p{font-size:10px;color:var(--ink-3);line-height:1.4}
+.login-link{
+  font-size:11px;
+  font-weight:500;
+  color:var(--accent);
+  text-decoration:none;
+}
+
+/* ---------- Mockup Poster QR A4 ---------- */
+.poster{
+  width:100%;
+  max-width:340px;
+  background:#ffffff;
+  border:1px solid var(--wf-line);
+  border-radius:10px;
+  padding:22px 20px;
+  box-shadow:0 8px 24px -16px rgba(16,22,32,.3);
+  text-align:center;
+  display:grid;
+  gap:14px;
+  justify-items:center;
+}
+.poster .p-school{font-family:var(--font-display);font-size:16px;font-weight:700}
+.poster .p-event{font-size:12px;color:var(--ink-2)}
+.qr-frame{
+  width:168px;
+  height:168px;
+  border:2px solid var(--ink);
+  border-radius:12px;
+  padding:12px;
+  display:grid;
+  place-items:center;
+  background:#fff;
+}
+.qr-grid{
+  width:100%;
+  height:100%;
+  background:
+    repeating-linear-gradient(90deg, #161b24 0 8px, transparent 8px 16px),
+    repeating-linear-gradient(0deg, #161b24 0 8px, transparent 8px 16px);
+  opacity:.85;
+  border-radius:4px;
+  position:relative;
+}
+.qr-grid::after{
+  content:"QR";
+  position:absolute;
+  inset:50% auto auto 50%;
+  transform:translate(-50%,-50%);
+  background:#fff;
+  color:var(--ink);
+  font-family:var(--font-mono);
+  font-weight:700;
+  font-size:13px;
+  padding:4px 8px;
+  border:2px solid var(--ink);
+  border-radius:6px;
+}
+.poster-url{
+  font-family:var(--font-mono);
+  font-size:11px;
+  background:var(--wf-soft);
+  border:1px solid var(--line);
+  padding:5px 10px;
+  border-radius:6px;
+  color:var(--accent);
+}
+.poster-list{
+  width:100%;
+  text-align:left;
+  border-top:1px dashed var(--line);
+  padding-top:12px;
+  display:grid;
+  gap:5px;
+  font-size:11.5px;
+  color:var(--ink-2);
+}
+.poster-list div{display:flex;gap:7px}
+.poster-list b{color:var(--accent);font-family:var(--font-mono)}
+
+/* ---------- Tabel Aturan ---------- */
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  overflow:hidden;
+  font-size:13px;
+}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{
+  font-family:var(--font-mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--ink-3);
+  background:var(--wf-soft);
+}
+tr:last-child td{border-bottom:0}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="top-in">
+    <div class="brand">CBT Satria <span>· Wireframe Desain</span></div>
+    <div class="r">
+      <span>Rute: <code>/info/{slug}</code></span>
+      <span>Tanpa Login</span>
+      <span>1 QR untuk 6 Laman Publik</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="head">
+    <span class="eyebrow">Portal 1 Pintu · Laman Publik Sekolah</span>
+    <h1>Portal Publik Sekolah — <code>/info/{slug}</code></h1>
+    <p class="lede">
+      Satu alamat publik utama per sekolah yang menyatukan seluruh laman tanpa login
+      (<code>/jadwal</code>, <code>/ruang</code>, <code>/wali</code>, <code>/papan</code>,
+      <code>/pantau</code>, dan <code>/tv</code>). Panitia cukup mencetak <strong>satu QR</strong>
+      untuk ditempel di gerbang/mading atau dibagikan di grup WhatsApp sekolah.
+    </p>
+    <div class="scope">
+      <span class="tag">Slug sama: schools.papan_slug</span>
+      <span class="tag">404 bila papan mati</span>
+      <span class="tag">Tanpa data personal siswa</span>
+      <span class="tag">Mobile-first + Poster QR</span>
+    </div>
+  </header>
+
+  <!-- SECTION 1: PLATE MOBILE -->
+  <section class="sec">
+    <header>
+      <h2><em>PLATE 01–02</em> Tampilan Mobile Portal 1 Pintu</h2>
+      <p>
+        Menu dibagi menjadi dua kelompok audiens agar siswa/orang tua langsung menemukan jadwal &amp;
+        cek kursi di bagian atas, sementara pengawas/panitia tetap punya akses cepat di bawahnya.
+      </p>
+    </header>
+
+    <div class="plates two">
+      <!-- PLATE 01 -->
+      <div class="plate">
+        <div class="plate-head">
+          <strong>Plate 01 · Keadaan Ujian Berjalan</strong>
+          <span>/info/smkn1-cipanas-ab12</span>
+        </div>
+        <div class="plate-body">
+          <div class="phone">
+            <div class="urlbar">
+              <span>cbt.sekolah.sch.id/info/smkn1-ab12</span>
+              <span>08:14</span>
+            </div>
+
+            <div class="p-header">
+              <div class="logo-box">
+                <span class="logo-pill">LOGO SEKOLAH / APLIKASI</span>
+              </div>
+              <div class="school-row">
+                <div>
+                  <div class="school-name">SMK Negeri 1 Cipanas</div>
+                  <div class="school-sub">Portal informasi ujian · tanpa login</div>
+                </div>
+                <span class="chip ok"><span class="dot"></span> Berjalan</span>
+              </div>
+            </div>
+
+            <div class="p-main">
+              <!-- Pengumuman teratas -->
+              <div class="alert-card">
+                <div class="at">
+                  <span>Pengumuman · Sesi 2 mundur 15 menit</span>
+                  <span style="font-family:var(--font-mono);font-size:10px">07:45</span>
+                </div>
+                <p>Karena upacara bendera, sesi kedua dimulai pukul 09:45 WIB di ruang masing-masing.</p>
+              </div>
+
+              <!-- Ringkasan sesi berjalan -->
+              <div class="status-strip">
+                <div>
+                  <strong>PAS Ganjil 2026/2027</strong>
+                  <span>S-1 · Matematika · 07:30–09:00</span>
+                </div>
+                <span class="chip info">12 ruang</span>
+              </div>
+
+              <!-- Kelompok 1: Siswa & Orang Tua -->
+              <div class="group-label">Untuk Siswa &amp; Orang Tua</div>
+              <div class="menu-list">
+                <div class="menu-item">
+                  <div class="ico">JDW</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Jadwal &amp; Pengumuman</div>
+                    <div class="mi-desc">Jadwal ujian lintas hari, mapel, dan info resmi panitia</div>
+                    <div class="mi-path">/jadwal/smkn1-ab12</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+                <div class="menu-item">
+                  <div class="ico">KRS</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Cek Ruang &amp; Nomor Kursi</div>
+                    <div class="mi-desc">Cari lokasi ruang dan nomor meja memakai Kelas + NIS</div>
+                    <div class="mi-path">/ruang/smkn1-ab12</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+                <div class="menu-item">
+                  <div class="ico">WLI</div>
+                  <div class="mi-body">
+                    <div class="mi-title">
+                      Pantau Wali per Kelas
+                      <span class="chip mute">8 kelas</span>
+                    </div>
+                    <div class="mi-desc">Pantau kehadiran &amp; waktu pengerjaan anak (pakai kode kelas)</div>
+                    <div class="mi-path">/wali/smkn1-ab12</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+              </div>
+
+              <!-- Kelompok 2: Pengawas & Panitia -->
+              <div class="group-label">Untuk Pengawas &amp; Panitia</div>
+              <div class="menu-list">
+                <div class="menu-item">
+                  <div class="ico sec-ico">PGW</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Papan Pengawas</div>
+                    <div class="mi-desc">Daftar penugasan pengawas per ruang pada sesi aktif</div>
+                    <div class="mi-path">/papan/smkn1-ab12</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+                <div class="menu-item">
+                  <div class="ico sec-ico">LVE</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Pantau Aktivitas Live</div>
+                    <div class="mi-desc">Angka peserta mengerjakan, selesai, terputus, dan terkunci</div>
+                    <div class="mi-path">/pantau/smkn1-ab12</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+                <div class="menu-item">
+                  <div class="ico sec-ico">IFP</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Layar IFP / TV Lorong</div>
+                    <div class="mi-desc">Mode layar penuh 16:9 dengan hitung mundur &amp; auto-slide</div>
+                    <div class="mi-path">/tv/smkn1-ab12</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-footer">
+              <p>Portal ini tidak menampilkan nilai, token, atau data personal siswa.</p>
+              <a class="login-link" href="#login">Punya akun? Masuk ke CBT &rarr;</a>
+            </div>
+          </div>
+        </div>
+        <div class="plate-note">
+          Pengumuman teratas (<code>nada = penting</code>) tampil paling atas sebagai ringkasan cepat.
+          Menu <strong>Pantau Wali</strong> hanya muncul bila minimal satu kelas menyalakan <code>wali_slug</code>.
+        </div>
+      </div>
+
+      <!-- PLATE 02 -->
+      <div class="plate">
+        <div class="plate-head">
+          <strong>Plate 02 · Keadaan Siaga (Belum Ada Sesi Aktif)</strong>
+          <span>/info/smkn1-cipanas-ab12</span>
+        </div>
+        <div class="plate-body">
+          <div class="phone">
+            <div class="urlbar">
+              <span>cbt.sekolah.sch.id/info/smkn1-ab12</span>
+              <span>16:30</span>
+            </div>
+
+            <div class="p-header">
+              <div class="logo-box">
+                <span class="logo-pill">LOGO SEKOLAH / APLIKASI</span>
+              </div>
+              <div class="school-row">
+                <div>
+                  <div class="school-name">SMK Negeri 1 Cipanas</div>
+                  <div class="school-sub">Portal informasi ujian · tanpa login</div>
+                </div>
+                <span class="chip mute">Siaga</span>
+              </div>
+            </div>
+
+            <div class="p-main">
+              <div class="status-strip">
+                <div>
+                  <strong>Belum ada sesi ujian berjalan</strong>
+                  <span>Jadwal berikutnya: Senin, 25 Nov · 07:30</span>
+                </div>
+                <span class="chip mute">Siap</span>
+              </div>
+
+              <div class="group-label">Untuk Siswa &amp; Orang Tua</div>
+              <div class="menu-list">
+                <div class="menu-item">
+                  <div class="ico">JDW</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Jadwal &amp; Pengumuman</div>
+                    <div class="mi-desc">Lihat jadwal ujian minggu ini dan pengumuman panitia</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+                <div class="menu-item">
+                  <div class="ico">KRS</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Cek Ruang &amp; Nomor Kursi</div>
+                    <div class="mi-desc">Pastikan ruang dan nomor meja sebelum hari H</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+              </div>
+
+              <div class="group-label">Untuk Pengawas &amp; Panitia</div>
+              <div class="menu-list">
+                <div class="menu-item">
+                  <div class="ico sec-ico">PGW</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Papan Pengawas</div>
+                    <div class="mi-desc">Lihat penugasan pengawas untuk sesi terdekat</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+                <div class="menu-item">
+                  <div class="ico sec-ico">LVE</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Pantau Aktivitas Live</div>
+                    <div class="mi-desc">Ringkasan progres ruang saat ujian dimulai</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+                <div class="menu-item">
+                  <div class="ico sec-ico">IFP</div>
+                  <div class="mi-body">
+                    <div class="mi-title">Layar IFP / TV Lorong</div>
+                    <div class="mi-desc">Mode layar penuh 16:9 untuk layar lobi/ruang guru</div>
+                  </div>
+                  <div class="chev">&rsaquo;</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-footer">
+              <p>Portal ini tidak menampilkan nilai, token, atau data personal siswa.</p>
+              <a class="login-link" href="#login">Punya akun? Masuk ke CBT &rarr;</a>
+            </div>
+          </div>
+        </div>
+        <div class="plate-note">
+          Saat tidak ada kelas dengan <code>wali_slug</code>, baris <strong>Pantau Wali</strong> otomatis
+          tidak ditampilkan (bukan muncul dalam keadaan terkunci/mati).
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: POSTER QR & ATURAN -->
+  <section class="sec">
+    <header>
+      <h2><em>PLATE 03–04</em> Poster Cetak 1 QR &amp; Aturan Privasi</h2>
+      <p>
+        Alasan utama portal ini ada: di lapangan, menempel 5–6 QR berbeda di pintu gerbang membingungkan
+        siswa dan orang tua. Satu poster A4/A5 dari <code>/admin/sekolah</code> cukup untuk semuanya.
+      </p>
+    </header>
+
+    <div class="plates two">
+      <!-- PLATE 03 -->
+      <div class="plate">
+        <div class="plate-head">
+          <strong>Plate 03 · Poster Cetak 1 QR (Gerbang / Mading)</strong>
+          <span>Cetak dari /admin/sekolah</span>
+        </div>
+        <div class="plate-body">
+          <div class="poster">
+            <span class="logo-pill">LOGO SEKOLAH</span>
+            <div>
+              <div class="p-school">SMK Negeri 1 Cipanas</div>
+              <div class="p-event">Portal Informasi Ujian CBT</div>
+            </div>
+            <div class="qr-frame">
+              <div class="qr-grid"></div>
+            </div>
+            <div class="poster-url">cbt.sekolah.sch.id/info/smkn1-ab12</div>
+            <div class="poster-list">
+              <div><b>01</b><span>Jadwal ujian lengkap &amp; pengumuman resmi</span></div>
+              <div><b>02</b><span>Cek ruang ujian &amp; nomor kursi (Kelas + NIS)</span></div>
+              <div><b>03</b><span>Papan pengawas &amp; pantau aktivitas ujian</span></div>
+              <div><b>04</b><span>Pantau wali murid per kelas (dengan kode kelas)</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="plate-note">
+          Admin bisa mencetak poster ini langsung dari kotak Papan Publik di <code>/admin/sekolah</code>
+          tanpa perlu menyusun dokumen QR secara manual.
+        </div>
+      </div>
+
+      <!-- PLATE 04 -->
+      <div class="plate">
+        <div class="plate-head">
+          <strong>Plate 04 · Batas Keamanan &amp; Privasi</strong>
+          <span>Kontrak Backend</span>
+        </div>
+        <div style="padding:14px">
+          <table>
+            <thead>
+              <tr>
+                <th>Aturan</th>
+                <th>Perilaku</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Slug sekolah</strong></td>
+                <td>Memakai <code>schools.papan_slug</code> yang sama. Jika <code>NULL</code>, rute <code>/info/{slug}</code> mengembalikan <code>404</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>Isolasi tenant</strong></td>
+                <td>Semua kueri memakai <code>withoutGlobalScopes()-&gt;where('school_id', $sekolah-&gt;id)</code> dari hasil resolve slug.</td>
+              </tr>
+              <tr>
+                <td><strong>Pengumuman</strong></td>
+                <td>Hanya menampilkan 1 pengumuman terbaru yang <code>berlaku()</code> dari event berstatus <code>berjalan</code> atau <code>siap</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>Menu Pantau Wali</strong></td>
+                <td>Hanya tampil bila sekolah memiliki &ge; 1 kelas aktif dengan <code>wali_slug</code> tidak null.</td>
+              </tr>
+              <tr>
+                <td><strong>Larangan data</strong></td>
+                <td>Tidak pernah mengirim nama siswa, NIS, nomor kursi, token, nilai, atau daftar kelas terkunci.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="plate-note">
+          Seluruh tautan di footer <code>/jadwal</code>, <code>/ruang</code>, <code>/papan</code>, dan
+          <code>/wali</code> bisa diberi tautan balik <code>&larr; Portal</code> ke <code>/info/{slug}</code>.
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

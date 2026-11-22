@@ -114,6 +114,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     | papan yang tidak dimatikan.
     */
     Route::patch('/papan', [PengaturanPapanController::class, 'update'])->name('papan');
+    Route::get('/papan/poster', [PengaturanPapanController::class, 'poster'])->name('papan.poster');
 
     /*
     |----------------------------------------------------------------------
