@@ -196,16 +196,40 @@ export default function Jadwal({
     const mendatang = sisa.filter((b) => !b.selesai && b.status !== 'terlewat');
     const riwayat = sisa.filter((b) => b.selesai || b.status === 'terlewat');
 
+    const inisial = nama
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((s) => s[0]?.toUpperCase() ?? '')
+        .join('') || 'S';
+
     return (
         <KerangkaSiswa
             judul="Jadwal ujian saya"
             tabbarAktif="ujian"
             luang={luang}
-            kiri={<span className="truncate text-[12px] font-medium text-ink-2">Halo, <b className="font-semibold text-ink">{nama}</b></span>}
+            kiri={
+                <span className="flex min-w-0 items-center gap-2">
+                    <span
+                        className="grid size-7 shrink-0 place-items-center rounded-full border border-accent/20 bg-accent-soft text-[11px] font-bold text-accent"
+                        aria-hidden="true"
+                    >
+                        {inisial}
+                    </span>
+                    <span className="flex min-w-0 flex-col">
+                        <span className="text-[10px] leading-none font-normal text-ink-3">
+                            Selamat datang,
+                        </span>
+                        <span className="truncate text-[12.5px] leading-tight font-semibold text-ink">
+                            {nama}
+                        </span>
+                    </span>
+                </span>
+            }
             kanan={
                 <div className="flex items-center gap-1.5">
                     {kelas && (
-                        <span className="rounded-md border border-line bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-ink-2">
+                        <span className="rounded-full border border-accent/20 bg-accent-soft px-2.5 py-0.5 text-[11px] font-semibold text-accent">
                             {kelas}
                         </span>
                     )}
@@ -215,7 +239,7 @@ export default function Jadwal({
                         disabled={menyegarkan || !online}
                         aria-label="Muat ulang jadwal"
                         title="Muat ulang jadwal"
-                        className="grid size-7 place-items-center rounded-md border border-line bg-surface text-ink-2 transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
+                        className="grid size-7 place-items-center rounded-full border border-line bg-surface text-ink-2 transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
                     >
                         <svg
                             width="13"

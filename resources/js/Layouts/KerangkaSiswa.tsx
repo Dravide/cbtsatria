@@ -277,18 +277,25 @@ export default function KerangkaSiswa({
                     }
                 >
                     {bilah && (
-                        <header className="sticky top-0 z-20 flex flex-col gap-0.5 border-b border-line bg-surface px-3 py-1.5">
+                        <header
+                            className={
+                                'sticky top-0 z-20 border-b border-line px-3 ' +
+                                (!gelap && identitasAplikasi?.logo
+                                    ? 'border-t-2 border-t-accent bg-surface/95 pb-2 pt-2 shadow-[0_1px_4px_rgba(16,22,32,0.05)] backdrop-blur-sm'
+                                    : 'bg-surface py-2')
+                            }
+                        >
                             {!gelap && identitasAplikasi?.logo ? (
-                                <>
-                                    <div className="flex justify-center py-0.5">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-center border-b border-line/60 pb-2">
                                         <img
                                             src={identitasAplikasi.logo}
                                             alt={identitasAplikasi.nama}
-                                            className="h-5 w-auto max-w-[136px] object-contain"
+                                            className="h-5 w-auto max-w-[144px] object-contain"
                                         />
                                     </div>
                                     <div className="flex items-center justify-between gap-2">
-                                        <h1 className="bilah-judul min-w-0 text-ink-2">
+                                        <h1 className="bilah-judul min-w-0 flex-1 text-ink-2">
                                             {kiri ?? judul}
                                         </h1>
                                         {kanan && (
@@ -297,7 +304,7 @@ export default function KerangkaSiswa({
                                             </div>
                                         )}
                                     </div>
-                                </>
+                                </div>
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <div className="flex min-w-0 items-center gap-2">
