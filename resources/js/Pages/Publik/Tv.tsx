@@ -284,56 +284,57 @@ export default function Tv({
             <div className={`flex h-screen w-screen flex-col overflow-hidden ${tema.akar}`}>
                 {/* Bar Atas IFP */}
                 <header
-                    className={`flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3.5 ${tema.header}`}
+                    className={`grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 border-b px-6 py-3.5 ${tema.header}`}
                 >
-                    <div className="flex min-w-0 items-center gap-4">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2.5">
+                            <h1 className="truncate text-xl font-bold tracking-tight lg:text-2xl">
+                                {potret.sekolah}
+                            </h1>
+                            <span
+                                className={
+                                    'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-0.5 font-mono text-xs font-semibold uppercase ' +
+                                    (potret.keadaan === 'berjalan'
+                                        ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40'
+                                        : potret.keadaan === 'menunggu'
+                                          ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/40'
+                                          : 'bg-slate-500/20 text-slate-400 ring-1 ring-slate-500/40')
+                                }
+                            >
+                                {potret.keadaan === 'berjalan' && (
+                                    <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                                )}
+                                {potret.keadaan === 'berjalan'
+                                    ? 'LIVE'
+                                    : potret.keadaan === 'menunggu'
+                                      ? 'MENUNGGU'
+                                      : potret.keadaan === 'selesai'
+                                        ? 'SELESAI'
+                                        : 'SIAGA'}
+                            </span>
+                        </div>
+                        <p className={`mt-0.5 truncate text-sm lg:text-base ${tema.teks2}`}>
+                            {judulSesi(potret.sesi)}
+                            {potret.sesi && (
+                                <span className={`ml-2 font-mono ${tema.teks3}`}>
+                                    · {potret.sesi.label} · {potret.sesi.jam}
+                                    {potret.sesi.selesai ? `–${potret.sesi.selesai}` : ''}
+                                </span>
+                            )}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center justify-center">
                         {identitasAplikasi?.logo && (
                             <img
                                 src={identitasAplikasi.logo}
                                 alt={identitasAplikasi.nama || potret.sekolah}
-                                className="h-10 w-auto max-w-[160px] shrink-0 object-contain"
+                                className="h-10 w-auto max-w-[180px] object-contain"
                             />
                         )}
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2.5">
-                                <h1 className="truncate text-xl font-bold tracking-tight lg:text-2xl">
-                                    {potret.sekolah}
-                                </h1>
-                                <span
-                                    className={
-                                        'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-0.5 font-mono text-xs font-semibold uppercase ' +
-                                        (potret.keadaan === 'berjalan'
-                                            ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40'
-                                            : potret.keadaan === 'menunggu'
-                                              ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/40'
-                                              : 'bg-slate-500/20 text-slate-400 ring-1 ring-slate-500/40')
-                                    }
-                                >
-                                    {potret.keadaan === 'berjalan' && (
-                                        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                                    )}
-                                    {potret.keadaan === 'berjalan'
-                                        ? 'LIVE'
-                                        : potret.keadaan === 'menunggu'
-                                          ? 'MENUNGGU'
-                                          : potret.keadaan === 'selesai'
-                                            ? 'SELESAI'
-                                            : 'SIAGA'}
-                                </span>
-                            </div>
-                            <p className={`mt-0.5 truncate text-sm lg:text-base ${tema.teks2}`}>
-                                {judulSesi(potret.sesi)}
-                                {potret.sesi && (
-                                    <span className={`ml-2 font-mono ${tema.teks3}`}>
-                                        · {potret.sesi.label} · {potret.sesi.jam}
-                                        {potret.sesi.selesai ? `–${potret.sesi.selesai}` : ''}
-                                    </span>
-                                )}
-                            </p>
-                        </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-4">
+                    <div className="flex shrink-0 items-center justify-end gap-4">
                         {sisaDetik !== null && (
                             <div
                                 className={
