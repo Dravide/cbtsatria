@@ -57,6 +57,13 @@ export default function EventJadwal({
                 <>
                     <PemilihEvent event={event} />
 
+                    <a
+                        href={`${jalur}/jadwal/pdf`}
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                    >
+                        Unduh PDF
+                    </a>
+
                     <Tombol
                         onClick={() => router.post(`${jalur}/jadwal/deteksi`, {}, { preserveScroll: true })}
                         title="Periksa ulang jadwal dan laporkan hasilnya"

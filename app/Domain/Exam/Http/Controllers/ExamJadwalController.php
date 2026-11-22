@@ -16,9 +16,11 @@ use App\Domain\Exam\Services\ExamSusulanService;
 use App\Domain\Exam\Services\KonflikJadwal;
 use App\Domain\Exam\Services\PenempatanService;
 use App\Domain\Exam\Services\SesiService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -73,6 +75,41 @@ class ExamJadwalController
         Gate::authorize('view', $event);
 
         return Inertia::render('Admin/Event/Jadwal', $this->muatanJadwal($event, $konflik, $penempatan, $susulan));
+    }
+
+    public function pdf(SchoolEvent $event): HttpResponse
+    {
+        Gate::authorize('view', $event);
+        $event->loadMissing(['school', 'academicYear', 'semester']);
+
+        $sesi = ExamSession::query()
+            ->whereIn('exam_id', $event->exams()->pluck('id'))
+            ->with(['exam.subject:id,code,name'])
+            ->orderBy('access_opens_at')
+            ->orderBy('session_number')
+            ->get();
+
+        $baris = $sesi->map(function (ExamSession $s): array {
+            return [
+                'hari_tanggal' => $s->access_opens_at?->locale('id')->translatedFormat('l, d M Y') ?? '—',
+                'waktu' => $s->access_opens_at
+                    ? $s->access_opens_at->format('H:i').'–'.($s->hard_end_at?->format('H:i') ?? '?')
+                    : '—',
+                'sesi' => $s->label(),
+                'mapel' => $s->exam?->subject?->name ?? $s->exam?->title ?? 'Ujian',
+            ];
+        })->all();
+
+        $kode = preg_replace('/[^A-Za-z0-9\-_]+/', '-', strtolower($event->code)) ?: (string) $event->id;
+
+        return Pdf::loadView('laporan.jadwal-event', [
+            'sekolah' => $event->school,
+            'event' => $event,
+            'baris' => $baris,
+            'dicetak' => now()->format('d/m/Y H:i'),
+        ])
+            ->setPaper('a4', 'portrait')
+            ->download("jadwal-{$kode}.pdf");
     }
 
     /**

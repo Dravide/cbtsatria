@@ -454,6 +454,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // 16 - jadwal & sesi. Ujian lahir di sini karena sesi tidak bisa ada
     // tanpa ujiannya, dan plate 16 mengelompokkan tabelnya per ujian.
     Route::get('/events/{event}/jadwal', [ExamJadwalController::class, 'index'])->name('events.jadwal');
+    Route::get('/events/{event}/jadwal/pdf', [ExamJadwalController::class, 'pdf'])->name('events.jadwal.pdf');
     Route::get('/events/{event}/jadwal/{ujian}/sesi', [ExamJadwalController::class, 'sesi'])->name('events.jadwal.sesi');
     Route::post('/events/{event}/jadwal/deteksi', [ExamJadwalController::class, 'deteksi'])->name('events.jadwal.deteksi');
 
