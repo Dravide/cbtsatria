@@ -67,6 +67,7 @@ class JadwalSiswaController extends SiswaDasar
             ->with([
                 'exam.subject:id,name',
                 'exam.event:id,name,status,results_published_at',
+                'pesertaEvent.kelas:id,name',
                 'session',
                 'room.eventRoom.room:id,code,name,location',
             ])
@@ -294,10 +295,13 @@ class JadwalSiswaController extends SiswaDasar
             && $sesi->hard_end_at >= $sekarang
             && $sesi->access_opens_at <= $batasUtama;
 
+        $status = $this->statusBaris($p, $attempt, $sesi, $presensi, $sekarang);
+
         return [
             'peserta_id' => $p->id,
             'mapel' => $ujian?->subject?->name,
             'ujian' => $ujian?->title,
+            'event' => $ujian?->event?->name,
             'tanggal' => $sesi?->access_opens_at?->format('d M'),
             'tanggal_iso' => $sesi?->access_opens_at?->toIso8601String(),
             'jam' => $sesi === null
@@ -347,8 +351,8 @@ class JadwalSiswaController extends SiswaDasar
                     ),
             ],
 
-            'status' => $this->statusBaris($p, $attempt, $sesi, $sekarang),
-            'nada' => $this->nadaBaris($p, $attempt, $sesi, $sekarang),
+            'status' => $status,
+            'nada' => $this->nadaBaris($status),
         ];
     }
 
@@ -383,8 +387,13 @@ class JadwalSiswaController extends SiswaDasar
      * jauh lebih berguna daripada "terdaftar" pada ujian yang mulai 20 menit
      * lagi.
      */
-    private function statusBaris(ExamParticipant $p, ?ExamAttempt $attempt, ?ExamSession $sesi, CarbonInterface $sekarang): string
-    {
+    private function statusBaris(
+        ExamParticipant $p,
+        ?ExamAttempt $attempt,
+        ?ExamSession $sesi,
+        ?AttendanceRecord $presensi,
+        CarbonInterface $sekarang,
+    ): string {
         if ($p->status !== ExamParticipant::STATUS_TERDAFTAR) {
             return 'dikecualikan';
         }
@@ -415,27 +424,29 @@ class JadwalSiswaController extends SiswaDasar
             return 'susulan';
         }
 
-        // Presensi dibaca di sini, bukan lewat KelayakanUjian: yang
-        // dibutuhkan jadwal adalah "apakah anak ini perlu menghubungi
-        // pengawas", dan KelayakanUjian menjawab pertanyaan yang berbeda -
-        // "boleh mulai atau tidak" - yang menuntut seluruh sebelas syaratnya
-        // dipenuhi.
-        $hadir = $p->exam_session_id !== null && AttendanceRecord::query()
-            ->where('exam_participant_id', $p->id)
-            ->whereNotNull('verified_at')
-            ->exists();
+        $hadir = $p->exam_session_id !== null
+            && $presensi !== null
+            && $presensi->verified_at !== null;
 
         if (! $hadir) {
-            return $sekarang >= $sesi->access_opens_at ? 'presensi belum' : 'besok';
+            if ($sekarang >= $sesi->access_opens_at) {
+                return 'presensi belum';
+            }
+
+            if ($sesi->access_opens_at->isSameDay($sekarang)) {
+                return 'hari ini';
+            }
+
+            return $sesi->access_opens_at->isSameDay($sekarang->copy()->addDay())
+                ? 'besok'
+                : 'terjadwal';
         }
 
         return $sesi->access_opens_at > $sekarang ? 'siap' : 'siap dimulai';
     }
 
-    private function nadaBaris(ExamParticipant $p, ?ExamAttempt $attempt, ?ExamSession $sesi, CarbonInterface $sekarang): string
+    private function nadaBaris(string $status): string
     {
-        $status = $this->statusBaris($p, $attempt, $sesi, $sekarang);
-
         return match ($status) {
             'selesai', 'siap', 'siap dimulai' => 'ok',
             'sedang dikerjakan', 'susulan' => 'info',

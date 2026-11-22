@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { ReactNode } from 'react';
 import { UmpanBalik } from '@/Components/ui';
 
@@ -84,6 +84,42 @@ const TAB = [
     { label: 'Akun', segmen: 'akun', href: '/siswa/akun' },
 ] as const;
 
+function IkonTab({ segmen }: { segmen: (typeof TAB)[number]['segmen'] }) {
+    switch (segmen) {
+        case 'ujian':
+            return (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                    <path d="M9 9h6" />
+                    <path d="M9 13h6" />
+                    <path d="M9 17h3" />
+                </svg>
+            );
+        case 'nilai':
+            return (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 3v18h18" />
+                    <path d="M7 15l4-4 4 3 5-6" />
+                </svg>
+            );
+        case 'pelanggaran':
+            return (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 3l8 4v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V7l8-4z" />
+                    <path d="M12 9v4" />
+                    <path d="M12 16h.01" />
+                </svg>
+            );
+        case 'akun':
+            return (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-3.8 3.6-6 8-6s8 2.2 8 6" />
+                </svg>
+            );
+    }
+}
+
 /**
  * Tiga sel tabbar: tab kiri, tab Main di TENGAH, tab kanan.
  *
@@ -115,8 +151,8 @@ function TabMain({ aktif = false }: { aktif?: boolean }) {
         <Link
             href="/siswa/luang"
             className={
-                'flex min-h-[3rem] flex-col items-center justify-center gap-1 transition-colors duration-150 ' +
-                (aktif ? 'text-accent' : 'text-ink-3 hover:text-ink')
+                'flex min-h-[3rem] items-center justify-center transition-colors duration-150 ' +
+                (aktif ? 'sel-hidup' : 'text-ink-3 hover:text-ink')
             }
             aria-current={aktif ? 'page' : undefined}
             aria-label="Waktu luang - main"
@@ -124,11 +160,11 @@ function TabMain({ aktif = false }: { aktif?: boolean }) {
         >
             <span
                 className={
-                    'relative grid size-6 place-items-center rounded-md border bg-surface ' +
+                    'relative grid size-7 place-items-center rounded-md border bg-surface ' +
                     (aktif ? 'border-accent text-accent' : 'border-line')
                 }
             >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path
                         d="M2 12.5h12"
                         stroke="currentColor"
@@ -150,9 +186,6 @@ function TabMain({ aktif = false }: { aktif?: boolean }) {
                     sekali sebagai sinyal, bukan sebagai label. */}
                 <span className="absolute -top-1 -right-1 size-1.5 rounded-full bg-accent ring-1 ring-surface" />
             </span>
-            <span className={'text-[10px] font-medium ' + (aktif ? 'font-semibold text-accent' : '')}>
-                Main
-            </span>
         </Link>
     );
 }
@@ -171,9 +204,11 @@ export function TabbarSiswa({ aktif, luang = false }: { aktif: string; luang?: b
                 key={t.segmen}
                 href={t.href}
                 aria-current={on ? 'page' : undefined}
+                aria-label={t.label}
+                title={t.label}
                 className={on ? 'sel-hidup' : undefined}
             >
-                {t.label}
+                <IkonTab segmen={t.segmen} />
             </Link>
         );
     };
@@ -224,6 +259,9 @@ export default function KerangkaSiswa({
     children,
     aksiBawah,
 }: Props) {
+    const { identitasAplikasi } = usePage().props as unknown as {
+        identitasAplikasi?: { nama: string; logo: string | null };
+    };
     // Material papan hanya di rangka terang - lihat catatan berkas ini.
     const rangka = gelap ? 'rangka-ujian' : 'konsol-siswa bg-paper';
 
@@ -239,33 +277,40 @@ export default function KerangkaSiswa({
                     }
                 >
                     {bilah && (
-                        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface px-3 py-2">
-                            <div className="flex min-w-0 items-center gap-2">
-                                {/*
-                                 * H1, dan ukurannya sengaja TIDAK naik.
-                                 *
-                                 * Sebelumnya baris ini `<span>`, dan seluruh
-                                 * konsol menjadi empat laman tanpa satu pun
-                                 * judul - pembaca layar mengumumkan isi tanpa
-                                 * pernah menyebut laman mana yang sedang
-                                 * dibuka, dan garis besar dokumennya kosong.
-                                 *
-                                 * Yang salah bukan ukurannya, melainkan
-                                 * elemennya: ponsel 26rem dengan bilah 12px
-                                 * adalah bentuk yang sudah dipilih, dan judul
-                                 * raksasa di atas daftar jadwal akan
-                                 * menggeser satu-satunya ujian yang penting
-                                 * ke bawah lipatan. Jadi yang diganti
-                                 * elemennya, dan kelas `bilah-judul`
-                                 * mengembalikan huruf badannya.
-                                 */}
-                                <h1 className="bilah-judul min-w-0">
-                                    {kiri ?? judul}
-                                </h1>
-                            </div>
-
-                            {kanan && (
-                                <div className="ml-auto flex shrink-0 items-center gap-2">{kanan}</div>
+                        <header className="sticky top-0 z-20 flex flex-col gap-0.5 border-b border-line bg-surface px-3 py-1.5">
+                            {!gelap && identitasAplikasi?.logo ? (
+                                <>
+                                    <div className="flex justify-center py-0.5">
+                                        <img
+                                            src={identitasAplikasi.logo}
+                                            alt={identitasAplikasi.nama}
+                                            className="h-5 w-auto max-w-[136px] object-contain"
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <h1 className="bilah-judul min-w-0 text-ink-2">
+                                            {kiri ?? judul}
+                                        </h1>
+                                        {kanan && (
+                                            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                                                {kanan}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <h1 className="bilah-judul min-w-0">
+                                            {kiri ?? judul}
+                                        </h1>
+                                    </div>
+                                    {kanan && (
+                                        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                                            {kanan}
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </header>
                     )}

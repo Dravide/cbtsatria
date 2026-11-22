@@ -38,72 +38,51 @@
 */
 
 .konsol-siswa {
-    /* Permukaan - colourway `off-white` */
-    --color-paper: oklch(96% 0.009 82);
-    --color-surface: oklch(99.5% 0.003 82);
-    --color-surface-2: oklch(92% 0.012 82);
-    --color-paper-3: oklch(87.5% 0.014 80);
-    --color-line: oklch(81% 0.012 80);
-
-    /* Garis yang MENANDAI: 2px tinta, hanya pada sisi yang memulai sebuah
-       benda (atas tabel, tepi kartu) - bukan pada setiap sisi. */
-    --color-line-2: oklch(16% 0.006 60);
+    /* Permukaan - selaras tema konsol Admin */
+    --color-paper: #eceff4;
+    --color-surface: #ffffff;
+    --color-surface-2: #e4e9f0;
+    --color-paper-3: #d3d9e2;
+    --color-line: #d3d9e2;
+    --color-line-2: #c6cedb;
 
     /* Teks */
-    --color-ink: oklch(16% 0.006 60);
-    --color-ink-2: oklch(27% 0.006 60);
-    --color-ink-3: oklch(46% 0.01 60);
+    --color-ink: #161b24;
+    --color-ink-2: #4a5565;
+    --color-ink-3: #77808f;
 
-    /* Sinyal: rust. Ia menandai AKSI dan PILIHAN SEKARANG, tidak menghias
-       permukaan. Kurang dari 5% layar, sesuai postur `restrained`. */
-    --color-accent: oklch(53% 0.15 38);
-    --color-accent-soft: oklch(91% 0.035 45);
-    --color-on-accent: oklch(99.5% 0.003 82);
-    --color-focus: oklch(50% 0.16 38);
+    /* Aksen biru cobalt Admin */
+    --color-accent: #1e4fa3;
+    --color-accent-soft: #e3ebf9;
+    --color-on-accent: #ffffff;
+    --color-focus: #1e4fa3;
 
-    /*
-     * Pita tinta - bidang gelap yang memuat satu perintah dan angkanya.
-     *
-     * DUA tinta pita, bukan tiga: `plate-ink` untuk kalimat pokok dan
-     * `plate-ink-2` untuk keterangan di bawahnya. Keduanya HARUS terang;
-     * tinta biasa di atas pita adalah tinta gelap di atas tinta gelap.
-     */
-    --color-plate: oklch(16% 0.006 60);
-    --color-plate-ink: oklch(96% 0.01 80);
-    --color-plate-ink-2: oklch(76% 0.012 70);
-    --color-plate-line: oklch(38% 0.01 60);
+    /* Pita tinta - bidang gelap senada ink Admin */
+    --color-plate: #161b24;
+    --color-plate-ink: #eceff4;
+    --color-plate-ink-2: #b9c0cc;
+    --color-plate-line: rgba(255, 255, 255, 0.12);
 
-    /*
-     * Nada status - TIGA nada hangat, bukan lima warna.
-     *
-     *   ok    rust      - ujian ini hidup; inilah yang harus dikerjakan
-     *   warn  umbi 62   - ada yang menghalangi, dan itu bisa dibereskan
-     *   bad   bata 22   - berhenti; ini bukan ujian yang bisa dilanjutkan
-     *   info  netral    - sudah lewat, tidak ada yang perlu dilakukan
-     *
-     * Ketiganya berada dalam keluarga hangat yang sama (hue 22 sampai 62),
-     * jadi papan tidak pernah tampil sebagai pelangi - kesalahan yang paling
-     * mudah terjadi pada chip status.
-     */
-    --color-ok: oklch(45% 0.14 38);
-    --color-ok-bg: oklch(93% 0.033 45);
-    --color-warn: oklch(40% 0.09 62);
-    --color-warn-bg: oklch(93% 0.04 66);
-    --color-bad: oklch(40% 0.13 22);
-    --color-bad-bg: oklch(93% 0.036 26);
-    --color-info: oklch(38% 0.012 60);
-    --color-info-bg: oklch(92% 0.012 80);
+    /* Nada status semantik - selaras Admin */
+    --color-ok: #186b47;
+    --color-ok-bg: #e2f2e9;
+    --color-warn: #8a5a06;
+    --color-warn-bg: #fbf0d9;
+    --color-bad: #9b2530;
+    --color-bad-bg: #fae4e6;
+    --color-info: #1f5f7a;
+    --color-info-bg: #e1eff4;
 
-    /* Huruf - Bricolage Grotesque untuk konsol siswa. */
+    /* Huruf - selaras konsol Admin */
     --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
     --font-sans: 'Bricolage Grotesque', 'Noto Naskh Arabic', 'Noto Sans Sundanese', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
-    /* Bentuk - Terrazzo tidak pernah membulat */
-    --radius-wf: 0;
-    --shadow-wf: none;
-    --shadow-kotak: none;
-    --shadow-kartu: 4px 4px 0 var(--color-paper-3);
+    /* Bentuk - selaras kartu Admin */
+    --radius-wf: 8px;
+    --shadow-wf: 0 1px 2px rgba(16, 22, 32, 0.05), 0 10px 26px -18px rgba(16, 22, 32, 0.35);
+    --shadow-kotak: 0 1px 0 rgba(16, 22, 32, 0.03);
+    --shadow-kartu: var(--shadow-wf);
     --rule-bar: 2px;
     --rule-hair: 1px;
     --tracking-display: -0.025em;

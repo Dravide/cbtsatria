@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wireframe /siswa — Selaras Tema Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --paper: #eceff4;
+      --surface: #ffffff;
+      --surface-2: #e4e9f0;
+      --line: #d3d9e2;
+      --ink: #161b24;
+      --ink-2: #4a5565;
+      --ink-3: #77808f;
+      --accent: #1e4fa3;
+      --accent-soft: #e3ebf9;
+      --on-accent: #ffffff;
+      --ok: #186b47;
+      --ok-bg: #e2f2e9;
+      --warn: #8a5a06;
+      --warn-bg: #fbf0d9;
+      --bad: #9b2530;
+      --bad-bg: #fae4e6;
+      --info: #1f5f7a;
+      --info-bg: #e1eff4;
+      --plate: #161b24;
+      --plate-ink: #eceff4;
+      --plate-ink-2: #b9c0cc;
+      --radius-wf: 8px;
+      --shadow-wf: 0 1px 2px rgba(16, 22, 32, 0.05), 0 10px 26px -18px rgba(16, 22, 32, 0.35);
+      --shadow-kotak: 0 1px 0 rgba(16, 22, 32, 0.03);
+      --font-sans: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+      --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #dfe5ee;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Bar kontrol wireframe (di luar layar ponsel) */
+    .wf-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .wf-toolbar-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-2);
+      margin-right: 4px;
+    }
+    .wf-btn {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-2);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .wf-btn:hover { border-color: var(--ink-3); color: var(--ink); }
+    .wf-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--on-accent);
+    }
+
+    /* Rangka ponsel 26rem */
+    .phone-wrap {
+      padding: 20px 12px 32px;
+      display: flex;
+      justify-content: center;
+    }
+    .phone {
+      width: 100%;
+      max-width: 26rem;
+      min-height: 760px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow-wf);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Header lengket */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .topbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .brand-logo-wide {
+      height: 28px;
+      max-width: 170px;
+      padding: 0 10px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      border: 1px solid #c6d7f5;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .brand-logo-wide svg { flex-shrink: 0; }
+    .topbar-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .topbar-name b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .chip-kelas {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-2);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .btn-refresh {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-2);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+    .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Konten utama */
+    .main {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Badge status semantik (Admin palette) */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge-ok { background: var(--ok-bg); color: var(--ok); }
+    .badge-warn { background: var(--warn-bg); color: var(--warn); }
+    .badge-bad { background: var(--bad-bg); color: var(--bad); }
+    .badge-info { background: var(--info-bg); color: var(--info); }
+    .badge-mute { background: var(--surface-2); color: var(--ink-2); }
+
+    /* Banner offline & pengumuman */
+    .alert-offline {
+      background: var(--bad-bg);
+      border: 1px solid #f1c1c5;
+      color: var(--bad);
+      border-radius: var(--radius-wf);
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-wf);
+      box-shadow: var(--shadow-kotak);
+    }
+    .pengumuman {
+      padding: 10px 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .pengumuman-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+    .pengumuman-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .pengumuman-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-3);
+    }
+    .pengumuman-body {
+      font-size: 12px;
+      color: var(--ink-2);
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    /* Hero card ujian utama (#161b24) */
+    .hero {
+      background: var(--plate);
+      color: var(--plate-ink);
+      border-radius: var(--radius-wf);
+      box-shadow: var(--shadow-wf);
+      overflow: hidden;
+    }
+    .hero-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .hero-date {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--plate-ink-2);
+    }
+    .hero-body { padding: 14px; }
+    .hero-time-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .hero-time {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .hero-until {
+      font-size: 12px;
+      color: var(--plate-ink-2);
+    }
+    .hero-countdown {
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 4px 9px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .hero-countdown b {
+      font-family: var(--font-mono);
+      color: #93c5fd;
+    }
+    .hero-subject {
+      margin: 12px 0 0;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    .hero-event {
+      margin: 3px 0 0;
+      font-size: 12px;
+      color: var(--plate-ink-2);
+    }
+    .hero-meta {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--plate-ink-2);
+    }
+    .hero-link {
+      color: #93c5fd;
+      font-weight: 500;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+    .hero-presence {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .dot-ok { background: #34d399; }
+    .dot-warn { background: #fbbf24; }
+    .dot-bad { background: #f87171; }
+    .hero-actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 7px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-primary {
+      flex: 1;
+      background: var(--accent);
+      color: var(--on-accent);
+    }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-warn {
+      flex: 1;
+      background: var(--warn-bg);
+      color: var(--warn);
+      border-color: #f3d79b;
+    }
+    .btn-ghost-dark {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.16);
+      color: var(--plate-ink);
+    }
+    .btn-disabled-dark {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--plate-ink-2);
+      cursor: default;
+    }
+
+    /* Kemajuan */
+    .progress-card { padding: 10px 12px; }
+    .progress-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .progress-num {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .progress-num span { color: var(--ink-3); font-weight: 400; }
+    .progress-sub { color: var(--ink-2); font-size: 12px; }
+    .progress-track {
+      margin-top: 8px;
+      height: 6px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 40%;
+      background: var(--accent);
+      border-radius: 999px;
+    }
+
+    /* Banner remedial */
+    .remedial-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--accent-soft);
+      border: 1px solid #c6d7f5;
+      border-radius: var(--radius-wf);
+      font-size: 12px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .remedial-banner b { color: var(--accent); }
+    .remedial-cta {
+      font-weight: 600;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* Daftar ujian */
+    .list-card { overflow: hidden; }
+    .list-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .list-head h2 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .list-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-2);
+      background: var(--surface-2);
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+    .list-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.12s;
+    }
+    .list-row:last-child { border-bottom: none; }
+    .list-row:hover { background: #f7f9fc; }
+    .list-row-main { min-width: 0; flex: 1; }
+    .list-row-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .list-row-sub {
+      font-size: 11.5px;
+      color: var(--ink-2);
+      margin: 3px 0 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .history-toggle {
+      width: 100%;
+      border: 0;
+      border-top: 1px solid var(--line);
+      background: var(--surface-2);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--ink-2);
+      cursor: pointer;
+    }
+
+    /* Floating tabbar */
+    .tabbar-wrap {
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      padding: 6px 12px 12px;
+      background: linear-gradient(to top, var(--paper) 65%, transparent);
+    }
+    .tabbar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-wf);
+      box-shadow: var(--shadow-wf);
+      overflow: hidden;
+    }
+    .tab-item {
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-3);
+      text-decoration: none;
+      position: relative;
+    }
+    .tab-item.active {
+      color: var(--accent);
+      font-weight: 600;
+      background: var(--accent-soft);
+    }
+    .tab-main-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      position: relative;
+      color: var(--ink-2);
+    }
+    .tab-main-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      border: 1px solid var(--surface);
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wf-toolbar">
+    <span class="wf-toolbar-label">Simulasi Keadaan /siswa:</span>
+    <button class="wf-btn active" onclick="setState('siap', this)">1. Siap Dimulai</button>
+    <button class="wf-btn" onclick="setState('menunggu', this)">2. Menunggu Sesi &amp; Presensi</button>
+    <button class="wf-btn" onclick="setState('terkunci', this)">3. Terkunci</button>
+    <button class="wf-btn" onclick="setState('kosong', this)">4. Tanpa Ujian</button>
+    <button class="wf-btn" onclick="toggleOffline(this)">Toggle Offline</button>
+  </div>
+
+  <div class="phone-wrap">
+    <div class="phone">
+      <!-- Sticky Topbar -->
+      <header class="topbar">
+        <div class="topbar-row">
+          <div class="brand-logo-wide" title="Logo horizontal panjang">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.3L18.6 8 12 11.7 5.4 8 12 4.3z" />
+            </svg>
+            <span>SMK SATRIA NUSANTARA</span>
+          </div>
+          <div class="topbar-right">
+            <span class="chip-kelas">XII IPA 1</span>
+            <button class="btn-refresh" title="Muat ulang jadwal" aria-label="Muat ulang jadwal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="topbar-name">Halo, <b>Abizar Krisandi</b></div>
+      </header>
+
+      <main class="main">
+        <div id="offline-banner" class="alert-offline hidden">
+          Koneksi internet terputus. Periksa Wi-Fi ruang ujian sebelum memulai.
+        </div>
+
+        <!-- Pengumuman -->
+        <section class="card pengumuman" aria-label="Pengumuman">
+          <div class="pengumuman-head">
+            <span class="pengumuman-title">Informasi Sesi Pagi</span>
+            <span class="pengumuman-time">s.d. 22 Nov 12:00</span>
+          </div>
+          <p class="pengumuman-body">
+            Harap masuk ruang 15 menit sebelum sesi dibuka dan siapkan kartu peserta untuk verifikasi pengawas.
+          </p>
+        </section>
+
+        <!-- Kartu Utama -->
+        <section id="hero-card" class="hero">
+          <header class="hero-head">
+            <span class="hero-date">22 Nov</span>
+            <span id="hero-badge" class="badge badge-ok">Siap dimulai</span>
+          </header>
+          <div class="hero-body">
+            <div class="hero-time-row">
+              <b class="hero-time">08:00</b>
+              <span class="hero-until">sampai 09:30</span>
+            </div>
+
+            <div id="hero-countdown" class="hero-countdown hidden">
+              dibuka dalam <b>12m 30d</b>
+            </div>
+
+            <h3 class="hero-subject">Matematika Wajib</h3>
+            <p class="hero-event">PTS Ganjil 2026/2027 · Ujian Utama</p>
+
+            <div class="hero-meta">
+              <span>Ruang Lab 01, kursi 12</span>
+              <span>·</span>
+              <span class="hero-link">Lihat posisi kursi</span>
+            </div>
+
+            <div id="hero-presence" class="hero-presence">
+              <span id="presence-dot" class="dot dot-ok"></span>
+              <span id="presence-text">Presensi hadir pukul 07:48</span>
+            </div>
+
+            <div id="hero-actions" class="hero-actions">
+              <button class="btn btn-primary" type="button">Mulai ujian</button>
+              <a class="btn btn-ghost-dark" href="#aturan">Lihat aturan</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Kemajuan -->
+        <section id="progress-card" class="card progress-card">
+          <div class="progress-row">
+            <span class="progress-num">2 <span>/ 5 ujian selesai</span></span>
+            <span class="progress-sub">3 masih menunggu</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill"></div>
+          </div>
+        </section>
+
+        <!-- Banner Remedial -->
+        <a id="remedial-banner" class="remedial-banner" href="#remedial">
+          <span>Tersedia <b>3 soal latihan</b> di Klinik Remedial Pribadi</span>
+          <span class="remedial-cta">Buka →</span>
+        </a>
+
+        <!-- Daftar Ujian -->
+        <section class="card list-card">
+          <header class="list-head">
+            <h2>Ujian saya</h2>
+            <span id="list-count" class="list-count">5</span>
+          </header>
+
+          <div id="list-populated">
+            <a class="list-row" href="#ujian-2">
+              <div class="list-row-main">
+                <p class="list-row-title">Bahasa Indonesia</p>
+                <p class="list-row-sub">PTS Ganjil · 22 Nov, 10:00–11:30, Ruang Lab 01</p>
+              </div>
+              <span class="badge badge-mute">Hari ini</span>
+            </a>
+
+            <a class="list-row" href="#ujian-3">
+              <div class="list-row-main">
+                <p class="list-row-title">Bahasa Inggris</p>
+                <p class="list-row-sub">PTS Ganjil · 23 Nov, 08:00–09:30, Ruang Lab 01</p>
+              </div>
+              <span class="badge badge-mute">Besok</span>
+            </a>
+
+            <button class="history-toggle" type="button" onclick="toggleHistory()">
+              <span>Selesai / terlewat (2)</span>
+              <span id="history-label">Tampilkan</span>
+            </button>
+
+            <div id="history-rows" class="hidden">
+              <a class="list-row" href="#ujian-4">
+                <div class="list-row-main">
+                  <p class="list-row-title">Fisika</p>
+                  <p class="list-row-sub">PTS Ganjil · 21 Nov, 08:00–09:30</p>
+                </div>
+                <span class="badge badge-ok">Selesai</span>
+              </a>
+              <a class="list-row" href="#ujian-5">
+                <div class="list-row-main">
+                  <p class="list-row-title">Kimia</p>
+                  <p class="list-row-sub">PTS Ganjil · 20 Nov, 10:00–11:30</p>
+                </div>
+                <span class="badge badge-bad">Terlewat</span>
+              </a>
+            </div>
+          </div>
+
+          <div id="list-empty" class="hidden" style="padding: 24px 14px; font-size: 13px; color: var(--ink-2); line-height: 1.5;">
+            Belum ada ujian yang ditempatkan untuk Anda. Jadwal ditetapkan Admin lewat peserta event, dan akan muncul di sini begitu Anda terdaftar.
+          </div>
+        </section>
+      </main>
+
+      <!-- Floating Tabbar -->
+      <div class="tabbar-wrap">
+        <nav class="tabbar" aria-label="Navigasi siswa">
+          <a class="tab-item active" href="#ujian">Ujian</a>
+          <a class="tab-item" href="#nilai">Nilai</a>
+          <a class="tab-item" href="#main" title="Waktu luang">
+            <span class="tab-main-icon">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <path d="M2 12.5h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <rect x="3.2" y="7" width="3.4" height="5.5" rx="0.6" fill="currentColor" />
+                <rect x="9.4" y="5" width="2.6" height="7.5" rx="0.6" fill="currentColor" opacity=".55" />
+              </svg>
+              <span class="tab-main-dot"></span>
+            </span>
+            <span>Main</span>
+          </a>
+          <a class="tab-item" href="#pelanggaran">Pelanggaran</a>
+          <a class="tab-item" href="#akun">Akun</a>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setState(state, btn) {
+      document.querySelectorAll('.wf-toolbar .wf-btn').forEach((b, i) => {
+        if (i < 4) b.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      const hero = document.getElementById('hero-card');
+      const badge = document.getElementById('hero-badge');
+      const countdown = document.getElementById('hero-countdown');
+      const dot = document.getElementById('presence-dot');
+      const pText = document.getElementById('presence-text');
+      const actions = document.getElementById('hero-actions');
+      const progress = document.getElementById('progress-card');
+      const remedial = document.getElementById('remedial-banner');
+      const listPop = document.getElementById('list-populated');
+      const listEmpty = document.getElementById('list-empty');
+      const listCount = document.getElementById('list-count');
+
+      hero.classList.remove('hidden');
+      progress.classList.remove('hidden');
+      remedial.classList.remove('hidden');
+      listPop.classList.remove('hidden');
+      listEmpty.classList.add('hidden');
+      listCount.textContent = '5';
+
+      if (state === 'siap') {
+        badge.className = 'badge badge-ok';
+        badge.textContent = 'Siap dimulai';
+        countdown.classList.add('hidden');
+        dot.className = 'dot dot-ok';
+        pText.textContent = 'Presensi hadir pukul 07:48';
+        actions.innerHTML =
+          '<button class="btn btn-primary" type="button">Mulai ujian</button>' +
+          '<a class="btn btn-ghost-dark" href="#aturan">Lihat aturan</a>';
+      } else if (state === 'menunggu') {
+        badge.className = 'badge badge-warn';
+        badge.textContent = 'Presensi belum';
+        countdown.classList.remove('hidden');
+        dot.className = 'dot dot-warn';
+        pText.textContent = 'Presensi belum diverifikasi Pengawas';
+        actions.innerHTML =
+          '<a class="btn btn-disabled-dark" href="#gerbang">Menunggu presensi</a>' +
+          '<a class="btn btn-ghost-dark" href="#aturan">Lihat aturan</a>';
+      } else if (state === 'terkunci') {
+        badge.className = 'badge badge-warn';
+        badge.textContent = 'Terkunci';
+        countdown.classList.add('hidden');
+        dot.className = 'dot dot-ok';
+        pText.textContent = 'Presensi hadir pukul 07:48';
+        actions.innerHTML =
+          '<a class="btn btn-warn" href="#terkunci">Status terkunci</a>' +
+          '<a class="btn btn-ghost-dark" href="#aturan">Lihat aturan</a>';
+      } else if (state === 'kosong') {
+        hero.classList.add('hidden');
+        progress.classList.add('hidden');
+        remedial.classList.add('hidden');
+        listPop.classList.add('hidden');
+        listEmpty.classList.remove('hidden');
+        listCount.textContent = '0';
+      }
+    }
+
+    function toggleOffline(btn) {
+      btn.classList.toggle('active');
+      document.getElementById('offline-banner').classList.toggle('hidden');
+    }
+
+    function toggleHistory() {
+      const rows = document.getElementById('history-rows');
+      const label = document.getElementById('history-label');
+      const hidden = rows.classList.toggle('hidden');
+      label.textContent = hidden ? 'Tampilkan' : 'Sembunyikan';
+    }
+  </script>
+</body>
+</html>

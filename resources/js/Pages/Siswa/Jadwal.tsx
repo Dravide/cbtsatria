@@ -40,6 +40,7 @@ type Baris = {
     peserta_id: number;
     mapel: string | null;
     ujian: string | null;
+    event?: string | null;
     tanggal: string | null;
     tanggal_iso: string | null;
     jam: string | null;
@@ -110,12 +111,12 @@ const NADA: Record<string, string> = {
     mute: 'bg-surface-2 text-ink-2',
 };
 
-/** Sel status - kotak bergaris, bukan chip bulat. Terrazzo tidak membulat. */
+/** Sel status - chip pill selaras Admin. */
 function SelStatus({ nada, children }: { nada: string; children: string }) {
     return (
         <span
             className={
-                'inline-block border border-line-2 px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap ' +
+                'inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ' +
                 (NADA[nada] ?? NADA.mute)
             }
         >
@@ -139,6 +140,18 @@ export default function Jadwal({
         typeof navigator !== 'undefined' ? navigator.onLine : true,
     );
     const [tampilRiwayat, setTampilRiwayat] = useState(false);
+    const [menyegarkan, setMenyegarkan] = useState(false);
+
+    const segarkanJadwal = () => {
+        if (!navigator.onLine || menyegarkan) {
+            return;
+        }
+        router.reload({
+            only: ['utama', 'jadwal', 'kemajuan', 'pengumuman'],
+            onStart: () => setMenyegarkan(true),
+            onFinish: () => setMenyegarkan(false),
+        });
+    };
 
     useEffect(() => {
         const saatOnline = () => setOnline(true);
@@ -154,11 +167,12 @@ export default function Jadwal({
     }, []);
 
     // Segarkan otomatis tiap 15 detik bila ujian utama masih menunggu sesi
-    // dibuka atau menunggu verifikasi presensi dari pengawas.
+    // dibuka, menunggu verifikasi presensi dari pengawas, atau sedang terkunci.
     useEffect(() => {
         const perluSegar =
             utama !== null &&
             (!utama.boleh_mulai ||
+                utama.terkunci ||
                 utama.presensi.status === null ||
                 utama.presensi.status === 'pending');
 
@@ -173,7 +187,7 @@ export default function Jadwal({
         }, 15000);
 
         return () => window.clearInterval(timer);
-    }, [utama?.peserta_id, utama?.boleh_mulai, utama?.presensi.status]);
+    }, [utama?.peserta_id, utama?.boleh_mulai, utama?.terkunci, utama?.presensi.status]);
 
     // Baris yang sudah tampil sebagai pita TIDAK diulang di daftar di
     // bawahnya. Dua kali menyebut ujian yang sama membuat anak menghitungnya
@@ -187,13 +201,39 @@ export default function Jadwal({
             judul="Jadwal ujian saya"
             tabbarAktif="ujian"
             luang={luang}
-            kiri={<span className="truncate text-[12px] font-medium text-ink">Halo, {nama}</span>}
+            kiri={<span className="truncate text-[12px] font-medium text-ink-2">Halo, <b className="font-semibold text-ink">{nama}</b></span>}
             kanan={
-                kelas ? (
-                    <span className="border border-line-2 px-1.5 py-0.5 text-[11px] text-ink-2">
-                        {kelas}
-                    </span>
-                ) : undefined
+                <div className="flex items-center gap-1.5">
+                    {kelas && (
+                        <span className="rounded-md border border-line bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-ink-2">
+                            {kelas}
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        onClick={segarkanJadwal}
+                        disabled={menyegarkan || !online}
+                        aria-label="Muat ulang jadwal"
+                        title="Muat ulang jadwal"
+                        className="grid size-7 place-items-center rounded-md border border-line bg-surface text-ink-2 transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
+                    >
+                        <svg
+                            width="13"
+                            height="13"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={menyegarkan ? 'animate-spin' : ''}
+                            aria-hidden="true"
+                        >
+                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                            <path d="M21 3v5h-5" />
+                        </svg>
+                    </button>
+                </div>
             }
         >
             {/*
@@ -204,7 +244,7 @@ export default function Jadwal({
              * sebelum jadwalnya.
              */}
             {!online && (
-                <div className="border border-bad bg-bad-bg px-3 py-2 text-[12px] text-bad">
+                <div className="rounded-wf border border-bad/25 bg-bad-bg px-3 py-2 text-[12px] font-medium text-bad">
                     Koneksi internet terputus. Periksa Wi-Fi ruang ujian sebelum memulai.
                 </div>
             )}
@@ -247,24 +287,39 @@ export default function Jadwal({
              * tidak menambah apa pun yang belum terbaca di barisnya sendiri.
              */}
             {kemajuan.total > 1 && (
-                <p className="kemajuan" aria-label="Kemajuan ujian">
-                    <b className="kemajuan-angka">
-                        {kemajuan.selesai}
-                        <span className="kemajuan-dari"> / {kemajuan.total}</span>
-                    </b>
-                    <span className="kemajuan-teks">
-                        ujian selesai
-                        {kemajuan.menunggu > 0 ? `, ${kemajuan.menunggu} masih menunggu` : ''}
-                        {/*
-                         * Terlewat disebut TERPISAH, dan itu bukan kerapian
-                         * kalimat: sampai 2026-11-14 angka ini masuk ke
-                         * "masih menunggu", sehingga anak yang sudah
-                         * melewati jendela sebuah ujian mengejar ujian yang
-                         * tidak akan pernah datang.
-                         */}
-                        {kemajuan.terlewat > 0 ? `, ${kemajuan.terlewat} terlewat` : ''}
+                <div className="kemajuan" aria-label="Kemajuan ujian">
+                    <div className="flex items-baseline justify-between gap-2">
+                        <b className="kemajuan-angka">
+                            {kemajuan.selesai}
+                            <span className="kemajuan-dari"> / {kemajuan.total} ujian selesai</span>
+                        </b>
+                        <span className="kemajuan-teks text-right">
+                            {kemajuan.menunggu > 0 ? `${kemajuan.menunggu} menunggu` : ''}
+                            {kemajuan.menunggu > 0 && kemajuan.terlewat > 0 ? ' · ' : ''}
+                            {kemajuan.terlewat > 0 ? `${kemajuan.terlewat} terlewat` : ''}
+                        </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+                        <div
+                            className="h-full rounded-full bg-accent transition-all"
+                            style={{
+                                width: `${Math.min(100, Math.round((kemajuan.selesai / kemajuan.total) * 100))}%`,
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {remedial_tersedia > 0 && (
+                <Link
+                    href="/siswa/luang/remedial"
+                    className="flex items-center justify-between gap-2 rounded-wf border border-accent/25 bg-accent-soft px-3 py-2.5 text-[12px] text-ink transition-colors hover:brightness-[0.98]"
+                >
+                    <span>
+                        Tersedia <b className="font-semibold text-accent">{remedial_tersedia} soal latihan</b> di Klinik Remedial Pribadi
                     </span>
-                </p>
+                    <span className="shrink-0 font-semibold text-accent">Buka →</span>
+                </Link>
             )}
 
             {/*
@@ -324,16 +379,6 @@ export default function Jadwal({
                     </Link>
                 </p>
             )}
-
-            {remedial_tersedia > 0 && (
-                <p className="keterangan">
-                    Tersedia {remedial_tersedia} soal latihan di{' '}
-                    <Link href="/siswa/luang/remedial" className="font-medium underline">
-                        Klinik Remedial Pribadi
-                    </Link>
-                    .
-                </p>
-            )}
         </KerangkaSiswa>
     );
 }
@@ -382,6 +427,7 @@ function BarisDaftar({ baris }: { baris: Baris }) {
                     {baris.mapel ?? baris.ujian ?? 'Tanpa mapel'}
                 </p>
                 <p className="catatan mt-0.5 truncate">
+                    {baris.event && <span className="text-ink-2">{baris.event} · </span>}
                     {presensi && <span className="text-ink-2">{presensi} · </span>}
                     {/*
                      * Kalimat pengganti bergantung pada APAKAH ujiannya sudah
@@ -511,6 +557,13 @@ function PitaUtama({ baris }: { baris: Baris }) {
                 <p className="mt-2 truncate font-display text-[15px] leading-tight">
                     {baris.mapel ?? baris.ujian ?? 'Ujian'}
                 </p>
+                {(baris.event || (baris.ujian && baris.ujian !== baris.mapel)) && (
+                    <p className="mt-0.5 truncate text-[11px] text-plate-ink-2">
+                        {[baris.event, baris.ujian && baris.ujian !== baris.mapel ? baris.ujian : null]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    </p>
+                )}
 
                 <p className="mt-1 text-[12px] text-plate-ink-2">
                     {baris.ruang_nama ?? baris.ruang ?? 'Ruang belum ditetapkan'}
@@ -556,22 +609,35 @@ function PitaUtama({ baris }: { baris: Baris }) {
                     sama akan berselisih pada keadaan yang tidak mereka
                     duga bersama.
                     -------------------------------------------------- */}
-                <p className="mt-1.5 text-[12px] text-plate-ink">
-                    {baris.presensi.status === null ||
-                    baris.presensi.status === 'pending' ? (
-                        <>Presensi belum diverifikasi Pengawas</>
-                    ) : baris.presensi.membuka_gerbang ? (
-                        <>
-                            Presensi {baris.presensi.label.toLowerCase()}
-                            {baris.presensi.jam && ` pukul ${baris.presensi.jam}`}
-                        </>
-                    ) : (
-                        <>
-                            Presensi {baris.presensi.label.toLowerCase()}, hubungi
-                            Pengawas
-                        </>
-                    )}
-                </p>
+                <div className="mt-2.5 flex items-center gap-2 rounded-md bg-white/[0.06] px-2.5 py-2 text-[12px] text-plate-ink">
+                    <span
+                        className={
+                            'size-2 shrink-0 rounded-full ' +
+                            (baris.presensi.status === null || baris.presensi.status === 'pending'
+                                ? 'bg-amber-400'
+                                : baris.presensi.membuka_gerbang
+                                    ? 'bg-emerald-400'
+                                    : 'bg-rose-400')
+                        }
+                        aria-hidden="true"
+                    />
+                    <span>
+                        {baris.presensi.status === null ||
+                        baris.presensi.status === 'pending' ? (
+                            <>Presensi belum diverifikasi Pengawas</>
+                        ) : baris.presensi.membuka_gerbang ? (
+                            <>
+                                Presensi {baris.presensi.label.toLowerCase()}
+                                {baris.presensi.jam && ` pukul ${baris.presensi.jam}`}
+                            </>
+                        ) : (
+                            <>
+                                Presensi {baris.presensi.label.toLowerCase()}, hubungi
+                                Pengawas
+                            </>
+                        )}
+                    </span>
+                </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                     {baris.terkunci ? (
@@ -581,7 +647,7 @@ function PitaUtama({ baris }: { baris: Baris }) {
                         >
                             Status terkunci
                         </Link>
-                    ) : baris.boleh_mulai ? (
+                    ) : baris.boleh_mulai && baris.presensi.membuka_gerbang ? (
                         <button
                             type="button"
                             onClick={() => {
@@ -591,6 +657,16 @@ function PitaUtama({ baris }: { baris: Baris }) {
                         >
                             {baris.sedang_berjalan ? 'Lanjutkan ujian' : 'Mulai ujian'}
                         </button>
+                    ) : baris.boleh_mulai ? (
+                        <Link
+                            href={`/siswa/ujian/${baris.peserta_id}/gerbang`}
+                            className="tombol flex-1"
+                        >
+                            {baris.presensi.status === null ||
+                            baris.presensi.status === 'pending'
+                                ? 'Menunggu presensi'
+                                : 'Periksa status presensi'}
+                        </Link>
                     ) : (
                         <span
                             className="tombol flex-1"

@@ -34,10 +34,7 @@
 | itu memang satu-satunya benda yang diangkat dari halaman.
 */
 
-/* Lencana dan chip di konsol ini tidak membulat (Terrazzo: radius 0). */
-.konsol-siswa .rounded-full {
-    border-radius: 0;
-}
+/* Pill & badge di konsol siswa mengikuti sudut membulat Admin */
 
 /* --------------------------------------------------------------- Daftar */
 
@@ -83,8 +80,10 @@
  * sampai tepi ponsel, dan pinggir layar sudah menjadi tepinya.
  */
 .konsol-siswa .daftar {
-    border-top: var(--rule-bar) solid var(--color-line-2);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-wf);
     background-color: var(--color-surface);
+    box-shadow: var(--shadow-kotak);
 }
 
 .konsol-siswa .daftar-kepala {
@@ -146,6 +145,7 @@
 .konsol-siswa .pita {
     background-color: var(--color-plate);
     color: var(--color-plate-ink);
+    border-radius: var(--radius-wf);
     box-shadow: var(--shadow-kartu);
 }
 
@@ -193,8 +193,8 @@
     justify-content: center;
     gap: var(--space-xs);
     min-height: 2.5rem;
-    border: var(--rule-hair) solid var(--color-line-2);
-    border-radius: 0;
+    border: var(--rule-hair) solid var(--color-line);
+    border-radius: 7px;
     background-color: var(--color-surface);
     padding: 0 var(--space-sm);
     font-size: var(--text-md);
@@ -247,14 +247,15 @@
  * dua bidang gelap yang menempel dan tidak terbaca sebagai tombol (41).
  */
 .konsol-siswa .pita .tombol--pri {
-    border-color: var(--color-plate-ink);
-    background-color: var(--color-plate-ink);
-    color: var(--color-ink);
+    border-color: var(--color-accent);
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
 }
 
 .konsol-siswa .pita .tombol--pri:active {
-    background-color: var(--color-plate-ink-2);
-    color: var(--color-ink);
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+    filter: brightness(0.95);
 }
 
 /*
@@ -425,11 +426,13 @@
  */
 .konsol-siswa .tabbar > .sel-hidup {
     border-top-color: var(--color-accent);
-    color: var(--color-ink);
+    background-color: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-weight: 600;
 }
 
 .konsol-siswa .tabbar > .sel-hidup:hover {
-    background-color: transparent;
+    background-color: var(--color-accent-soft);
 }
 
 /* --------------------------------------------------------------- Tautan */
@@ -669,9 +672,12 @@
 }
 
 .konsol-siswa .pengumuman-butir {
-    border-left: var(--rule-bar) solid var(--color-line-2);
+    border: 1px solid var(--color-line);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-wf);
     background-color: var(--color-surface);
     padding: var(--space-xs) var(--space-sm);
+    box-shadow: var(--shadow-kotak);
 }
 
 .konsol-siswa .pengumuman-butir--penting {
@@ -722,10 +728,13 @@
  */
 .konsol-siswa .kemajuan {
     display: flex;
-    align-items: baseline;
-    gap: var(--space-xs);
-    padding: var(--space-2xs) var(--space-sm);
-    background-color: var(--color-surface-2);
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-wf);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-kotak);
     font-size: var(--text-xs);
     color: var(--color-ink-2);
 }
