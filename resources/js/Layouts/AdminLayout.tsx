@@ -102,6 +102,7 @@ const EVENT_HARI_H: MenuEvent[] = [
     { label: 'Token', segmen: 'token', ikon: 'kunci' },
     { label: 'Presensi', segmen: 'presensi', ikon: 'presensi' },
     { label: 'Monitoring', segmen: 'monitoring', ikon: 'denyut' },
+    { label: 'Siswa terkunci', segmen: 'monitoring/terkunci', ikon: 'kunci' },
     { label: 'Notifikasi', segmen: 'notifikasi', ikon: 'daftar' },
 ];
 

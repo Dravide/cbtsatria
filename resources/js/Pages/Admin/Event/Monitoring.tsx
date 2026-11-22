@@ -246,7 +246,7 @@ export default function EventMonitoring({
                 yang membuat "belum ada yang mengerjakan" bisa dibedakan dari
                 "belum ada yang dijadwalkan". */}
             <div className="mb-3">
-                <DaftarMapel mapel={mapel} denganPresensi={false} />
+                <DaftarMapel mapel={mapel} denganPresensi={false} sebagaiModal />
             </div>
 
             <div className="mb-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">

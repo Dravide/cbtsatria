@@ -637,6 +637,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('events.monitoring.sesi');
     Route::get('/events/{event}/monitoring/ruang', [PemantauanEventController::class, 'monitoringRuangEvent'])
         ->name('events.monitoring.ruang-semua');
+    Route::get('/events/{event}/monitoring/terkunci', [PemantauanEventController::class, 'terkunci'])
+        ->name('events.monitoring.terkunci');
 
     // Rekap siswa TIDAK HADIR - nama, ruang, dan kelasnya.
     //

@@ -109,6 +109,13 @@ export default function MonitoringDaftarSesi({
             aksi={
                 <>
                     <TombolTautan
+                        href={`/admin/events/${event.id}/monitoring/terkunci`}
+                        title="Daftar khusus siswa yang terkunci / ke-block di seluruh ruang"
+                    >
+                        Siswa terkunci ({terkunci_daftar.length})
+                    </TombolTautan>
+
+                    <TombolTautan
                         href={`/admin/events/${event.id}/monitoring/tidak-hadir`}
                         title="Daftar siswa tidak hadir beserta ruang dan kelasnya"
                     >

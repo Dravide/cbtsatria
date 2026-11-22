@@ -825,26 +825,7 @@ class PemantauanEventController
             ];
         })->values();
 
-        $terkunciDaftar = $ruangan->flatMap(function (ExamSessionRoom $r) use ($attempt) {
-            return $r->participants->map(function (ExamParticipant $p) use ($r, $attempt): ?array {
-                $att = $attempt->get($p->id);
-                if ($att === null || ! $att->dikunci()) {
-                    return null;
-                }
-
-                return [
-                    'peserta_id' => $p->id,
-                    'nama' => $p->student?->name ?? 'Peserta',
-                    'ruang_id' => $r->id,
-                    'ruang' => $r->eventRoom?->room?->code ?? 'R-?',
-                    'sesi' => $r->session?->label() ?? '—',
-                    'ujian' => $r->session?->exam?->subject?->name ?? $r->session?->exam?->title,
-                    'alasan' => $att->lock_reason,
-                    'pelanggaran' => (int) $att->violation_count,
-                    'dikunci_jam' => $att->locked_at?->format('H:i:s'),
-                ];
-            })->filter();
-        })->values()->all();
+        $terkunciDaftar = $this->daftarTerkunci($ruangan, $attempt);
 
         return Inertia::render('Admin/Event/MonitoringDaftarSesi', [
             'event' => $this->ringkas($event),
@@ -874,6 +855,53 @@ class PemantauanEventController
      * telepon melihat satu RUANGAN, bukan satu sesi - dan papan ini yang
      * menjawabnya dalam sekali buka.
      */
+    public function terkunci(SchoolEvent $event): Response
+    {
+        Gate::authorize('view', $event);
+
+        $ruangan = $this->ruangan($event);
+        $attempt = $this->attemptTerakhir($ruangan->flatMap->participants->pluck('id'));
+        $daftar = $this->daftarTerkunci($ruangan, $attempt);
+
+        return Inertia::render('Admin/Event/MonitoringTerkunci', [
+            'event' => $this->ringkas($event),
+            'baris' => $daftar,
+            'angka' => [
+                'terkunci' => count($daftar),
+                'ruang_terdampak' => collect($daftar)->pluck('ruang_id')->unique()->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, ExamSessionRoom>  $ruangan
+     * @param  Collection<int, ExamAttempt>  $attempt
+     * @return array<int, array<string, mixed>>
+     */
+    private function daftarTerkunci(Collection $ruangan, Collection $attempt): array
+    {
+        return $ruangan->flatMap(function (ExamSessionRoom $r) use ($attempt) {
+            return $r->participants->map(function (ExamParticipant $p) use ($r, $attempt): ?array {
+                $att = $attempt->get($p->id);
+                if ($att === null || ! $att->dikunci()) {
+                    return null;
+                }
+
+                return [
+                    'peserta_id' => $p->id,
+                    'nama' => $p->student?->name ?? 'Peserta',
+                    'ruang_id' => $r->id,
+                    'ruang' => $r->eventRoom?->room?->code ?? 'R-?',
+                    'sesi' => $r->session?->label() ?? '—',
+                    'ujian' => $r->session?->exam?->subject?->name ?? $r->session?->exam?->title,
+                    'alasan' => $att->lock_reason,
+                    'pelanggaran' => (int) $att->violation_count,
+                    'dikunci_jam' => $att->locked_at?->format('H:i:s'),
+                ];
+            })->filter();
+        })->values()->all();
+    }
+
     public function monitoringRuangEvent(SchoolEvent $event): Response
     {
         Gate::authorize('view', $event);
