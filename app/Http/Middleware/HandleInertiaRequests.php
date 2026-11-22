@@ -6,6 +6,7 @@ use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\ExamSessionRoom;
+use App\Domain\Identity\Enums\Role;
 use App\Domain\Tenancy\Models\School;
 use App\Domain\Tenancy\Support\IdentitasAplikasi;
 use Illuminate\Http\Request;
@@ -121,6 +122,21 @@ class HandleInertiaRequests extends Middleware
             // kosong. Kelompok yang tampil tanpa isi adalah kelompok yang
             // membuat Admin mengira ada yang rusak.
             'eventAktif' => fn () => $this->eventAktif($request),
+
+            'daftarEvent' => fn () => $user?->role === Role::Admin
+                ? SchoolEvent::query()
+                    ->orderByDesc('start_at')
+                    ->orderByDesc('id')
+                    ->get(['id', 'code', 'name', 'status'])
+                    ->map(fn (SchoolEvent $e): array => [
+                        'id' => $e->id,
+                        'kode' => $e->code,
+                        'nama' => $e->name,
+                        'status_label' => $e->status->label(),
+                    ])
+                    ->values()
+                    ->all()
+                : [],
 
             'identitasAplikasi' => function (): array {
                 $nilai = IdentitasAplikasi::nilai();

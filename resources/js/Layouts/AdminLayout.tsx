@@ -127,7 +127,7 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
         {
             item: [
                 {
-                    label: 'Event',
+                    label: 'Buat event',
                     href: '/admin/events',
                     awalan: false,
                     ikon: 'bendera',
@@ -164,6 +164,7 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
             aksi={aksi}
             marka={{ inisial: 'S', nada: 'admin' }}
             kelompok={kelompok}
+            tampilkanPemilihEvent
             kelasPembungkus="konsol-admin"
         >
             {children}

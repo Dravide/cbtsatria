@@ -1,7 +1,7 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ReactNode } from 'react';
 import Ikon, { NamaIkon } from '@/Components/Ikon';
-import { UmpanBalik } from '@/Components/ui';
+import { PilihCari, UmpanBalik } from '@/Components/ui';
 import { MEREK } from '@/merek';
 
 /**
@@ -71,6 +71,7 @@ type Props = {
     /** Kotak penanda di kiri atas - "S" untuk Admin, "G" untuk Guru. */
     marka: { inisial: string; nada: 'admin' | 'guru' };
     kelompok: KelompokNav[];
+    tampilkanPemilihEvent?: boolean;
     kelasPembungkus?: string;
     children: ReactNode;
 };
@@ -92,13 +93,15 @@ export default function KonsolLayout({
     aksi,
     marka,
     kelompok,
+    tampilkanPemilihEvent = false,
     kelasPembungkus,
     children,
 }: Props) {
-    const { auth, tahunAktif, eventAktif, identitasAplikasi } = usePage().props as unknown as {
+    const { auth, tahunAktif, eventAktif, daftarEvent, identitasAplikasi } = usePage().props as unknown as {
         auth: { pengguna: { nama: string; peran_label: string } | null };
         tahunAktif: string | null;
         eventAktif: { id: number; kode: string; nama: string; status_label: string } | null;
+        daftarEvent?: { id: number; kode: string; nama: string; status_label: string }[];
         identitasAplikasi?: { nama: string; logo: string | null };
     };
 
@@ -166,26 +169,6 @@ export default function KonsolLayout({
                                 </p>
                             )}
 
-                            {/* Kartu "Event aktif" - hanya saat satu event
-                                dibuka. Saat tidak ada, kelompok ini tidak
-                                dirender sama sekali oleh pemanggilnya, bukan
-                                dirender kosong. */}
-                            {k.kartuEvent && eventAktif && (
-                                <div className="hidden px-1 pt-2 pb-1 md:block">
-                                    <div className="rounded-wf border border-accent/25 bg-accent-soft px-2.5 py-2">
-                                        <p className="text-[11px] font-medium text-accent">
-                                            Event aktif
-                                        </p>
-                                        <p className="mt-0.5 truncate text-xs font-medium text-ink">
-                                            {eventAktif.nama}
-                                        </p>
-                                        <p className="font-mono text-[10px] text-ink-3">
-                                            {eventAktif.kode} &middot; {eventAktif.status_label}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
                             {k.item.map((item) => {
                                 if (item.fase) {
                                     return (
@@ -248,15 +231,25 @@ export default function KonsolLayout({
 
                             Hanya di konsol yang bicara soal event; lihat
                             `bicaraSoalEvent` di atas. */}
-                        {bicaraSoalEvent && eventAktif && (
-                            <Link
-                                href={`/admin/events/${eventAktif.id}`}
-                                className="hidden max-w-[16rem] items-center gap-1.5 rounded-wf border border-accent/40 bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent sm:flex"
-                                title={`Event aktif: ${eventAktif.nama}`}
-                            >
-                                <span className="truncate">{eventAktif.nama}</span>
-                                <span className="shrink-0 opacity-60">&#9662;</span>
-                            </Link>
+                        {tampilkanPemilihEvent && (
+                            <div className="w-48 sm:w-64">
+                                <PilihCari
+                                    label=""
+                                    nilai={eventAktif?.id ?? null}
+                                    pilihan={(daftarEvent ?? []).map((ev) => ({
+                                        id: ev.id,
+                                        label: ev.nama,
+                                        ket: `${ev.kode} · ${ev.status_label}`,
+                                    }))}
+                                    padaPilih={(id) => {
+                                        if (id !== null && id !== eventAktif?.id) {
+                                            router.visit(`/admin/events/${id}`);
+                                        }
+                                    }}
+                                    placeholder="Pilih event…"
+                                    kosong="Belum ada event."
+                                />
+                            </div>
                         )}
 
                         {/* Tahun ajaran aktif - wireframe plate 07 menaruhnya
