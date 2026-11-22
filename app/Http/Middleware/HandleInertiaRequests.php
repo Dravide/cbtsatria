@@ -9,7 +9,9 @@ use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Tenancy\Models\School;
 use App\Domain\Tenancy\Support\IdentitasAplikasi;
+use App\Models\PlatformAnnouncement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Inertia\Middleware;
 
@@ -61,6 +63,7 @@ class HandleInertiaRequests extends Middleware
                 // digit yang bisa dibacakan.
                 'kode_token' => fn () => $request->session()->get('kode_token'),
                 'token_sesi' => fn () => $request->session()->get('token_sesi'),
+                'sandi_baru' => fn () => $request->session()->get('sandi_baru'),
             ],
 
             'auth' => [
@@ -69,8 +72,13 @@ class HandleInertiaRequests extends Middleware
                     'nama' => $user->name,
                     'peran' => $user->role->value,
                     'peran_label' => $user->role->label(),
+                    'is_super_admin' => $user->isSuperAdmin(),
                 ] : null,
             ],
+
+            'impersonasi' => fn () => $this->impersonasi($request),
+
+            'pengumumanPlatform' => fn () => $this->pengumumanPlatform($user),
 
             // Identitas pemegang TAUTAN RUANG, bila permintaan ini datang
             // lewat pintu itu - dan hanya nama ruang serta sekolahnya.
@@ -229,5 +237,55 @@ class HandleInertiaRequests extends Middleware
             'status' => $event->status->value,
             'status_label' => $event->status->label(),
         ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function impersonasi(Request $request): ?array
+    {
+        $info = $request->session()->get('impersonasi_super');
+
+        if (! is_array($info) || ! isset($info['sampai'])) {
+            return null;
+        }
+
+        $sisaDetik = (int) $info['sampai'] - now()->getTimestamp();
+
+        if ($sisaDetik <= 0) {
+            return null;
+        }
+
+        return [
+            'sekolah' => $info['sekolah'] ?? 'Sekolah',
+            'admin_username' => $info['admin_username'] ?? 'admin',
+            'alasan' => $info['alasan'] ?? '',
+            'sisa_menit' => max(1, (int) ceil($sisaDetik / 60)),
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function pengumumanPlatform(mixed $user): array
+    {
+        if ($user === null || ! in_array($user->role, [Role::Admin, Role::Teacher], true)) {
+            return [];
+        }
+
+        if (! Schema::hasTable('platform_announcements')) {
+            return [];
+        }
+
+        return PlatformAnnouncement::query()
+            ->berlaku()
+            ->orderByRaw('CASE nada WHEN ? THEN 0 ELSE 1 END', [PlatformAnnouncement::NADA_PENTING])
+            ->orderByDesc('created_at')
+            ->limit(2)
+            ->get(['id', 'title', 'body', 'nada'])
+            ->map(fn (PlatformAnnouncement $a) => [
+                'id' => (int) $a->id,
+                'judul' => $a->title,
+                'isi' => $a->body,
+                'nada' => $a->nada,
+            ])
+            ->values()
+            ->all();
     }
 }

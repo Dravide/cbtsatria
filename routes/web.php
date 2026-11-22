@@ -362,7 +362,13 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/dashboard', function () {
-        return redirect()->to(auth()->user()->role->dashboardPath());
+        $user = auth()->user();
+
+        if ($user->isSuperAdmin() && ! session()->has('impersonasi_super')) {
+            return redirect()->route('super.dashboard');
+        }
+
+        return redirect()->to($user->role->dashboardPath());
     })->name('dashboard');
 });
 
@@ -378,3 +384,4 @@ require __DIR__.'/admin.php';
 require __DIR__.'/guru.php';
 require __DIR__.'/siswa.php';
 require __DIR__.'/pengawas.php';
+require __DIR__.'/super.php';

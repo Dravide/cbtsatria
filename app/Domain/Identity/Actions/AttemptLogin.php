@@ -71,6 +71,14 @@ class AttemptLogin
         /** @var User $user */
         $user = $this->auth->guard()->user();
 
+        if (! $user->isSuperAdmin() && $user->school !== null && ! $user->school->isAktif()) {
+            $this->auth->guard()->logout();
+
+            throw ValidationException::withMessages([
+                'username' => 'Sekolah Anda sedang ditangguhkan. Hubungi operator platform.',
+            ]);
+        }
+
         RateLimiter::clear($this->kunci($username));
 
         $user->forceFill(['last_login_at' => now()])->save();

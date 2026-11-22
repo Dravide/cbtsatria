@@ -4,6 +4,7 @@ use App\Domain\Attendance\Http\Middleware\AksesPengawas;
 use App\Domain\Identity\Http\Middleware\AksesGuru;
 use App\Domain\Identity\Http\Middleware\AksesSiswa;
 use App\Domain\Tenancy\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\AksesSuperAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -44,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'pengawas' => AksesPengawas::class,
             'guru' => AksesGuru::class,
             'siswa' => AksesSiswa::class,
+            'super_admin' => AksesSuperAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

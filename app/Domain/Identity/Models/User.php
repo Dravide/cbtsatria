@@ -75,6 +75,7 @@ class User extends Authenticatable
     {
         return [
             'role' => Role::class,
+            'is_super_admin' => 'boolean',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
@@ -117,5 +118,10 @@ class User extends Authenticatable
     public function isAktif(): bool
     {
         return (bool) $this->is_active;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return (bool) $this->is_super_admin;
     }
 }

@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe · Super Admin Platform (/super)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+  --wf-bg:#ffffff;
+  --wf-soft:#f5f7fa;
+  --wf-line:#c6cedb;
+  --wf-hair:#e6eaf0;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 12px 28px -18px rgba(16,22,32,.32);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding:0 16px 72px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;line-height:1.18;letter-spacing:-.02em}
+p{margin:0}
+code{
+  font-family:var(--font-mono);
+  font-size:.84em;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  padding:1px 5px;
+  border-radius:4px;
+}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{
+  border-bottom:1px solid var(--line);
+  background:var(--surface);
+  margin:0 -16px;
+  padding:0 16px;
+  position:sticky;
+  top:0;
+  z-index:20;
+}
+.top-in{
+  max-width:1240px;
+  margin:0 auto;
+  padding:11px 0;
+  display:flex;
+  gap:14px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.nav-pills{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.nav-pills a{
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--ink-2);
+  text-decoration:none;
+  padding:3px 9px;
+  border-radius:99px;
+  border:1px solid var(--line);
+  background:var(--wf-soft);
+}
+.nav-pills a:hover{border-color:var(--accent);color:var(--accent)}
+
+.head{padding:30px 0 16px;display:grid;gap:12px}
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--accent);
+  font-weight:500;
+}
+.head h1{font-size:2.05rem}
+.head .lede{color:var(--ink-2);max-width:82ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  padding:3px 9px;
+  border-radius:99px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  color:var(--ink-2);
+}
+
+.sec{margin-top:38px;display:grid;gap:18px}
+.sec > header{display:grid;gap:5px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.sec > header h2{font-size:1.3rem;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.sec > header em{
+  font-style:normal;
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--accent);
+  letter-spacing:.08em;
+}
+.sec > header p{color:var(--ink-2);font-size:13.5px;max-width:84ch}
+
+.plate{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.plate-head{
+  padding:10px 14px;
+  border-bottom:1px solid var(--line);
+  background:var(--wf-soft);
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.plate-head strong{font-family:var(--font-display);font-size:13px}
+.plate-head span{font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.plate-body{padding:18px;background:#e6ebf2}
+.plate-note{
+  padding:12px 14px;
+  border-top:1px solid var(--line);
+  font-size:12.5px;
+  color:var(--ink-2);
+  background:var(--surface);
+}
+
+/* ---------- Browser Window Desktop Mockup ---------- */
+.app-win{
+  background:var(--surface);
+  border:1px solid var(--wf-line);
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 12px 32px -20px rgba(16,22,32,.35);
+}
+.win-bar{
+  background:var(--wf-soft);
+  border-bottom:1px solid var(--wf-hair);
+  padding:8px 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--ink-3);
+}
+.dots{display:flex;gap:5px}
+.dots i{display:block;width:9px;height:9px;border-radius:50%;background:var(--wf-line)}
+.win-url{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:2px 10px;
+  flex:1;
+  max-width:420px;
+  color:var(--ink-2);
+}
+
+.shell{
+  display:grid;
+  grid-template-columns:215px 1fr;
+  min-height:460px;
+}
+@media (max-width:860px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+}
+.sidebar{
+  background:#121826;
+  color:#cbd5e1;
+  padding:16px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.sb-brand{
+  padding:4px 8px 12px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.sb-brand strong{color:#fff;font-family:var(--font-display);font-size:14px;display:block}
+.sb-brand span{
+  display:inline-block;
+  margin-top:4px;
+  font-family:var(--font-mono);
+  font-size:10px;
+  color:#93c5fd;
+  background:rgba(59,130,246,.16);
+  border:1px solid rgba(59,130,246,.3);
+  padding:1px 7px;
+  border-radius:99px;
+}
+.sb-group{display:grid;gap:3px}
+.sb-label{
+  font-family:var(--font-mono);
+  font-size:9.5px;
+  text-transform:uppercase;
+  letter-spacing:.09em;
+  color:#64748b;
+  padding:4px 8px;
+}
+.sb-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:7px 9px;
+  border-radius:7px;
+  font-size:12.5px;
+  color:#cbd5e1;
+}
+.sb-item.active{
+  background:rgba(59,130,246,.2);
+  color:#fff;
+  font-weight:600;
+}
+.sb-badge{
+  font-family:var(--font-mono);
+  font-size:10px;
+  padding:1px 6px;
+  border-radius:99px;
+  background:rgba(16,185,129,.2);
+  color:#6ee7b7;
+}
+.sb-badge.warn{background:rgba(245,158,11,.22);color:#fcd34d}
+.sb-foot{
+  margin-top:auto;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+  font-size:11px;
+  color:#94a3b8;
+  padding-left:8px;
+}
+
+.content{
+  background:var(--wf-soft);
+  padding:18px 20px;
+  display:grid;
+  gap:16px;
+  align-content:start;
+}
+.c-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.c-head h3{font-size:17px}
+.c-head p{font-size:12px;color:var(--ink-3)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  font-weight:600;
+  padding:7px 12px;
+  border-radius:7px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--ink);
+}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 35%,transparent);color:var(--warn)}
+.btn.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 35%,transparent);color:var(--bad)}
+
+.kpi-grid{
+  display:grid;
+  gap:12px;
+  grid-template-columns:repeat(4,1fr);
+}
+@media (max-width:960px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:9px;
+  padding:12px 14px;
+}
+.kpi .kl{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;font-family:var(--font-mono)}
+.kpi .kv{font-family:var(--font-display);font-size:24px;font-weight:700;margin-top:4px}
+.kpi .ks{font-size:11.5px;color:var(--ink-2);margin-top:3px}
+
+.grid-2{display:grid;gap:14px;grid-template-columns:1.45fr 1fr}
+.grid-eq{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+@media (max-width:920px){.grid-2,.grid-eq{grid-template-columns:1fr}}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:9px;
+  overflow:hidden;
+}
+.card-h{
+  padding:10px 14px;
+  border-bottom:1px solid var(--wf-hair);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+.card-h strong{font-size:13px}
+.card-h span{font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.card-b{padding:12px 14px;display:grid;gap:10px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--wf-hair);vertical-align:middle}
+th{
+  font-family:var(--font-mono);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--ink-3);
+  background:var(--wf-soft);
+}
+tr:last-child td{border-bottom:0}
+
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-family:var(--font-mono);
+  font-size:10px;
+  font-weight:500;
+  padding:2px 7px;
+  border-radius:99px;
+  white-space:nowrap;
+}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.info{background:var(--info-bg);color:var(--info)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.mute{background:var(--surface-2);color:var(--ink-3)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+.bar{height:7px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar.ok > i{background:var(--ok)}
+.bar.warn > i{background:#d97706}
+
+.field{display:grid;gap:4px}
+.field label{font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.input{
+  border:1px solid var(--line);
+  background:var(--wf-soft);
+  border-radius:6px;
+  padding:7px 10px;
+  font-size:12px;
+  color:var(--ink);
+  font-family:var(--font-body);
+}
+.input.mono{font-family:var(--font-mono)}
+
+.imp-banner{
+  background:#fef3c7;
+  border-bottom:1px solid #f59e0b;
+  color:#78350f;
+  padding:8px 16px;
+  font-size:12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.imp-banner strong{color:#451a03}
+
+.toggle-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:8px 0;
+  border-bottom:1px solid var(--wf-hair);
+}
+.toggle-row:last-child{border-bottom:0}
+.switch{
+  width:34px;height:19px;border-radius:99px;
+  background:var(--ok);position:relative;flex-shrink:0;
+}
+.switch::after{
+  content:"";position:absolute;top:2px;right:2px;
+  width:15px;height:15px;border-radius:50%;background:#fff;
+}
+.switch.off{background:var(--wf-line)}
+.switch.off::after{right:auto;left:2px}
+
+.stat-line{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:var(--ink-2);
+}
+.stat-line strong{color:var(--ink);font-family:var(--font-mono)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="top-in">
+    <div class="brand">CBT Satria <span>· Wireframe Super Admin</span></div>
+    <nav class="nav-pills">
+      <a href="#p1">01 Dashboard</a>
+      <a href="#p2">02 Sekolah &amp; Provisioning</a>
+      <a href="#p3">03 Detail &amp; Impersonate</a>
+      <a href="#p4">04 Kesehatan Sistem</a>
+      <a href="#p5">05 Broadcast &amp; Global</a>
+      <a href="#p6">06 Arsitektur &amp; Keamanan</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="head">
+    <span class="eyebrow">Panel Operator Lintas Sekolah · /super</span>
+    <h1>Super Admin Platform — <code>/super</code></h1>
+    <p class="lede">
+      Konsol pusat untuk mengelola banyak sekolah dalam satu instalasi <strong>CBT Satria</strong>:
+      mendaftarkan sekolah baru lewat web (pengganti CLI <code>sekolah:daftarkan</code>), memantau
+      beban ujian lintas sekolah secara live, mengatur kuota &amp; fitur per tenant, mengecek kesehatan
+      MySQL/Queue/Scheduler, hingga masuk sebagai Admin sekolah secara teraudit saat butuh dukungan.
+    </p>
+    <div class="scope">
+      <span class="tag">Role: SuperAdmin (school_id = NULL)</span>
+      <span class="tag">Multi-Tenant Provisioning</span>
+      <span class="tag">Live Cross-School Radar</span>
+      <span class="tag">Audited Impersonation</span>
+      <span class="tag">System Health Monitor</span>
+    </div>
+  </header>
+
+  <!-- ==================== PLATE 01 ==================== -->
+  <section class="sec" id="p1">
+    <header>
+      <h2><em>PLATE 01</em> Command Center Lintas Sekolah — <code>/super</code></h2>
+      <p>
+        Menjawab pertanyaan operator dalam 3 detik: berapa sekolah yang sedang ujian sekarang, berapa
+        siswa online serentak, apakah ada ruang terkunci massal, dan apakah worker/scheduler sehat.
+      </p>
+    </header>
+
+    <div class="plate">
+      <div class="plate-head">
+        <strong>Plate 01 · Dashboard Super Admin</strong>
+        <span>/super · Auto-refresh 15 dtk</span>
+      </div>
+      <div class="plate-body">
+        <div class="app-win">
+          <div class="win-bar">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <div class="win-url">https://cbt.satria.id/super</div>
+            <span>Super Admin · Operator Utama</span>
+          </div>
+
+          <div class="shell">
+            <aside class="sidebar">
+              <div class="sb-brand">
+                <strong>CBT Satria</strong>
+                <span>SUPER ADMIN</span>
+              </div>
+              <div class="sb-group">
+                <div class="sb-label">Utama</div>
+                <div class="sb-item active">Command Center</div>
+                <div class="sb-item">Sekolah <span class="sb-badge">14</span></div>
+                <div class="sb-item">Radar Ujian Live <span class="sb-badge">3</span></div>
+              </div>
+              <div class="sb-group">
+                <div class="sb-label">Operasional</div>
+                <div class="sb-item">Admin Sekolah</div>
+                <div class="sb-item">Pengumuman Global</div>
+                <div class="sb-item">Kesehatan Sistem <span class="sb-badge warn">1</span></div>
+              </div>
+              <div class="sb-group">
+                <div class="sb-label">Tata Kelola</div>
+                <div class="sb-item">Audit Platform</div>
+                <div class="sb-item">Pengaturan Global</div>
+              </div>
+              <div class="sb-foot">v2.4 · MySQL 8.4 · Redis OK</div>
+            </aside>
+
+            <main class="content">
+              <div class="c-head">
+                <div>
+                  <h3>Command Center Platform</h3>
+                  <p>Ringkasan lintas 14 sekolah · diperbarui 08:15:20 WIB</p>
+                </div>
+                <div class="actions">
+                  <span class="btn">Broadcast Info</span>
+                  <span class="btn pri">+ Daftarkan Sekolah</span>
+                </div>
+              </div>
+
+              <div class="kpi-grid">
+                <div class="kpi">
+                  <div class="kl">Sekolah Aktif</div>
+                  <div class="kv">14</div>
+                  <div class="ks">12 aktif · 1 uji coba · 1 arsip</div>
+                </div>
+                <div class="kpi">
+                  <div class="kl">Ujian Berjalan</div>
+                  <div class="kv" style="color:var(--ok)">3 sekolah</div>
+                  <div class="ks">38 ruang aktif saat ini</div>
+                </div>
+                <div class="kpi">
+                  <div class="kl">Peserta Konkuren</div>
+                  <div class="kv" style="color:var(--accent)">1.142</div>
+                  <div class="ks">4 terkunci · 7 terputus</div>
+                </div>
+                <div class="kpi">
+                  <div class="kl">Kesehatan Server</div>
+                  <div class="kv" style="color:var(--warn)">Perhatian</div>
+                  <div class="ks">DB OK · Scheduler OK · 1 job gagal</div>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="card">
+                  <div class="card-h">
+                    <strong>Radar Ujian Berjalan Sekarang</strong>
+                    <span>3 sekolah aktif</span>
+                  </div>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Sekolah &amp; Event</th>
+                        <th>Aktif / Total</th>
+                        <th>Kendala</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <strong>SMPN 1 Cipanas</strong><br>
+                          <span style="font-size:11px;color:var(--ink-3)">PAS Ganjil · S-1 Matematika</span>
+                        </td>
+                        <td style="font-family:var(--font-mono)">482 / 510</td>
+                        <td><span class="chip bad">3 terkunci</span></td>
+                        <td><span class="btn" style="padding:4px 8px;font-size:11px">Pantau</span></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <strong>SMKN 1 Sukamaju</strong><br>
+                          <span style="font-size:11px;color:var(--ink-3)">PTS Teori · S-1 B. Inggris</span>
+                        </td>
+                        <td style="font-family:var(--font-mono)">390 / 400</td>
+                        <td><span class="chip warn">5 putus</span></td>
+                        <td><span class="btn" style="padding:4px 8px;font-size:11px">Pantau</span></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <strong>SMPN 2 Cianjur</strong><br>
+                          <span style="font-size:11px;color:var(--ink-3)">Tryout AKM · S-1 Literasi</span>
+                        </td>
+                        <td style="font-family:var(--font-mono)">270 / 280</td>
+                        <td><span class="chip ok">Normal</span></td>
+                        <td><span class="btn" style="padding:4px 8px;font-size:11px">Pantau</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="card">
+                  <div class="card-h">
+                    <strong>Peringatan &amp; Antrean</strong>
+                    <span>real-time</span>
+                  </div>
+                  <div class="card-b">
+                    <div style="background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);border-radius:7px;padding:9px 11px;font-size:12px">
+                      <strong style="color:var(--warn)">1 job ekspor gagal</strong>
+                      <p style="color:var(--ink-2);margin-top:2px">Ekspor XLSX nilai SMKN 1 (timeout). Klik untuk retry.</p>
+                    </div>
+                    <div class="stat-line"><span>Koneksi MySQL</span><strong>48 / 300</strong></div>
+                    <div class="bar ok"><i style="width:16%"></i></div>
+                    <div class="stat-line"><span>Penyimpanan Private</span><strong>18,4 GB / 50 GB</strong></div>
+                    <div class="bar"><i style="width:37%"></i></div>
+                    <div class="stat-line"><span>Scheduler terakhir</span><strong style="color:var(--ok)">12 detik lalu</strong></div>
+                    <div class="stat-line"><span>Queue Worker</span><strong style="color:var(--ok)">Aktif (2 proses)</strong></div>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+      <div class="plate-note">
+        Seluruh angka di radar lintas sekolah bersifat agregat (sama seperti <code>PantauPublik</code>) sehingga cepat
+        dan tidak membebani database saat jam sibuk ujian.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PLATE 02 ==================== -->
+  <section class="sec" id="p2">
+    <header>
+      <h2><em>PLATE 02</em> Manajemen Sekolah &amp; Provisioning 1 Klik — <code>/super/sekolah</code></h2>
+      <p>
+        Menggantikan alur CLI <code>php artisan sekolah:daftarkan</code> dengan formulir web yang sama amannya:
+        satu kali simpan langsung membuat <strong>Sekolah + Admin Pertama + Tahun Ajaran Aktif + 2 Semester</strong>
+        dalam satu transaksi, lalu menampilkan sandi acak satu kali saja.
+      </p>
+    </header>
+
+    <div class="plate">
+      <div class="plate-head">
+        <strong>Plate 02 · Daftar Tenant Sekolah &amp; Drawer Provisioning</strong>
+        <span>/super/sekolah</span>
+      </div>
+      <div class="plate-body">
+        <div class="app-win">
+          <div class="win-bar">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <div class="win-url">https://cbt.satria.id/super/sekolah</div>
+            <span>14 sekolah terdaftar</span>
+          </div>
+
+          <div class="content">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-h">
+                  <strong>Daftar Sekolah</strong>
+                  <span>Cari kode / nama / NPSN...</span>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Sekolah</th>
+                      <th>Pengguna</th>
+                      <th>Portal Publik</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <strong>SMPN 1 Cipanas</strong><br>
+                        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)">SMPN1CPN · NPSN 20203841</span>
+                      </td>
+                      <td style="font-family:var(--font-mono)">1.120 siswa · 64 guru</td>
+                      <td><span class="chip info">/info/...lk6i</span></td>
+                      <td><span class="chip ok">Aktif</span></td>
+                      <td><span class="btn" style="padding:4px 8px;font-size:11px">Kelola</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>SMKN 1 Sukamaju</strong><br>
+                        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)">SMKN1SKM · NPSN 20512345</span>
+                      </td>
+                      <td style="font-family:var(--font-mono)">890 siswa · 52 guru</td>
+                      <td><span class="chip info">/info/...ab12</span></td>
+                      <td><span class="chip ok">Aktif</span></td>
+                      <td><span class="btn" style="padding:4px 8px;font-size:11px">Kelola</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>MTs Al-Hikmah</strong><br>
+                        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)">MTSALH · NPSN 20278110</span>
+                      </td>
+                      <td style="font-family:var(--font-mono)">320 siswa · 24 guru</td>
+                      <td><span class="chip mute">Mati</span></td>
+                      <td><span class="chip warn">Ditangguhkan</span></td>
+                      <td><span class="btn" style="padding:4px 8px;font-size:11px">Kelola</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Drawer Provisioning -->
+              <div class="card" style="border-color:color-mix(in srgb,var(--accent) 45%,var(--line))">
+                <div class="card-h" style="background:var(--accent-soft)">
+                  <strong style="color:var(--accent)">+ Daftarkan Sekolah Baru</strong>
+                  <span>1 transaksi</span>
+                </div>
+                <div class="card-b">
+                  <div class="grid-eq">
+                    <div class="field">
+                      <label>Kode Sekolah</label>
+                      <div class="input mono">SMPN3CJR</div>
+                    </div>
+                    <div class="field">
+                      <label>NPSN (8 digit)</label>
+                      <div class="input mono">20203912</div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Nama Lengkap Sekolah</label>
+                    <div class="input">SMP Negeri 3 Cianjur</div>
+                  </div>
+                  <div class="grid-eq">
+                    <div class="field">
+                      <label>Nama Admin Pertama</label>
+                      <div class="input">Dedi Kurniawan</div>
+                    </div>
+                    <div class="field">
+                      <label>Username Admin</label>
+                      <div class="input mono">admin.smpn3</div>
+                    </div>
+                  </div>
+                  <div style="background:var(--ok-bg);border:1px solid color-mix(in srgb,var(--ok) 25%,transparent);border-radius:7px;padding:8px 10px;font-size:11.5px;color:var(--ok)">
+                    Otomatis membuat: <strong>TA 2026/2027 (Aktif)</strong>, Semester Ganjil &amp; Genap, serta
+                    <strong>sandi acak Admin</strong> (tampil sekali untuk disalin).
+                  </div>
+                  <div class="actions" style="justify-content:flex-end">
+                    <span class="btn">Batal</span>
+                    <span class="btn pri">Daftarkan Sekolah</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="plate-note">
+        Menggunakan service provisioning yang sama dengan perintah Artisan <code>sekolah:daftarkan</code> sehingga
+        aturan validasi NPSN, username unik global, dan pembuatan tahun ajaran tetap satu sumber kebenaran.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PLATE 03 ==================== -->
+  <section class="sec" id="p3">
+    <header>
+      <h2><em>PLATE 03</em> Detail Tenant, Kuota Fitur &amp; Mode Dukung (Impersonate) — <code>/super/sekolah/{id}</code></h2>
+      <p>
+        Mengatur kuota per sekolah, mengaktifkan/menonaktifkan modul (misal Generate AI atau Permainan Waktu Luang),
+        mereset sandi Admin sekolah, serta masuk ke konsol sekolah dengan banner audit yang jelas.
+      </p>
+    </header>
+
+    <div class="plate">
+      <div class="plate-head">
+        <strong>Plate 03 · Detail Sekolah + Banner Impersonate</strong>
+        <span>/super/sekolah/1</span>
+      </div>
+      <div class="plate-body">
+        <div class="app-win">
+          <!-- Contoh banner impersonate saat aktif -->
+          <div class="imp-banner">
+            <span>
+              <strong>MODE DUKUNG AKTIF:</strong> Anda sedang masuk sebagai <code>admin.smpn1</code> (SMPN 1 Cipanas) ·
+              Alasan: <em>"Bantu cek konflik jadwal sesi 2"</em> · Sisa 24 menit
+            </span>
+            <span class="btn bad" style="padding:4px 10px;font-size:11px">Keluar ke Super Admin</span>
+          </div>
+
+          <div class="content">
+            <div class="c-head">
+              <div>
+                <h3>SMPN 1 Cipanas <span class="chip ok" style="margin-left:6px">Aktif</span></h3>
+                <p>Kode: <code>SMPN1CPN</code> · NPSN: <code>20203841</code> · Zona: <code>Asia/Jakarta</code></p>
+              </div>
+              <div class="actions">
+                <span class="btn warn">Masuk sebagai Admin</span>
+                <span class="btn bad">Tangguhkan Sekolah</span>
+              </div>
+            </div>
+
+            <div class="grid-eq">
+              <div class="card">
+                <div class="card-h">
+                  <strong>Kuota &amp; Saklar Modul Sekolah</strong>
+                  <span>Override per tenant</span>
+                </div>
+                <div class="card-b">
+                  <div class="grid-eq">
+                    <div class="field">
+                      <label>Batas Siswa Aktif</label>
+                      <div class="input mono">1500 (terpakai 1120)</div>
+                    </div>
+                    <div class="field">
+                      <label>Kuota Media Soal</label>
+                      <div class="input mono">5 GB (terpakai 1,2 GB)</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="toggle-row">
+                      <div>
+                        <strong style="font-size:12.5px">Fitur AI (Generate Soal &amp; Usulan Koreksi)</strong>
+                        <p style="font-size:11px;color:var(--ink-3)">Izinkan sekolah mengonfigurasi penyedia AI</p>
+                      </div>
+                      <div class="switch"></div>
+                    </div>
+                    <div class="toggle-row">
+                      <div>
+                        <strong style="font-size:12.5px">Laman Publik (Portal, Papan, Pantau, TV)</strong>
+                        <p style="font-size:11px;color:var(--ink-3)">Slug aktif: <code>smpn-1-cipanas-lk6i</code></p>
+                      </div>
+                      <div class="switch"></div>
+                    </div>
+                    <div class="toggle-row">
+                      <div>
+                        <strong style="font-size:12.5px">Permainan Waktu Luang &amp; Lomba</strong>
+                        <p style="font-size:11px;color:var(--ink-3)">Hitung cepat &amp; papan peringkat jeda ujian</p>
+                      </div>
+                      <div class="switch off"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-h">
+                  <strong>Akun Admin Sekolah</strong>
+                  <span>2 akun</span>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nama &amp; Username</th>
+                      <th>Terakhir Masuk</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <strong>Budi Santoso</strong><br>
+                        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)">admin.smpn1</span>
+                      </td>
+                      <td style="font-family:var(--font-mono);font-size:11px">Hari ini 07:12</td>
+                      <td><span class="btn" style="padding:3px 8px;font-size:11px">Reset Sandi</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Rina Marlina</strong><br>
+                        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)">admin2.smpn1</span>
+                      </td>
+                      <td style="font-family:var(--font-mono);font-size:11px">Kemarin 14:40</td>
+                      <td><span class="btn" style="padding:3px 8px;font-size:11px">Reset Sandi</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="card-b" style="border-top:1px solid var(--wf-hair)">
+                  <div class="actions">
+                    <span class="btn pri">+ Tambah Admin Sekolah</span>
+                    <span class="btn">Koreksi NPSN</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="plate-note">
+        <strong>Keamanan Impersonate:</strong> wajib mengisi alasan sebelum masuk, otomatis berakhir setelah 30 menit,
+        banner kuning selalu tampil di puncak layar, dan setiap aksi dicatat ke log audit platform.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PLATE 04 & 05 ==================== -->
+  <section class="sec" id="p4">
+    <header>
+      <h2><em>PLATE 04–05</em> Kesehatan Sistem &amp; Pengumuman Global — <code>/super/sistem</code> &amp; <code>/super/pengaturan</code></h2>
+      <p>
+        Mengubah 4 jebakan operasional dari <code>README.md</code> (Scheduler mati, Queue worker berhenti,
+        <code>public/hot</code> tertinggal, symlink <code>storage:link</code> hilang) menjadi indikator visual yang
+        langsung terbaca tanpa perlu SSH ke VPS.
+      </p>
+    </header>
+
+    <div class="grid-eq">
+      <!-- PLATE 04 -->
+      <div class="plate">
+        <div class="plate-head">
+          <strong>Plate 04 · Kesehatan Sistem &amp; Antrean</strong>
+          <span>/super/sistem</span>
+        </div>
+        <div class="plate-body">
+          <div class="card">
+            <div class="card-h">
+              <strong>Checklist Kesiapan Produksi</strong>
+              <span>Live Check</span>
+            </div>
+            <table>
+              <tbody>
+                <tr>
+                  <td><strong>MySQL 8.4</strong><br><span style="font-size:11px;color:var(--ink-3)">Latensi 2 ms · 48/300 koneksi</span></td>
+                  <td style="text-align:right"><span class="chip ok">Sehat</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Scheduler (<code>ujian:tutup-kedaluwarsa</code>)</strong><br><span style="font-size:11px;color:var(--ink-3)">Detak terakhir 12 detik lalu</span></td>
+                  <td style="text-align:right"><span class="chip ok">Berjalan</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Queue Worker (Ekspor &amp; Impor)</strong><br><span style="font-size:11px;color:var(--ink-3)">0 antre · 1 job gagal</span></td>
+                  <td style="text-align:right"><span class="chip warn">1 Gagal</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Symlink <code>public/storage</code> &amp; No <code>public/hot</code></strong><br><span style="font-size:11px;color:var(--ink-3)">Logo siap · Mode produksi bersih</span></td>
+                  <td style="text-align:right"><span class="chip ok">Valid</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="card-b" style="border-top:1px solid var(--wf-hair)">
+              <div class="actions">
+                <span class="btn pri">Retry Job Gagal</span>
+                <span class="btn">Pangkas Ekspor Lama</span>
+                <span class="btn bad">Mode Pemeliharaan</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="plate-note">
+          Jika cron/scheduler berhenti &gt; 2 menit, badge berubah merah agar operator segera bertindak sebelum ada
+          attempt ujian siswa yang menggantung.
+        </div>
+      </div>
+
+      <!-- PLATE 05 -->
+      <div class="plate" id="p5">
+        <div class="plate-head">
+          <strong>Plate 05 · Broadcast Pengumuman &amp; Identitas Global</strong>
+          <span>/super/pengaturan</span>
+        </div>
+        <div class="plate-body">
+          <div class="card">
+            <div class="card-h">
+              <strong>Pengumuman Lintas Sekolah</strong>
+              <span>Tayang di konsol Admin &amp; Guru</span>
+            </div>
+            <div class="card-b">
+              <div class="field">
+                <label>Judul Pengumuman</label>
+                <div class="input">Pemeliharaan Server Minggu Pukul 22:00 WIB</div>
+              </div>
+              <div class="field">
+                <label>Pesan Singkat</label>
+                <div class="input">Aplikasi akan tidak dapat diakses selama ±15 menit untuk pembaruan keamanan.</div>
+              </div>
+              <div class="grid-eq">
+                <div class="field">
+                  <label>Target Peran</label>
+                  <div class="input">Semua Admin &amp; Guru</div>
+                </div>
+                <div class="field">
+                  <label>Berlaku Sampai</label>
+                  <div class="input mono">2026-11-24 23:00</div>
+                </div>
+              </div>
+              <div class="actions" style="justify-content:flex-end">
+                <span class="btn pri">Tayangkan Pengumuman</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="plate-note">
+          Berguna untuk info pemeliharaan server, rilis fitur baru, atau peringatan teknis tanpa harus menghubungi
+          Admin 14 sekolah satu per satu.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PLATE 06 ==================== -->
+  <section class="sec" id="p6">
+    <header>
+      <h2><em>PLATE 06</em> Arsitektur, Isolasi &amp; Batas Keamanan Super Admin</h2>
+      <p>
+        Dirancang agar menyatu bersih dengan arsitektur modular monolith <code>cbtsatria</code> dan tetap lolos
+        <code>DomainBoundariesTest</code> tanpa melemahkan isolasi tenant.
+      </p>
+    </header>
+
+    <div class="plate">
+      <div class="plate-head">
+        <strong>Plate 06 · Kontrak Teknis</strong>
+        <span>Implementasi Bertahap</span>
+      </div>
+      <div style="padding:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>Aspek</th>
+              <th>Desain di <code>cbtsatria</code></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Identitas &amp; Role</strong></td>
+              <td>Tambah <code>Role::SuperAdmin = 'super_admin'</code> (atau flag terpisah) dengan <code>users.school_id = NULL</code>. Login tetap satu pintu di <code>/login</code> &rarr; otomatis redirect ke <code>/super</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Isolasi Middleware</strong></td>
+              <td>Berkas rute terpisah <code>routes/super.php</code> dengan grup middleware <code>['auth', 'super_admin']</code>. <code>EnsureTenantContext</code> tidak aktif di rute <code>/super/*</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Provisioning</strong></td>
+              <td>Ekstrak logika <code>DaftarkanSekolah</code> ke service <code>PenyediaSekolah</code> sehingga CLI dan form web <code>/super/sekolah</code> memakai kode yang sama.</td>
+            </tr>
+            <tr>
+              <td><strong>Status Sekolah</strong></td>
+              <td>Sekolah berstatus <code>ditangguhkan</code> otomatis menolak login baru untuk akun sekolah itu dengan pesan ramah, tanpa menghapus data apa pun.</td>
+            </tr>
+            <tr>
+              <td><strong>Audit Platform</strong></td>
+              <td>Tabel <code>platform_activity_logs</code> terpisah dari <code>activity_logs</code> per sekolah agar tindakan Super Admin (buat sekolah, ubah kuota, reset sandi Admin, impersonate) punya jejak permanen.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -244,6 +244,56 @@ export default function KonsolLayout({
             </aside>
 
             <div className="flex min-w-0 flex-1 flex-col">
+                {(usePage().props as unknown as {
+                    impersonasi?: {
+                        sekolah: string;
+                        admin_username: string;
+                        alasan: string;
+                        sisa_menit: number;
+                    } | null;
+                }).impersonasi && (() => {
+                    const imp = (usePage().props as unknown as {
+                        impersonasi: {
+                            sekolah: string;
+                            admin_username: string;
+                            alasan: string;
+                            sisa_menit: number;
+                        };
+                    }).impersonasi;
+                    return (
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-warn/40 bg-warn-bg px-4 py-2 text-xs text-warn">
+                            <span>
+                                <strong>MODE DUKUNG AKTIF:</strong> Masuk sebagai{' '}
+                                <code className="font-mono">{imp.admin_username}</code> ({imp.sekolah}) ·{' '}
+                                <em>{imp.alasan}</em> · sisa {imp.sisa_menit} mnt
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => router.post('/super/impersonasi/keluar')}
+                                className="rounded-wf border border-warn/40 bg-surface px-2.5 py-1 text-[11px] font-semibold text-warn hover:bg-surface-2"
+                            >
+                                Keluar ke Super Admin
+                            </button>
+                        </div>
+                    );
+                })()}
+
+                {((usePage().props as unknown as {
+                    pengumumanPlatform?: { id: number; judul: string; isi: string; nada: string }[];
+                }).pengumumanPlatform ?? []).map((p) => (
+                    <div
+                        key={p.id}
+                        className={
+                            'border-b px-4 py-2 text-xs ' +
+                            (p.nada === 'penting'
+                                ? 'border-warn/30 bg-warn-bg text-warn'
+                                : 'border-info/25 bg-info-bg text-info')
+                        }
+                    >
+                        <strong>{p.judul}:</strong> {p.isi}
+                    </div>
+                ))}
+
                 {/* Bar atas - anatomi butir 3 dan 4.
                     Bening dan menempel: yang bergulir hanya isinya, sehingga
                     pemilih event dan penanda tahun ajaran tidak pernah hilang
