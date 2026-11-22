@@ -237,6 +237,7 @@ function PapanFormulir({ sekolah }: { sekolah: Props['sekolah'] }) {
                             {[
                                 { label: 'Papan pengawas', path: `/papan/${sekolah.papan_slug}` },
                                 { label: 'Pantau live', path: `/pantau/${sekolah.papan_slug}` },
+                                { label: 'Layar IFP / TV', path: `/tv/${sekolah.papan_slug}` },
                                 { label: 'Jadwal & pengumuman', path: `/jadwal/${sekolah.papan_slug}` },
                                 { label: 'Cek ruang & kursi', path: `/ruang/${sekolah.papan_slug}` },
                                 { label: 'Pantau wali', path: `/wali/${sekolah.papan_slug}` },

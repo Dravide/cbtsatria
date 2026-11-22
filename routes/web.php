@@ -7,6 +7,7 @@ use App\Domain\Attendance\Http\Controllers\PapanPublikController;
 use App\Domain\Attendance\Http\Controllers\PintuRuangController;
 use App\Domain\Attendance\Http\Controllers\RuangPublikController;
 use App\Domain\Attendance\Http\Controllers\Siswa\HadirSiswaController;
+use App\Domain\Attendance\Http\Controllers\TvPublikController;
 use App\Domain\Attendance\Http\Controllers\WaliFotoController;
 use App\Domain\Attendance\Http\Controllers\WaliPublikController;
 use App\Domain\Identity\Http\Controllers\Auth\LoginController;
@@ -289,6 +290,20 @@ Route::get('/ruang/{slug}', [RuangPublikController::class, 'tampilkan'])
 Route::post('/ruang/{slug}', [RuangPublikController::class, 'cari'])
     ->middleware('throttle:'.PembatasLaju::RUANG)
     ->name('ruang.publik.cari');
+
+/*
+|--------------------------------------------------------------------------
+| Layar publik mode IFP / TV - `/tv/{slug}` dan `/tv/{slug}/denyut`
+|--------------------------------------------------------------------------
+| Tampilan layar penuh 16:9 khusus Interactive Flat Panel (IFP) / TV lorong.
+| Memadukan angka live per ruang (auto-paginate), jam & hitung mundur sesi,
+| pengumuman panitia aktif, dan jadwal sesi berikutnya tanpa data siswa.
+*/
+Route::get('/tv/{slug}', [TvPublikController::class, 'tampilkan'])
+    ->name('tv.publik');
+Route::get('/tv/{slug}/denyut', [TvPublikController::class, 'denyut'])
+    ->middleware('throttle:'.PembatasLaju::PANTAU)
+    ->name('tv.denyut');
 
 /*
 |--------------------------------------------------------------------------
