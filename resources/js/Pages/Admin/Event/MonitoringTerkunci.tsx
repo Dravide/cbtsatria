@@ -72,15 +72,17 @@ export default function MonitoringTerkunci({ event, baris, angka }: Props) {
                 </div>
             </div>
 
-            <Kotak className="mb-3">
-                <input
-                    type="search"
-                    value={cari}
-                    onChange={(e) => setCari(e.target.value)}
-                    placeholder="Cari nama siswa, ruang (R-01), sesi, atau mapel..."
-                    className={kelasInput + ' max-w-md'}
-                />
-            </Kotak>
+            <div className="mb-3">
+                <Kotak>
+                    <input
+                        type="search"
+                        value={cari}
+                        onChange={(e) => setCari(e.target.value)}
+                        placeholder="Cari nama siswa, ruang (R-01), sesi, atau mapel..."
+                        className={kelasInput + ' max-w-md'}
+                    />
+                </Kotak>
+            </div>
 
             <div className="overflow-x-auto rounded-wf border border-line bg-surface">
                 <table className="w-full border-collapse text-left text-xs">

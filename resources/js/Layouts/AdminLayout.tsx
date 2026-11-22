@@ -37,16 +37,16 @@ type Props = {
 };
 
 const MASTER: ItemNav[] = [
-    { label: 'Dashboard', href: '/admin', awalan: false, ikon: 'dashboard' },
-    { label: 'Profil sekolah', href: '/admin/sekolah', awalan: false, ikon: 'sekolah' },
+    { label: 'Beranda', href: '/admin', awalan: false, ikon: 'dashboard' },
+    { label: 'Profil Sekolah', href: '/admin/sekolah', awalan: false, ikon: 'sekolah' },
     // Identitas aplikasi - nama situs, deskripsi, warna tema, dan ikon.
     // Laman tersendiri, bukan tab di Profil sekolah: nilai di sini dipakai
     // manifest dan `<head>` SETIAP halaman, sementara profil sekolah dibaca
     // kop berita acara dan laporan. Dua pembaca berbeda, dua laman.
-    { label: 'Identitas aplikasi', href: '/admin/sekolah/identitas', awalan: false, ikon: 'pengaturan' },
-    { label: 'Tahun ajaran', href: '/admin/tahun-ajaran', awalan: false, ikon: 'kalender' },
-    { label: 'Kelas', href: '/admin/kelas', awalan: false, ikon: 'kelas' },
-    { label: 'Mata pelajaran', href: '/admin/mapel', awalan: false, ikon: 'buku' },
+    { label: 'Identitas & Logo', href: '/admin/sekolah/identitas', awalan: false, ikon: 'pengaturan' },
+    { label: 'Tahun Ajaran', href: '/admin/tahun-ajaran', awalan: false, ikon: 'kalender' },
+    { label: 'Data Kelas', href: '/admin/kelas', awalan: false, ikon: 'kelas' },
+    { label: 'Mata Pelajaran', href: '/admin/mapel', awalan: false, ikon: 'buku' },
     // Bank soal - BACA SAJA, ditambahkan 2026-11-14.
     //
     // Ia duduk di Master, bukan di kelompok Event, dan itu yang benar: soal
@@ -54,17 +54,17 @@ const MASTER: ItemNav[] = [
     // dan kelas. Menaruhnya di kelompok Event berarti soal hanya bisa
     // ditemukan setelah satu event dibuka - padahal Admin yang memeriksa bank
     // soal sering belum tahu event mana yang akan memakainya.
-    { label: 'Bank soal', href: '/admin/bank-soal', awalan: false, ikon: 'paket' },
+    { label: 'Bank Soal', href: '/admin/bank-soal', awalan: false, ikon: 'paket' },
     // Rincian ruang (/admin/ruang/R-01) harus tetap menyalakan "Ruang" di
     // sidebar; tanpa awalan ini, Admin yang membuka satu ruang melihat tidak
     // ada menu yang aktif dan merasa tersesat.
-    { label: 'Ruang', href: '/admin/ruang', awalan: true, ikon: 'ruang' },
-    { label: 'Pengguna', href: '/admin/pengguna', awalan: false, ikon: 'pengguna' },
+    { label: 'Ruang Ujian', href: '/admin/ruang', awalan: true, ikon: 'ruang' },
+    { label: 'Akun & Pengguna', href: '/admin/pengguna', awalan: false, ikon: 'pengguna' },
 ];
 
 const SISTEM: ItemNav[] = [
-    { label: 'Log aktivitas', href: '/admin/log', awalan: false, ikon: 'daftar' },
-    { label: 'Pengaturan', href: '/admin/pengaturan', awalan: false, ikon: 'pengaturan' },
+    { label: 'Log Aktivitas', href: '/admin/log', awalan: false, ikon: 'daftar' },
+    { label: 'Pengaturan Sekolah', href: '/admin/pengaturan', awalan: false, ikon: 'pengaturan' },
 ];
 
 /**
@@ -87,28 +87,28 @@ type MenuEvent = {
 };
 
 const EVENT_PERSIAPAN: MenuEvent[] = [
-    { label: 'Ringkasan', segmen: '', ikon: 'ringkasan' },
-    { label: 'Peluncuran', segmen: 'peluncuran', ikon: 'bendera' },
-    { label: 'Kepanitiaan', segmen: 'panitia', ikon: 'panitia' },
+    { label: 'Ringkasan Event', segmen: '', ikon: 'ringkasan' },
+    { label: 'Kesiapan & Peluncuran', segmen: 'peluncuran', ikon: 'bendera' },
+    { label: 'Panitia & Pengawas', segmen: 'panitia', ikon: 'panitia' },
     { label: 'Pengumuman', segmen: 'pengumuman', ikon: 'daftar' },
-    { label: 'Kelas & peserta', segmen: 'peserta', ikon: 'peserta' },
-    { label: 'Paket soal', segmen: 'mapel', ikon: 'paket' },
-    { label: 'Jadwal & sesi', segmen: 'jadwal', ikon: 'jam' },
-    { label: 'Penempatan', segmen: 'penempatan', awalan: true, ikon: 'peserta' },
-    { label: 'Pengawas', segmen: 'pengawas', ikon: 'perisai' },
+    { label: 'Peserta Ujian', segmen: 'peserta', ikon: 'peserta' },
+    { label: 'Paket Soal Ujian', segmen: 'mapel', ikon: 'paket' },
+    { label: 'Jadwal & Sesi', segmen: 'jadwal', ikon: 'jam' },
+    { label: 'Penempatan Ruang', segmen: 'penempatan', awalan: true, ikon: 'peserta' },
+    { label: 'Jadwal Pengawas', segmen: 'pengawas', ikon: 'perisai' },
 ];
 
 const EVENT_HARI_H: MenuEvent[] = [
-    { label: 'Token', segmen: 'token', ikon: 'kunci' },
-    { label: 'Presensi', segmen: 'presensi', ikon: 'presensi' },
-    { label: 'Monitoring', segmen: 'monitoring', ikon: 'denyut' },
-    { label: 'Siswa terkunci', segmen: 'monitoring/terkunci', ikon: 'kunci' },
-    { label: 'Notifikasi', segmen: 'notifikasi', ikon: 'daftar' },
+    { label: 'Token Ujian', segmen: 'token', ikon: 'kunci' },
+    { label: 'Presensi Peserta', segmen: 'presensi', ikon: 'presensi' },
+    { label: 'Monitoring Ujian', segmen: 'monitoring', ikon: 'denyut' },
+    { label: 'Siswa Terkunci', segmen: 'monitoring/terkunci', ikon: 'kunci' },
+    { label: 'Notifikasi Anomali', segmen: 'notifikasi', ikon: 'daftar' },
 ];
 
 const EVENT_EVALUASI: MenuEvent[] = [
-    { label: 'Hasil', segmen: 'hasil', ikon: 'grafik' },
-    { label: 'Laporan', href: '/admin/laporan', ikon: 'laporan' },
+    { label: 'Hasil & Nilai', segmen: 'hasil', ikon: 'grafik' },
+    { label: 'Laporan Ujian', href: '/admin/laporan', ikon: 'laporan' },
 ];
 
 export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props) {
@@ -123,13 +123,14 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
     const dasarEvent = eventAktif ? `/admin/events/${eventAktif.id}` : null;
 
     const kelompok: KelompokNav[] = [
-        { judul: 'Master', item: MASTER },
+        { judul: 'Data Master', item: MASTER },
         // Daftar event selalu bisa dijangkau - bahkan saat tidak ada event
         // aktif, dan itulah satu-satunya jalan masuk ke kelompok di bawahnya.
         {
+            judul: 'Manajemen Event',
             item: [
                 {
-                    label: 'Buat event',
+                    label: 'Buat Event Baru',
                     href: '/admin/events',
                     awalan: false,
                     ikon: 'bendera',
@@ -151,13 +152,13 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
             }));
 
         kelompok.push(
-            { judul: 'Event · Persiapan', kartuEvent: true, item: susun(EVENT_PERSIAPAN) },
-            { judul: 'Event · Hari-H', item: susun(EVENT_HARI_H) },
-            { judul: 'Event · Evaluasi', item: susun(EVENT_EVALUASI) },
+            { judul: 'Persiapan Event', kartuEvent: true, item: susun(EVENT_PERSIAPAN) },
+            { judul: 'Pelaksanaan (Hari-H)', item: susun(EVENT_HARI_H) },
+            { judul: 'Hasil & Evaluasi', item: susun(EVENT_EVALUASI) },
         );
     }
 
-    kelompok.push({ judul: 'Sistem', item: SISTEM });
+    kelompok.push({ judul: 'Pengaturan Sistem', item: SISTEM });
 
     return (
         <KonsolLayout

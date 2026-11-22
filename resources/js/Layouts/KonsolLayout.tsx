@@ -108,13 +108,6 @@ export default function KonsolLayout({
 
     const jalur = typeof window !== 'undefined' ? window.location.pathname : '';
 
-    // Pemilih event di bar atas hanya punya arti di konsol yang sidebar-nya
-    // BERBICARA TENTANG satu event, dan itulah yang dinyatakan `kartuEvent`.
-    // Konsol Guru tidak pernah menyatakannya - bank soal berdiri di luar
-    // event - sehingga pemilihnya tidak pernah muncul, bukan muncul karena
-    // sesi kebetulan menyimpan event terakhir yang dibuka Admin.
-    const bicaraSoalEvent = kelompok.some((k) => k.kartuEvent === true);
-
     const menyala = (item: ItemNav) =>
         jalur === item.href || (item.awalan === true && jalur.startsWith(item.href + '/'));
 
@@ -293,6 +286,22 @@ export default function KonsolLayout({
 
                     {children}
                 </main>
+
+                <footer className="border-t border-line bg-surface/70 px-4 py-3 text-[11px] text-ink-3 md:px-6">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                            &copy; {new Date().getFullYear()}{' '}
+                            <span className="font-medium text-ink-2">
+                                {identitasAplikasi?.nama || MEREK}
+                            </span>{' '}
+                            · Sistem Ujian Berbasis Komputer
+                        </span>
+                        <span className="font-mono">
+                            {auth.pengguna ? `${auth.pengguna.nama} (${auth.pengguna.peran_label})` : ''}
+                            {tahunAktif ? ` · TA ${tahunAktif}` : ''}
+                        </span>
+                    </div>
+                </footer>
             </div>
         </div>
     );

@@ -71,8 +71,9 @@ export default function EventNotifikasi({ event, angka, baris, saring }: Props) 
                 <KPI label="Ruang terdampak" nilai={angka.ruang_terdampak} />
             </div>
 
-            <Kotak className="mb-3">
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="mb-3">
+                <Kotak>
+                    <div className="flex flex-wrap items-center gap-2">
                     <select
                         value={saring.jenis}
                         onChange={(e) => terapkan({ jenis: e.target.value })}
@@ -95,7 +96,8 @@ export default function EventNotifikasi({ event, angka, baris, saring }: Props) 
                         <option value="dibaca">Sudah dibaca</option>
                     </select>
                 </div>
-            </Kotak>
+                </Kotak>
+            </div>
 
             <div className="overflow-x-auto rounded-wf border border-line bg-surface">
                 <table className="w-full border-collapse text-left text-xs">

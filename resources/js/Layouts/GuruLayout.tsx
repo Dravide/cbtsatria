@@ -47,12 +47,12 @@ const BANK_SOAL: ItemNav[] = [
     // bukan milik satu ujian (wireframe plate 02). Karena itu tidak ada
     // pemilih event di bar atas konsol ini, dan tautan di bawah ini tidak
     // pernah memuat id event.
-    { label: 'Bank soal', href: '/guru/bank-soal', awalan: false, ikon: 'bank-soal' },
-    { label: 'Paket soal', href: '/guru/paket', awalan: true, ikon: 'paket' },
+    { label: 'Bank Soal', href: '/guru/bank-soal', awalan: false, ikon: 'bank-soal' },
+    { label: 'Paket Soal', href: '/guru/paket', awalan: true, ikon: 'paket' },
     // Impor berada DI DALAM bank soal (/guru/bank-soal/impor) supaya Guru
     // yang sedang menyaring soal tidak kehilangan tempatnya. Menu tersendiri
     // ke laman yang sama akan membuat dua tautan menyalakan satu laman.
-    { label: 'Impor soal', href: '/guru/bank-soal/impor', awalan: false, ikon: 'impor' },
+    { label: 'Impor Soal', href: '/guru/bank-soal/impor', awalan: false, ikon: 'impor' },
 ];
 
 const NILAI: ItemNav[] = [
@@ -60,20 +60,20 @@ const NILAI: ItemNav[] = [
     // dirinya (`/guru/koreksi/{ujian}`, `/guru/nilai/{ujian}`,
     // `/guru/analisis/{ujian}`), dan menu utama harus tetap menyala saat
     // Guru sedang berada di salah satunya.
-    { label: 'Koreksi uraian', href: '/guru/koreksi', awalan: true, ikon: 'koreksi' },
-    { label: 'Nilai kelas', href: '/guru/nilai', awalan: false, ikon: 'nilai' },
-    { label: 'Analisis butir', href: '/guru/analisis', awalan: false, ikon: 'analisis' },
+    { label: 'Koreksi Uraian', href: '/guru/koreksi', awalan: true, ikon: 'koreksi' },
+    { label: 'Nilai Kelas', href: '/guru/nilai', awalan: false, ikon: 'nilai' },
+    { label: 'Analisis Butir Soal', href: '/guru/analisis', awalan: false, ikon: 'analisis' },
 ];
 
 const AKUN: ItemNav[] = [
-    { label: 'Ganti sandi', href: '/guru/sandi', awalan: false, ikon: 'kunci' },
+    { label: 'Ganti Kata Sandi', href: '/guru/sandi', awalan: false, ikon: 'kunci' },
 ];
 
 export default function GuruLayout({ judul, breadcrumb, aksi, children }: Props) {
     const kelompok: KelompokNav[] = [
-        { judul: 'Bank soal', item: BANK_SOAL },
-        { judul: 'Nilai', item: NILAI },
-        { judul: 'Akun', item: AKUN },
+        { judul: 'Bank Soal', item: BANK_SOAL },
+        { judul: 'Penilaian', item: NILAI },
+        { judul: 'Akun Saya', item: AKUN },
     ];
 
     return (
