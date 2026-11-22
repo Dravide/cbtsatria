@@ -387,16 +387,12 @@ export default function Jadwal({ sekolah, slug, events, diperbarui }: Props) {
 
                     <footer className="border-t border-line bg-surface px-4 py-3">
                         <nav className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-ink-3">
+                            <Link href={`/info/${slug}`} className="hover:text-ink">
+                                Portal
+                            </Link>
+                            <span>·</span>
                             <Link href={`/ruang/${slug}`} className="text-accent hover:underline">
                                 Cek ruang &amp; kursi
-                            </Link>
-                            <span>·</span>
-                            <Link href={`/papan/${slug}`} className="hover:text-ink">
-                                Papan pengawas
-                            </Link>
-                            <span>·</span>
-                            <Link href={`/pantau/${slug}`} className="hover:text-ink">
-                                Pantau live
                             </Link>
                             <span>·</span>
                             <Link href={`/wali/${slug}`} className="hover:text-ink">
