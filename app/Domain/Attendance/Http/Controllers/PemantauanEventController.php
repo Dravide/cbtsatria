@@ -2407,7 +2407,7 @@ class PemantauanEventController
 
         $ujian = Exam::query()
             ->where('event_id', $event->id)
-            ->with(['subject:id,name,grade_level', 'classes.schoolClass:id,grade_level'])
+            ->with(['subject:id,name,grade_level', 'classes.kelas:id,grade_level'])
             ->get(['id', 'subject_id', 'title']);
 
         // Sesi dikelompokkan menurut ujiannya, dan urutannya nomor sesi -
