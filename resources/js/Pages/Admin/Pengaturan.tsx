@@ -43,6 +43,11 @@ type Props = {
         deteksi_layar_terbagi: boolean;
         deteksi_jendela_mengambang: boolean;
         tanda_air_ujian: boolean;
+        notifikasi_terkunci: boolean;
+        notifikasi_pelanggaran: boolean;
+        notifikasi_terputus_massal: boolean;
+        notifikasi_insiden: boolean;
+        notifikasi_suara: boolean;
     };
     ai: {
         base_url: string;
@@ -150,15 +155,9 @@ export default function Pengaturan({ pengaturan, ai }: Props) {
             judul="Pengaturan sekolah"
             breadcrumb="/admin/pengaturan"
             aksi={
-                // Tab Notifikasi tidak punya satu pun kolom yang bisa
-                // disimpan. Tombol Simpan di sana tidak akan mengubah apa
-                // pun, dan tombol yang ditekan tanpa hasil membuat Admin
-                // mengira pengaturannya tersimpan.
-                tab === 'Notifikasi' ? null : (
-                    <Tombol type="button" nada="pri" disabled={sedangSimpan} onClick={simpan}>
-                        {sedangSimpan ? 'Menyimpan...' : 'Simpan'}
-                    </Tombol>
-                )
+                <Tombol type="button" nada="pri" disabled={sedangSimpan} onClick={simpan}>
+                    {sedangSimpan ? 'Menyimpan...' : 'Simpan'}
+                </Tombol>
             }
         >
             <Head title="Pengaturan" />
@@ -349,13 +348,34 @@ export default function Pengaturan({ pengaturan, ai }: Props) {
                         )}
 
                         {tab === 'Notifikasi' && (
-                            <Kotak judul="Notifikasi">
-                                <p className="text-sm text-ink-3">
-                                    Belum ada notifikasi yang bisa diatur. Pemberitahuan ke
-                                    pengawas dibangun bersama laman monitoring, dan sampai itu
-                                    ada, tab ini hanya memberi tahu bahwa pengaturannya memang
-                                    belum tersedia, bukan belum tersimpan.
-                                </p>
+                            <Kotak judul="Notifikasi anomali event">
+                                <div className="space-y-3">
+                                    <Centang
+                                        label="Peserta terkunci (ke-block)"
+                                        nilai={data.notifikasi_terkunci}
+                                        padaUbah={(v) => setData('notifikasi_terkunci', v)}
+                                    />
+                                    <Centang
+                                        label="Peserta mendekati ambang pelanggaran"
+                                        nilai={data.notifikasi_pelanggaran}
+                                        padaUbah={(v) => setData('notifikasi_pelanggaran', v)}
+                                    />
+                                    <Centang
+                                        label="Lonjakan peserta terputus di satu ruang"
+                                        nilai={data.notifikasi_terputus_massal}
+                                        padaUbah={(v) => setData('notifikasi_terputus_massal', v)}
+                                    />
+                                    <Centang
+                                        label="Laporan insiden baru dari Pengawas"
+                                        nilai={data.notifikasi_insiden}
+                                        padaUbah={(v) => setData('notifikasi_insiden', v)}
+                                    />
+                                    <Centang
+                                        label="Bunyi peringatan pelan untuk kejadian kritis"
+                                        nilai={data.notifikasi_suara}
+                                        padaUbah={(v) => setData('notifikasi_suara', v)}
+                                    />
+                                </div>
                             </Kotak>
                         )}
 

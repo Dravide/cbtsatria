@@ -23,6 +23,7 @@ use App\Domain\Attendance\Http\Controllers\SinyalRuangAdminController;
 use App\Domain\Event\Http\Controllers\EventAnnouncementController;
 use App\Domain\Event\Http\Controllers\EventCommitteeController;
 use App\Domain\Event\Http\Controllers\EventController;
+use App\Domain\Event\Http\Controllers\EventNotifikasiController;
 use App\Domain\Event\Http\Controllers\EventParticipantController;
 use App\Domain\Event\Http\Controllers\EventSoalController;
 use App\Domain\Event\Http\Controllers\EventSubjectController;
@@ -607,6 +608,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/events/{event}/monitoring', [PemantauanEventController::class, 'monitoring'])
         ->name('events.monitoring');
+    Route::get('/events/{event}/notifikasi', [EventNotifikasiController::class, 'index'])
+        ->name('events.notifikasi');
+    Route::get('/events/{event}/notifikasi/ringkas', [EventNotifikasiController::class, 'ringkas'])
+        ->name('events.notifikasi.ringkas');
+    Route::post('/events/{event}/notifikasi/baca-semua', [EventNotifikasiController::class, 'bacaSemua'])
+        ->name('events.notifikasi.baca_semua');
+    Route::post('/events/{event}/notifikasi/{notifikasi}/baca', [EventNotifikasiController::class, 'baca'])
+        ->name('events.notifikasi.baca');
 
     Route::get('/events/{event}/pantau', [PantauPublikController::class, 'tampilkanEventAdmin'])
         ->name('events.pantau');

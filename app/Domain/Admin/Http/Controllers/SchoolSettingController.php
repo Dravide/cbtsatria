@@ -95,6 +95,11 @@ class SchoolSettingController
             'deteksi_layar_terbagi' => ['required', 'boolean'],
             'deteksi_jendela_mengambang' => ['required', 'boolean'],
             'tanda_air_ujian' => ['required', 'boolean'],
+            'notifikasi_terkunci' => ['required', 'boolean'],
+            'notifikasi_pelanggaran' => ['required', 'boolean'],
+            'notifikasi_terputus_massal' => ['required', 'boolean'],
+            'notifikasi_insiden' => ['required', 'boolean'],
+            'notifikasi_suara' => ['required', 'boolean'],
         ]);
 
         $sekolah->forceFill(['settings' => $data])->save();

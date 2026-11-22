@@ -1,6 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { ReactNode } from 'react';
 import Ikon, { NamaIkon } from '@/Components/Ikon';
+import NotifikasiEventBel from '@/Components/NotifikasiEventBel';
 import { PilihCari, UmpanBalik } from '@/Components/ui';
 import { MEREK } from '@/merek';
 
@@ -231,6 +232,13 @@ export default function KonsolLayout({
 
                             Hanya di konsol yang bicara soal event; lihat
                             `bicaraSoalEvent` di atas. */}
+                        {tampilkanPemilihEvent && eventAktif && (
+                            <NotifikasiEventBel
+                                eventId={eventAktif.id}
+                                eventNama={eventAktif.nama}
+                            />
+                        )}
+
                         {tampilkanPemilihEvent && (
                             <div className="w-48 sm:w-64">
                                 <PilihCari

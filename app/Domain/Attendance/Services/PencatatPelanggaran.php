@@ -6,6 +6,8 @@ use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Models\ExamViolation;
 use App\Domain\Attendance\Support\TanggaPelanggaran;
 use App\Domain\Attendance\Support\TindakanPelanggaran;
+use App\Domain\Event\Models\EventNotification;
+use App\Domain\Event\Services\NotifikasiEventService;
 use App\Domain\Tenancy\Support\PengaturanBawaan;
 use Illuminate\Support\Facades\DB;
 
@@ -123,10 +125,12 @@ class PencatatPelanggaran
                 ];
             }
 
+            $baruDikunci = false;
             if ($tindakan->kunci && ! $terkunci->dikunci()) {
                 $kolom['status'] = ExamAttempt::STATUS_DIKUNCI;
                 $kolom['lock_reason'] = $this->alasanKunci($jenis, $jumlah);
                 $kolom['locked_at'] = $sekarang;
+                $baruDikunci = true;
             }
 
             $terkunci->forceFill($kolom)->save();
@@ -136,8 +140,52 @@ class PencatatPelanggaran
             // memuat ulang.
             $attempt->setRawAttributes($terkunci->getAttributes(), true);
 
+            if ($baruDikunci || ($tindakan->peringatkan && $tindakan->sisaMenujuKunci !== null && $tindakan->sisaMenujuKunci <= 1)) {
+                $this->kirimNotifikasi($terkunci, $jenis, $jumlah, $baruDikunci);
+            }
+
             return $tindakan;
         });
+    }
+
+    private function kirimNotifikasi(
+        ExamAttempt $attempt,
+        string $jenis,
+        int $jumlah,
+        bool $terkunci,
+    ): void {
+        $attempt->loadMissing([
+            'penempatan.student:id,name',
+            'penempatan.session:id,exam_id,session_number',
+            'penempatan.session.exam:id,event_id,title',
+            'penempatan.room.eventRoom.room:id,code',
+        ]);
+
+        $peserta = $attempt->penempatan;
+        $eventId = $peserta?->session?->exam?->event_id;
+        if ($eventId === null) {
+            return;
+        }
+
+        $nama = $peserta->student?->name ?? 'Peserta';
+        $ruang = $peserta->room?->eventRoom?->room?->code;
+        $labelJenis = ExamViolation::JENIS[$jenis] ?? $jenis;
+        $konteks = $ruang ? ($terkunci ? "TERKUNCI · {$ruang}" : "PERINGATAN · {$ruang}") : null;
+
+        app(NotifikasiEventService::class)->catat([
+            'school_id' => $attempt->school_id,
+            'event_id' => $eventId,
+            'exam_session_id' => $peserta->exam_session_id,
+            'exam_session_room_id' => $peserta->exam_session_room_id,
+            'jenis' => $terkunci ? EventNotification::JENIS_TERKUNCI : EventNotification::JENIS_PELANGGARAN,
+            'tingkat' => $terkunci ? EventNotification::TINGKAT_BAD : EventNotification::TINGKAT_INFO,
+            'judul' => $terkunci ? 'Peserta terkunci (ke-block)' : 'Mendekati ambang pelanggaran',
+            'pesan' => "{$nama} tercatat {$jumlah}× {$labelJenis}.",
+            'konteks_label' => $konteks,
+            'tautan' => $peserta->exam_session_room_id
+                ? "/admin/events/{$eventId}/monitoring/ruang/{$peserta->exam_session_room_id}"
+                : "/admin/events/{$eventId}/monitoring",
+        ]);
     }
 
     /**

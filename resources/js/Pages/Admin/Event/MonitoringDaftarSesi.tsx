@@ -50,9 +50,22 @@ type Baris = {
     insiden: number;
 };
 
+type TerkunciItem = {
+    peserta_id: number;
+    nama: string;
+    ruang_id: number;
+    ruang: string;
+    sesi: string;
+    ujian: string | null;
+    alasan: string | null;
+    pelanggaran: number;
+    dikunci_jam: string | null;
+};
+
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     baris: Baris[];
+    terkunci_daftar?: TerkunciItem[];
     angka: {
         sesi: number;
         peserta: number;
@@ -80,6 +93,7 @@ type Props = {
 export default function MonitoringDaftarSesi({
     event,
     baris,
+    terkunci_daftar = [],
     angka,
     mapel,
     sinyal = [],
@@ -181,6 +195,64 @@ export default function MonitoringDaftarSesi({
                     nada={angka.pelanggaran > 0 ? 'bad' : undefined}
                 />
             </div>
+
+            {terkunci_daftar.length > 0 && (
+                <div className="mb-3 rounded-wf border border-bad bg-bad-bg/60 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-bad">
+                            Siswa terkunci / ke-block lintas semua ruang ({terkunci_daftar.length})
+                        </p>
+                        <span className="text-[11px] text-ink-3">
+                            Buka kunci langsung tanpa perlu masuk satu per satu ke tiap ruang.
+                        </span>
+                    </div>
+                    <div className="mt-2 space-y-1.5">
+                        {terkunci_daftar.map((t) => (
+                            <div
+                                key={t.peserta_id}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-wf border border-line bg-surface px-3 py-2 text-xs"
+                            >
+                                <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="font-semibold text-ink">{t.nama}</span>
+                                        <Chip nada="mute">
+                                            {t.sesi} · {t.ruang}
+                                        </Chip>
+                                        {t.ujian && (
+                                            <span className="text-[11px] text-ink-2">{t.ujian}</span>
+                                        )}
+                                    </div>
+                                    <p className="mt-0.5 text-[11px] text-ink-3">
+                                        {t.alasan ?? 'Melebihi ambang pelanggaran'} ·{' '}
+                                        <span className="font-mono">{t.pelanggaran}×</span>
+                                        {t.dikunci_jam ? ` · pukul ${t.dikunci_jam}` : ''}
+                                    </p>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <Link
+                                        href={`${jalur_ruang}/${t.ruang_id}`}
+                                        className="text-[11px] font-medium text-accent hover:underline"
+                                    >
+                                        Lihat ruang →
+                                    </Link>
+                                    <Tombol
+                                        nada="pri"
+                                        onClick={() =>
+                                            router.post(
+                                                `/admin/events/${event.id}/monitoring/peserta/${t.peserta_id}/buka`,
+                                                { alasan: 'Dibuka dari monitoring event' },
+                                                { preserveScroll: true },
+                                            )
+                                        }
+                                    >
+                                        Buka kunci
+                                    </Tombol>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {!adaAttempt && (
                 <div className="mb-3">

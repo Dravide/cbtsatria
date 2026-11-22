@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe Sistem Notifikasi Anomali Event — School CBT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 var(--font-body)}
+.wrap{max-width:1160px;margin:0 auto;padding:28px 20px 64px}
+header.doc{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px}
+header.doc h1{margin:0 0 6px;font:600 22px/1.25 var(--font-display);letter-spacing:-.01em}
+header.doc p{margin:0;color:var(--ink-2);max-width:74ch}
+.nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.nav a{padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink-2);text-decoration:none;font-size:12px}
+.nav a:hover{border-color:var(--accent);color:var(--accent)}
+
+.plate{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);margin-bottom:28px;overflow:hidden}
+.plate-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--wf-head);border-bottom:1px solid var(--line)}
+.plate-head h2{margin:0;font:600 14px/1.3 var(--font-display)}
+.plate-head .meta{font:11px/1.2 var(--font-mono);color:var(--ink-3)}
+.plate-body{padding:18px}
+.note{margin:12px 0 0;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+
+.app-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--wf-bg)}
+.app-bar .crumb{font-size:12px;color:var(--ink-3)}
+.app-bar .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:12px;color:var(--ink-2)}
+.pill.mono{font-family:var(--font-mono);font-size:11px}
+
+.bell-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--accent);border-radius:7px;background:var(--accent-soft);color:var(--accent);cursor:pointer;font-size:15px}
+.bell-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--bad);color:#fff;font:600 10px/17px var(--font-mono);text-align:center}
+
+.grid-2{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-top:14px}
+@media (max-width:860px){.grid-2{grid-template-columns:1fr}}
+
+.popover{border:1px solid var(--line);border-radius:10px;background:var(--wf-bg);box-shadow:var(--shadow);overflow:hidden}
+.popover-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--wf-head)}
+.popover-head h3{margin:0;font:600 13px/1.2 var(--font-display)}
+.tabs{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--wf-hair);background:var(--wf-soft)}
+.tab{padding:4px 9px;border-radius:6px;font-size:11.5px;color:var(--ink-2);border:1px solid transparent}
+.tab.active{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+
+.notif-list{divide-y:1px solid var(--wf-hair)}
+.notif-item{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--wf-hair);align-items:flex-start}
+.notif-item.unread{background:var(--accent-soft)}
+.notif-item:last-child{border-bottom:0}
+.dot{width:9px;height:9px;border-radius:999px;margin-top:5px;flex:0 0 auto}
+.dot.bad{background:var(--bad)}
+.dot.warn{background:var(--warn)}
+.dot.info{background:var(--info)}
+.notif-content{min-width:0;flex:1}
+.notif-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:600;color:var(--ink)}
+.notif-time{font:10.5px/1 var(--font-mono);color:var(--ink-3);white-space:nowrap}
+.notif-desc{margin:3px 0 6px;font-size:12px;color:var(--ink-2)}
+.notif-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font:500 10.5px/1.3 var(--font-mono)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.info{background:var(--info-bg);color:var(--info)}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.link{font-size:11.5px;font-weight:600;color:var(--accent);text-decoration:none}
+
+.toast{border:1px solid var(--bad);border-left:4px solid var(--bad);border-radius:8px;background:var(--wf-bg);padding:12px 14px;box-shadow:var(--shadow)}
+.toast-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.toast-title{font:600 13px/1.3 var(--font-display);color:var(--bad)}
+.toast-body{margin:4px 0 8px;font-size:12.5px;color:var(--ink-2)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font:500 12px/1.2 var(--font-body);color:var(--ink);cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--wf-bg)}
+.kpi .l{font-size:11px;color:var(--ink-3)}
+.kpi .v{margin-top:2px;font:600 20px/1.2 var(--font-mono)}
+
+table.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--line)}
+table.tbl th,table.tbl td{padding:8px 10px;border-bottom:1px solid var(--wf-hair);text-align:left}
+table.tbl th{background:var(--wf-soft);font:600 11px/1.2 var(--font-mono);text-transform:uppercase;color:var(--ink-3)}
+
+.setting-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--wf-hair)}
+.setting-row:last-child{border-bottom:0}
+.setting-title{font-size:13px;font-weight:600;color:var(--ink)}
+.setting-desc{font-size:12px;color:var(--ink-2);margin-top:2px}
+.switch{width:38px;height:22px;border-radius:999px;background:var(--accent);position:relative;flex:0 0 auto}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:999px;background:#fff}
+.switch.off{background:var(--wf-line)}
+.switch.off::after{right:auto;left:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc">
+    <h1>Wireframe Sistem Notifikasi Anomali Event</h1>
+    <p>Rancangan notifikasi real-time khusus event aktif untuk menangkap kejadian kritis (peserta terkunci/ke-block, lonjakan terputus, pelanggaran berulang, dan insiden ruang) tanpa memaksa Admin terus-menerus menatap halaman Monitoring.</p>
+    <nav class="nav">
+      <a href="#plate-01">Plate 01 · Lonceng &amp; Popover Header</a>
+      <a href="#plate-02">Plate 02 · Toast Kritis Real-time</a>
+      <a href="#plate-03">Plate 03 · Pusat Log Notifikasi Event</a>
+      <a href="#plate-04">Plate 04 · Tab Notifikasi (/admin/pengaturan)</a>
+    </nav>
+  </header>
+
+  <!-- ========================================================= PLATE 01 -->
+  <section class="plate" id="plate-01">
+    <div class="plate-head">
+      <h2>Plate 01 — Lonceng &amp; Popover Notifikasi di Header Admin</h2>
+      <span class="meta">KonsolLayout · Header Kanan (eventAktif)</span>
+    </div>
+    <div class="plate-body">
+      <div class="app-bar">
+        <span class="crumb">/admin/events/1 · Jadwal &amp; sesi</span>
+        <div class="right">
+          <span class="pill">ASAS Ganjil 2026/2027 ▾</span>
+          <button type="button" class="bell-btn" aria-label="Notifikasi event">
+            🔔
+            <span class="bell-badge">3</span>
+          </button>
+          <span class="pill mono">TA 2026/2027</span>
+          <span class="pill">Admin ▾</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="popover">
+          <div class="popover-head">
+            <h3>Notifikasi Event · ASAS Ganjil</h3>
+            <a href="#" class="link">Tandai semua dibaca</a>
+          </div>
+          <div class="tabs">
+            <span class="tab active">Semua (4)</span>
+            <span class="tab">Belum dibaca (3)</span>
+            <span class="tab">Kritis (1)</span>
+          </div>
+          <div class="notif-list">
+            <div class="notif-item unread">
+              <span class="dot bad"></span>
+              <div class="notif-content">
+                <div class="notif-title">
+                  <span>Peserta terkunci (ke-block)</span>
+                  <span class="notif-time">08:14</span>
+                </div>
+                <p class="notif-desc"><b>Andi Pratama</b> (IX-A · R-02) terkunci otomatis setelah 5× keluar tab pada Sesi 1 Matematika.</p>
+                <div class="notif-foot">
+                  <span class="chip bad">TERKUNCI · R-02</span>
+                  <a href="#" class="link">Buka ruang di Monitoring →</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="notif-item unread">
+              <span class="dot warn"></span>
+              <div class="notif-content">
+                <div class="notif-title">
+                  <span>Lonjakan peserta terputus</span>
+                  <span class="notif-time">08:11</span>
+                </div>
+                <p class="notif-desc">4 peserta di <b>R-05</b> tidak mengirim denyut &gt; 90 detik secara bersamaan.</p>
+                <div class="notif-foot">
+                  <span class="chip warn">JARINGAN · R-05</span>
+                  <a href="#" class="link">Periksa R-05 →</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="notif-item unread">
+              <span class="dot warn"></span>
+              <div class="notif-content">
+                <div class="notif-title">
+                  <span>Insiden dicatat Pengawas</span>
+                  <span class="notif-time">08:05</span>
+                </div>
+                <p class="notif-desc">Pengawas R-01 mencatat: <i>"Listrik ruang padam 3 menit, siswa dilanjutkan."</i></p>
+                <div class="notif-foot">
+                  <span class="chip warn">INSIDEN · R-01</span>
+                  <a href="#" class="link">Lihat detail →</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="notif-item">
+              <span class="dot info"></span>
+              <div class="notif-content">
+                <div class="notif-title">
+                  <span>Mendekati ambang pelanggaran</span>
+                  <span class="notif-time">07:58</span>
+                </div>
+                <p class="notif-desc"><b>Siti Aminah</b> (IX-C · R-04) tercatat 4/5 pelanggaran (layar terbagi).</p>
+                <div class="notif-foot">
+                  <span class="chip info">PERINGATAN · R-04</span>
+                  <a href="#" class="link">Pantau →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="note" style="margin-top:0">
+            <b>Alur kerja Admin:</b><br>
+            1. Ikon lonceng hanya muncul di header kanan saat ada <b>Event aktif</b>.<br>
+            2. Konsol Admin melakukan polling ringan tiap <b>10–15 detik</b> ke endpoint <code>/admin/events/{event}/notifikasi/ringkas</code>.<br>
+            3. Mengklik notifikasi menandai item tersebut sebagai sudah dibaca (<code>read_at</code>) lalu mengarahkan Admin langsung ke ruang terkait di halaman Monitoring.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 02 -->
+  <section class="plate" id="plate-02">
+    <div class="plate-head">
+      <h2>Plate 02 — Toast Peringatan Kritis Real-time (Pojok Kanan Bawah)</h2>
+      <span class="meta">Muncul otomatis di seluruh halaman /admin/* saat kejadian baru tingkat KRITIS</span>
+    </div>
+    <div class="plate-body">
+      <div style="max-width:420px;margin-left:auto">
+        <div class="toast">
+          <div class="toast-top">
+            <span class="toast-title">⚠ Peserta Terkunci · R-02</span>
+            <span class="notif-time">Baru saja</span>
+          </div>
+          <p class="toast-body"><b>Andi Pratama (IX-A)</b> melebihi ambang pelanggaran (5/5 keluar tab) pada Sesi 1 Matematika.</p>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button type="button" class="btn">Tutup</button>
+            <button type="button" class="btn pri">Buka di Monitoring →</button>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <b>Anti-spam:</b> Hanya kejadian tingkat <b>bad/kritis</b> (peserta terkunci atau insiden baru) yang memunculkan toast &amp; bunyi pelan. Kejadian tingkat <i>info/warn</i> cukup menambah angka badge pada ikon lonceng agar layar Admin tidak penuh pop-up.
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 03 -->
+  <section class="plate" id="plate-03">
+    <div class="plate-head">
+      <h2>Plate 03 — Log Lengkap Notifikasi Event (/admin/events/{id}/notifikasi)</h2>
+      <span class="meta">Audit &amp; Tindak Lanjut Kejadian per Sesi / Ruang</span>
+    </div>
+    <div class="plate-body">
+      <div class="kpis">
+        <div class="kpi"><div class="l">Total kejadian</div><div class="v">14</div></div>
+        <div class="kpi"><div class="l">Belum dibaca</div><div class="v" style="color:var(--bad)">3</div></div>
+        <div class="kpi"><div class="l">Peserta terkunci</div><div class="v" style="color:var(--bad)">2</div></div>
+        <div class="kpi"><div class="l">Ruang terdampak</div><div class="v">4</div></div>
+      </div>
+
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Jenis</th>
+            <th>Sesi &amp; Ruang</th>
+            <th>Keterangan</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-family:var(--font-mono)">08:14:22</td>
+            <td><span class="chip bad">Terkunci</span></td>
+            <td>S-1 · R-02</td>
+            <td>Andi Pratama (IX-A) terkunci: 5/5 keluar tab</td>
+            <td><span class="chip warn">Belum dibaca</span></td>
+            <td><a href="#" class="link">Buka kunci / Pantau →</a></td>
+          </tr>
+          <tr>
+            <td style="font-family:var(--font-mono)">08:11:05</td>
+            <td><span class="chip warn">Terputus massal</span></td>
+            <td>S-1 · R-05</td>
+            <td>4 peserta offline &gt; 90 detik bersamaan</td>
+            <td><span class="chip warn">Belum dibaca</span></td>
+            <td><a href="#" class="link">Cek ruang →</a></td>
+          </tr>
+          <tr>
+            <td style="font-family:var(--font-mono)">07:58:10</td>
+            <td><span class="chip info">Pelanggaran</span></td>
+            <td>S-1 · R-04</td>
+            <td>Siti Aminah (IX-C) 4/5 split-screen</td>
+            <td><span class="chip ok">Dibaca</span></td>
+            <td><a href="#" class="link">Pantau →</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 04 -->
+  <section class="plate" id="plate-04">
+    <div class="plate-head">
+      <h2>Plate 04 — Pengaturan Notifikasi (/admin/pengaturan · Tab Notifikasi)</h2>
+      <span class="meta">Mengisi tab Notifikasi yang saat ini masih placeholder</span>
+    </div>
+    <div class="plate-body">
+      <div style="max-width:680px">
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Peserta terkunci (ke-block)</div>
+            <div class="setting-desc">Kirim notifikasi prioritas tinggi setiap kali peserta terkunci karena melampaui ambang pelanggaran.</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Peserta mendekati ambang pelanggaran</div>
+            <div class="setting-desc">Peringatkan Admin bila peserta mencapai sisa 1 pelanggaran sebelum terkunci.</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Lonjakan peserta terputus di satu ruang</div>
+            <div class="setting-desc">Picu peringatan bila minimal <b>3 peserta</b> di ruang yang sama tidak mengirim denyut &gt; 90 detik.</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Laporan insiden dari Pengawas</div>
+            <div class="setting-desc">Notifikasi saat Pengawas ruang mencatat berita acara insiden baru.</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-title">Bunyi peringatan pelan untuk kejadian kritis</div>
+            <div class="setting-desc">Putar nada singkat di peramban Admin saat muncul notifikasi kritis baru.</div>
+          </div>
+          <div class="switch off"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

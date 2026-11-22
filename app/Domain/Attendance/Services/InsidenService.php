@@ -3,6 +3,8 @@
 namespace App\Domain\Attendance\Services;
 
 use App\Domain\Attendance\Models\ExamIncident;
+use App\Domain\Event\Models\EventNotification;
+use App\Domain\Event\Services\NotifikasiEventService;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use DomainException;
@@ -47,7 +49,7 @@ class InsidenService
             throw new DomainException('Insiden harus disertai keterangan.');
         }
 
-        return ExamIncident::create([
+        $insiden = ExamIncident::create([
             'school_id' => $ruang->school_id,
             'exam_session_room_id' => $ruang->id,
             'exam_participant_id' => $peserta?->id,
@@ -58,6 +60,26 @@ class InsidenService
             'occurred_at' => now(),
             'status' => ExamIncident::STATUS_TERBUKA,
         ]);
+
+        $ruang->loadMissing('session.exam', 'eventRoom.room:id,code');
+        $eventId = $ruang->session?->exam?->event_id;
+        if ($eventId !== null) {
+            $kodeRuang = $ruang->eventRoom?->room?->code ?? 'Ruang';
+            app(NotifikasiEventService::class)->catat([
+                'school_id' => $ruang->school_id,
+                'event_id' => $eventId,
+                'exam_session_id' => $ruang->exam_session_id,
+                'exam_session_room_id' => $ruang->id,
+                'jenis' => EventNotification::JENIS_INSIDEN,
+                'tingkat' => EventNotification::TINGKAT_WARN,
+                'judul' => 'Insiden dicatat Pengawas',
+                'pesan' => "{$kodeRuang}: {$keterangan}",
+                'konteks_label' => "INSIDEN · {$kodeRuang}",
+                'tautan' => "/admin/events/{$eventId}/monitoring/ruang/{$ruang->id}",
+            ]);
+        }
+
+        return $insiden;
     }
 
     /**

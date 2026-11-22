@@ -72,6 +72,13 @@ final class PengaturanBawaan
         'deteksi_layar_terbagi' => true,
         'deteksi_jendela_mengambang' => true,
         'tanda_air_ujian' => true,
+
+        // Notifikasi anomali event (bel lonceng header Admin).
+        'notifikasi_terkunci' => true,
+        'notifikasi_pelanggaran' => true,
+        'notifikasi_terputus_massal' => true,
+        'notifikasi_insiden' => true,
+        'notifikasi_suara' => false,
     ];
 
     /**

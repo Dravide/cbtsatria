@@ -825,9 +825,31 @@ class PemantauanEventController
             ];
         })->values();
 
+        $terkunciDaftar = $ruangan->flatMap(function (ExamSessionRoom $r) use ($attempt) {
+            return $r->participants->map(function (ExamParticipant $p) use ($r, $attempt): ?array {
+                $att = $attempt->get($p->id);
+                if ($att === null || ! $att->dikunci()) {
+                    return null;
+                }
+
+                return [
+                    'peserta_id' => $p->id,
+                    'nama' => $p->student?->name ?? 'Peserta',
+                    'ruang_id' => $r->id,
+                    'ruang' => $r->eventRoom?->room?->code ?? 'R-?',
+                    'sesi' => $r->session?->label() ?? '—',
+                    'ujian' => $r->session?->exam?->subject?->name ?? $r->session?->exam?->title,
+                    'alasan' => $att->lock_reason,
+                    'pelanggaran' => (int) $att->violation_count,
+                    'dikunci_jam' => $att->locked_at?->format('H:i:s'),
+                ];
+            })->filter();
+        })->values()->all();
+
         return Inertia::render('Admin/Event/MonitoringDaftarSesi', [
             'event' => $this->ringkas($event),
             'baris' => $baris->all(),
+            'terkunci_daftar' => $terkunciDaftar,
             'angka' => [
                 'sesi' => $baris->count(),
                 'peserta' => $baris->sum('peserta'),
