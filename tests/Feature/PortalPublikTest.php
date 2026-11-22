@@ -89,12 +89,13 @@ it('menampilkan portal publik, sesi berjalan, pengumuman, dan jumlah kelas wali 
     }
 });
 
-it('memungkinkan admin mencetak poster QR portal saat papan menyala dan 404 saat mati', function () {
-    $this->actingAs($this->admin)
+it('memungkinkan admin mencetak poster PDF QR portal saat papan menyala dan 404 saat mati', function () {
+    $res = $this->actingAs($this->admin)
         ->get('/admin/papan/poster')
         ->assertOk()
-        ->assertSee('SMK Negeri 4')
-        ->assertSee('/info/'.$this->sekolah->papan_slug);
+        ->assertHeader('content-type', 'application/pdf');
+
+    expect($res->getContent())->toStartWith('%PDF');
 
     $this->sekolah->forceFill(['papan_slug' => null])->save();
 

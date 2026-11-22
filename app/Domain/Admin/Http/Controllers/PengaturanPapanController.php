@@ -5,12 +5,13 @@ namespace App\Domain\Admin\Http\Controllers;
 use App\Domain\Attendance\Services\PapanPengawas;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Tenancy\Models\School;
+use App\Support\Cetak\KopSekolah;
 use App\Support\Qr\KodeQr;
-use Illuminate\Contracts\View\View;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Menyalakan dan mematikan papan publik pengawas - `/admin/papan`.
@@ -87,9 +88,9 @@ class PengaturanPapanController
     }
 
     /**
-     * Poster cetak 1 QR untuk portal publik sekolah (`/info/{slug}`).
+     * Poster cetak PDF 1 QR untuk portal publik sekolah (`/info/{slug}`).
      */
-    public function poster(Request $request): View
+    public function poster(Request $request): Response
     {
         $sekolah = $this->sekolah($request);
 
@@ -100,16 +101,16 @@ class PengaturanPapanController
         }
 
         $portalUrl = url('/info/'.$sekolah->papan_slug);
-        $logoUrl = $sekolah->logo_path
-            ? Storage::disk('public')->url($sekolah->logo_path)
-            : null;
+        $berkas = 'poster-portal-'.$sekolah->papan_slug.'.pdf';
 
-        return view('kartu.portal-publik', [
-            'sekolah' => $sekolah,
+        return Pdf::loadView('kartu.portal-publik', [
+            'kop' => KopSekolah::dari($sekolah),
             'portalUrl' => $portalUrl,
-            'qrDataUri' => KodeQr::dataUri($portalUrl, 360),
-            'logoUrl' => $logoUrl,
-        ]);
+            'qrDataUri' => KodeQr::dataUri($portalUrl, 420),
+            'dicetak' => now()->format('d/m/Y H:i'),
+        ])
+            ->setPaper('a4', 'portrait')
+            ->stream($berkas);
     }
 
     private function sekolah(Request $request): School
