@@ -2396,7 +2396,7 @@ class PemantauanEventController
     private function mapelEvent(SchoolEvent $event): array
     {
         $mapel = $event->subjects()
-            ->with('subject:id,code,name')
+            ->with('subject:id,code,name,grade_level')
             ->get()
             ->sortBy(fn ($baris) => $baris->subject?->code)
             ->values();
@@ -2407,6 +2407,7 @@ class PemantauanEventController
 
         $ujian = Exam::query()
             ->where('event_id', $event->id)
+            ->with(['subject:id,name,grade_level', 'classes.schoolClass:id,grade_level'])
             ->get(['id', 'subject_id', 'title']);
 
         // Sesi dikelompokkan menurut ujiannya, dan urutannya nomor sesi -
@@ -2451,10 +2452,28 @@ class PemantauanEventController
         // di sini adalah Collection id ujian - yang membuatnya melempar
         // "Method getKey does not exist". Collection dasarnya hanya memakai
         // kuncinya sebagai array.
-        $ujianPerMapel = $ujian->toBase()->groupBy('subject_id');
+        $tingkatPerUjian = $ujian->mapWithKeys(fn (Exam $u) => [
+            $u->id => $u->tingkatSasaran(),
+        ]);
 
-        return $mapel->map(function ($baris) use ($ujianPerMapel, $sesi, $ruangPerSesi, $pesertaPerUjian, $presensiPerUjian) {
-            $daftarUjian = $ujianPerMapel->get($baris->subject_id, collect());
+        return $mapel->map(function ($baris) use ($ujian, $tingkatPerUjian, $sesi, $ruangPerSesi, $pesertaPerUjian, $presensiPerUjian) {
+            $namaBaris = mb_strtolower(trim((string) ($baris->subject?->name ?? '')));
+            $tingkatBaris = $baris->subject?->grade_level !== null ? (string) $baris->subject->grade_level : null;
+
+            $daftarUjian = $ujian->filter(function (Exam $u) use ($baris, $namaBaris, $tingkatBaris, $tingkatPerUjian): bool {
+                if ($u->subject_id === $baris->subject_id) {
+                    return true;
+                }
+
+                $namaUjian = mb_strtolower(trim((string) ($u->subject?->name ?? '')));
+                if ($namaBaris === '' || $namaUjian !== $namaBaris) {
+                    return false;
+                }
+
+                $sasaran = $tingkatPerUjian->get($u->id, []);
+
+                return $sasaran === [] || ($tingkatBaris !== null && in_array($tingkatBaris, $sasaran, true));
+            })->values();
             $idUjian = $daftarUjian->pluck('id');
 
             // `collapse()`, bukan `flatten()`: nilai di sini adalah Collection
