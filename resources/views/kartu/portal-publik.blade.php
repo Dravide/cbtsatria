@@ -162,8 +162,7 @@
         <ul class="daftar">
             <li><strong>01</strong><span>Jadwal ujian lengkap lintas hari &amp; pengumuman resmi panitia</span></li>
             <li><strong>02</strong><span>Cek ruang ujian &amp; nomor kursi menggunakan Kelas dan NIS</span></li>
-            <li><strong>03</strong><span>Papan pengawas &amp; pantau aktivitas ujian secara langsung</span></li>
-            <li><strong>04</strong><span>Pantau wali murid per kelas (menggunakan kode kelas)</span></li>
+            <li><strong>03</strong><span>Pantau wali murid per kelas (menggunakan kode kelas)</span></li>
         </ul>
 
         <p class="catatan">

@@ -80,27 +80,6 @@ export default function Portal({
             : []),
     ];
 
-    const menuPanitia: ItemMenu[] = [
-        {
-            kode: 'PGW',
-            judul: 'Papan Pengawas',
-            deskripsi: 'Daftar penugasan pengawas per ruang pada sesi aktif',
-            href: `/papan/${slug}`,
-        },
-        {
-            kode: 'LVE',
-            judul: 'Pantau Aktivitas Live',
-            deskripsi: 'Angka peserta mengerjakan, selesai, terputus, dan terkunci',
-            href: `/pantau/${slug}`,
-        },
-        {
-            kode: 'IFP',
-            judul: 'Layar IFP / TV Lorong',
-            deskripsi: 'Mode layar penuh 16:9 dengan hitung mundur & rotasi ruang',
-            href: `/tv/${slug}`,
-        },
-    ];
-
     return (
         <>
             <Head title={`Portal informasi ujian · ${sekolah}`} />
@@ -228,40 +207,6 @@ export default function Portal({
                                                             {item.lencana}
                                                         </span>
                                                     )}
-                                                </span>
-                                                <span className="mt-0.5 block text-[11px] leading-snug text-ink-3">
-                                                    {item.deskripsi}
-                                                </span>
-                                            </span>
-                                            <span className="shrink-0 font-mono text-sm text-ink-3">
-                                                &rsaquo;
-                                            </span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-
-                        <section className="space-y-1.5">
-                            <h2 className="px-1 font-mono text-[10px] uppercase tracking-wider text-ink-3">
-                                Untuk Pengawas &amp; Panitia
-                            </h2>
-                            <ul className="overflow-hidden rounded-wf border border-line bg-surface">
-                                {menuPanitia.map((item) => (
-                                    <li
-                                        key={item.href}
-                                        className="border-b border-line last:border-b-0"
-                                    >
-                                        <Link
-                                            href={item.href}
-                                            className="flex items-center gap-3 px-3.5 py-3 transition-colors hover:bg-surface-2"
-                                        >
-                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-wf bg-surface-2 font-mono text-[11px] font-semibold text-ink-2">
-                                                {item.kode}
-                                            </span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate text-xs font-semibold text-ink">
-                                                    {item.judul}
                                                 </span>
                                                 <span className="mt-0.5 block text-[11px] leading-snug text-ink-3">
                                                     {item.deskripsi}
