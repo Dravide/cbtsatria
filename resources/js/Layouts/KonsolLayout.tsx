@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ReactNode } from 'react';
+import { ReactNode, useLayoutEffect, useRef } from 'react';
 import Ikon, { NamaIkon } from '@/Components/Ikon';
 import NotifikasiEventBel from '@/Components/NotifikasiEventBel';
 import { PilihCari, UmpanBalik } from '@/Components/ui';
@@ -107,6 +107,31 @@ export default function KonsolLayout({
     };
 
     const jalur = typeof window !== 'undefined' ? window.location.pathname : '';
+    const navRef = useRef<HTMLElement | null>(null);
+    const kunciGulir = `konsol-sidebar-scroll:${marka.nada}`;
+
+    useLayoutEffect(() => {
+        const el = navRef.current;
+        if (!el) {
+            return;
+        }
+        try {
+            const tersimpan = window.sessionStorage.getItem(kunciGulir);
+            if (tersimpan !== null) {
+                el.scrollTop = Number(tersimpan) || 0;
+            }
+        } catch {
+            // Abaikan bila sessionStorage tidak tersedia.
+        }
+        const aktif = el.querySelector<HTMLElement>('[aria-current="page"]');
+        if (aktif) {
+            const rNav = el.getBoundingClientRect();
+            const rAktif = aktif.getBoundingClientRect();
+            if (rAktif.top < rNav.top || rAktif.bottom > rNav.bottom) {
+                aktif.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }, [jalur, kunciGulir]);
 
     const menyala = (item: ItemNav) =>
         jalur === item.href || (item.awalan === true && jalur.startsWith(item.href + '/'));
@@ -149,7 +174,20 @@ export default function KonsolLayout({
                     dan di layar 720 tinggi daftar itu lebih panjang daripada
                     jendelanya. Tanpa gulir di sini, "Sistem" tidak akan
                     pernah bisa dijangkau. */}
-                <nav className="flex flex-row gap-0.5 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-3">
+                <nav
+                    ref={navRef}
+                    onScroll={(e) => {
+                        try {
+                            window.sessionStorage.setItem(
+                                kunciGulir,
+                                String(e.currentTarget.scrollTop),
+                            );
+                        } catch {
+                            // Abaikan.
+                        }
+                    }}
+                    className="scrollbar-tipis flex flex-row gap-0.5 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-3"
+                >
                     {kelompok.map((k, i) => (
                         <div key={k.judul ?? `kelompok-${i}`} className="contents">
                             {k.judul && (
