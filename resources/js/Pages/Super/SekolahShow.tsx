@@ -1,5 +1,7 @@
 import { Link, router, useForm } from '@inertiajs/react';
 import { FormEvent } from 'react';
+import Ikon from '@/Components/Ikon';
+import { Chip, Field, Tombol } from '@/Components/ui';
 import SuperLayout from '@/Layouts/SuperLayout';
 
 type AdminRow = {
@@ -40,6 +42,9 @@ type Props = {
     };
     admins: AdminRow[];
 };
+
+const INPUT =
+    'w-full rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink-3 focus:border-accent focus:ring-2 focus:ring-accent/15';
 
 export default function SekolahShow({ sekolah, statistik, admins }: Props) {
     const formEdit = useForm({
@@ -85,78 +90,69 @@ export default function SekolahShow({ sekolah, statistik, admins }: Props) {
     return (
         <SuperLayout
             judul={sekolah.nama}
-            subjudul={`Kode ${sekolah.kode} · NPSN ${sekolah.npsn} · ${statistik.siswa} siswa · ${statistik.guru} guru · ${statistik.event} event`}
+            breadcrumb={`Super Admin / Sekolah / ${sekolah.kode}`}
+            subjudul={`NPSN ${sekolah.npsn} · ${statistik.siswa} siswa · ${statistik.guru} guru · ${statistik.event} event`}
             aksi={
-                <Link
-                    href="/super/sekolah"
-                    className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink-2 hover:bg-surface-2"
-                >
-                    &larr; Daftar Sekolah
-                </Link>
+                <div className="flex items-center gap-2">
+                    <Chip nada={sekolah.status === 'aktif' ? 'ok' : 'warn'}>{sekolah.status}</Chip>
+                    <Link
+                        href="/super/sekolah"
+                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink-2 hover:bg-surface-2"
+                    >
+                        &larr; Daftar Sekolah
+                    </Link>
+                </div>
             }
         >
             <div className="grid gap-4 lg:grid-cols-2">
-                {/* Pengaturan & Kuota */}
                 <form
                     onSubmit={simpanPengaturan}
                     className="space-y-3 rounded-wf border border-line bg-surface p-4"
                 >
-                    <h2 className="text-sm font-semibold text-ink">
-                        Profil, Status, Kuota &amp; Saklar Modul
-                    </h2>
+                    <div className="flex items-center gap-2 border-b border-line pb-2.5">
+                        <Ikon nama="pengaturan" ukuran={15} className="text-ink-3" />
+                        <h2 className="text-xs font-semibold text-ink">
+                            Profil, Status, Kuota &amp; Saklar Modul
+                        </h2>
+                    </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Nama Sekolah
-                            </label>
+                        <Field label="Nama Sekolah" galat={formEdit.errors.name}>
                             <input
                                 value={formEdit.data.name}
                                 onChange={(e) => formEdit.setData('name', e.target.value)}
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                className={INPUT}
                             />
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                NPSN (koreksi Super Admin)
-                            </label>
+                        </Field>
+                        <Field label="NPSN (koreksi Super Admin)" galat={formEdit.errors.npsn}>
                             <input
                                 value={formEdit.data.npsn}
                                 onChange={(e) => formEdit.setData('npsn', e.target.value)}
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 font-mono text-xs text-ink"
+                                className={`${INPUT} font-mono`}
                             />
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Status Tenant
-                            </label>
+                        </Field>
+                        <Field label="Status Tenant">
                             <select
                                 value={formEdit.data.status}
                                 onChange={(e) => formEdit.setData('status', e.target.value)}
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                className={INPUT}
                             >
                                 <option value="aktif">Aktif</option>
                                 <option value="ditangguhkan">Ditangguhkan (blokir login)</option>
                             </select>
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Zona Waktu
-                            </label>
+                        </Field>
+                        <Field label="Zona Waktu">
                             <select
                                 value={formEdit.data.timezone}
                                 onChange={(e) => formEdit.setData('timezone', e.target.value)}
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                className={INPUT}
                             >
                                 <option value="Asia/Jakarta">Asia/Jakarta</option>
                                 <option value="Asia/Makassar">Asia/Makassar</option>
                                 <option value="Asia/Jayapura">Asia/Jayapura</option>
                             </select>
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Kuota Maks Siswa (0 = tanpa batas)
-                            </label>
+                        </Field>
+                        <Field label="Kuota Maks Siswa (0 = tanpa batas)">
                             <input
                                 type="number"
                                 min={0}
@@ -164,13 +160,10 @@ export default function SekolahShow({ sekolah, statistik, admins }: Props) {
                                 onChange={(e) =>
                                     formEdit.setData('maks_siswa', Number(e.target.value))
                                 }
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 font-mono text-xs text-ink"
+                                className={`${INPUT} font-mono`}
                             />
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Kuota Storage MB (0 = tanpa batas)
-                            </label>
+                        </Field>
+                        <Field label="Kuota Storage MB (0 = tanpa batas)">
                             <input
                                 type="number"
                                 min={0}
@@ -178,9 +171,9 @@ export default function SekolahShow({ sekolah, statistik, admins }: Props) {
                                 onChange={(e) =>
                                     formEdit.setData('maks_storage_mb', Number(e.target.value))
                                 }
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 font-mono text-xs text-ink"
+                                className={`${INPUT} font-mono`}
                             />
-                        </div>
+                        </Field>
                     </div>
 
                     <div className="space-y-2 border-t border-line pt-3">
@@ -212,24 +205,22 @@ export default function SekolahShow({ sekolah, statistik, admins }: Props) {
                         </label>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={formEdit.processing}
-                        className="rounded-wf bg-accent px-4 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
-                    >
+                    <Tombol nada="pri" type="submit" disabled={formEdit.processing}>
                         {formEdit.processing ? 'Menyimpan...' : 'Simpan Pengaturan'}
-                    </button>
+                    </Tombol>
                 </form>
 
-                {/* Kanan: Impersonate + Admin Sekolah */}
                 <div className="space-y-4">
                     <form
                         onSubmit={mulaiImpersonasi}
                         className="space-y-2.5 rounded-wf border border-warn/40 bg-warn-bg/60 p-4"
                     >
-                        <h2 className="text-sm font-semibold text-warn">
-                            Mode Dukung (Masuk sebagai Admin Sekolah)
-                        </h2>
+                        <div className="flex items-center gap-2 text-warn">
+                            <Ikon nama="perisai" ukuran={16} />
+                            <h2 className="text-xs font-semibold">
+                                Mode Dukung (Masuk sebagai Admin Sekolah)
+                            </h2>
+                        </div>
                         <p className="text-xs text-ink-2">
                             Berlaku 30 menit, menampilkan banner kuning di konsol sekolah, dan
                             tercatat di log audit platform.
@@ -240,25 +231,20 @@ export default function SekolahShow({ sekolah, statistik, admins }: Props) {
                                 onChange={(e) => formImpersonasi.setData('alasan', e.target.value)}
                                 placeholder="Tulis alasan dukungan (min. 5 karakter)..."
                                 required
-                                className="min-w-0 flex-1 rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                className={INPUT}
                             />
-                            <button
-                                type="submit"
-                                disabled={formImpersonasi.processing}
-                                className="shrink-0 rounded-wf bg-warn px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
-                            >
-                                Masuk Admin
-                            </button>
+                            <Tombol nada="pri" type="submit" disabled={formImpersonasi.processing}>
+                                Masuk
+                            </Tombol>
                         </div>
                         {formImpersonasi.errors.alasan && (
-                            <p className="text-[11px] text-danger">
-                                {formImpersonasi.errors.alasan}
-                            </p>
+                            <p className="text-[11px] text-bad">{formImpersonasi.errors.alasan}</p>
                         )}
                     </form>
 
                     <section className="overflow-hidden rounded-wf border border-line bg-surface">
-                        <div className="border-b border-line bg-surface-2 px-4 py-2.5">
+                        <div className="flex items-center gap-2 border-b border-line bg-surface-2/60 px-4 py-2.5">
+                            <Ikon nama="pengguna" ukuran={15} className="text-ink-3" />
                             <h2 className="text-xs font-semibold text-ink">
                                 Akun Admin Sekolah ({admins.length})
                             </h2>
@@ -270,7 +256,7 @@ export default function SekolahShow({ sekolah, statistik, admins }: Props) {
                                     className="flex items-center justify-between gap-2 px-4 py-2.5 text-xs"
                                 >
                                     <div className="min-w-0">
-                                        <p className="font-semibold text-ink">{a.nama}</p>
+                                        <p className="font-medium text-ink">{a.nama}</p>
                                         <p className="font-mono text-[11px] text-ink-3">
                                             {a.username}
                                             {a.terakhir_masuk
@@ -278,24 +264,23 @@ export default function SekolahShow({ sekolah, statistik, admins }: Props) {
                                                 : ''}
                                         </p>
                                     </div>
-                                    <button
-                                        type="button"
+                                    <Tombol
                                         onClick={() =>
                                             router.post(
                                                 `/super/sekolah/${sekolah.id}/admin/${a.id}/reset-sandi`,
                                             )
                                         }
-                                        className="shrink-0 rounded-wf border border-line bg-surface px-2.5 py-1 text-[11px] text-ink hover:bg-surface-2"
                                     >
+                                        <Ikon nama="kunci" ukuran={13} />
                                         Reset Sandi
-                                    </button>
+                                    </Tombol>
                                 </li>
                             ))}
                         </ul>
 
                         <form
                             onSubmit={tambahAdmin}
-                            className="space-y-2 border-t border-line bg-surface-2/60 p-3.5"
+                            className="space-y-2 border-t border-line bg-surface-2/40 p-3.5"
                         >
                             <p className="text-[11px] font-semibold text-ink">
                                 Tambah Admin Sekolah Baru
@@ -306,23 +291,20 @@ export default function SekolahShow({ sekolah, statistik, admins }: Props) {
                                     onChange={(e) => formAdmin.setData('name', e.target.value)}
                                     placeholder="Nama Admin"
                                     required
-                                    className="rounded-wf border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
+                                    className={INPUT}
                                 />
                                 <input
                                     value={formAdmin.data.username}
                                     onChange={(e) => formAdmin.setData('username', e.target.value)}
                                     placeholder="username.admin"
                                     required
-                                    className="rounded-wf border border-line bg-surface px-2.5 py-1.5 font-mono text-xs text-ink"
+                                    className={`${INPUT} font-mono`}
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                disabled={formAdmin.processing}
-                                className="rounded-wf bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                            >
-                                + Tambah Admin
-                            </button>
+                            <Tombol nada="pri" type="submit" disabled={formAdmin.processing}>
+                                <Ikon nama="tambah" ukuran={13} />
+                                Tambah Admin
+                            </Tombol>
                         </form>
                     </section>
                 </div>

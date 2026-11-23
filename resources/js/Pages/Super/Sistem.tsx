@@ -1,4 +1,6 @@
 import { router } from '@inertiajs/react';
+import Ikon from '@/Components/Ikon';
+import { Chip, Tombol } from '@/Components/ui';
 import SuperLayout from '@/Layouts/SuperLayout';
 
 type Props = {
@@ -23,36 +25,30 @@ export default function Sistem({ sistem, failed_jobs }: Props) {
     return (
         <SuperLayout
             judul="Kesehatan Sistem"
+            breadcrumb="Super Admin / Kesehatan Sistem"
             subjudul={`PHP ${sistem.php} · Laravel ${sistem.laravel} · Lingkungan ${sistem.env}`}
             aksi={
                 <>
-                    <button
-                        type="button"
-                        onClick={() => router.post('/super/sistem/pangkas-ekspor')}
-                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
-                    >
+                    <Tombol onClick={() => router.post('/super/sistem/pangkas-ekspor')}>
                         Pangkas Ekspor Lama
-                    </button>
+                    </Tombol>
                     {sistem.failed_count > 0 && (
-                        <button
-                            type="button"
-                            onClick={() => router.post('/super/sistem/retry-jobs')}
-                            className="rounded-wf bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                        >
-                            Retry Semua Job Gagal ({sistem.failed_count})
-                        </button>
+                        <Tombol nada="pri" onClick={() => router.post('/super/sistem/retry-jobs')}>
+                            Retry Job Gagal ({sistem.failed_count})
+                        </Tombol>
                     )}
                 </>
             }
         >
             <section className="overflow-hidden rounded-wf border border-line bg-surface">
-                <div className="border-b border-line bg-surface-2 px-4 py-2.5">
+                <div className="flex items-center gap-2 border-b border-line bg-surface-2/60 px-4 py-2.5">
+                    <Ikon nama="denyut" ukuran={15} className="text-ink-3" />
                     <h2 className="text-xs font-semibold text-ink">Checklist Kesiapan Server</h2>
                 </div>
                 <ul className="divide-y divide-line text-xs">
                     <li className="flex items-center justify-between px-4 py-3">
                         <div>
-                            <p className="font-semibold text-ink">
+                            <p className="font-medium text-ink">
                                 Database ({sistem.db_driver.toUpperCase()})
                             </p>
                             <p className="text-ink-3">
@@ -61,90 +57,67 @@ export default function Sistem({ sistem, failed_jobs }: Props) {
                                     : 'Tidak dapat terhubung'}
                             </p>
                         </div>
-                        <span
-                            className={
-                                'rounded-full px-2.5 py-0.5 font-mono text-[10px] ' +
-                                (sistem.db_ok ? 'bg-ok-bg text-ok' : 'bg-danger-bg text-danger')
-                            }
-                        >
+                        <Chip nada={sistem.db_ok ? 'ok' : 'bad'}>
                             {sistem.db_ok ? 'Sehat' : 'Gangguan'}
-                        </span>
+                        </Chip>
                     </li>
 
                     <li className="flex items-center justify-between px-4 py-3">
                         <div>
-                            <p className="font-semibold text-ink">Antrean Worker (Queue)</p>
+                            <p className="font-medium text-ink">Antrean Worker (Queue)</p>
                             <p className="text-ink-3">
                                 {sistem.queued_jobs} menunggu · {sistem.failed_count} gagal
                             </p>
                         </div>
-                        <span
-                            className={
-                                'rounded-full px-2.5 py-0.5 font-mono text-[10px] ' +
-                                (sistem.failed_count === 0
-                                    ? 'bg-ok-bg text-ok'
-                                    : 'bg-warn-bg text-warn')
-                            }
-                        >
+                        <Chip nada={sistem.failed_count === 0 ? 'ok' : 'warn'}>
                             {sistem.failed_count === 0 ? 'Bersih' : `${sistem.failed_count} Gagal`}
-                        </span>
+                        </Chip>
                     </li>
 
                     <li className="flex items-center justify-between px-4 py-3">
                         <div>
-                            <p className="font-semibold text-ink">Symlink public/storage (Logo)</p>
+                            <p className="font-medium text-ink">Symlink public/storage (Logo)</p>
                             <p className="text-ink-3">
                                 Dibutuhkan agar logo sekolah tampil di laman publik &amp; pintu ruang
                             </p>
                         </div>
-                        <span
-                            className={
-                                'rounded-full px-2.5 py-0.5 font-mono text-[10px] ' +
-                                (sistem.storage_link
-                                    ? 'bg-ok-bg text-ok'
-                                    : 'bg-warn-bg text-warn')
-                            }
-                        >
+                        <Chip nada={sistem.storage_link ? 'ok' : 'warn'}>
                             {sistem.storage_link ? 'Ada' : 'Belum di-link'}
-                        </span>
+                        </Chip>
                     </li>
 
                     <li className="flex items-center justify-between px-4 py-3">
                         <div>
-                            <p className="font-semibold text-ink">Penanda public/hot (Vite Dev)</p>
+                            <p className="font-medium text-ink">Penanda public/hot (Vite Dev)</p>
                             <p className="text-ink-3">
                                 Di produksi berkas ini harus tidak ada agar tidak memicu penantian SSR
                             </p>
                         </div>
-                        <span
-                            className={
-                                'rounded-full px-2.5 py-0.5 font-mono text-[10px] ' +
-                                (!sistem.public_hot ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn')
-                            }
-                        >
+                        <Chip nada={!sistem.public_hot ? 'ok' : 'warn'}>
                             {sistem.public_hot ? 'Terdeteksi (Dev)' : 'Bersih'}
-                        </span>
+                        </Chip>
                     </li>
 
                     {sistem.disk_bebas_gb !== null && sistem.disk_total_gb !== null && (
                         <li className="flex items-center justify-between px-4 py-3">
                             <div>
-                                <p className="font-semibold text-ink">Kapasitas Disk Storage</p>
+                                <p className="font-medium text-ink">Kapasitas Disk Storage</p>
                                 <p className="text-ink-3">
                                     Tersisa {sistem.disk_bebas_gb} GB dari {sistem.disk_total_gb} GB
                                 </p>
                             </div>
-                            <span className="rounded-full bg-ok-bg px-2.5 py-0.5 font-mono text-[10px] text-ok">
-                                {Math.round((sistem.disk_bebas_gb / sistem.disk_total_gb) * 100)}% bebas
-                            </span>
+                            <Chip nada="ok">
+                                {Math.round((sistem.disk_bebas_gb / sistem.disk_total_gb) * 100)}%
+                                bebas
+                            </Chip>
                         </li>
                     )}
                 </ul>
             </section>
 
             {failed_jobs.length > 0 && (
-                <section className="overflow-hidden rounded-wf border border-line bg-surface">
-                    <div className="border-b border-line bg-surface-2 px-4 py-2.5">
+                <section className="mt-4 overflow-hidden rounded-wf border border-line bg-surface">
+                    <div className="border-b border-line bg-surface-2/60 px-4 py-2.5">
                         <h2 className="text-xs font-semibold text-ink">10 Job Gagal Terbaru</h2>
                     </div>
                     <ul className="divide-y divide-line font-mono text-xs">

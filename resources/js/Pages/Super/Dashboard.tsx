@@ -1,4 +1,6 @@
 import { Link } from '@inertiajs/react';
+import Ikon, { NamaIkon } from '@/Components/Ikon';
+import { Chip } from '@/Components/ui';
 import SuperLayout from '@/Layouts/SuperLayout';
 
 type RadarItem = {
@@ -34,88 +36,113 @@ type Props = {
 };
 
 export default function Dashboard({ kpi, radar, diperbarui }: Props) {
+    const kartuKpi: {
+        label: string;
+        nilai: string | number;
+        ket: string;
+        ikon: NamaIkon;
+        href: string;
+        warna?: string;
+    }[] = [
+        {
+            label: 'Sekolah terdaftar',
+            nilai: kpi.total_sekolah,
+            ket: `${kpi.sekolah_aktif} aktif · ${kpi.sekolah_tangguh} ditangguhkan`,
+            ikon: 'sekolah',
+            href: '/super/sekolah',
+        },
+        {
+            label: 'Sesi berjalan',
+            nilai: kpi.ujian_berjalan,
+            ket: `${kpi.ruang_aktif} ruang aktif saat ini`,
+            ikon: 'denyut',
+            href: '/super/sekolah',
+            warna: kpi.ujian_berjalan > 0 ? 'text-ok' : undefined,
+        },
+        {
+            label: 'Peserta konkuren',
+            nilai: kpi.peserta_konkuren,
+            ket: `${kpi.terkunci} terkunci · ${kpi.terputus} terputus`,
+            ikon: 'peserta',
+            href: '/super/sekolah',
+            warna: kpi.peserta_konkuren > 0 ? 'text-accent' : undefined,
+        },
+        {
+            label: 'Antrean & job gagal',
+            nilai: kpi.failed_jobs,
+            ket: `${kpi.queued_jobs} menunggu di antrean`,
+            ikon: 'pengaturan',
+            href: '/super/sistem',
+            warna: kpi.failed_jobs > 0 ? 'text-bad' : 'text-ok',
+        },
+    ];
+
     return (
         <SuperLayout
             judul="Command Center Platform"
+            breadcrumb="Super Admin / Beranda"
             subjudul={`Ringkasan lintas ${kpi.total_sekolah} sekolah · diperbarui ${diperbarui}`}
             aksi={
                 <>
                     <Link
                         href="/super/pengumuman"
-                        className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+                        className="inline-flex items-center gap-1.5 rounded-wf border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
                     >
+                        <Ikon nama="bendera" ukuran={14} />
                         Broadcast Info
                     </Link>
                     <Link
                         href="/super/sekolah"
-                        className="rounded-wf bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                        className="inline-flex items-center gap-1.5 rounded-wf border border-accent bg-accent px-3 py-1.5 text-xs font-medium text-on-accent hover:bg-accent/90"
                     >
-                        + Kelola Sekolah
+                        <Ikon nama="tambah" ukuran={14} />
+                        Kelola Sekolah
                     </Link>
                 </>
             }
         >
-            <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <div className="rounded-wf border border-line bg-surface p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-ink-3">
-                        Sekolah Terdaftar
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-ink">{kpi.total_sekolah}</p>
-                    <p className="mt-1 text-xs text-ink-3">
-                        {kpi.sekolah_aktif} aktif · {kpi.sekolah_tangguh} ditangguhkan
-                    </p>
-                </div>
-
-                <div className="rounded-wf border border-line bg-surface p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-ink-3">
-                        Sesi Berjalan
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-ok">{kpi.ujian_berjalan}</p>
-                    <p className="mt-1 text-xs text-ink-3">{kpi.ruang_aktif} ruang aktif saat ini</p>
-                </div>
-
-                <div className="rounded-wf border border-line bg-surface p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-ink-3">
-                        Peserta Konkuren
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-accent">{kpi.peserta_konkuren}</p>
-                    <p className="mt-1 text-xs text-ink-3">
-                        {kpi.terkunci} terkunci · {kpi.terputus} terputus
-                    </p>
-                </div>
-
-                <div className="rounded-wf border border-line bg-surface p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-ink-3">
-                        Antrean &amp; Job Gagal
-                    </p>
-                    <p
-                        className={
-                            'mt-1 text-2xl font-bold ' +
-                            (kpi.failed_jobs > 0 ? 'text-danger' : 'text-ok')
-                        }
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {kartuKpi.map((k) => (
+                    <Link
+                        key={k.label}
+                        href={k.href}
+                        className="group rounded-wf border border-line bg-surface px-4 py-3 transition-colors duration-150 hover:border-accent/40 hover:bg-accent-soft/30"
                     >
-                        {kpi.failed_jobs} gagal
-                    </p>
-                    <p className="mt-1 text-xs text-ink-3">{kpi.queued_jobs} job menunggu</p>
-                </div>
-            </section>
+                        <div className="flex items-center gap-2 text-ink-3">
+                            <Ikon nama={k.ikon} ukuran={16} />
+                            <p className="text-xs">{k.label}</p>
+                        </div>
+                        <p
+                            className={
+                                'mt-1.5 font-mono text-2xl font-medium ' + (k.warna ?? 'text-ink')
+                            }
+                        >
+                            {k.nilai}
+                        </p>
+                        <p className="mt-1 text-[11px] text-ink-3">{k.ket}</p>
+                    </Link>
+                ))}
+            </div>
 
-            <section className="overflow-hidden rounded-wf border border-line bg-surface">
-                <div className="flex items-center justify-between border-b border-line bg-surface-2 px-4 py-2.5">
-                    <h2 className="text-xs font-semibold text-ink">
-                        Radar Ujian Berjalan Lintas Sekolah
-                    </h2>
-                    <span className="font-mono text-[11px] text-ink-3">{radar.length} sesi</span>
+            <section className="mt-5 overflow-hidden rounded-wf border border-line bg-surface">
+                <div className="flex items-center justify-between border-b border-line bg-surface-2/60 px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                        <Ikon nama="denyut" ukuran={15} className="text-ink-3" />
+                        <h2 className="text-xs font-semibold text-ink">
+                            Radar Ujian Berjalan Lintas Sekolah
+                        </h2>
+                    </div>
+                    <Chip nada={radar.length > 0 ? 'info' : 'mute'}>{radar.length} sesi</Chip>
                 </div>
 
                 {radar.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-xs text-ink-3">
+                    <div className="px-4 py-10 text-center text-xs text-ink-3">
                         Belum ada sesi ujian yang sedang berjalan di sekolah mana pun saat ini.
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
-                            <thead className="border-b border-line bg-surface-2 font-mono text-[10px] uppercase text-ink-3">
+                            <thead className="border-b border-line bg-surface-2/40 font-mono text-[10px] uppercase text-ink-3">
                                 <tr>
                                     <th className="px-4 py-2.5">Sekolah &amp; Sesi</th>
                                     <th className="px-4 py-2.5">Jam</th>
@@ -125,11 +152,11 @@ export default function Dashboard({ kpi, radar, diperbarui }: Props) {
                                     <th className="px-4 py-2.5 text-right">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-line">
                                 {radar.map((r) => (
-                                    <tr key={r.id} className="border-b border-line last:border-b-0">
+                                    <tr key={r.id} className="hover:bg-surface-2/40">
                                         <td className="px-4 py-3">
-                                            <p className="font-semibold text-ink">{r.sekolah}</p>
+                                            <p className="font-medium text-ink">{r.sekolah}</p>
                                             <p className="text-[11px] text-ink-3">
                                                 {[r.event, r.label, r.mapel].filter(Boolean).join(' · ')}
                                             </p>
@@ -141,17 +168,11 @@ export default function Dashboard({ kpi, radar, diperbarui }: Props) {
                                         </td>
                                         <td className="px-4 py-3">
                                             {r.terkunci > 0 ? (
-                                                <span className="rounded-full bg-danger-bg px-2 py-0.5 font-mono text-[10px] text-danger">
-                                                    {r.terkunci} terkunci
-                                                </span>
+                                                <Chip nada="bad">{r.terkunci} terkunci</Chip>
                                             ) : r.terputus > 0 ? (
-                                                <span className="rounded-full bg-warn-bg px-2 py-0.5 font-mono text-[10px] text-warn">
-                                                    {r.terputus} putus
-                                                </span>
+                                                <Chip nada="warn">{r.terputus} putus</Chip>
                                             ) : (
-                                                <span className="rounded-full bg-ok-bg px-2 py-0.5 font-mono text-[10px] text-ok">
-                                                    Normal
-                                                </span>
+                                                <Chip nada="ok">Normal</Chip>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">

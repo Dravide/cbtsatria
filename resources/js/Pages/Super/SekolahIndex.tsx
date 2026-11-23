@@ -1,5 +1,7 @@
 import { Link, router, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
+import Ikon from '@/Components/Ikon';
+import { Chip, Field, Tombol } from '@/Components/ui';
 import SuperLayout from '@/Layouts/SuperLayout';
 
 type SekolahRow = {
@@ -23,6 +25,9 @@ type Props = {
         status: string;
     };
 };
+
+const INPUT =
+    'w-full rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink-3 focus:border-accent focus:ring-2 focus:ring-accent/15';
 
 export default function SekolahIndex({ sekolah, filter }: Props) {
     const [cari, setCari] = useState(filter.cari);
@@ -58,169 +63,125 @@ export default function SekolahIndex({ sekolah, filter }: Props) {
     return (
         <SuperLayout
             judul="Manajemen Sekolah"
+            breadcrumb="Super Admin / Sekolah"
             subjudul={`${sekolah.length} sekolah terdaftar di platform`}
             aksi={
-                <button
-                    type="button"
-                    onClick={() => setTampilForm((v) => !v)}
-                    className="rounded-wf bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                >
-                    {tampilForm ? 'Tutup Form' : '+ Daftarkan Sekolah Baru'}
-                </button>
+                <Tombol nada="pri" onClick={() => setTampilForm((v) => !v)}>
+                    <Ikon nama="tambah" ukuran={14} />
+                    {tampilForm ? 'Tutup Form' : 'Daftarkan Sekolah'}
+                </Tombol>
             }
         >
             {tampilForm && (
                 <form
                     onSubmit={simpanSekolah}
-                    className="space-y-3 rounded-wf border border-accent/40 bg-surface p-4"
+                    className="mb-4 space-y-3 rounded-wf border border-accent/40 bg-surface p-4"
                 >
-                    <div>
-                        <h2 className="text-sm font-semibold text-ink">
-                            Daftarkan Sekolah Baru (1 Transaksi)
-                        </h2>
-                        <p className="mt-0.5 text-xs text-ink-3">
-                            Otomatis membuat Sekolah, Admin pertama (sandi acak tampil sekali),
-                            Tahun Ajaran aktif, serta Semester Ganjil &amp; Genap.
-                        </p>
+                    <div className="flex items-center gap-2">
+                        <Ikon nama="sekolah" ukuran={16} className="text-accent" />
+                        <div>
+                            <h2 className="text-sm font-semibold text-ink">
+                                Daftarkan Sekolah Baru (1 Transaksi)
+                            </h2>
+                            <p className="text-xs text-ink-3">
+                                Otomatis membuat Sekolah, Admin pertama (sandi acak tampil sekali),
+                                Tahun Ajaran aktif, serta Semester Ganjil &amp; Genap.
+                            </p>
+                        </div>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-3">
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Kode Sekolah
-                            </label>
+                        <Field label="Kode Sekolah" galat={form.errors.code}>
                             <input
                                 value={form.data.code}
                                 onChange={(e) => form.setData('code', e.target.value)}
                                 placeholder="SMKN1"
                                 required
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 font-mono text-xs text-ink"
+                                className={`${INPUT} font-mono`}
                             />
-                            {form.errors.code && (
-                                <p className="mt-1 text-[11px] text-danger">{form.errors.code}</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                NPSN (8 digit)
-                            </label>
+                        </Field>
+                        <Field label="NPSN (8 digit)" galat={form.errors.npsn}>
                             <input
                                 value={form.data.npsn}
                                 onChange={(e) => form.setData('npsn', e.target.value)}
                                 placeholder="20512345"
                                 required
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 font-mono text-xs text-ink"
+                                className={`${INPUT} font-mono`}
                             />
-                            {form.errors.npsn && (
-                                <p className="mt-1 text-[11px] text-danger">{form.errors.npsn}</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Zona Waktu
-                            </label>
+                        </Field>
+                        <Field label="Zona Waktu">
                             <select
                                 value={form.data.timezone}
                                 onChange={(e) => form.setData('timezone', e.target.value)}
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                className={INPUT}
                             >
                                 <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
                                 <option value="Asia/Makassar">Asia/Makassar (WITA)</option>
                                 <option value="Asia/Jayapura">Asia/Jayapura (WIT)</option>
                             </select>
-                        </div>
+                        </Field>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-3">
-                        <div className="md:col-span-1">
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Nama Lengkap Sekolah
-                            </label>
+                        <Field label="Nama Lengkap Sekolah" galat={form.errors.name}>
                             <input
                                 value={form.data.name}
                                 onChange={(e) => form.setData('name', e.target.value)}
                                 placeholder="SMK Negeri 1 Sukamaju"
                                 required
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                className={INPUT}
                             />
-                            {form.errors.name && (
-                                <p className="mt-1 text-[11px] text-danger">{form.errors.name}</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Nama Admin Pertama
-                            </label>
+                        </Field>
+                        <Field label="Nama Admin Pertama" galat={form.errors.admin_name}>
                             <input
                                 value={form.data.admin_name}
                                 onChange={(e) => form.setData('admin_name', e.target.value)}
                                 placeholder="Budi Santoso"
                                 required
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                className={INPUT}
                             />
-                            {form.errors.admin_name && (
-                                <p className="mt-1 text-[11px] text-danger">
-                                    {form.errors.admin_name}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-ink">
-                                Username Admin Pertama
-                            </label>
+                        </Field>
+                        <Field label="Username Admin Pertama" galat={form.errors.admin_username}>
                             <input
                                 value={form.data.admin_username}
                                 onChange={(e) => form.setData('admin_username', e.target.value)}
                                 placeholder="admin.smkn1"
                                 required
-                                className="w-full rounded-wf border border-line bg-surface px-3 py-2 font-mono text-xs text-ink"
+                                className={`${INPUT} font-mono`}
                             />
-                            {form.errors.admin_username && (
-                                <p className="mt-1 text-[11px] text-danger">
-                                    {form.errors.admin_username}
-                                </p>
-                            )}
-                        </div>
+                        </Field>
                     </div>
 
-                    <div className="flex justify-end gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setTampilForm(false)}
-                            className="rounded-wf border border-line bg-surface px-3 py-1.5 text-xs text-ink-2 hover:bg-surface-2"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={form.processing}
-                            className="rounded-wf bg-accent px-4 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
-                        >
+                    <div className="flex justify-end gap-2 pt-1">
+                        <Tombol onClick={() => setTampilForm(false)}>Batal</Tombol>
+                        <Tombol nada="pri" type="submit" disabled={form.processing}>
                             {form.processing ? 'Mendaftarkan...' : 'Daftarkan Sekolah'}
-                        </button>
+                        </Tombol>
                     </div>
                 </form>
             )}
 
-            <form onSubmit={terapkanFilter} className="flex flex-wrap items-center gap-2">
-                <input
-                    value={cari}
-                    onChange={(e) => setCari(e.target.value)}
-                    placeholder="Cari nama sekolah, kode, atau NPSN..."
-                    className="min-w-[220px] flex-1 rounded-wf border border-line bg-surface px-3 py-2 text-xs text-ink"
-                />
-                <button
-                    type="submit"
-                    className="rounded-wf border border-line bg-surface px-3 py-2 text-xs font-medium text-ink hover:bg-surface-2"
-                >
-                    Cari
-                </button>
+            <form onSubmit={terapkanFilter} className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="relative min-w-[240px] flex-1">
+                    <Ikon
+                        nama="cari"
+                        ukuran={14}
+                        className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-3"
+                    />
+                    <input
+                        value={cari}
+                        onChange={(e) => setCari(e.target.value)}
+                        placeholder="Cari nama sekolah, kode, atau NPSN..."
+                        className="w-full rounded-wf border border-line bg-surface py-1.5 pr-3 pl-8 text-xs text-ink outline-none placeholder:text-ink-3 focus:border-accent focus:ring-2 focus:ring-accent/15"
+                    />
+                </div>
+                <Tombol type="submit">Cari</Tombol>
             </form>
 
             <section className="overflow-hidden rounded-wf border border-line bg-surface">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                        <thead className="border-b border-line bg-surface-2 font-mono text-[10px] uppercase text-ink-3">
+                        <thead className="border-b border-line bg-surface-2/60 font-mono text-[10px] uppercase text-ink-3">
                             <tr>
                                 <th className="px-4 py-2.5">Sekolah</th>
                                 <th className="px-4 py-2.5">Pengguna</th>
@@ -230,11 +191,11 @@ export default function SekolahIndex({ sekolah, filter }: Props) {
                                 <th className="px-4 py-2.5 text-right">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-line">
                             {sekolah.map((s) => (
-                                <tr key={s.id} className="border-b border-line last:border-b-0">
+                                <tr key={s.id} className="hover:bg-surface-2/40">
                                     <td className="px-4 py-3">
-                                        <p className="font-semibold text-ink">{s.nama}</p>
+                                        <p className="font-medium text-ink">{s.nama}</p>
                                         <p className="font-mono text-[11px] text-ink-3">
                                             {s.kode} · NPSN {s.npsn}
                                         </p>
@@ -254,27 +215,21 @@ export default function SekolahIndex({ sekolah, filter }: Props) {
                                                 /info/{s.papan_slug}
                                             </a>
                                         ) : (
-                                            <span className="text-ink-3">Mati</span>
+                                            <Chip nada="mute">Mati</Chip>
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span
-                                            className={
-                                                'rounded-full px-2 py-0.5 font-mono text-[10px] ' +
-                                                (s.status === 'aktif'
-                                                    ? 'bg-ok-bg text-ok'
-                                                    : 'bg-warn-bg text-warn')
-                                            }
-                                        >
+                                        <Chip nada={s.status === 'aktif' ? 'ok' : 'warn'}>
                                             {s.status}
-                                        </span>
+                                        </Chip>
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <Link
                                             href={`/super/sekolah/${s.id}`}
-                                            className="rounded-wf border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-accent hover:bg-surface-2"
+                                            className="inline-flex items-center gap-1 rounded-wf border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-accent hover:bg-surface-2"
                                         >
                                             Kelola
+                                            <Ikon nama="panah" ukuran={12} />
                                         </Link>
                                     </td>
                                 </tr>
