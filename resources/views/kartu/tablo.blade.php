@@ -44,10 +44,12 @@
     <meta charset="utf-8">
     <title>Tablo daftar hadir</title>
     <style>
+        @include('partials.pdf-fonts')
+
         @page { margin: 12mm; }
 
         body {
-            font-family: DejaVu Sans, sans-serif;
+            font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
             color: #161b24;
             font-size: 9px;
         }
@@ -93,7 +95,7 @@
         }
 
         .c { text-align: center; }
-        .mono { font-family: DejaVu Sans Mono, monospace; }
+        .mono { font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; }
 
         .ttd { border-bottom: 1px dotted #8e97a6; }
 

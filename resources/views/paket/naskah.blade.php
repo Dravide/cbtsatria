@@ -4,8 +4,10 @@
     <meta charset="utf-8">
     <title>{{ $mode === 'kunci' ? 'Kunci Jawaban' : 'Naskah Soal' }} · {{ $paket['nama'] }}</title>
     <style>
+        @include('partials.pdf-fonts')
+
         @page { margin: 16mm 15mm; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #161b24; line-height: 1.45; }
+        body { font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif; font-size: 10px; color: #161b24; line-height: 1.45; }
         .kop { border-bottom: 2px solid #161b24; padding-bottom: 3mm; margin-bottom: 5mm; }
         .kop-nama { font-size: 13px; font-weight: bold; }
         .kop-sub { font-size: 9px; color: #4a5565; margin-top: 1mm; }

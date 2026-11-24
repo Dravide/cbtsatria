@@ -8,12 +8,14 @@
     <meta charset="utf-8">
     <title>Poster QR Portal Publik · {{ $kop['nama'] }}</title>
     <style>
+        @include('partials.pdf-fonts')
+
         @page { margin: 16mm; }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: DejaVu Sans, sans-serif;
+            font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
             font-size: 12px;
             color: #161b24;
             background: #ffffff;
@@ -82,7 +84,7 @@
 
         .url {
             display: inline-block;
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             font-size: 10.5px;
             color: #1e4fa3;
             background: #f1f5f9;
@@ -109,7 +111,7 @@
 
         .daftar td.no {
             width: 10mm;
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             font-weight: bold;
             color: #1e4fa3;
         }

@@ -30,12 +30,14 @@
     <meta charset="utf-8">
     <title>Kartu Pintu Ruang</title>
     <style>
+        @include('partials.pdf-fonts')
+
         @page { margin: 12mm; }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: DejaVu Sans, sans-serif;
+            font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
             font-size: 9px;
             color: #161b24;
             background: #ffffff;
@@ -165,7 +167,7 @@
         }
 
         .tautan {
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             font-size: 10.5px;
             font-weight: bold;
             color: #1e4fa3;
@@ -291,7 +293,7 @@
                     <table class="kaki-table">
                         <tr>
                             <td>Kartu Pintu Ruang Ujian</td>
-                            <td style="text-align: right; font-family: DejaVu Sans Mono, monospace;">
+                            <td style="text-align: right; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;">
                                 {{ now()->format('d/m/Y') }}
                             </td>
                         </tr>

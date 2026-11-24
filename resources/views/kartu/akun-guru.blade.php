@@ -11,12 +11,14 @@
     <meta charset="utf-8">
     <title>Kartu Akun {{ $kartu['nama'] }}</title>
     <style>
+        @include('partials.pdf-fonts')
+
         @page { margin: 3mm; }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: DejaVu Sans, sans-serif;
+            font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
             font-size: 9px;
             color: #111827;
             background: #ffffff;
@@ -94,7 +96,7 @@
         }
 
         .nip {
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             font-size: 9px;
             color: #4b5563;
             margin: 0;
@@ -123,7 +125,7 @@
         }
 
         .nilai-akun {
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             font-size: 16px;
             font-weight: bold;
             color: #111827;
@@ -133,7 +135,7 @@
         }
 
         .nilai-sandi {
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             font-size: 16px;
             font-weight: bold;
             color: #1e4fa3;
@@ -170,7 +172,7 @@
         }
 
         .mapel-kode {
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             font-size: 8px;
             color: #6b7280;
             width: 16%;
@@ -206,7 +208,7 @@
         }
 
         .url {
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             color: #111827;
         }
     </style>
@@ -284,7 +286,7 @@
             <table class="kaki-table">
                 <tr>
                     <td>Kredensial Akun Guru</td>
-                    <td style="text-align: right; font-family: DejaVu Sans Mono, monospace;">
+                    <td style="text-align: right; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;">
                         {{ now()->format('d/m/Y') }}
                     </td>
                 </tr>

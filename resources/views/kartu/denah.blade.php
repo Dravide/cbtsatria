@@ -30,10 +30,12 @@
     <meta charset="utf-8">
     <title>Denah tempat duduk</title>
     <style>
+        @include('partials.pdf-fonts')
+
         @page { margin: 10mm; }
 
         body {
-            font-family: DejaVu Sans, sans-serif;
+            font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
             color: #161b24;
             font-size: 9px;
         }
@@ -94,12 +96,12 @@
             background: #fbfcfd;
         }
 
-        .nomor { font-family: DejaVu Sans Mono, monospace; font-size: 8px; color: #6b7686; }
+        .nomor { font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; font-size: 8px; color: #6b7686; }
         .nama { font-size: 9px; }
-        .kecil { font-family: DejaVu Sans Mono, monospace; font-size: 7px; color: #6b7686; }
+        .kecil { font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; font-size: 7px; color: #6b7686; }
 
         .kaki { margin-top: 3mm; font-size: 8px; color: #4a5565; }
-        .kaki .mono { font-family: DejaVu Sans Mono, monospace; color: #161b24; }
+        .kaki .mono { font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; color: #161b24; }
 
         .tanda { margin-top: 8mm; text-align: right; }
         .tanda .nama { margin-top: 14mm; border-top: 1px solid #161b24; padding-top: 1mm; display: inline-block; min-width: 55mm; }

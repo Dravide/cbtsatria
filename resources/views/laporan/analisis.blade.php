@@ -4,8 +4,10 @@
     <meta charset="utf-8">
     <title>Laporan Analisis Butir · {{ $ujian['judul'] }}</title>
     <style>
+        @include('partials.pdf-fonts')
+
         @page { margin: 14mm 12mm; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #161b24; }
+        body { font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif; font-size: 9px; color: #161b24; }
         .kop { border-bottom: 2px solid #161b24; padding-bottom: 3mm; margin-bottom: 4mm; }
         .kop-nama { font-size: 13px; font-weight: bold; }
         .kop-sub { font-size: 9px; color: #4a5565; margin-top: 1mm; }
@@ -13,7 +15,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 2mm; }
         th { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 2mm; text-align: left; font-size: 8px; }
         td { border: 1px solid #e2e8f0; padding: 1.8mm 2mm; vertical-align: top; }
-        .num { text-align: right; font-family: DejaVu Sans Mono, monospace; }
+        .num { text-align: right; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; }
         .bad { color: #9b2530; font-weight: bold; }
         .ok { color: #186b47; font-weight: bold; }
         .warn { color: #8a5a06; font-weight: bold; }

@@ -48,10 +48,12 @@
     <meta charset="utf-8">
     <title>Kartu panitia {{ $event['kode'] }}</title>
     <style>
+        @include('partials.pdf-fonts')
+
         @page { margin: 10mm 8mm; }
 
         body {
-            font-family: DejaVu Sans, sans-serif;
+            font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
             font-size: 9px;
             color: #161b24;
         }
@@ -90,7 +92,7 @@
         .garis { border-top: 1px dashed #d3d9e2; margin: 3mm 0; }
 
         .kode {
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
             font-size: 22px;
             font-weight: bold;
             letter-spacing: 3px;
@@ -98,7 +100,7 @@
 
         .petunjuk { font-size: 6.5px; color: #77808f; margin-top: 1mm; line-height: 1.35; }
 
-        .akun { font-family: DejaVu Sans Mono, monospace; font-size: 7px; color: #4a5565; }
+        .akun { font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; font-size: 7px; color: #4a5565; }
 
         .logo { max-height: 10mm; max-width: 22mm; }
     </style>
