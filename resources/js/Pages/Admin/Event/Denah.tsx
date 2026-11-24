@@ -94,6 +94,7 @@ type Ruang = {
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     tablo_url: string;
+    daftar_peserta_url: string;
     denah_url: string;
     /** PDF denah - lembar yang ditempel di meja. `?ruang=` memilih satu. */
     pdf_url: string;
@@ -101,7 +102,15 @@ type Props = {
     ruang: Ruang | null;
 };
 
-export default function EventDenah({ event, tablo_url, denah_url, pdf_url, daftar_ruang, ruang }: Props) {
+export default function EventDenah({
+    event,
+    tablo_url,
+    daftar_peserta_url,
+    denah_url,
+    pdf_url,
+    daftar_ruang,
+    ruang,
+}: Props) {
     const jalur = denah_url;
 
     const kosong = ruang ? ruang.sel.filter((s) => s.peserta === null).length : 0;
@@ -150,6 +159,12 @@ export default function EventDenah({ event, tablo_url, denah_url, pdf_url, dafta
                         title="Denah tempat duduk PDF untuk ditempel di meja"
                     >
                         Unduh denah PDF
+                    </TombolTautan>
+                    <TombolTautan
+                        href={ruang ? `${daftar_peserta_url}?ruang=${ruang.id}` : daftar_peserta_url}
+                        title="Daftar nama siswa PDF tanpa kolom tanda tangan"
+                    >
+                        Daftar nama PDF
                     </TombolTautan>
                     <TombolTautan
                         href={ruang ? `${tablo_url}?ruang=${ruang.id}` : tablo_url}

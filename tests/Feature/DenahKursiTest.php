@@ -422,4 +422,47 @@ it('menolak denah dan tablo event sekolah lain', function () {
 
     masukSebagai($this, $adminLain)->get(jalurDenah($d['event']->id))->assertNotFound();
     masukSebagai($this, $adminLain)->get(jalurTablo($d['event']->id))->assertNotFound();
+    masukSebagai($this, $adminLain)->get("/admin/events/{$d['event']->id}/penempatan/daftar-peserta")->assertNotFound();
+});
+
+it('mencetak daftar nama siswa PDF tanpa kolom tanda tangan untuk satu ruang', function () {
+    $d = siapkanKocok($this->admin, $this->tahun);
+    sebarKursi($this, $this->admin, $d['event']->id);
+
+    $ruang = ruangTerisi($d['sesi']->id);
+    $idRuang = idRuangEvent($ruang);
+
+    $satu = masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$d['event']->id}/penempatan/daftar-peserta?ruang={$idRuang}");
+
+    $semua = masukSebagai($this, $this->admin)
+        ->get("/admin/events/{$d['event']->id}/penempatan/daftar-peserta");
+
+    $satu->assertOk();
+
+    expect($satu->headers->get('content-type'))->toContain('application/pdf')
+        ->and($satu->headers->get('content-disposition'))->toContain('daftar-nama-peserta.pdf')
+        ->and(substr($satu->getContent(), 0, 4))->toBe('%PDF')
+        ->and(strlen($satu->getContent()))->toBeLessThan(strlen($semua->getContent()));
+
+    $html = view('kartu.daftar-peserta', [
+        'sekolah' => ['nama' => $this->sekolah->name, 'npsn' => null, 'logo' => null],
+        'halaman' => [[
+            'kode' => 'R-01',
+            'nama' => 'Lab 1',
+            'ujian' => 'Ujian Matematika',
+            'sesi' => 'Sesi 1',
+            'jam' => '08:00 - 09:30',
+            'kapasitas' => 4,
+            'terisi' => 1,
+            'baris' => [
+                ['kursi' => 1, 'meja' => 1, 'nama' => 'Budi Santoso', 'nis' => '1001', 'kelas' => 'X-1'],
+                ['kursi' => 2, 'meja' => 1, 'nama' => '', 'nis' => null, 'kelas' => null],
+            ],
+        ]],
+    ])->render();
+
+    expect($html)->toContain('Budi Santoso')
+        ->not->toContain('Tanda tangan')
+        ->not->toContain('Pengawas ruang');
 });

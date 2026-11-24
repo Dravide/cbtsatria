@@ -68,6 +68,25 @@ final class TabloRuang
     }
 
     /**
+     * PDF daftar nama peserta per ruang tanpa kolom tanda tangan.
+     *
+     * @param  iterable<int, array<string, mixed>>  $halaman
+     * @param  array{nama: string, npsn: ?string, logo: ?string}  $sekolah
+     */
+    public function buatDaftarPeserta(iterable $halaman, array $sekolah): string
+    {
+        return Pdf::loadView('kartu.daftar-peserta', [
+            'sekolah' => $sekolah,
+            'halaman' => $halaman,
+        ])->setPaper(self::UKURAN, 'portrait')->output();
+    }
+
+    public function namaBerkasDaftarPeserta(): string
+    {
+        return 'daftar-nama-peserta.pdf';
+    }
+
+    /**
      * Susun satu halaman tablo untuk satu ruang.
      *
      * Seluruh kursi yang DISEDIAKAN ruang itu ikut tercetak, termasuk yang
