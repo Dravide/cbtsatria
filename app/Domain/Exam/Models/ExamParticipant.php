@@ -46,6 +46,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'student_id',
     'exam_session_id',
     'exam_session_room_id',
+    'emergency_device_mode',
+    'emergency_seat_number',
+    'emergency_origin_room_id',
+    'emergency_reason',
+    'emergency_moved_at',
     'assigned_at',
     'status',
 ])]
@@ -63,6 +68,8 @@ class ExamParticipant extends Model
     {
         return [
             'assigned_at' => 'datetime',
+            'emergency_seat_number' => 'integer',
+            'emergency_moved_at' => 'datetime',
         ];
     }
 

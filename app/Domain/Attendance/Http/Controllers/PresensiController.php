@@ -10,11 +10,13 @@ use App\Domain\Attendance\Models\ExamAttempt;
 use App\Domain\Attendance\Services\KehadiranService;
 use App\Domain\Attendance\Services\KodePindai;
 use App\Domain\Attendance\Services\KonteksRuang;
+use App\Domain\Attendance\Services\PindahRuangDaruratService;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Exam\Enums\StatusSesi;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSessionRoom;
 use App\Support\Qr\KodeQr;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,6 +58,7 @@ class PresensiController
         private readonly KehadiranService $kehadiran,
         private readonly KodePindai $pindai,
         private readonly ActivityLogger $logger,
+        private readonly PindahRuangDaruratService $pindahDarurat,
     ) {}
 
     /** Plate 12: daftar kursi. */
@@ -159,7 +162,73 @@ class PresensiController
             ])->all(),
 
             'opsi' => StatusPresensi::options(),
+            'ruang_tujuan' => $this->pindahDarurat->tujuanTersedia($ruang),
+            'darurat' => $peserta->emergency_moved_at === null ? null : [
+                'mode' => $peserta->emergency_device_mode,
+                'nomor_pc' => $peserta->emergency_seat_number,
+                'alasan' => $peserta->emergency_reason,
+                'waktu' => $peserta->emergency_moved_at->format('H:i'),
+            ],
         ]);
+    }
+
+    /** Pindah ruang darurat satu peserta untuk sesi ini saja (opsi tetap HP atau pindah ke PC Lab). */
+    public function pindahRuang(
+        ExamSessionRoom $ruang,
+        ExamParticipant $peserta,
+        Request $request,
+    ): RedirectResponse {
+        $konteks = KonteksRuang::dari($ruang);
+        $this->milikRuang($ruang, $peserta);
+
+        $valid = $request->validate([
+            'ruang_tujuan_id' => ['required', 'integer'],
+            'mode' => ['required', 'in:hp,pc'],
+            'nomor_pc' => ['nullable', 'integer', 'min:1'],
+            'alasan' => ['required', 'string', 'min:3', 'max:255'],
+        ], [], [
+            'ruang_tujuan_id' => 'ruang tujuan',
+            'mode' => 'perangkat',
+            'nomor_pc' => 'nomor PC',
+            'alasan' => 'alasan pindah',
+        ]);
+
+        $tujuan = ExamSessionRoom::query()
+            ->with('eventRoom.room:id,code,name,capacity,device_count')
+            ->where('exam_session_id', $ruang->exam_session_id)
+            ->find($valid['ruang_tujuan_id']);
+
+        if ($tujuan === null) {
+            return back()->with('galat', 'Ruang tujuan tidak ditemukan pada sesi ini.');
+        }
+
+        try {
+            $this->pindahDarurat->pindahkan(
+                $peserta,
+                $ruang,
+                $tujuan,
+                $valid['mode'],
+                isset($valid['nomor_pc']) ? (int) $valid['nomor_pc'] : null,
+                $valid['alasan'],
+            );
+        } catch (DomainException $e) {
+            return back()->with('galat', $e->getMessage());
+        }
+
+        $kodeTujuan = $tujuan->eventRoom?->room?->code ?? "R-{$tujuan->id}";
+        $infoPc = $valid['mode'] === 'pc' ? " (PC {$valid['nomor_pc']})" : ' (HP)';
+
+        $this->logger->log('Memindahkan peserta darurat (sesi ini)', $peserta, [
+            'dari' => $konteks->kodeRuang(),
+            'ke' => $kodeTujuan,
+            'mode' => $valid['mode'],
+            'nomor_pc' => $valid['mode'] === 'pc' ? (int) $valid['nomor_pc'] : null,
+            'alasan' => $valid['alasan'],
+            'oleh' => $konteks->pelakuLabel(),
+        ]);
+
+        return redirect("/pengawas/ruang/{$ruang->id}/presensi")
+            ->with('sukses', ($peserta->student?->name ?? 'Peserta')." dipindahkan ke {$kodeTujuan}{$infoPc} khusus sesi ini.");
     }
 
     /**

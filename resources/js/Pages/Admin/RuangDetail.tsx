@@ -44,6 +44,45 @@ type Tautan = {
     dicabut: string | null;
 };
 
+type SlotKios = {
+    nomor: number;
+    kios_url: string | null;
+    peserta: {
+        peserta_id: number;
+        nama: string;
+        nis: string | null;
+        kelas: string | null;
+        status_presensi: string;
+        status_presensi_label: string;
+        status_presensi_nada: string;
+        status_pengerjaan: string;
+        status_pengerjaan_nada: string;
+        darurat: boolean;
+        alasan_darurat: string | null;
+    } | null;
+};
+
+type KiosData = {
+    sesi_pilihan: { id: number; label: string; ujian: string; jam: string | null; berjalan: boolean }[];
+    sesi_terpilih: {
+        id: number;
+        event_id: number;
+        label: string;
+        ujian: string;
+        jam: string | null;
+        berjalan: boolean;
+    } | null;
+    slot: SlotKios[];
+    peserta_hp: {
+        peserta_id: number;
+        nama: string;
+        nis: string | null;
+        kelas: string | null;
+        darurat: boolean;
+        alasan_darurat: string | null;
+    }[];
+};
+
 type Props = {
     ruang: {
         id: number;
@@ -57,9 +96,10 @@ type Props = {
     };
     tautan: Tautan[];
     aktif: { id: number; url: string; slug: string; kedaluwarsa: string | null; dipakai: number } | null;
+    kios?: KiosData | null;
 };
 
-export default function RuangDetail({ ruang, tautan, aktif }: Props) {
+export default function RuangDetail({ ruang, tautan, aktif, kios = null }: Props) {
     return (
         <AdminLayout
             judul={`Ruang ${ruang.kode}`}
@@ -128,6 +168,197 @@ export default function RuangDetail({ ruang, tautan, aktif }: Props) {
                             </p>
                         )}
                     </Kotak>
+
+                    {!ruang.byod && ruang.pc > 0 && kios && (
+                        <div id="kios-pc">
+                            <Kotak
+                                judul="Manajemen Kios PC"
+                                aksi={
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Chip nada="info">
+                                            {kios.slot.filter((s) => s.peserta !== null).length} /{' '}
+                                            {kios.slot.length} PC terisi
+                                        </Chip>
+                                        {kios.sesi_pilihan.length > 0 && (
+                                            <select
+                                                aria-label="Pilih sesi ujian"
+                                                value={kios.sesi_terpilih?.id ?? ''}
+                                                onChange={(e) =>
+                                                    router.get(
+                                                        `/admin/ruang/${ruang.id}`,
+                                                        { sesi_ruang: Number(e.target.value) },
+                                                        { preserveScroll: true },
+                                                    )
+                                                }
+                                                className="rounded-wf border border-line bg-surface px-2 py-1 text-xs text-ink"
+                                            >
+                                                {kios.sesi_pilihan.map((s) => (
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.ujian} · {s.label}
+                                                        {s.berjalan ? ' (berjalan)' : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                    </div>
+                                }
+                            >
+                                {kios.sesi_terpilih ? (
+                                    <p className="mb-3 text-xs text-ink-2">
+                                        <strong className="text-ink">
+                                            {kios.sesi_terpilih.ujian}
+                                        </strong>{' '}
+                                        · {kios.sesi_terpilih.label}
+                                        {kios.sesi_terpilih.jam ? ` · ${kios.sesi_terpilih.jam}` : ''}
+                                        {kios.sesi_terpilih.event_id > 0 && (
+                                            <>
+                                                {' · '}
+                                                <Link
+                                                    href={`/admin/events/${kios.sesi_terpilih.event_id}/monitoring/ruang/${kios.sesi_terpilih.id}`}
+                                                    className="font-medium text-accent hover:underline"
+                                                >
+                                                    Buka monitoring ruang
+                                                </Link>
+                                            </>
+                                        )}
+                                    </p>
+                                ) : (
+                                    <p className="mb-3 text-xs text-ink-3">
+                                        Ruang ini belum dipasang pada sesi ujian mana pun. Daftar PC
+                                        di bawah menampilkan seluruh unit PC yang tersedia.
+                                    </p>
+                                )}
+
+                                <Tabel<SlotKios>
+                                    hal={{ data: kios.slot, total: kios.slot.length }}
+                                    kunci={(s) => s.nomor}
+                                    kosong="Belum ada unit PC pada ruang ini."
+                                    kolom={[
+                                        {
+                                            judul: 'Unit PC',
+                                            kelas: 'w-24',
+                                            render: (s) => (
+                                                <span className="font-mono text-xs font-semibold text-ink">
+                                                    PC {String(s.nomor).padStart(2, '0')}
+                                                </span>
+                                            ),
+                                        },
+                                        {
+                                            judul: 'Siswa penghuni',
+                                            render: (s) =>
+                                                s.peserta ? (
+                                                    <div>
+                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                            <span className="font-medium text-ink">
+                                                                {s.peserta.nama}
+                                                            </span>
+                                                            {s.peserta.darurat && (
+                                                                <Chip nada="warn">
+                                                                    pindahan darurat
+                                                                </Chip>
+                                                            )}
+                                                        </div>
+                                                        <p className="font-mono text-[11px] text-ink-3">
+                                                            {s.peserta.kelas ?? '-'}
+                                                            {s.peserta.nis
+                                                                ? ` · ${s.peserta.nis}`
+                                                                : ''}
+                                                            {s.peserta.alasan_darurat
+                                                                ? ` · "${s.peserta.alasan_darurat}"`
+                                                                : ''}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <Chip nada="mute">Kosong</Chip>
+                                                ),
+                                        },
+                                        {
+                                            judul: 'Presensi',
+                                            kelas: 'w-28',
+                                            render: (s) =>
+                                                s.peserta ? (
+                                                    <Chip
+                                                        nada={
+                                                            s.peserta.status_presensi_nada as 'mute'
+                                                        }
+                                                    >
+                                                        {s.peserta.status_presensi_label}
+                                                    </Chip>
+                                                ) : (
+                                                    <span className="text-xs text-ink-3">-</span>
+                                                ),
+                                        },
+                                        {
+                                            judul: 'Pengerjaan',
+                                            kelas: 'w-28',
+                                            render: (s) =>
+                                                s.peserta ? (
+                                                    <Chip
+                                                        nada={
+                                                            s.peserta
+                                                                .status_pengerjaan_nada as 'mute'
+                                                        }
+                                                    >
+                                                        {s.peserta.status_pengerjaan}
+                                                    </Chip>
+                                                ) : (
+                                                    <span className="text-xs text-ink-3">-</span>
+                                                ),
+                                        },
+                                        {
+                                            judul: 'Kios',
+                                            kelas: 'w-32 text-right',
+                                            render: (s) =>
+                                                s.kios_url ? (
+                                                    <span className="inline-flex items-center gap-2">
+                                                        <a
+                                                            href={s.kios_url}
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            className="text-xs font-medium text-accent hover:underline"
+                                                        >
+                                                            Buka
+                                                        </a>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => salin(s.kios_url!)}
+                                                            className="cursor-pointer text-xs text-ink-3 hover:text-ink hover:underline"
+                                                        >
+                                                            Salin
+                                                        </button>
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[11px] text-ink-3">
+                                                        terbitkan tautan
+                                                    </span>
+                                                ),
+                                        },
+                                    ]}
+                                />
+
+                                {kios.peserta_hp.length > 0 && (
+                                    <div className="mt-3 rounded-wf border border-line bg-wf-soft px-3 py-2.5">
+                                        <p className="text-xs font-medium text-ink">
+                                            Peserta pindahan di ruang ini menggunakan HP (
+                                            {kios.peserta_hp.length})
+                                        </p>
+                                        <ul className="mt-1.5 space-y-1 text-xs text-ink-2">
+                                            {kios.peserta_hp.map((p) => (
+                                                <li key={p.peserta_id}>
+                                                    <strong>{p.nama}</strong>
+                                                    {p.kelas ? ` · ${p.kelas}` : ''}
+                                                    {p.nis ? ` (${p.nis})` : ''}
+                                                    {p.alasan_darurat
+                                                        ? ` · "${p.alasan_darurat}"`
+                                                        : ''}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </Kotak>
+                        </div>
+                    )}
 
                     <Kotak
                         judul="Riwayat tautan"

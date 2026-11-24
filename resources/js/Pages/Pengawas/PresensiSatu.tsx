@@ -70,6 +70,21 @@ type Props = {
         alasan: string | null;
     }[];
     opsi: Record<string, string>;
+    ruang_tujuan?: {
+        id: number;
+        kode: string;
+        nama: string | null;
+        kapasitas: number;
+        terisi: number;
+        pc: number;
+        pc_tersedia: number[];
+    }[];
+    darurat?: {
+        mode: string | null;
+        nomor_pc: number | null;
+        alasan: string | null;
+        waktu: string | null;
+    } | null;
 };
 
 export default function PresensiSatu({
@@ -87,6 +102,8 @@ export default function PresensiSatu({
     pengerjaan,
     riwayat,
     opsi,
+    ruang_tujuan = [],
+    darurat = null,
 }: Props) {
     const [kirim, setKirim] = useState(false);
 
@@ -191,6 +208,14 @@ export default function PresensiSatu({
                 </Link>
             </KotakPonsel>
 
+            <PanelPindahDarurat
+                ruangId={ruang.id}
+                pesertaId={peserta_id}
+                nama={nama}
+                ruangTujuan={ruang_tujuan}
+                darurat={darurat}
+            />
+
             <KotakPonsel padat judul="Riwayat presensi" kanan={<Chip nada="info">append-only</Chip>}>
                 {riwayat.length === 0 && (
                     <p className="px-1 py-4 text-center text-xs text-ink-3">
@@ -230,5 +255,205 @@ export default function PresensiSatu({
                 Pengawas hanyalah mencatat kehadiran - selebihnya milik server.
             </Inbox>
         </KerangkaPonsel>
+    );
+}
+
+function PanelPindahDarurat({
+    ruangId,
+    pesertaId,
+    nama,
+    ruangTujuan,
+    darurat,
+}: {
+    ruangId: number;
+    pesertaId: number;
+    nama: string;
+    ruangTujuan: NonNullable<Props['ruang_tujuan']>;
+    darurat: Props['darurat'];
+}) {
+    const [tujuanId, setTujuanId] = useState<number>(ruangTujuan[0]?.id ?? 0);
+    const [mode, setMode] = useState<'hp' | 'pc'>('hp');
+    const [nomorPc, setNomorPc] = useState<string>('');
+    const [alasan, setAlasan] = useState('');
+    const [kirim, setKirim] = useState(false);
+
+    const terpilih = ruangTujuan.find((r) => r.id === tujuanId) ?? null;
+    const bisaPc = terpilih !== null && terpilih.pc > 0 && terpilih.pc_tersedia.length > 0;
+
+    const gantiTujuan = (idBaru: number) => {
+        setTujuanId(idBaru);
+        const r = ruangTujuan.find((x) => x.id === idBaru);
+        if (!r || r.pc === 0 || r.pc_tersedia.length === 0) {
+            setMode('hp');
+            setNomorPc('');
+        } else if (mode === 'pc') {
+            setNomorPc(String(r.pc_tersedia[0]));
+        }
+    };
+
+    const gantiMode = (m: 'hp' | 'pc') => {
+        setMode(m);
+        if (m === 'pc' && terpilih && terpilih.pc_tersedia.length > 0) {
+            setNomorPc(String(terpilih.pc_tersedia[0]));
+        } else {
+            setNomorPc('');
+        }
+    };
+
+    const simpan = () => {
+        if (!terpilih || alasan.trim().length < 3) {
+            return;
+        }
+        if (mode === 'pc' && !nomorPc) {
+            return;
+        }
+        setKirim(true);
+        router.post(
+            `/pengawas/ruang/${ruangId}/presensi/${pesertaId}/pindah-ruang`,
+            {
+                ruang_tujuan_id: terpilih.id,
+                mode,
+                nomor_pc: mode === 'pc' ? Number(nomorPc) : null,
+                alasan: alasan.trim(),
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => setKirim(false),
+            },
+        );
+    };
+
+    return (
+        <KotakPonsel
+            solid
+            padat
+            judul="Pindah ruang darurat"
+            kanan={<Chip nada="warn">sesi ini saja</Chip>}
+        >
+            {darurat && (
+                <p className="rounded-wf border border-info/30 bg-info-bg px-3 py-2 text-[11px] leading-relaxed text-info">
+                    Peserta ini sedang berstatus pindahan darurat (
+                    {darurat.mode === 'pc' && darurat.nomor_pc
+                        ? `PC ${String(darurat.nomor_pc).padStart(2, '0')}`
+                        : 'HP'}
+                    {darurat.waktu ? `, pukul ${darurat.waktu}` : ''}).
+                    {darurat.alasan ? ` Alasan: "${darurat.alasan}"` : ''}
+                </p>
+            )}
+
+            {ruangTujuan.length === 0 ? (
+                <p className="text-xs text-ink-3">
+                    Tidak ada ruang lain yang terdaftar pada sesi ujian ini.
+                </p>
+            ) : (
+                <div className="space-y-3">
+                    <p className="text-[11px] leading-relaxed text-ink-3">
+                        Pindahkan <strong>{nama}</strong> ke ruang lain khusus untuk sesi ini
+                        (mis. HP bermasalah dan pindah ke lab komputer). Sesi berikutnya tetap
+                        kembali ke ruang asal.
+                    </p>
+
+                    <label className="block">
+                        <span className="mb-1 block text-[11px] font-medium text-ink-2">
+                            Ruang tujuan
+                        </span>
+                        <select
+                            value={tujuanId}
+                            onChange={(e) => gantiTujuan(Number(e.target.value))}
+                            className="w-full rounded-wf border border-line bg-surface px-2.5 py-2 text-xs text-ink"
+                        >
+                            {ruangTujuan.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                    {r.kode}
+                                    {r.nama ? ` · ${r.nama}` : ''} ({r.terisi}/{r.kapasitas}
+                                    {r.pc > 0 ? `, ${r.pc_tersedia.length} PC kosong` : ', BYOD'})
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <div>
+                        <span className="mb-1 block text-[11px] font-medium text-ink-2">
+                            Perangkat yang dipakai
+                        </span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => gantiMode('hp')}
+                                className={
+                                    'inline-grid min-h-11 cursor-pointer place-items-center rounded-wf border px-3 text-xs font-medium ' +
+                                    (mode === 'hp'
+                                        ? 'border-accent bg-accent text-on-accent'
+                                        : 'border-line bg-surface text-ink hover:bg-surface-2')
+                                }
+                            >
+                                Tetap pakai HP
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!bisaPc}
+                                onClick={() => gantiMode('pc')}
+                                className={
+                                    'inline-grid min-h-11 cursor-pointer place-items-center rounded-wf border px-3 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-45 ' +
+                                    (mode === 'pc'
+                                        ? 'border-accent bg-accent text-on-accent'
+                                        : 'border-line bg-surface text-ink hover:bg-surface-2')
+                                }
+                            >
+                                Pakai PC Lab
+                            </button>
+                        </div>
+                        {!bisaPc && terpilih && (
+                            <p className="mt-1 text-[11px] text-ink-3">
+                                {terpilih.pc === 0
+                                    ? 'Ruang tujuan adalah ruang BYOD (tidak punya PC).'
+                                    : 'Seluruh slot PC di ruang tujuan sedang terisi.'}
+                            </p>
+                        )}
+                    </div>
+
+                    {mode === 'pc' && terpilih && (
+                        <label className="block">
+                            <span className="mb-1 block text-[11px] font-medium text-ink-2">
+                                Pilih nomor PC kosong
+                            </span>
+                            <select
+                                value={nomorPc}
+                                onChange={(e) => setNomorPc(e.target.value)}
+                                className="w-full rounded-wf border border-line bg-surface px-2.5 py-2 font-mono text-xs text-ink"
+                            >
+                                {terpilih.pc_tersedia.map((n) => (
+                                    <option key={n} value={n}>
+                                        PC {String(n).padStart(2, '0')}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    )}
+
+                    <label className="block">
+                        <span className="mb-1 block text-[11px] font-medium text-ink-2">
+                            Alasan pindah
+                        </span>
+                        <input
+                            value={alasan}
+                            onChange={(e) => setAlasan(e.target.value)}
+                            maxLength={255}
+                            placeholder="Contoh: HP siswa bermasalah / layar mati"
+                            className="w-full rounded-wf border border-line bg-surface px-2.5 py-2 text-xs text-ink"
+                        />
+                    </label>
+
+                    <button
+                        type="button"
+                        disabled={kirim || alasan.trim().length < 3 || (mode === 'pc' && !nomorPc)}
+                        onClick={simpan}
+                        className="inline-grid min-h-11 w-full cursor-pointer place-items-center rounded-wf border border-accent bg-accent px-4 text-xs font-medium text-on-accent hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {kirim ? 'Memindahkan…' : 'Pindahkan untuk sesi ini'}
+                    </button>
+                </div>
+            )}
+        </KotakPonsel>
     );
 }

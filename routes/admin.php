@@ -321,6 +321,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('events.monitoring.reset');
     Route::post('/events/{event}/monitoring/peserta/{peserta}/hentikan', [PemantauanEventController::class, 'blokirPeserta'])
         ->name('events.monitoring.hentikan');
+    Route::post('/events/{event}/monitoring/peserta/{peserta}/pindah-ruang', [PemantauanEventController::class, 'pindahRuang'])
+        ->name('events.monitoring.pindah-ruang');
 
     // Memakai segmen ruang/{ruang} agar tidak tertutup binding {peserta}.
     Route::post('/events/{event}/monitoring/ruang/{ruang}/reset-massal', [PemantauanEventController::class, 'resetMassal'])

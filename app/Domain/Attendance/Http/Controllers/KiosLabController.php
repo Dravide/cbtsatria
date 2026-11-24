@@ -207,7 +207,7 @@ class KiosLabController
             return back()->with('galat', 'Akun ini tidak ditempatkan di ruang ini.');
         }
 
-        $kursi = $this->peta->kursiSatu($peserta);
+        $kursi = $peserta->emergency_seat_number ?? $this->peta->kursiSatu($peserta);
 
         if ($kursi === null) {
             return back()->with('galat', 'Kursi akun ini belum ditetapkan. Panggil pengawas ruang.');
@@ -337,8 +337,10 @@ class KiosLabController
     private function nomorSah(ExamSessionRoom $ruang): array
     {
         $kursi = $this->peta->kursi((int) $ruang->eventRoom?->id);
+        $maksPeta = $kursi === [] ? 0 : max($kursi);
+        $maksPc = (int) ($ruang->eventRoom?->kursiBerPerangkat() ?? 0);
 
-        return ['maks' => $kursi === [] ? 0 : max($kursi)];
+        return ['maks' => max($maksPeta, $maksPc)];
     }
 
     private function pesanKeadaan(ExamSessionRoom $ruang, int $nomor): ?string

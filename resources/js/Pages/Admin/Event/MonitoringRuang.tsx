@@ -6,125 +6,11 @@ import { tanyaTeks } from '@/Components/dialog';
 import { Chip, Field, Inbox, Kotak, Modal, Tombol, kelasInput } from '@/Components/ui';
 
 /**
- * Laman 20b - keadaan per peserta SATU ruang-sesi.
- *
- * =====================================================================
- * Mengapa laman sendiri, dibuka di tab baru
- * =====================================================================
- * Papan monitoring lintas ruang menjawab "ruang mana yang tertinggal", dan
- * itu pertanyaan yang dijawab rekap. Daftar nama ada karena pertanyaan lain
- * yang tidak bisa dijawab rekap: "anak ini sudah sampai nomor berapa". Rekap
- * menjawab berapa BANYAK yang sudah dikerjakan; ia tidak menjawab soal MANA
- * yang sedang dibuka, dan untuk anak yang melompat ke nomor 40 lalu kembali
- * ke nomor 3 keduanya berbeda jauh.
- *
- * Sampai 2026-11-09 daftar itu dibuka DI DALAM kartu ruang di papan lintas
- * ruang. Tiga hal sekaligus salah dengan bentuk itu:
- *
- *   1. Papan lintas ruang disegarkan terus selama ujian berjalan, dan
- *      membawa daftar seribu anak di payload-nya berarti setiap penyegaran
- *      mengirim ulang daftar yang belum tentu dibuka.
- *   2. Dua puluh ruang yang daftarnya bisa dibuka di satu halaman
- *      menghasilkan halaman yang tidak lagi bisa dipindai - dan kemampuan
- *      memindainya itulah gunanya papan itu.
- *   3. Admin yang menelusuri satu anak sedang mengerjakan satu pekerjaan.
- *      Tab tersendiri membuatnya tidak hilang saat ia kembali ke rekap.
- *
- * Laman ini karena itu adalah kebalikan dari papan lintas ruang: SATU ruang,
- * seluruh anaknya, dan tidak ada angka lintas ruang yang perlu dipindai.
- *
- * =====================================================================
- * Nomor kursi ikut, dan itu yang menyambung laman ini ke ruang fisiknya
- * =====================================================================
- * Admin membaca laman ini untuk menelusuri satu anak, dan langkah berikutnya
- * hampir selalu menghubungi pengawas ruangnya. Yang bisa disampaikan saat
- * itu adalah NOMOR KURSI - bukan nomor peserta, yang tidak tertulis di mana
- * pun yang bisa dilihat pengawas. Nomornya datang dari server, dihitung
- * `NomorKursi`: aturan yang sama dengan papan pengawas, denah, dan tablo.
- *
- * =====================================================================
- * Nomor soal datang dari denyut anak, dan itu berarti ia bisa tertinggal
- * =====================================================================
- * Nomor yang tampil adalah nomor yang dilaporkan peramban anak pada denyut
- * terakhirnya - tiap tiga puluh detik. Anak yang baru berpindah soal masih
- * tampil di nomor lamanya sampai denyut berikutnya, dan itu memang
- * keadaannya: angka yang lebih baru daripada denyutnya tidak ada.
- *
- * Karena itu kolom jam denyutnya ikut ditampilkan. Angka "sampai nomor 12"
- * yang disertai "07:41:20" bisa dinilai sendiri oleh Admin; angka telanjang
- * tidak bisa.
- *
- * Yang membacanya juga perlu tahu satu hal lagi: nomornya DILAPORKAN
- * PERAMBAN SISWA, sehingga ia isyarat, bukan bukti. Yang tidak bisa
- * dilaporkan adalah jumlah jawaban yang tersimpan - dan itulah yang
- * dihitung server di kolom Progres.
- *
- * =====================================================================
- * Dua jawaban atas "sampai mana", dan keduanya memang perlu
- * =====================================================================
- * Kolom "Sampai nomor" menjawab apa yang SEDANG DILIHAT anak. Kolom
- * "Dikerjakan" menjawab soal MANA yang jawabannya sudah tersimpan - dan itu
- * pertanyaan yang berbeda, bukan pertanyaan yang sama dengan angka yang lebih
- * tepat.
- *
- * Anak yang sudah sampai nomor 12 tetapi baru menyimpan tiga jawaban sedang
- * melewati sebelas soal tanpa menjawabnya; anak yang menjawab sampai nomor
- * 40 tetapi melaporkan nomor 3 sedang menengok kembali ke belakang. Keduanya
- * tampak sama di kolom denyut, dan keduanya perlu ditanyai pengawasnya -
- * dengan pertanyaan yang berbeda.
- *
- * Karena itu nomor soalnya ditempel di sini sebagai daftar, bukan sebagai
- * satu angka. "Belum: 4, 7, 8" bisa dibacakan lewat telepon; "37 dari 40"
- * tidak bisa.
- *
- * =====================================================================
- * Nomor yang dibaca di sini adalah nomor YANG DILIHAT ANAK
- * =====================================================================
- * Pada ujian yang mengacak soal, nomor 5 menunjuk soal yang BERBEDA untuk
- * tiap anak - jadi daftar bernomor itu berlaku per anak, dan tidak bisa
- * dijumlahkan lintas anak.
- *
- * =====================================================================
- * Butir soalnya dibuka per anak, di dalam modal
- * =====================================================================
- * Sampai 2026-11-10 statistik per butir digambar di sini sebagai satu tabel
- * milik seluruh ruangan. Tabel itu menjawab pertanyaan yang salah: Admin
- * membuka laman ini untuk menelusuri SATU anak, dan pada ujian yang
- * mengacak soal baris "nomor 5" di tabel campuran itu bukan soal yang
- * sedang dilihat anak mana pun secara khusus.
- *
- * Yang tinggal di luar adalah angka ruangannya - berapa butir, berapa sudah
- * dijawab seluruh ruangan - karena itu yang menjawab "ruang ini tertinggal
- * atau tidak". Daftar butirnya pindah ke modal di balik nama anaknya, dan
- * di sana nomornya nomor anak ITU, disambungkan ke soal ujiannya lewat
- * `butir[].soal_id` - bukan lewat nomor, yang justru berbeda antar anak.
- *
- * =====================================================================
- * Yang TIDAK ada di laman ini: koreksi presensi
- * =====================================================================
- * Admin mengoreksi PRESENSI, dan itu ada di laman Presensi. Laman ini tidak
- * mengubah kehadiran siapa pun.
- *
- * =====================================================================
- * Yang ADA sejak 2026-11-12: reset dan penghentian pengerjaan
- * =====================================================================
- * Dua tombol di baris anak - `Reset` dan `Hentikan` - dan keduanya
- * mengubah pengerjaan anaknya, bukan presensinya. Alasannya ada di sini
- * dan bukan di laman lain: Admin yang menemukan anak yang terputus di menit
- * pertama sedang berdiri di papan ini, dan mengirimnya ke laman lain berarti
- * ia harus mencari anak yang sama untuk kedua kalinya.
- *
- * Keduanya menuntut kalimat tertulis, dan `Hentikan` justru MENGIRIM
- * kalimat itu ke layar siswanya. Lihat catatan `TindakanPeserta`.
+ * Monitoring satu ruang-sesi per peserta (dibuka di tab terpisah dari rekap lintas ruang).
+ * Nomor soal berasal dari denyut peramban siswa (per 30 detik), sedangkan progres dihitung dari jawaban tersimpan di server.
  */
-/**
- * Satu butir seperti yang dilihat SATU anak.
- *
- * `nomor` adalah nomor di layar anak (`attempt_questions.display_order`);
- * `soal_id` menunjuk baris di `soal` - dan itu perantaranya. Pada ujian yang
- * mengacak soal, nomor 5 menunjuk soal yang berbeda untuk tiap anak, jadi
- * nomor saja tidak cukup untuk mencari statistiknya.
- */
+
+/** Satu butir dari sudut pandang peserta (`nomor` adalah urutan layar anak, `soal_id` menunjuk baris `soal`). */
 type Butir = {
     nomor: number;
     soal_id: number;
@@ -146,52 +32,40 @@ type Anak = {
     denyut: string | null;
     pelanggaran: number;
     jenis_pelanggaran: string[];
-    /**
-     * Keadaan layar penuh menurut denyut terakhir - `null` bila anak belum
-     * pernah mengirim denyut sama sekali.
-     *
-     * Ia BISA BASI, dan itu sebabnya ia bukan penghitung pelanggaran:
-     * kejadiannya dicatat terpisah sebagai `keluar_layar_penuh`, dan yang
-     * dibaca di sini hanya keadaannya sekarang.
-     */
+    /** Status layar penuh dari denyut terakhir (bisa basi); null bila belum ada denyut. */
     layar_penuh: boolean | null;
-    /** Berapa kali layar anak terbagi selama ujian - jumlah PERISTIWA. */
+    /** Jumlah peristiwa layar terbagi selama ujian. */
     layar_terbagi: number;
     terkunci: boolean;
     kunci_alasan: string | null;
-    /**
-     * Nomor soal yang jawabannya sudah tersimpan, urut naik.
-     *
-     * Ketiganya `null` untuk anak yang belum membuka ujiannya - dan itu
-     * berbeda dari `[]`, yang berarti "tidak ada yang belum dikerjakan".
-     */
+    /** Nomor soal terjawab urut naik; null berarti belum membuka ujian (berbeda dari []). */
     dikerjakan: number[] | null;
     /** Nomor soal yang belum dijawab, urut naik. */
     belum: number[] | null;
-    /** Nomor soal yang ditandai ragu oleh anaknya sendiri. */
+    /** Nomor soal yang ditandai ragu oleh peserta. */
     ditandai: number[] | null;
-    /** Seluruh butir anak ini berurut, beserta soal yang ditunjuknya. */
+    /** Seluruh butir peserta ini berurut beserta soal yang ditunjuknya. */
     butir: Butir[] | null;
 };
 
 type Soal = {
     id: number;
-    /** Urutan UJIAN, bukan urutan satu anak - lihat catatan berkas ini. */
+    /** Urutan paket ujian, bukan urutan layar anak. */
     nomor: number;
     jenis: string | null;
     jenis_label: string | null;
     jenis_pendek: string | null;
     judul: string | null;
     bobot: number;
-    /** False untuk uraian: `benar`/`salah` di bawahnya lalu selalu null. */
+    /** False untuk uraian: `benar`/`salah` lalu selalu null. */
     otomatis: boolean;
     peserta: number;
     sudah: number;
     belum: number;
     ditandai: number;
-    /** Berapa jawaban yang sudah punya nilai; sisanya masih null. */
+    /** Jumlah jawaban yang sudah punya nilai. */
     dinilai: number;
-    /** Null selama belum ada satu pun yang dinilai - lihat catatan berkas. */
+    /** Null selama belum ada jawaban yang dinilai. */
     benar: number | null;
     salah: number | null;
     persen: number;
@@ -233,6 +107,15 @@ type Props = {
         selesai_semua: number;
         belum_mulai: number;
     };
+    ruang_tujuan?: {
+        id: number;
+        kode: string;
+        nama: string | null;
+        kapasitas: number;
+        terisi: number;
+        pc: number;
+        pc_tersedia: number[];
+    }[];
     monitoring_url: string;
 };
 
@@ -243,30 +126,17 @@ export default function EventMonitoringRuang({
     anak,
     soal,
     angka_soal,
+    ruang_tujuan = [],
     monitoring_url,
 }: Props) {
-    // Anak yang rincian soalnya sedang dibuka. `null` berarti modalnya tutup.
     const [rincian, setRincian] = useState<Anak | null>(null);
+    const [pindah, setPindah] = useState<Anak | null>(null);
 
-    // Reset atau hentikan, beserta anaknya. `null` berarti modalnya tutup.
     const [tindakan, setTindakan] = useState<{ anak: Anak; jenis: 'reset' | 'hentikan' } | null>(
         null,
     );
 
-    /**
-     * Buka kunci satu peserta, dengan alasan yang diminta lebih dulu.
-     *
-     * Alasannya ditanyakan di sini, bukan dikirim kosong: `catatPembukaan()`
-     * menulis alasannya ke riwayat yang dibaca SISWA di
-     * `/siswa/pelanggaran`, dan baris "Dibuka dari papan monitoring Admin"
-     * yang generik membuat anak membaca alasan yang tidak menerangkan apa
-     * pun. Batal pada dialog berarti tidak ada permintaan sama sekali.
-     *
-     * `wajib: false` mengikuti aturan servernya (`nullable`): membuka kunci
-     * yang jelas alasannya tidak boleh tertahan hanya karena Admin memilih
-     * tidak menulis. Kosong tetap terkirim sebagai kosong, dan server yang
-     * mengisi kalimat bawaannya.
-     */
+    /** Buka kunci peserta; alasan opsional karena server mengisi teks bawaan jika kosong. */
     const bukaKunci = async (a: Anak) => {
         const alasan = await tanyaTeks({
             judul: `Buka kunci pengerjaan ${a.nama}?`,
@@ -290,22 +160,11 @@ export default function EventMonitoringRuang({
         );
     };
 
-    /**
-     * Dua tindakan yang menuntut kalimat dari Admin - lihat catatan
-     * `TindakanPeserta` di bawah.
-     *
-     * Keduanya lewat modal, BUKAN dialog satu kolom seperti `bukaKunci`:
-     * kalimat yang ditulis di sini dibaca siswa di layarnya sendiri, dan
-     * keduanya butuh ruang untuk menjelaskan akibatnya sebelum Admin
-     * menekan tombol.
-     */
     const tindakanPeserta = (a: Anak, jenis: 'reset' | 'hentikan') => {
         setTindakan({ anak: a, jenis });
     };
 
-    // Reset seluruh ruang - modal terpisah, dan alasannya WAJIB. Lihat
-    // `reset-masuk` di controller: satu kalimat disalin ke riwayat setiap
-    // anak di ruang ini.
+    // Reset seluruh ruang memakai alasan wajib yang disalin ke riwayat tiap peserta.
     const [resetRuang, setResetRuang] = useState(false);
     const [alasanRuang, setAlasanRuang] = useState('');
 
@@ -323,10 +182,7 @@ export default function EventMonitoringRuang({
         );
     };
 
-    // Jumlah anak yang MEMANG punya pengerjaan - itu yang akan direset, dan
-    // angka itulah yang ditulis di tombolnya. Anak yang belum mulai tidak
-    // ikut; menyebut "32 peserta" akan membuat Admin mengira seluruh ruang
-    // tersentuh.
+    // Hitung hanya peserta yang sudah punya pengerjaan aktif; peserta belum mulai tidak ikut direset.
     const bisaDireset = anak.filter((a) => a.status !== null && a.status !== 'batal').length;
 
     return (
@@ -335,11 +191,6 @@ export default function EventMonitoringRuang({
             breadcrumb={`/admin/events · ${event.kode} · Monitoring · ${ruang.kode}`}
             aksi={
                 <>
-                    {/* Kembali ke papan rekap sengaja navigasi Inertia BIASA,
-                        bukan tab baru: yang sedang dibaca di sini adalah satu
-                        ruang, dan jalan pulangnya harus satu klik. Tab baru
-                        dipakai arah sebaliknya - dari rekap ke sini - supaya
-                        posisi gulir dan saringan di rekap tidak hilang. */}
                     <Link
                         href={monitoring_url}
                         className={
@@ -353,10 +204,6 @@ export default function EventMonitoringRuang({
                         Kembali ke monitoring
                     </Link>
 
-                    {/* Hanya muncul bila ADA yang bisa direset. Tombol yang
-                        selalu tampil dan selalu ditolak mengajari Admin untuk
-                        tidak memercayai papannya - alasan yang sama dengan
-                        tombol per baris di `DaftarAnak`. */}
                     {bisaDireset > 0 && (
                         <Tombol
                             onClick={() => setResetRuang(true)}
@@ -436,10 +283,28 @@ export default function EventMonitoringRuang({
             <DaftarAnak
                 anak={anak}
                 ruang={ruang.kode}
+                bisaPindah={ruang_tujuan.length > 0}
                 padaRincian={setRincian}
                 padaBukaKunci={bukaKunci}
                 padaTindakan={tindakanPeserta}
+                padaPindah={setPindah}
             />
+
+            <Modal
+                judul={pindah ? `Pindah ruang darurat (sesi ini) · ${pindah.nama}` : 'Pindah ruang darurat'}
+                terbuka={pindah !== null}
+                padaTutup={() => setPindah(null)}
+            >
+                {pindah !== null && (
+                    <FormPindahDaruratAdmin
+                        key={pindah.peserta_id}
+                        anak={pindah}
+                        eventId={event.id}
+                        ruangTujuan={ruang_tujuan}
+                        padaSelesai={() => setPindah(null)}
+                    />
+                )}
+            </Modal>
 
             <Modal
                 judul={rincian ? `Butir soal · ${rincian.nama}` : 'Butir soal'}
@@ -462,9 +327,7 @@ export default function EventMonitoringRuang({
                 terbuka={tindakan !== null}
                 padaTutup={() => setTindakan(null)}
             >
-                {/* `key` berisi id barisnya: lihat catatan `TindakanPeserta`.
-                    Tanpa itu, membuka modal untuk anak kedua menampilkan
-                    kalimat yang diketik untuk anak pertama. */}
+                {/* key per peserta agar state form modal tidak terbawa saat pindah peserta. */}
                 {tindakan !== null && (
                     <TindakanPeserta
                         key={`${tindakan.jenis}-${tindakan.anak.peserta_id}`}
@@ -585,52 +448,7 @@ export default function EventMonitoringRuang({
     );
 }
 
-/**
- * Statistik satu baris per SOAL - dan satu barisnya adalah satu soal ujian.
- *
- * =====================================================================
- * Mengapa nomornya urutan ujian, bukan nomor yang dilihat anak
- * =====================================================================
- * Pada ujian yang mengacak soal, satu nomor menunjuk soal berbeda di tiap
- * attempt: menjumlahkan "berapa yang menjawab nomor 5" akan mencampur empat
- * soal yang berbeda menjadi satu baris, dan barisnya jadi tidak bermakna.
- * Yang dijumlahkan di sini adalah soalnya, dan nomor di kolom pertama adalah
- * posisinya di paket - penunjuk, bukan klaim tentang layar anak.
- *
- * =====================================================================
- * "Belum" di sini berarti belum dijawab OLEH SIAPA PUN
- * =====================================================================
- * Bukan "belum dikerjakan anak ini". Angka yang besar di kolom itu adalah
- * keadaan yang wajar pada sepuluh menit pertama ujian, dan laman ini tidak
- * boleh membuatnya tampak seperti kegagalan. Karena itu bilahnya bukan
- * peringatan: yang diberi nada adalah barisnya yang benar-benar tertinggal
- * setelah sebagian besar ruangan melewatinya.
- *
- * =====================================================================
- * Baris yang tidak punya "Benar" bukan baris yang rusak
- * =====================================================================
- * Tidak ada satu pun soal yang bernilai selama ujiannya masih berjalan:
- * penilaian otomatis bekerja sesudah ujian ditutup, dan uraian menunggu
- * koreksi guru. `is_correct` yang null berarti BELUM DINILAI - bukan salah -
- * dan kolomnya karena itu ditampilkan sebagai kalimat, bukan nol.
- */
-/**
- * Ringkasan ruangan: berapa butir, berapa yang sudah dijawab seluruh ruangan.
- *
- * =====================================================================
- * Rinciannya pindah ke modal per anak, dan itu memang tempatnya
- * =====================================================================
- * Sampai 2026-11-10 daftar butirnya ada di sini, sebagai satu tabel milik
- * seluruh ruangan. Tabel itu menjawab pertanyaan yang salah: Admin membuka
- * laman ini untuk menelusuri SATU anak - dan pada ujian yang mengacak soal
- * nomor 5 anak yang satu menunjuk soal yang berbeda dari nomor 5 anak
- * sebelahnya, sehingga tabel campuran itu justru tidak menjawab apa pun
- * tentang anak yang sedang ia tanyakan.
- *
- * Yang tinggal di sini adalah angka ruangannya, karena itulah yang menjawab
- * "ruang ini tertinggal atau tidak" - pertanyaan yang memang milik rekap.
- * Daftar butir per anak ada di modal, di balik nama anaknya.
- */
+/** Ringkasan progres soal tingkat ruangan; rincian per peserta ada di modal `DetailButir`. */
 function RingkasSoal({
     soal,
     angka,
@@ -699,30 +517,7 @@ function RingkasSoal({
     );
 }
 
-/**
- * Rincian butir SATU anak - isi modal, dibuka dari baris namanya.
- *
- * =====================================================================
- * Dua daftar, dan keduanya perlu ada
- * =====================================================================
- * Yang pertama adalah butir anak ini apa adanya, berurut nomor yang ia lihat
- * di layarnya: nomor, jenis soal, judulnya, dan keadaannya - sudah dijawab,
- * belum, atau ditandai ragu. Itu yang dibacakan Admin ke pengawas lewat
- * telepon, dan karena itu nomornya nomor anak ini, bukan nomor paket.
- *
- * Yang kedua adalah statistik soal itu untuk SELURUH ruangan - berapa anak
- * yang sudah menjawabnya - dan itu diambil lewat `soal_id`, bukan lewat
- * nomor. Pada ujian yang mengacak soal, menyambungkannya lewat nomor akan
- * menempelkan "31 anak sudah menjawab" dari soal yang sama sekali lain.
- *
- * =====================================================================
- * Kolom "Benar" kosong selama ujiannya berjalan
- * =====================================================================
- * Penilaian otomatis berjalan sesudah ujian ditutup, jadi seluruh jawaban
- * objektif masih belum bernilai saat laman ini paling sering dibuka. Yang
- * tertulis karena itu &ldquo;belum dinilai&rdquo;, bukan &ldquo;0 benar&rdquo;
- * - nol terbaca sebagai "tidak ada yang benar".
- */
+/** Rincian butir satu peserta (berurut nomor layar anak), disambungkan ke statistik ruangan lewat `soal_id`. */
 function DetailButir({
     anak,
     soal,
@@ -732,9 +527,7 @@ function DetailButir({
     soal: Soal[];
     angka: Props['angka_soal'];
 }) {
-    // Peta soal_id -> baris statistiknya. Dibangun sekali untuk seluruh modal;
-    // mencari dengan `find()` di dalam loop akan mengubah modal berisi empat
-    // puluh butir menjadi empat puluh kali penyusuran.
+    // Indeks statistik berdasarkan soal_id agar pencarian O(1) di dalam daftar butir.
     const statistik = new Map(soal.map((s) => [s.id, s]));
 
     if (anak.butir === null) {
@@ -790,15 +583,7 @@ function DetailButir({
     );
 }
 
-/**
- * Satu butir di modal, dari sudut pandang SATU anak.
- *
- * Nomor di kiri adalah nomor di layar anak itu. Statistik ruangannya -
- * "berapa anak lain sudah menjawab soal ini" - ditempelkan di kanan lewat
- * `soal_id`, dan `null` bila barisnya tidak ketemu: itu terjadi kalau butirnya
- * ditulis mesin ujian untuk soal yang sejak itu dihapus dari paket, dan
- * menampilkan nol untuknya akan mengarang angka.
- */
+/** Satu baris butir peserta; `soal` bisa undefined jika soal sudah dihapus dari paket. */
 function BarisButir({
     butir,
     soal,
@@ -857,27 +642,23 @@ function BarisButir({
     );
 }
 
-/**
- * Daftar anak satu ruang, berurut nama.
- *
- * Urutannya nama, bukan nomor kursi: Admin memakai daftar ini untuk mencari
- * satu anak yang dilaporkan bermasalah, dan ia tahu namanya - bukan nomor
- * kursinya. Urutan yang sama dipakai papan pengawas, sehingga baris yang
- * sama menempati urutan yang sama di kedua papan. Nomor kursinya tetap
- * ditampilkan, karena ia yang disebutkan saat menghubungi pengawas.
- */
+/** Daftar peserta satu ruang berurut nama (sama dengan papan pengawas). */
 function DaftarAnak({
     anak,
     ruang,
+    bisaPindah,
     padaRincian,
     padaBukaKunci,
     padaTindakan,
+    padaPindah,
 }: {
     anak: Anak[];
     ruang: string;
+    bisaPindah: boolean;
     padaRincian: (a: Anak) => void;
     padaBukaKunci: (a: Anak) => void;
     padaTindakan: (a: Anak, jenis: 'reset' | 'hentikan') => void;
+    padaPindah: (a: Anak) => void;
 }) {
     if (anak.length === 0) {
         return (
@@ -917,14 +698,7 @@ function DaftarAnak({
                         <span className="ml-auto flex flex-wrap items-center gap-2">
                             {a.terkunci && <Chip nada="bad">terkunci</Chip>}
 
-                            {/* Layar, dan mengapa dua chip dan bukan satu.
-                                `layar_penuh === false` adalah KEADAAN yang
-                                dilaporkan denyut - bisa basi, dan anak yang
-                                baru saja kembali ke layar penuh masih tampil
-                                di sini sampai tiga puluh detik berikutnya.
-                                Ia berwarna `warn`, bukan `bad`: yang
-                                terpenting adalah jumlah kejadian di
-                                sebelahnya. */}
+                            {/* layar_penuh berasal dari denyut terakhir (bisa basi hingga 30 detik). */}
                             {a.layar_penuh === false && <Chip nada="warn">di luar layar penuh</Chip>}
                             {a.layar_terbagi > 0 && (
                                 <Chip nada={a.layar_terbagi >= 3 ? 'bad' : 'warn'}>
@@ -938,17 +712,6 @@ function DaftarAnak({
                             {a.terhubung === false && <Chip nada="bad">terputus</Chip>}
                             <Chip nada={a.status_nada as 'mute'}>{a.status_label}</Chip>
 
-                            {/* Buka kunci, DI SINI dan bukan di laman
-                                pengawas saja - lihat catatan
-                                `bukaKunci()` di PemantauanEventController.
-                                Tautan ruang pengawas 404 untuk siswa yang
-                                sudah berpindah sesi, dan justru anak itulah
-                                yang Admin lihat terkunci di papan ini.
-
-                                Tombolnya hanya muncul pada baris yang memang
-                                terkunci: tombol yang selalu ada dan selalu
-                                ditolak mengajari Admin untuk tidak
-                                memercayai papannya. */}
                             {a.terkunci && (
                                 <button
                                     type="button"
@@ -961,23 +724,7 @@ function DaftarAnak({
                                 </button>
                             )}
 
-                            {/* Dua tindakan yang mengubah nasib pengerjaan
-                                anak - lihat `TindakanPeserta`.
-
-                                Ketersediaannya mengikuti keadaan barisnya,
-                                dan itu bukan kenyamanan: `PengendaliPengerjaan`
-                                MENOLAK reset atas attempt yang sudah batal
-                                dan penghentian atas apa pun yang tidak
-                                sedang berjalan. Tombol yang selalu ada dan
-                                selalu ditolak mengajari Admin untuk tidak
-                                memercayai papannya - alasan yang sama
-                                dengan `Buka kunci` di atas.
-
-                                `Hentikan` sengaja tidak muncul pada anak yang
-                                sudah terkunci: pesannya akan menimpa
-                                penghentian sebelumnya, dan Admin yang
-                                menulis pesan kedua biasanya bermaksud
-                                membukanya. */}
+                            {/* Ketersediaan tombol mengikuti aturan PengendaliPengerjaan; Hentikan disembunyikan jika sudah terkunci. */}
                             {a.status !== null && a.status !== 'batal' && (
                                 <button
                                     type="button"
@@ -998,12 +745,16 @@ function DaftarAnak({
                                 </button>
                             )}
 
-                            {/* Rincian butirnya dibuka di modal, bukan
-                                dituliskan di baris ini: satu anak bisa
-                                membawa empat puluh nomor, dan sepuluh baris
-                                seperti itu membuat daftar ruangannya tidak
-                                lagi bisa dipindai - padahal memindai nama
-                                itulah gunanya daftar ini. */}
+                            {bisaPindah && (
+                                <button
+                                    type="button"
+                                    onClick={() => padaPindah(a)}
+                                    className="cursor-pointer rounded-wf border border-line bg-surface px-2 py-0.5 text-[11px] text-ink hover:bg-surface-2"
+                                >
+                                    Pindah ruang
+                                </button>
+                            )}
+
                             <button
                                 type="button"
                                 onClick={() => padaRincian(a)}
@@ -1048,30 +799,8 @@ function DaftarAnak({
 }
 
 /**
- * Reset atau hentikan SATU peserta - isi modal, dibuka dari barisnya.
- *
- * =====================================================================
- * Dua tindakan, dan keduanya menuntut kalimat
- * =====================================================================
- * `Reset` membatalkan attempt terakhir lalu mengembalikan anaknya ke gerbang:
- * kerjanya mengulang dari soal pertama, dengan urutan dan deadline baru, dan
- * NILAI atas pengerjaan lamanya hilang. `Hentikan` mengunci pengerjaannya di
- * tempat, dan kalimat yang ditulis di sini adalah yang dibaca anak di
- * layarnya sendiri (`lock_reason` -> `/siswa/ujian/{id}/terkunci`).
- *
- * Karena itu keduanya lewat modal, bukan `window.prompt`: yang kedua butuh
- * keterangan bahwa pesannya TAMPIL DI LAYAR SISWA - sebuah kotak prompt
- * peramban tidak bisa menampilkan itu, dan Admin yang tidak tahu akan
- * menulis "cek" pada kolom yang dibaca seorang anak.
- *
- * =====================================================================
- * `key` wajib berisi id barisnya
- * =====================================================================
- * `Modal` mengembalikan `null` dari dalam dan tidak melepas anaknya, jadi
- * komponen ini HIDUP TERUS saat modalnya ditutup. Tanpa `key`, membuka modal
- * untuk anak kedua menampilkan kalimat yang tadi diketik untuk anak pertama -
- * dan Admin yang tidak menyadarinya akan mengirim pesan itu ke anak yang
- * salah. `key` di laman atas memaksa komponennya lahir ulang tiap baris.
+ * Form modal reset atau hentikan satu peserta (`Hentikan` menampilkan pesannya ke layar siswa).
+ * Wajib diberi `key` per peserta karena `Modal` hanya menyembunyikan isi saat ditutup.
  */
 function TindakanPeserta({
     anak,
@@ -1086,9 +815,7 @@ function TindakanPeserta({
 }) {
     const reset = jenis === 'reset';
 
-    // Kedua kolom dikirim sekaligus; pengendalinya memvalidasi kolom yang
-    // ia pakai dan mengabaikan yang lain - jadi satu form bisa melayani dua
-    // endpoint tanpa dua komponen yang isinya hampir sama.
+    // Kedua kolom dikirim bersama; masing-masing endpoint hanya memvalidasi kolomnya.
     const { data, setData, post, processing, errors, reset: kosongkan } = useForm({
         alasan: '',
         pesan: '',
@@ -1106,10 +833,7 @@ function TindakanPeserta({
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    // Formulirnya dikosongkan SEBELUM ditutup, bukan sesudah:
-                    // modal ini tidak dilepas saat ditutup (lihat catatan
-                    // `key` di atas), sehingga kalimat lama akan muncul lagi
-                    // bila Admin membuka anak berikutnya tanpa `key`.
+                    // Kosongkan form sebelum menutup agar tidak tersisa bila dibuka ulang.
                     kosongkan();
                     padaSelesai();
                 },
@@ -1180,26 +904,168 @@ function TindakanPeserta({
     );
 }
 
-/**
- * Satu baris ringkas butir satu anak, dan pintu ke rinciannya.
- *
- * =====================================================================
- * Daftar nomornya, bukan satu angka
- * =====================================================================
- * "37 dari 40" menjawab berapa banyak; ia tidak menjawab soal MANA, dan
- * justru itu yang dibacakan Admin ke pengawas lewat telepon. Daftarnya
- * karena itu tetap ditulis di sini, dipisah koma, supaya jawabannya bisa
- * dibaca tanpa membuka apa pun.
- *
- * Nomornya di sini adalah nomor YANG DILIHAT ANAK - pada ujian yang
- * mengacak soal, nomor itu tidak sama dengan nomor anak di kursi
- * sebelahnya.
- *
- * Batas tampilannya dijaga: ruang dengan anak yang belum menyentuh ujiannya
- * akan membanjiri barisnya dengan empat puluh nomor sekaligus, dan daftar
- * yang tidak bisa dipindai tidak menjawab pertanyaan apa pun. Sisa yang
- * terpotong bisa dibaca utuh di modalnya, per butir, beserta soalnya.
- */
+function FormPindahDaruratAdmin({
+    anak,
+    eventId,
+    ruangTujuan,
+    padaSelesai,
+}: {
+    anak: Anak;
+    eventId: number;
+    ruangTujuan: NonNullable<Props['ruang_tujuan']>;
+    padaSelesai: () => void;
+}) {
+    const [tujuanId, setTujuanId] = useState<number>(ruangTujuan[0]?.id ?? 0);
+    const [mode, setMode] = useState<'hp' | 'pc'>('hp');
+    const [nomorPc, setNomorPc] = useState<string>('');
+    const [alasan, setAlasan] = useState('');
+    const [kirim, setKirim] = useState(false);
+
+    const terpilih = ruangTujuan.find((r) => r.id === tujuanId) ?? null;
+    const bisaPc = terpilih !== null && terpilih.pc > 0 && terpilih.pc_tersedia.length > 0;
+
+    const gantiTujuan = (idBaru: number) => {
+        setTujuanId(idBaru);
+        const r = ruangTujuan.find((x) => x.id === idBaru);
+        if (!r || r.pc === 0 || r.pc_tersedia.length === 0) {
+            setMode('hp');
+            setNomorPc('');
+        } else if (mode === 'pc') {
+            setNomorPc(String(r.pc_tersedia[0]));
+        }
+    };
+
+    const gantiMode = (m: 'hp' | 'pc') => {
+        setMode(m);
+        if (m === 'pc' && terpilih && terpilih.pc_tersedia.length > 0) {
+            setNomorPc(String(terpilih.pc_tersedia[0]));
+        } else {
+            setNomorPc('');
+        }
+    };
+
+    const submit = (e: FormEvent) => {
+        e.preventDefault();
+        if (!terpilih || alasan.trim().length < 3) {
+            return;
+        }
+        if (mode === 'pc' && !nomorPc) {
+            return;
+        }
+        setKirim(true);
+        router.post(
+            `/admin/events/${eventId}/monitoring/peserta/${anak.peserta_id}/pindah-ruang`,
+            {
+                ruang_tujuan_id: terpilih.id,
+                mode,
+                nomor_pc: mode === 'pc' ? Number(nomorPc) : null,
+                alasan: alasan.trim(),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => padaSelesai(),
+                onFinish: () => setKirim(false),
+            },
+        );
+    };
+
+    return (
+        <form onSubmit={submit} className="space-y-3">
+            <p className="text-xs leading-relaxed text-ink-2">
+                Pindahkan <strong>{anak.nama}</strong> ke ruang lain khusus untuk sesi ini saja.
+                Sesi berikutnya tetap mengikuti penempatan awal event.
+            </p>
+
+            <Field label="Ruang tujuan">
+                <select
+                    value={tujuanId}
+                    onChange={(e) => gantiTujuan(Number(e.target.value))}
+                    className={kelasInput}
+                >
+                    {ruangTujuan.map((r) => (
+                        <option key={r.id} value={r.id}>
+                            {r.kode}
+                            {r.nama ? ` · ${r.nama}` : ''} ({r.terisi}/{r.kapasitas}
+                            {r.pc > 0 ? `, ${r.pc_tersedia.length} PC kosong` : ', BYOD'})
+                        </option>
+                    ))}
+                </select>
+            </Field>
+
+            <div>
+                <span className="mb-1 block text-xs font-medium text-ink-2">
+                    Perangkat yang dipakai
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        type="button"
+                        onClick={() => gantiMode('hp')}
+                        className={
+                            'cursor-pointer rounded-wf border px-3 py-2 text-xs font-medium ' +
+                            (mode === 'hp'
+                                ? 'border-accent bg-accent text-on-accent'
+                                : 'border-line bg-surface text-ink hover:bg-surface-2')
+                        }
+                    >
+                        Tetap pakai HP
+                    </button>
+                    <button
+                        type="button"
+                        disabled={!bisaPc}
+                        onClick={() => gantiMode('pc')}
+                        className={
+                            'cursor-pointer rounded-wf border px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-45 ' +
+                            (mode === 'pc'
+                                ? 'border-accent bg-accent text-on-accent'
+                                : 'border-line bg-surface text-ink hover:bg-surface-2')
+                        }
+                    >
+                        Pakai PC Lab
+                    </button>
+                </div>
+            </div>
+
+            {mode === 'pc' && terpilih && (
+                <Field label="Pilih nomor PC kosong">
+                    <select
+                        value={nomorPc}
+                        onChange={(e) => setNomorPc(e.target.value)}
+                        className={kelasInput + ' font-mono'}
+                    >
+                        {terpilih.pc_tersedia.map((n) => (
+                            <option key={n} value={n}>
+                                PC {String(n).padStart(2, '0')}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+            )}
+
+            <Field label="Alasan pindah">
+                <input
+                    value={alasan}
+                    onChange={(e) => setAlasan(e.target.value)}
+                    maxLength={255}
+                    placeholder="Contoh: HP siswa bermasalah, pindah ke PC lab"
+                    className={kelasInput}
+                />
+            </Field>
+
+            <div className="flex justify-end gap-2">
+                <Tombol onClick={padaSelesai}>Batal</Tombol>
+                <Tombol
+                    type="submit"
+                    nada="pri"
+                    disabled={kirim || alasan.trim().length < 3 || (mode === 'pc' && !nomorPc)}
+                >
+                    {kirim ? 'Memindahkan…' : 'Pindahkan untuk sesi ini'}
+                </Tombol>
+            </div>
+        </form>
+    );
+}
+
+/** Ringkasan nomor butir (sesuai layar anak) yang sudah, belum (maks 20), dan ditandai ragu. */
 function RingkasanButir({ anak, padaRincian }: { anak: Anak; padaRincian: () => void }) {
     const { dikerjakan, belum, ditandai } = anak;
 
@@ -1266,16 +1132,7 @@ function RingkasanButir({ anak, padaRincian }: { anak: Anak; padaRincian: () => 
     );
 }
 
-/**
- * Satu angka kecil berlabel.
- *
- * Dua bentuk nilai, karena keduanya memang berbeda jenis: `nilai` untuk
- * bilangan yang boleh nol, dan `teks` untuk yang sudah berbentuk kalimat -
- * "12 / 40 terjawab" tidak boleh lewat `toLocaleString`.
- *
- * `kosong` dipakai untuk membedakan "belum ada kabar" dari nol. Yang pertama
- * ditampilkan sebagai pisah, dan pemisahan itu disengaja.
- */
+/** Kartu angka ringkas; `teks` melewati format angka, `kosong` membedakan null dari nol. */
 function Angka({
     label,
     nilai,

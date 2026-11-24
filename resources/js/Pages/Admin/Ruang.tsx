@@ -309,12 +309,21 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                             }
 
                             return (
-                                <TombolTautan
-                                    href={`/lab/${b.slug}/1`}
-                                    title={`Kios PC 1 ruang ${b.kode} - ganti angka terakhir sesuai nomor PC`}
-                                >
-                                    Buka kios
-                                </TombolTautan>
+                                <span className="flex flex-wrap items-center gap-2">
+                                    <Link
+                                        href={`/admin/ruang/${b.id}#kios-pc`}
+                                        className="text-xs font-medium text-accent hover:underline"
+                                        title={`Lihat pemetaan PC 1..${b.pc} ruang ${b.kode}`}
+                                    >
+                                        Kelola PC
+                                    </Link>
+                                    <TombolTautan
+                                        href={`/lab/${b.slug}/1`}
+                                        title={`Kios PC 1 ruang ${b.kode} - ganti angka terakhir sesuai nomor PC`}
+                                    >
+                                        Buka kios
+                                    </TombolTautan>
+                                </span>
                             );
                         },
                     },

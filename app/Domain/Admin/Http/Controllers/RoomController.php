@@ -2,6 +2,7 @@
 
 namespace App\Domain\Admin\Http\Controllers;
 
+use App\Domain\Attendance\Services\PindahRuangDaruratService;
 use App\Domain\Audit\Services\ActivityLogger;
 use App\Domain\Facility\Models\Room;
 use App\Domain\Facility\Models\RoomEntryLink;
@@ -266,9 +267,9 @@ class RoomController
     }
 
     /**
-     * Rincian ruang: tautan pintu, kode pengawas, dan riwayat tautannya.
+     * Rincian ruang: tautan pintu, riwayat tautan, dan manajemen slot PC kios lab.
      */
-    public function show(Room $ruang): Response
+    public function show(Request $request, Room $ruang, PindahRuangDaruratService $pindahDarurat): Response
     {
         Gate::authorize('view', $ruang);
 
@@ -276,6 +277,11 @@ class RoomController
             ->orderByDesc('created_at')
             ->limit(20)
             ->get();
+
+        $aktif = $ruang->tautanAktif();
+        $sesiRuangId = $request->query('sesi_ruang') !== null
+            ? (int) $request->query('sesi_ruang')
+            : null;
 
         return Inertia::render('Admin/RuangDetail', [
             'ruang' => [
@@ -299,13 +305,16 @@ class RoomController
                 'kedaluwarsa' => $t->expires_at?->format('d/m H:i'),
                 'dicabut' => $t->revoked_at?->format('d/m H:i'),
             ])->all(),
-            'aktif' => ($a = $ruang->tautanAktif()) ? [
-                'id' => $a->id,
-                'url' => url('/p/'.$a->slug),
-                'slug' => $a->slug,
-                'kedaluwarsa' => $a->expires_at?->format('d/m H:i'),
-                'dipakai' => $a->use_count,
+            'aktif' => $aktif ? [
+                'id' => $aktif->id,
+                'url' => url('/p/'.$aktif->slug),
+                'slug' => $aktif->slug,
+                'kedaluwarsa' => $aktif->expires_at?->format('d/m H:i'),
+                'dipakai' => $aktif->use_count,
             ] : null,
+            'kios' => $ruang->isByod()
+                ? null
+                : $pindahDarurat->petaKiosRuang($ruang, $sesiRuangId, $aktif?->slug),
         ]);
     }
 
