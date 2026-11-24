@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Kios per-PC ruang lab - `/lab/{slug}/{nomor}`, dibuka otomatis saat PC
@@ -60,6 +60,38 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
     }>().props;
 
     const [kirim, setKirim] = useState(false);
+    const [layarPenuh, setLayarPenuh] = useState(false);
+    const [bisaLayarPenuh, setBisaLayarPenuh] = useState(false);
+
+    useEffect(() => {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        setBisaLayarPenuh(Boolean(document.fullscreenEnabled));
+        setLayarPenuh(Boolean(document.fullscreenElement));
+
+        const sinkron = () => setLayarPenuh(Boolean(document.fullscreenElement));
+        document.addEventListener('fullscreenchange', sinkron);
+
+        return () => document.removeEventListener('fullscreenchange', sinkron);
+    }, []);
+
+    const ubahLayarPenuh = async () => {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            } else {
+                await document.documentElement.requestFullscreen();
+            }
+        } catch {
+            // Abaikan bila peramban menolak permintaan fullscreen.
+        }
+    };
 
     const user = auth?.user ?? null;
     const galat = flash?.galat ?? null;
@@ -102,6 +134,37 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
                             <Penanda berjalan={sesi.berjalan} />
                             {sesi.jam && (
                                 <span className="font-mono text-xs text-ink-3">{sesi.jam}</span>
+                            )}
+                            {bisaLayarPenuh && (
+                                <button
+                                    type="button"
+                                    onClick={() => void ubahLayarPenuh()}
+                                    aria-pressed={layarPenuh}
+                                    aria-label={layarPenuh ? 'Keluar layar penuh' : 'Layar penuh'}
+                                    title={layarPenuh ? 'Keluar layar penuh' : 'Tampilkan layar penuh'}
+                                    className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-wf border border-line bg-surface px-2.5 text-xs font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+                                >
+                                    <svg
+                                        width={14}
+                                        height={14}
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={1.8}
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        aria-hidden="true"
+                                    >
+                                        {layarPenuh ? (
+                                            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                                        ) : (
+                                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                                        )}
+                                    </svg>
+                                    <span className="hidden sm:inline">
+                                        {layarPenuh ? 'Keluar layar penuh' : 'Layar penuh'}
+                                    </span>
+                                </button>
                             )}
                         </span>
                     </header>
