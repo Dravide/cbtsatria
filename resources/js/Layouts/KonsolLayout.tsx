@@ -73,9 +73,30 @@ type Props = {
     marka: { inisial: string; nada: 'admin' | 'guru' };
     kelompok: KelompokNav[];
     tampilkanPemilihEvent?: boolean;
+    /** Warnai bilah header mengikuti warna tema dari /admin/sekolah/identitas. */
+    headerTema?: boolean;
     kelasPembungkus?: string;
     children: ReactNode;
 };
+
+/** Hitung luminansi relatif WCAG agar teks di atas warna tema tetap lolos kontras AA. */
+function apakahWarnaGelap(hex: string): boolean {
+    const bersih = hex.replace('#', '');
+
+    if (!/^[0-9a-f]{6}$/i.test(bersih)) {
+        return true;
+    }
+
+    const kanal = [0, 2, 4].map((i) => {
+        const c = parseInt(bersih.slice(i, i + 2), 16) / 255;
+
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+
+    const luminansi = 0.2126 * kanal[0] + 0.7152 * kanal[1] + 0.0722 * kanal[2];
+
+    return luminansi < 0.22;
+}
 
 const NADA_MARKA: Record<'admin' | 'guru', string> = {
     admin: 'bg-accent text-on-accent',
@@ -95,6 +116,7 @@ export default function KonsolLayout({
     marka,
     kelompok,
     tampilkanPemilihEvent = false,
+    headerTema = false,
     kelasPembungkus,
     children,
 }: Props) {
@@ -103,8 +125,15 @@ export default function KonsolLayout({
         tahunAktif: string | null;
         eventAktif: { id: number; kode: string; nama: string; status_label: string } | null;
         daftarEvent?: { id: number; kode: string; nama: string; status_label: string }[];
-        identitasAplikasi?: { nama: string; logo: string | null };
+        identitasAplikasi?: { nama: string; logo: string | null; warna?: string };
     };
+
+    const warnaHeader = headerTema ? identitasAplikasi?.warna || '#1e4fa3' : null;
+    const nadaHeader: 'bawaan' | 'gelap' | 'terang' = warnaHeader
+        ? apakahWarnaGelap(warnaHeader)
+            ? 'gelap'
+            : 'terang'
+        : 'bawaan';
 
     const jalur = typeof window !== 'undefined' ? window.location.pathname : '';
     const navRef = useRef<HTMLElement | null>(null);
@@ -295,33 +324,47 @@ export default function KonsolLayout({
                 ))}
 
                 {/* Bar atas - anatomi butir 3 dan 4.
-                    Bening dan menempel: yang bergulir hanya isinya, sehingga
-                    pemilih event dan penanda tahun ajaran tidak pernah hilang
-                    di tengah tabel 50 baris. */}
-                <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-surface/95 px-4 py-2.5 backdrop-blur">
-                    <span className="min-w-0 truncate text-xs text-ink-3">
+                    Menempel di atas agar pemilih event dan penanda tahun ajaran
+                    tidak pernah hilang di tengah tabel panjang. Di konsol Admin,
+                    latar mengikuti warna tema dari /admin/sekolah/identitas. */}
+                <header
+                    style={warnaHeader ? { backgroundColor: warnaHeader } : undefined}
+                    className={
+                        'sticky top-0 z-20 flex items-center gap-3 border-b px-4 py-2.5 ' +
+                        (nadaHeader === 'gelap'
+                            ? 'border-black/15 text-white shadow-xs'
+                            : nadaHeader === 'terang'
+                              ? 'border-black/10 text-ink shadow-xs'
+                              : 'border-line bg-surface/95 backdrop-blur')
+                    }
+                >
+                    <span
+                        className={
+                            'min-w-0 truncate text-xs ' +
+                            (nadaHeader === 'gelap'
+                                ? 'font-medium text-white/90'
+                                : nadaHeader === 'terang'
+                                  ? 'font-medium text-ink/85'
+                                  : 'text-ink-3')
+                        }
+                    >
                         {breadcrumb ?? judul}
                     </span>
 
                     <div className="ml-auto flex items-center gap-2">
                         {/* Pemilih event - anatomi butir 2, "penangkal
-                            kesalahan paling mahal di sistem ini". Ia muncul
-                            di SETIAP laman event dan diberi warna aksen saat
-                            aktif, supaya Admin yang sedang menetapkan peserta
-                            melihat event mana yang sedang ia isi tanpa harus
-                            menengok sidebar.
-
-                            Hanya di konsol yang bicara soal event; lihat
-                            `bicaraSoalEvent` di atas. */}
+                            kesalahan paling mahal di sistem ini". Semua kontrol
+                            di bar atas memakai tinggi seragam h-9 (36px). */}
                         {tampilkanPemilihEvent && eventAktif && (
                             <NotifikasiEventBel
                                 eventId={eventAktif.id}
                                 eventNama={eventAktif.nama}
+                                nadaHeader={nadaHeader}
                             />
                         )}
 
                         {tampilkanPemilihEvent && (
-                            <div className="w-48 sm:w-64">
+                            <div className="w-44 sm:w-64">
                                 <PilihCari
                                     label=""
                                     nilai={eventAktif?.id ?? null}
@@ -337,6 +380,21 @@ export default function KonsolLayout({
                                     }}
                                     placeholder="Pilih event…"
                                     kosong="Belum ada event."
+                                    kelasTombol={
+                                        'flex h-9 w-full cursor-pointer items-center gap-2 rounded-wf border px-3 text-left text-xs font-medium outline-none transition-colors duration-150 ' +
+                                        (nadaHeader === 'gelap'
+                                            ? 'border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20 focus-visible:outline-white'
+                                            : nadaHeader === 'terang'
+                                              ? 'border-black/15 bg-black/5 text-ink hover:border-black/25 hover:bg-black/10 focus-visible:outline-ink'
+                                              : 'border-line bg-surface text-ink hover:border-ink-3/50 focus:border-accent focus:ring-2 focus:ring-accent/15')
+                                    }
+                                    kelasIkon={
+                                        nadaHeader === 'gelap'
+                                            ? 'text-white/80'
+                                            : nadaHeader === 'terang'
+                                              ? 'text-ink/70'
+                                              : 'text-ink-3'
+                                    }
                                 />
                             </div>
                         )}
@@ -344,17 +402,44 @@ export default function KonsolLayout({
                         {/* Tahun ajaran aktif - wireframe plate 07 menaruhnya
                             di bar atas, bukan di dalam form, karena berganti
                             TA berarti berganti daftar, bukan menyaring. */}
-                        <span className="hidden rounded-wf border border-line px-2.5 py-1 font-mono text-xs text-ink-2 sm:inline">
+                        <span
+                            className={
+                                'hidden h-9 items-center rounded-wf border px-3 font-mono text-xs whitespace-nowrap sm:inline-flex ' +
+                                (nadaHeader === 'gelap'
+                                    ? 'border-white/25 bg-white/10 text-white'
+                                    : nadaHeader === 'terang'
+                                      ? 'border-black/15 bg-black/5 text-ink'
+                                      : 'border-line bg-surface text-ink-2')
+                            }
+                        >
                             {tahunAktif ? `TA ${tahunAktif}` : 'TA belum diatur'}
                         </span>
-                        <span className="rounded-wf border border-line px-2.5 py-1 text-xs text-ink-2">
-                            {auth.pengguna?.peran_label ?? marka.inisial} &#9662;
+                        <span
+                            className={
+                                'inline-flex h-9 items-center rounded-wf border px-3 text-xs font-medium whitespace-nowrap ' +
+                                (nadaHeader === 'gelap'
+                                    ? 'border-white/25 bg-white/10 text-white'
+                                    : nadaHeader === 'terang'
+                                      ? 'border-black/15 bg-black/5 text-ink'
+                                      : 'border-line bg-surface text-ink-2')
+                            }
+                        >
+                            {auth.pengguna?.peran_label ?? marka.inisial}
                         </span>
                         <Link
                             href="/logout"
                             method="post"
                             as="button"
-                            className="flex items-center gap-1.5 rounded-wf px-2 py-1 text-xs text-ink-3 hover:bg-surface-2 hover:text-bad"
+                            aria-label="Keluar"
+                            title="Keluar"
+                            className={
+                                'inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-wf border text-xs font-medium whitespace-nowrap transition-colors sm:w-auto sm:px-3 ' +
+                                (nadaHeader === 'gelap'
+                                    ? 'border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20 focus-visible:outline-white'
+                                    : nadaHeader === 'terang'
+                                      ? 'border-black/15 bg-black/5 text-ink hover:border-bad/40 hover:bg-bad-bg hover:text-bad focus-visible:outline-ink'
+                                      : 'border-line bg-surface text-ink-2 hover:border-bad/30 hover:bg-bad-bg hover:text-bad')
+                            }
                         >
                             <Ikon nama="keluar" ukuran={14} />
                             <span className="hidden sm:inline">Keluar</span>

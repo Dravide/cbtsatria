@@ -233,9 +233,9 @@ export default function Identitas({ identitas, bawaan }: Props) {
                         </Field>
 
                         <p className="mt-2 text-[11px] leading-relaxed text-ink-3">
-                            Warna ini hanya mewarnai bilah peramban dan manifest. Warna
-                            tombol dan lencana di dalam aplikasi tetap mengikuti sistem
-                            tema, supaya kontrasnya tetap lolos pemeriksaan.
+                            Warna ini mewarnai header konsol Admin, bilah peramban, dan
+                            manifest. Warna teks di header menyesuaikan otomatis agar
+                            kontrasnya tetap terbaca jelas.
                         </p>
                     </Kotak>
 

@@ -152,6 +152,7 @@ class HandleInertiaRequests extends Middleware
                 return [
                     'nama' => $nilai['nama'],
                     'logo' => $nilai['logo'],
+                    'warna' => $nilai['warna'],
                 ];
             },
         ];

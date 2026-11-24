@@ -51,9 +51,11 @@ function xsrfToken(): string {
 export default function NotifikasiEventBel({
     eventId,
     eventNama,
+    nadaHeader = 'bawaan',
 }: {
     eventId: number;
     eventNama: string;
+    nadaHeader?: 'bawaan' | 'gelap' | 'terang';
 }) {
     const [terbuka, setTerbuka] = useState(false);
     const [tab, setTab] = useState<'semua' | 'belum' | 'kritis'>('semua');
@@ -174,10 +176,18 @@ export default function NotifikasiEventBel({
                     aria-label="Notifikasi event"
                     title={`Notifikasi ${eventNama}`}
                     className={
-                        'relative inline-flex size-8 items-center justify-center rounded-wf border transition-colors ' +
-                        (ringkas.belum_dibaca > 0
-                            ? 'border-accent/40 bg-accent-soft text-accent'
-                            : 'border-line bg-surface text-ink-2 hover:bg-surface-2')
+                        'relative inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-wf border transition-colors ' +
+                        (nadaHeader === 'gelap'
+                            ? ringkas.belum_dibaca > 0
+                                ? 'border-white/45 bg-white/20 text-white hover:bg-white/25 focus-visible:outline-white'
+                                : 'border-white/25 bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white'
+                            : nadaHeader === 'terang'
+                              ? ringkas.belum_dibaca > 0
+                                  ? 'border-ink/30 bg-black/10 text-ink hover:bg-black/15 focus-visible:outline-ink'
+                                  : 'border-black/15 bg-black/5 text-ink hover:bg-black/10 focus-visible:outline-ink'
+                              : ringkas.belum_dibaca > 0
+                                ? 'border-accent/40 bg-accent-soft text-accent'
+                                : 'border-line bg-surface text-ink-2 hover:bg-surface-2')
                     }
                 >
                     <svg

@@ -168,6 +168,7 @@ export default function AdminLayout({ judul, breadcrumb, aksi, children }: Props
             marka={{ inisial: 'S', nada: 'admin' }}
             kelompok={kelompok}
             tampilkanPemilihEvent
+            headerTema
             kelasPembungkus="konsol-admin"
         >
             {children}
