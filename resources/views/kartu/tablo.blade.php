@@ -113,7 +113,7 @@
             </div>
 
             <div class="pdf-meta-bar">
-                <div class="judul">Ruang {{ $h['kode'] }}{{ $h['nama'] ? ' · '.$h['nama'] : '' }}</div>
+                <div class="judul">{{ $h['nama'] ? $h['kode'].' · '.$h['nama'] : 'Ruang '.$h['kode'] }}</div>
                 <div class="anak">
                     {{ $h['ujian'] ?? 'Ujian' }}
                     @if ($h['sesi']) · {{ $h['sesi'] }} @endif
