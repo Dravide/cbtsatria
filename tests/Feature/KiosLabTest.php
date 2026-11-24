@@ -356,3 +356,30 @@ it('menolak kiriman masuk dari ruang tanpa PC', function () {
         AttendanceRecord::query()->where('exam_participant_id', $peserta->id)->first()->attendance_status->value,
     )->toBe('pending');
 });
+
+it('menampilkan layar keterangan, bukan 404, ketika ruang belum memiliki sesi ujian', function () {
+    $ruangBaru = Room::factory()
+        ->untukSekolah($this->sekolah)
+        ->create([
+            'code' => 'LAB-BARU',
+            'name' => 'Lab Komputer Baru',
+            'capacity' => 20,
+            'device_count' => 20,
+        ]);
+
+    $tautan = RoomEntryLink::query()->create([
+        'school_id' => $this->sekolah->id,
+        'room_id' => $ruangBaru->id,
+        'slug' => 'lab-baru-test',
+        'expires_at' => now()->addDays(7),
+    ]);
+
+    $this->get("/lab/{$tautan->slug}/1")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Pengawas/KiosLab')
+            ->where('ruang.kode', 'LAB-BARU')
+            ->where('sesi.berjalan', false)
+            ->where('pesan', fn ($p) => is_string($p) && str_contains($p, 'belum memiliki sesi ujian'))
+        );
+});

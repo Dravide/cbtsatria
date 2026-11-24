@@ -67,7 +67,38 @@ class KiosLabController
     /** Layar tunggu: kursi menyala, menunggu akun. */
     public function tampilkan(string $slug, int $nomor): Response
     {
-        $ruang = $this->ruang($slug);
+        $tautan = $this->tautanSah($slug);
+        $ruang = $this->ruangUntukTautan($tautan);
+
+        if ($ruang === null) {
+            $master = $tautan->room;
+            $kapasitas = (int) ($master?->capacity ?? 0);
+            $kursiBerPc = (int) ($master?->device_count ?? 0);
+
+            return Inertia::render('Pengawas/KiosLab', [
+                'sekolah' => $master?->school?->name ?? $master?->name,
+                'slug' => $slug,
+                'nomor' => $nomor,
+                'ruang' => [
+                    'kode' => $master?->code,
+                    'nama' => $master?->name,
+                    'kapasitas' => $kapasitas,
+                    'kursi_ber_pc' => $kursiBerPc,
+                ],
+                'nomor_sah' => $kapasitas > 0 && $nomor > $kapasitas,
+                'sesi' => [
+                    'label' => null,
+                    'ujian' => null,
+                    'jam' => null,
+                    'berjalan' => false,
+                ],
+                'pesan' => $kursiBerPc <= 0
+                    ? 'Ruang ini tidak punya PC, jadi tidak memakai kios lab. '
+                        .'Siswa di ruang ini membawa perangkat sendiri dan diabsen lewat pintu ruang.'
+                    : 'Ruang ini belum memiliki sesi ujian yang dijadwalkan. '
+                        .'Pasang ruang ini pada event dan jadwal sesi terlebih dahulu.',
+            ]);
+        }
 
         // Nomor kursi yang tidak ada di ruang ini bukan "tidak ditemukan":
         // ia PC yang salah ketik di monitor. 404, dan pesannya dibedakan di
@@ -146,7 +177,12 @@ class KiosLabController
      */
     public function masuk(Request $request, string $slug, int $nomor): RedirectResponse
     {
-        $ruang = $this->ruang($slug);
+        $tautan = $this->tautanSah($slug);
+        $ruang = $this->ruangUntukTautan($tautan);
+
+        if ($ruang === null) {
+            return back()->with('galat', 'Ruang ini belum memiliki sesi ujian yang dijadwalkan.');
+        }
 
         $user = $request->user();
 
@@ -213,54 +249,32 @@ class KiosLabController
     /* ------------------------------------------------------------- Pembantu */
 
     /**
-     * Ruang-sesi dari slug tautan - hanya bila tautannya masih berlaku.
-     *
-     * Aturannya sama dengan `PintuRuangController::ruang()`: yang dipilih
-     * adalah ruang-sesi yang jendelanya sedang terbuka, karena satu ruang
-     * dipakai sesi pagi dan siang pada hari yang sama.
+     * Tautan ruang yang sah dan masih berlaku; 404 hanya bila slug tidak ada,
+     * sudah dicabut, kedaluwarsa, atau ruang master-nya sudah terhapus.
      */
-    private function ruang(string $slug): ExamSessionRoom
+    private function tautanSah(string $slug): RoomEntryLink
     {
-        $ruang = $this->ruangMungkin($slug);
+        $tautan = RoomEntryLink::tanpaTenant()
+            ->with('room.school:id,name')
+            ->where('slug', $slug)
+            ->first();
 
-        // 404 hanya untuk keadaan yang memang TIDAK ADA: slug keliru, tautan
-        // dicabut, atau ruang yang tidak pernah dipakai sesi mana pun.
-        //
-        // Ruang yang sudah dipakai sesi tetapi jendelanya lewat BUKAN 404 -
-        // itu keadaan yang sah pada kios yang dinyalakan sebelum ujian atau
-        // sesudahnya, dan layar yang menjawab "Not Found" kepada teknisi yang
-        // baru memasang monitor tidak memberitahunya apa pun. Keadaan itu
-        // ditangani `tampilkan()` lewat `pesanKeadaan()`.
-        if ($ruang === null) {
+        if ($tautan === null || ! $tautan->berlaku() || $tautan->room === null) {
             abort(404);
         }
 
-        return $ruang;
+        return $tautan;
     }
 
     /**
-     * Ruang-sesi untuk sebuah slug, tanpa memutuskan 404 - null bila tidak ada.
+     * Ruang-sesi untuk sebuah tautan, atau null bila ruang belum dipakai sesi mana pun.
      *
-     * ---------------------------------------------------------------------
-     * Tiga tingkat pencarian, dan urutannya menentukan
-     * ---------------------------------------------------------------------
+     * Dua tingkat pencarian:
      *   1. ruang-sesi yang jendelanya SEDANG BERJALAN  -> sesi yang benar;
-     *   2. bila tidak ada, ruang-sesi TERBARU apa pun   -> layar menyebutkan
-     *      jadwalnya, bukan 404;
-     *   3. bila ruangnya memang belum pernah dipakai   -> null, dan 404.
-     *
-     * Tingkat kedua ada karena kios dinyalakan LEBIH DULU daripada sesinya,
-     * dan tetap menyala SESUDAHNYA. Keduanya keadaan normal di lab, dan
-     * keduanya menuntut layar yang menjelaskan - bukan halaman galat.
+     *   2. bila tidak ada, ruang-sesi TERBARU apa pun   -> layar menyebutkan jadwalnya.
      */
-    private function ruangMungkin(string $slug): ?ExamSessionRoom
+    private function ruangUntukTautan(RoomEntryLink $tautan): ?ExamSessionRoom
     {
-        $tautan = RoomEntryLink::tanpaTenant()->where('slug', $slug)->first();
-
-        if ($tautan === null || ! $tautan->berlaku()) {
-            return null;
-        }
-
         $muatan = [
             'eventRoom.room:id,code,name,capacity,device_count',
             'session.exam:id,title,subject_id',
