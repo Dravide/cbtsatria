@@ -5,39 +5,62 @@
     <title>Jadwal Ujian · {{ $event->name }}</title>
     <style>
         @include('partials.pdf-fonts')
+        @include('partials.pdf-tema')
 
         @page { margin: 14mm 12mm; }
-        body { font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif; font-size: 9px; color: #161b24; }
-        .kop { border-bottom: 2px solid #161b24; padding-bottom: 3mm; margin-bottom: 4mm; }
-        .kop-nama { font-size: 13px; font-weight: bold; }
-        .kop-sub { font-size: 9px; color: #4a5565; margin-top: 1mm; }
-        .meta { margin-bottom: 4mm; font-size: 9px; color: #334155; }
-        table { width: 100%; border-collapse: collapse; margin-top: 2mm; }
-        th { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 2mm; text-align: left; font-size: 8px; }
-        td { border: 1px solid #e2e8f0; padding: 1.8mm 2mm; vertical-align: top; }
+
+        body {
+            margin: 0;
+            font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
+            font-size: 9px;
+            color: #161b24;
+        }
+
+        table.data { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+        table.data th {
+            background: #edf1f7;
+            border: 1px solid #d3d9e2;
+            padding: 2mm;
+            text-align: left;
+            font-size: 7.5px;
+            font-weight: bold;
+            color: #4a5565;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        table.data td { border: 1px solid #e6eaf0; padding: 1.8mm 2mm; vertical-align: top; }
         .num { text-align: center; font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; }
         .mono { font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; }
     </style>
 </head>
 <body>
-    <div class="kop">
-        <div class="kop-nama">{{ $sekolah?->name ?? config('app.name') }}</div>
-        <div class="kop-sub">JADWAL UJIAN · {{ strtoupper($event->name) }}</div>
+    <div class="pdf-kop-bar">
+        <table class="pdf-kop-table">
+            <tr>
+                <td style="vertical-align: middle;">
+                    <div class="pdf-kop-sekolah">{{ $sekolah?->name ?? config('app.name') }}</div>
+                    <div class="pdf-kop-sub">{{ $event->name }}</div>
+                </td>
+                <td style="vertical-align: middle; text-align: right; width: 36mm;">
+                    <span class="pdf-kop-lencana">Jadwal Ujian</span>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <div class="meta">
-        <strong>Event:</strong> {{ $event->name }} &nbsp;|&nbsp;
-        <strong>Kode:</strong> {{ $event->code }}
+    <div class="pdf-meta-bar">
+        <strong>Event:</strong> {{ $event->name }} &nbsp;·&nbsp;
+        <strong>Kode:</strong> <span class="mono">{{ $event->code }}</span>
         @if ($event->academicYear)
-            &nbsp;|&nbsp; <strong>Tahun Ajaran:</strong> {{ $event->academicYear->name }}
+            &nbsp;·&nbsp; <strong>Tahun Ajaran:</strong> {{ $event->academicYear->name }}
         @endif
         @if ($event->semester)
-            &nbsp;|&nbsp; <strong>Semester:</strong> {{ $event->semester->name }}
+            &nbsp;·&nbsp; <strong>Semester:</strong> {{ $event->semester->name }}
         @endif
-        &nbsp;|&nbsp; <strong>Dicetak:</strong> {{ $dicetak }}
+        &nbsp;·&nbsp; <strong>Dicetak:</strong> {{ $dicetak }}
     </div>
 
-    <table>
+    <table class="data">
         <thead>
             <tr>
                 <th style="width: 6%; text-align: center;">No</th>
@@ -58,7 +81,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" style="text-align: center; padding: 6mm; color: #64748b;">
+                    <td colspan="5" style="text-align: center; padding: 6mm; color: #77808f;">
                         Belum ada sesi ujian yang dijadwalkan pada event ini.
                     </td>
                 </tr>

@@ -1,46 +1,6 @@
 {{--
-    Kartu panitia & pengawas - PDF siap cetak, wireframe-admin.html plate 13.
-
-    ---------------------------------------------------------------------
-    Ditulis tanpa CSS aplikasi, dan itu disengaja
-    ---------------------------------------------------------------------
-    DomPDF tidak menjalankan Tailwind, tidak mengenal custom property, dan
-    tidak punya flexbox. Berkas ini memakai HTML telanjang dengan gaya inline
-    - bentuk yang sama dengan `laporan/pdf.blade.php`, dan alasannya sama:
-    memakai kelas aplikasi di sini berarti kartu yang tampak benar di
-    peramban dan berantakan saat dicetak, padahal kartu ini HANYA untuk
-    dicetak.
-
-    ---------------------------------------------------------------------
-    Delapan kartu per halaman, dihitung dengan tabel - bukan grid CSS
-    ---------------------------------------------------------------------
-    `PER_HALAMAN` di `KartuPengawas` bernilai 8 (dua kolom, empat baris), dan
-    angka itu yang menentukan tinggi kartunya: 297mm dibagi empat, dikurangi
-    margin halaman. Kartu dipecah per baris tabel, bukan dengan `page-break`
-    pada div - DomPDF menangani pemecahan tabel jauh lebih dapat diandalkan
-    daripada pemecahan blok bersarang.
-
-    Tingginya ditulis TETAP, bukan `auto`. Kartu yang tingginya mengikuti
-    isinya akan membuat sepuluh kartu berjabatan pendek termuat dalam satu
-    halaman dan tiga puluh kartu berjabatan panjang melimpah ke halaman
-    kelima - dan Admin yang sudah memotong kertasnya menurut hitungan delapan
-    per lembar akan mendapat potongan yang tidak pas.
-
-    ---------------------------------------------------------------------
-    Kode ditulis BESAR dan berjarak lebar
-    ---------------------------------------------------------------------
-    Ia dibaca sambil berdiri di depan pintu, kadang sambil memegang kertasnya
-    sendiri di bawah cahaya yang tidak ideal. `letter-spacing` membuat enam
-    digit tidak saling menempel, dan itu satu-satunya hal yang membedakan
-    "1" dan "7" pada cetakan printer yang tonernya menipis.
-
-    ---------------------------------------------------------------------
-    Baris tanpa kode tidak mencetak kotak kosong
-    ---------------------------------------------------------------------
-    Ketua dan koordinator tetap mendapat kartu, tetapi kartunya tidak memuat
-    kotak kode kosong: kotak kosong terbaca sebagai "kodenya gagal tercetak",
-    dan pengawas yang menerimanya akan meminta Admin menerbitkannya ulang -
-    pekerjaan yang sia-sia untuk orang yang memang tidak memegang kode.
+    Kartu panitia & pengawas - 8 kartu per lembar A4.
+    Menyelaraskan sistem desain konsol Admin (warna tema, Bricolage Grotesque & IBM Plex Mono).
 --}}
 <!DOCTYPE html>
 <html lang="id">
@@ -49,118 +9,144 @@
     <title>Kartu panitia {{ $event['kode'] }}</title>
     <style>
         @include('partials.pdf-fonts')
+        @include('partials.pdf-tema')
 
         @page { margin: 10mm 8mm; }
 
         body {
+            margin: 0;
             font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
             font-size: 9px;
             color: #161b24;
         }
 
-        table { width: 100%; border-collapse: separate; border-spacing: 4mm 4mm; }
+        table.lembar { width: 100%; border-collapse: separate; border-spacing: 4mm 4mm; }
 
         td.kartu {
             width: 50%;
             height: 66mm;
-            border: 1px solid #8e97a6;
-            border-radius: 3mm;
-            padding: 5mm;
+            border: 1px solid #d3d9e2;
+            border-radius: 2.5mm;
+            padding: 0;
             vertical-align: top;
+            overflow: hidden;
+            background: #ffffff;
         }
 
-        .kop { border-bottom: 1px solid #d3d9e2; padding-bottom: 2mm; margin-bottom: 3mm; }
+        .kartu-kop {
+            padding: 2.8mm 4mm;
+        }
 
-        .sekolah { font-size: 10px; font-weight: bold; }
-        .npsn { font-size: 7px; color: #4a5565; }
-        .event { font-size: 7px; color: #4a5565; margin-top: 1mm; }
+        .kartu-isi {
+            padding: 3.5mm 4mm 3mm;
+        }
 
-        .nama { font-size: 14px; font-weight: bold; margin: 0 0 1mm; }
+        .sekolah { font-size: 9.5px; font-weight: bold; line-height: 1.2; }
+        .npsn { font-size: 6.8px; margin-top: 0.4mm; }
+        .event { font-size: 6.8px; margin-top: 0.6mm; }
+
+        .nama { font-size: 13px; font-weight: bold; color: #161b24; margin: 0 0 0.8mm; }
 
         .jabatan {
-            font-size: 7px;
+            display: inline-block;
+            font-size: 6.8px;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
+            letter-spacing: 0.5px;
             color: #4a5565;
-            margin: 0 0 3mm;
+            background: #f2f4f8;
+            border: 1px solid #d3d9e2;
+            border-radius: 1mm;
+            padding: 0.5mm 1.8mm;
+            margin: 0 0 2.5mm;
         }
 
-        .label { font-size: 7px; color: #77808f; text-transform: uppercase; }
+        .label { font-size: 6.8px; font-weight: bold; color: #77808f; text-transform: uppercase; letter-spacing: 0.4px; }
 
-        .cakupan { font-size: 9px; margin-top: 0.5mm; }
+        .cakupan { font-size: 8.5px; color: #161b24; margin-top: 0.5mm; }
 
-        .garis { border-top: 1px dashed #d3d9e2; margin: 3mm 0; }
+        .kode-box {
+            margin-top: 2.5mm;
+            padding: 2mm 3mm;
+            background: #f2f4f8;
+            border: 1px solid #d3d9e2;
+            border-radius: 1.5mm;
+        }
 
         .kode {
             font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             letter-spacing: 3px;
+            line-height: 1.15;
+            margin-top: 0.4mm;
         }
 
-        .petunjuk { font-size: 6.5px; color: #77808f; margin-top: 1mm; line-height: 1.35; }
+        .petunjuk { font-size: 6.5px; color: #77808f; margin: 1.2mm 0 0; line-height: 1.35; }
 
         .akun { font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace; font-size: 7px; color: #4a5565; }
 
-        .logo { max-height: 10mm; max-width: 22mm; }
+        .logo { max-height: 8.5mm; max-width: 18mm; display: block; }
     </style>
 </head>
 <body>
-    {{-- Dua kolom per baris, jadi `chunk(2)` - dan SEL kosong yang tersisa
-         pada baris terakhir diisi kartu kosong supaya lebarnya tidak
-         melar mengisi seluruh halaman. --}}
     @foreach (collect($kartu)->chunk(2) as $dua)
-        <table>
+        <table class="lembar">
             <tr>
                 @foreach ($dua as $satu)
                     <td class="kartu">
-                        <div class="kop">
-                            <table style="border-spacing:0">
+                        <div class="pdf-kop-bar-kartu kartu-kop">
+                            <table class="pdf-kop-table">
                                 <tr>
                                     @if (! empty($sekolah['logo']))
-                                        <td style="width:24mm; vertical-align:top">
-                                            <img class="logo" src="{{ $sekolah['logo'] }}" alt="">
+                                        <td style="width:18mm; vertical-align:middle; padding-right:2.5mm;">
+                                            <span class="pdf-logo-bingkai">
+                                                <img class="logo" src="{{ $sekolah['logo'] }}" alt="">
+                                            </span>
                                         </td>
                                     @endif
-                                    <td style="vertical-align:top">
-                                        <div class="sekolah">{{ $sekolah['nama'] }}</div>
+                                    <td style="vertical-align:middle;">
+                                        <div class="pdf-kop-sekolah sekolah">{{ $sekolah['nama'] }}</div>
                                         @if (! empty($sekolah['npsn']))
-                                            <div class="npsn">NPSN {{ $sekolah['npsn'] }}</div>
+                                            <div class="pdf-kop-sub npsn">NPSN {{ $sekolah['npsn'] }}</div>
                                         @endif
-                                        <div class="event">{{ $event['nama'] }} &middot; {{ $event['kode'] }}</div>
+                                        <div class="pdf-kop-sub event">{{ $event['nama'] }} &middot; {{ $event['kode'] }}</div>
                                     </td>
                                 </tr>
                             </table>
                         </div>
 
-                        <p class="nama">{{ $satu['nama'] }}</p>
-                        <p class="jabatan">{{ $satu['jabatan'] }}</p>
+                        <div class="kartu-isi">
+                            <p class="nama">{{ $satu['nama'] }}</p>
+                            <span class="jabatan">{{ $satu['jabatan'] }}</span>
 
-                        <span class="label">Cakupan</span>
-                        <div class="cakupan">{{ $satu['cakupan'] }}</div>
+                            <div>
+                                <span class="label">Cakupan</span>
+                                <div class="cakupan">{{ $satu['cakupan'] }}</div>
+                            </div>
 
-                        @if ($satu['kode'] !== null)
-                            <div class="garis"></div>
+                            @if ($satu['kode'] !== null)
+                                <div class="kode-box">
+                                    <span class="label">Kode pengawas</span>
+                                    <div class="kode pdf-aksen">{{ $satu['kode'] }}</div>
+                                </div>
 
-                            <span class="label">Kode pengawas</span>
-                            <div class="kode">{{ $satu['kode'] }}</div>
+                                <p class="petunjuk">
+                                    Kode milik orang, bukan ruang. Berlaku di ruang mana pun yang ditugaskan.
+                                </p>
+                            @endif
 
-                            <p class="petunjuk">
-                                Diperlihatkan kepada pengawas di pintu. Kode ini milik ORANG,
-                                bukan ruang - berlaku di ruang mana pun yang ditugaskan.
-                            </p>
-                        @endif
-
-                        @if ($satu['akun'] !== null)
-                            <p class="petunjuk" style="margin-top:2mm">
-                                Akun: <span class="akun">{{ $satu['akun'] }}</span>
-                            </p>
-                        @endif
+                            @if ($satu['akun'] !== null)
+                                <p class="petunjuk" style="margin-top:1.5mm">
+                                    Akun: <span class="akun">{{ $satu['akun'] }}</span>
+                                </p>
+                            @endif
+                        </div>
                     </td>
                 @endforeach
 
                 @for ($i = $dua->count(); $i < 2; $i++)
-                    <td class="kartu" style="border:none"></td>
+                    <td class="kartu" style="border:none; background:none;"></td>
                 @endfor
             </tr>
         </table>

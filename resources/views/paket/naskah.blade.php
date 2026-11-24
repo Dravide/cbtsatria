@@ -5,39 +5,78 @@
     <title>{{ $mode === 'kunci' ? 'Kunci Jawaban' : 'Naskah Soal' }} · {{ $paket['nama'] }}</title>
     <style>
         @include('partials.pdf-fonts')
+        @include('partials.pdf-tema')
 
-        @page { margin: 16mm 15mm; }
-        body { font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif; font-size: 10px; color: #161b24; line-height: 1.45; }
-        .kop { border-bottom: 2px solid #161b24; padding-bottom: 3mm; margin-bottom: 5mm; }
-        .kop-nama { font-size: 13px; font-weight: bold; }
-        .kop-sub { font-size: 9px; color: #4a5565; margin-top: 1mm; }
-        .meta { background: #f4f6f9; border: 1px solid #d3d9e2; padding: 3mm 4mm; margin-bottom: 5mm; font-size: 9px; }
-        .butir { margin-bottom: 4.5mm; page-break-inside: avoid; }
-        .nomor { font-weight: bold; }
+        @page { margin: 14mm 14mm; }
+
+        body {
+            margin: 0;
+            font-family: 'Bricolage Grotesque', 'DejaVu Sans', sans-serif;
+            font-size: 9.5px;
+            color: #161b24;
+            line-height: 1.45;
+        }
+
+        .butir {
+            margin-bottom: 4.5mm;
+            padding-bottom: 3.5mm;
+            border-bottom: 1px solid #e6eaf0;
+            page-break-inside: avoid;
+        }
+
+        .butir:last-child {
+            border-bottom: none;
+        }
+
+        .nomor {
+            font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;
+            font-weight: bold;
+        }
+
         .opsi { margin: 1.5mm 0 0 5mm; }
         .opsi-baris { margin-bottom: 0.8mm; }
-        .kunci-box { margin-top: 1.5mm; padding: 1.5mm 2.5mm; background: #eef6f0; border-left: 3px solid #186b47; font-size: 9px; }
+
+        .kunci-box {
+            margin-top: 2mm;
+            padding: 2mm 3mm;
+            background: #e2f2e9;
+            border: 1px solid #b7dfc9;
+            border-left: 3px solid #186b47;
+            border-radius: 1.5mm;
+            font-size: 8.5px;
+            color: #161b24;
+        }
+
+        .kunci-box strong { color: #186b47; }
     </style>
 </head>
 <body>
-    <div class="kop">
-        <div class="kop-nama">{{ $sekolah['nama'] }}</div>
-        <div class="kop-sub">
-            {{ $mode === 'kunci' ? 'KUNCI JAWABAN & PEMBAHASAN' : 'NASKAH SOAL UJIAN' }}
-            &mdash; {{ $paket['mapel'] ?? 'Mata Pelajaran' }}
-        </div>
+    <div class="pdf-kop-bar">
+        <table class="pdf-kop-table">
+            <tr>
+                <td style="vertical-align: middle;">
+                    <div class="pdf-kop-sekolah">{{ $sekolah['nama'] }}</div>
+                    <div class="pdf-kop-sub">{{ $paket['mapel'] ?? 'Mata Pelajaran' }}</div>
+                </td>
+                <td style="vertical-align: middle; text-align: right; width: 42mm;">
+                    <span class="pdf-kop-lencana">
+                        {{ $mode === 'kunci' ? 'Kunci Jawaban' : 'Naskah Soal' }}
+                    </span>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <div class="meta">
-        <strong>Paket:</strong> {{ $paket['nama'] }} ({{ $paket['kode'] }}) &nbsp;|&nbsp;
-        <strong>Jumlah Butir:</strong> {{ count($butir) }} &nbsp;|&nbsp;
+    <div class="pdf-meta-bar">
+        <strong>Paket:</strong> {{ $paket['nama'] }} (<span style="font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;">{{ $paket['kode'] }}</span>) &nbsp;·&nbsp;
+        <strong>Jumlah Butir:</strong> {{ count($butir) }} &nbsp;·&nbsp;
         <strong>Total Bobot:</strong> {{ number_format($totalBobot, 1) }}
     </div>
 
     @foreach ($butir as $idx => $b)
         <div class="butir">
             <div>
-                <span class="nomor">{{ $idx + 1 }}.</span>
+                <span class="nomor pdf-aksen">{{ $idx + 1 }}.</span>
                 {!! $b['soal_html'] !!}
             </div>
 
