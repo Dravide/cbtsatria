@@ -7,6 +7,7 @@ use App\Domain\Academic\Models\Semester;
 use App\Domain\Academic\Models\Subject;
 use App\Domain\Audit\Models\ActivityLog;
 use App\Domain\Event\Enums\EventStatus;
+use App\Domain\Event\Http\Controllers\EventCommitteeController;
 use App\Domain\Event\Models\EventClass;
 use App\Domain\Event\Models\EventCommitteeMember;
 use App\Domain\Event\Models\EventParticipant;
@@ -473,6 +474,29 @@ it('melewati user_id milik sekolah lain', function () {
     expect($this->event->committee()->count())->toBe(0);
 });
 
+it('menerima jabatan kustom pada tambah massal dan menawarkannya kembali di saran jabatan', function () {
+    $orang = akunPanitia($this->sekolah, ['Ana Wijaya', 'Beni Saputra']);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$this->event->id}/panitia/massal", [
+            'user_id' => collect($orang)->pluck('id')->all(),
+            'position' => 'seksi konsumsi',
+            'scope' => 'event',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($this->event->committee()->pluck('position')->unique()->all())
+        ->toBe(['seksi konsumsi']);
+
+    $this->actingAs($this->admin)
+        ->get("/admin/events/{$this->event->id}/panitia")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('jabatan', fn ($daftar) => collect($daftar)->contains('seksi konsumsi')
+                && collect($daftar)->contains('proktor')
+                && collect($daftar)->contains('pengawas')));
+});
+
 /* -------------------------------------------------------------- Graf status */
 
 it('menolak transisi yang tidak ada di graf', function () {
@@ -760,7 +784,7 @@ it('membuka kelima laman event dengan prop yang benar', function () {
             ->component('Admin/Event/Panitia')
             ->has('panitia', 1)
             ->has('ruang')
-            ->where('jabatan', ['ketua', 'koordinator', 'pengawas', 'anggota'])
+            ->where('jabatan', EventCommitteeController::JABATAN)
         );
 
     $this->actingAs($this->admin)

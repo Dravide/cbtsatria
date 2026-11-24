@@ -156,7 +156,9 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                 <KPI label="Panitia" nilai={panitia.length} />
                 <KPI
                     label="Pengawas"
-                    nilai={panitia.filter((p) => p.jabatan.includes('pengawas')).length}
+                    nilai={
+                        panitia.filter((p) => p.jabatan.toLowerCase().includes('pengawas')).length
+                    }
                 />
                 <KPI
                     label="Cakupan ruang"
@@ -408,7 +410,7 @@ function PanelPanitia({
 
     const { data, setData, processing, errors, reset } = useForm({
         name: panitia?.nama ?? '',
-        position: panitia?.jabatan ?? jabatan[0],
+        position: panitia?.jabatan ?? '',
         user_id: null as number | null,
         email: panitia?.email ?? '',
         phone: panitia?.phone ?? '',
@@ -495,18 +497,25 @@ function PanelPanitia({
                         />
                     </Field>
 
-                    <Field label="Jabatan" galat={errors.position}>
-                        <select
+                    <Field
+                        label="Jabatan"
+                        galat={errors.position}
+                        petunjuk='Pilih saran atau ketik bebas. Jabatan yang memuat "pengawas" otomatis masuk calon pengawas ruang.'
+                    >
+                        <input
                             value={data.position}
                             onChange={(e) => setData('position', e.target.value)}
+                            list="daftar-jabatan-panitia"
+                            maxLength={40}
+                            required
+                            placeholder="Pilih atau ketik jabatan…"
                             className={kelasInput}
-                        >
+                        />
+                        <datalist id="daftar-jabatan-panitia">
                             {jabatan.map((j) => (
-                                <option key={j} value={j}>
-                                    {j}
-                                </option>
+                                <option key={j} value={j} />
                             ))}
-                        </select>
+                        </datalist>
                     </Field>
                 </div>
 
@@ -632,7 +641,7 @@ function PanelMassal({
 }) {
     const { data, setData, processing, errors, reset } = useForm({
         user_id: [] as number[],
-        position: jabatan[0],
+        position: '',
         scope: 'event',
         ruang_id: [] as number[],
     });
@@ -683,18 +692,25 @@ function PanelMassal({
                 </Inbox>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Jabatan" galat={errors.position}>
-                        <select
+                    <Field
+                        label="Jabatan"
+                        galat={errors.position}
+                        petunjuk='Pilih saran atau ketik bebas. Jabatan yang memuat "pengawas" otomatis masuk calon pengawas ruang.'
+                    >
+                        <input
                             value={data.position}
                             onChange={(e) => setData('position', e.target.value)}
+                            list="daftar-jabatan-panitia"
+                            maxLength={40}
+                            required
+                            placeholder="Pilih atau ketik jabatan…"
                             className={kelasInput}
-                        >
+                        />
+                        <datalist id="daftar-jabatan-panitia">
                             {jabatan.map((j) => (
-                                <option key={j} value={j}>
-                                    {j}
-                                </option>
+                                <option key={j} value={j} />
                             ))}
-                        </select>
+                        </datalist>
                     </Field>
 
                     <Field label="Cari akun">
@@ -815,7 +831,13 @@ function PanelMassal({
                     <Tombol
                         type="submit"
                         nada="pri"
-                        disabled={processing || data.user_id.length === 0 || kurangRuang || semuaSudah}
+                        disabled={
+                            processing ||
+                            data.user_id.length === 0 ||
+                            data.position.trim() === '' ||
+                            kurangRuang ||
+                            semuaSudah
+                        }
                     >
                         Tambahkan {data.user_id.length > 0 ? data.user_id.length + ' orang' : ''}
                     </Tombol>
