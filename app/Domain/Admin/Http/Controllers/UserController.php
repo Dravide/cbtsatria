@@ -9,6 +9,7 @@ use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\TeacherProfile;
 use App\Domain\Identity\Models\User;
 use App\Support\TabelQuery;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -365,13 +366,13 @@ class UserController
     }
 
     /**
-     * Hapus (soft-delete) semua akun pengawas di sekolah aktif.
+     * Hapus permanen semua akun pengawas di sekolah aktif.
      *
-     * Memakai SoftDeletes agar foreign key riwayat ujian dan presensi yang
-     * berstatus restrictOnDelete tetap terjaga, sambil membebaskan username
-     * agar pengawas baru dapat diimpor ulang dengan kode yang sama.
+     * Akun yang tidak terikat foreign key restrictOnDelete dihapus permanen (forceDelete).
+     * Bila ada akun yang sudah tercatat pada riwayat event/presensi, akun tersebut
+     * di-soft-delete dan username-nya dibebaskan agar tidak memicu galat 500.
      */
-    public function resetPengawas(ActivityLogger $logger): RedirectResponse
+    public function hapusSemuaPengawas(ActivityLogger $logger): RedirectResponse
     {
         Gate::authorize('viewAny', User::class);
 
@@ -383,14 +384,18 @@ class UserController
             return back()->with('galat', 'Tidak ada akun pengawas untuk dihapus.');
         }
 
-        $jumlah = $pengawas->count();
         $ids = $pengawas->pluck('id')->all();
         $waktu = now()->timestamp;
+        $permanen = 0;
+        $diarsipkan = 0;
 
-        DB::transaction(function () use ($pengawas, $ids, $waktu) {
-            DB::table('sessions')->whereIn('user_id', $ids)->delete();
+        DB::table('sessions')->whereIn('user_id', $ids)->delete();
 
-            foreach ($pengawas as $satu) {
+        foreach ($pengawas as $satu) {
+            try {
+                $satu->forceDelete();
+                $permanen++;
+            } catch (QueryException) {
                 $satu->forceFill([
                     'is_active' => false,
                     'username' => sprintf(
@@ -402,12 +407,82 @@ class UserController
                 ])->save();
 
                 $satu->delete();
+                $diarsipkan++;
+            }
+        }
+
+        $total = $permanen + $diarsipkan;
+
+        $logger->log('Menghapus semua akun pengawas', null, [
+            'jumlah' => $total,
+            'permanen' => $permanen,
+            'diarsipkan' => $diarsipkan,
+        ]);
+
+        $pesan = $diarsipkan > 0
+            ? "{$total} akun pengawas dihapus ({$permanen} permanen, {$diarsipkan} diarsipkan karena terkait riwayat event/presensi)."
+            : "{$permanen} akun pengawas dihapus permanen.";
+
+        return back()->with('sukses', $pesan);
+    }
+
+    /**
+     * Perbarui banyak akun pengawas sekaligus dari mode edit massal di tab Pengawas.
+     */
+    public function editMassalPengawas(
+        Request $request,
+        UserRegistrar $registrar,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('viewAny', User::class);
+
+        $data = $request->validate([
+            'pengawas' => ['required', 'array', 'min:1'],
+            'pengawas.*.id' => ['required', 'integer'],
+            'pengawas.*.name' => ['required', 'string', 'max:255'],
+            'pengawas.*.staff_code' => ['nullable', 'string', 'max:40'],
+            'pengawas.*.email' => ['nullable', 'email', 'max:255'],
+            'pengawas.*.phone' => ['nullable', 'string', 'max:40'],
+            'pengawas.*.address' => ['nullable', 'string', 'max:500'],
+            'pengawas.*.password' => ['nullable', 'string', 'min:6', 'max:255'],
+            'pengawas.*.is_active' => ['required', 'boolean'],
+        ], [], [
+            'pengawas.*.name' => 'nama',
+            'pengawas.*.staff_code' => 'kode pegawai',
+            'pengawas.*.email' => 'email',
+            'pengawas.*.phone' => 'telepon',
+            'pengawas.*.address' => 'alamat',
+            'pengawas.*.password' => 'password',
+        ]);
+
+        $ids = collect($data['pengawas'])->pluck('id')->all();
+
+        $peta = User::query()
+            ->where('role', Role::Supervisor)
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy('id');
+
+        $jumlah = 0;
+
+        DB::transaction(function () use ($data, $peta, $registrar, &$jumlah) {
+            foreach ($data['pengawas'] as $baris) {
+                $user = $peta->get($baris['id']);
+
+                if ($user === null) {
+                    continue;
+                }
+
+                Gate::authorize('update', $user);
+
+                $registrar->perbarui($user, $baris);
+                $jumlah++;
             }
         });
 
-        $logger->log('Mereset semua akun pengawas', null, ['jumlah' => $jumlah]);
+        $logger->log('Memperbarui data pengawas secara massal', null, ['jumlah' => $jumlah]);
 
-        return back()->with('sukses', $jumlah.' akun pengawas dihapus.');
+        return back()->with('sukses', $jumlah.' akun pengawas diperbarui.');
     }
 
     /**

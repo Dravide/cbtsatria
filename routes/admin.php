@@ -87,8 +87,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('pengguna.reset');
     Route::post('/pengguna/reset-kuota-ai', [UserController::class, 'resetKuotaAi'])
         ->name('pengguna.reset-kuota-ai');
-    Route::post('/pengguna/reset-pengawas', [UserController::class, 'resetPengawas'])
-        ->name('pengguna.reset-pengawas');
+    Route::put('/pengguna/pengawas/massal', [UserController::class, 'editMassalPengawas'])
+        ->name('pengguna.pengawas.massal');
+    Route::delete('/pengguna/pengawas', [UserController::class, 'hapusSemuaPengawas'])
+        ->name('pengguna.hapus-pengawas');
 
     // Segmen statis (/impor/template) harus sebelum /impor/{batch}/laporan agar tidak di-bind sebagai {batch}.
     Route::get('/pengguna/impor', [UserImportController::class, 'index'])->name('pengguna.impor');

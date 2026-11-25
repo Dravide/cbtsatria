@@ -92,11 +92,13 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
     const [gantiUsername, setGantiUsername] = useState<Baris | null>(null);
     const [kuotaAiGuru, setKuotaAiGuru] = useState<Baris | null>(null);
     const [eksporTerbuka, setEksporTerbuka] = useState(false);
+    const [editMassalTarget, setEditMassalTarget] = useState<Baris[] | null>(null);
 
     const f = pakaiFilter('/admin/pengguna', { cari: filter.cari, status: filter.status });
 
     const gantiTab = (nilai: string) => {
         setPilih([]);
+        setEditMassalTarget(null);
         router.get('/admin/pengguna', { tab: nilai }, { preserveState: false, replace: true });
     };
 
@@ -131,7 +133,7 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
     const adaKartu = tab === 'teacher';
     const tabPengawas = tab === 'supervisor';
 
-    const resetPengawas = async () => {
+    const hapusSemuaPengawas = async () => {
         const total = tabnya.supervisor ?? 0;
 
         if (total === 0) {
@@ -140,7 +142,7 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
 
         const setuju = await konfirmasi({
             judul: `Hapus semua ${total.toLocaleString('id-ID')} akun pengawas?`,
-            pesan: 'Seluruh akun pada tab Pengawas di sekolah ini akan dihapus dan sesi loginnya diakhiri. Data riwayat ujian tetap tersimpan.',
+            pesan: 'Seluruh akun pada tab Pengawas di sekolah ini akan dihapus permanen dan sesi loginnya diakhiri. Akun yang sudah terkait riwayat event/presensi tetap diarsipkan agar data ujian aman.',
             labelYa: 'Ya, hapus semua pengawas',
             nada: 'bahaya',
         });
@@ -149,14 +151,10 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
             return;
         }
 
-        router.post(
-            '/admin/pengguna/reset-pengawas',
-            {},
-            {
-                preserveScroll: true,
-                onSuccess: () => setPilih([]),
-            },
-        );
+        router.delete('/admin/pengguna/pengawas', {
+            preserveScroll: true,
+            onSuccess: () => setPilih([]),
+        });
     };
 
     /** Buka unduhan PDF/ZIP di tab baru (bukan `router.get`) karena respons bukan halaman Inertia. */
@@ -196,13 +194,29 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                             Kartu akun
                         </Tombol>
                     )}
+                    {tabPengawas && baris.data.length > 0 && (
+                        <Tombol
+                            onClick={() => {
+                                const sasaran =
+                                    pilih.length > 0
+                                        ? baris.data.filter((b) => pilih.includes(b.id))
+                                        : baris.data;
+                                setEditMassalTarget(sasaran);
+                            }}
+                            title="Edit data banyak pengawas sekaligus dalam satu tabel"
+                        >
+                            {pilih.length > 0
+                                ? `Edit massal (${pilih.length})`
+                                : 'Edit massal'}
+                        </Tombol>
+                    )}
                     {tabPengawas && (tabnya.supervisor ?? 0) > 0 && (
                         <Tombol
                             nada="bahaya"
-                            onClick={resetPengawas}
+                            onClick={hapusSemuaPengawas}
                             title="Hapus semua akun pengawas di sekolah ini"
                         >
-                            Reset pengawas
+                            Hapus semua pengawas
                         </Tombol>
                     )}
                     <Tombol nada="pri" onClick={() => setTambah(true)}>
@@ -274,6 +288,18 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                                     </Tombol>
                                 </>
                             )}
+                            {tabPengawas && (
+                                <Tombol
+                                    onClick={() =>
+                                        setEditMassalTarget(
+                                            baris.data.filter((b) => pilih.includes(b.id)),
+                                        )
+                                    }
+                                    title="Edit data pengawas yang dicentang sekaligus"
+                                >
+                                    Edit terpilih
+                                </Tombol>
+                            )}
                             <Tombol onClick={() => aksiMassal('nonaktifkan')}>
                                 Nonaktifkan terpilih
                             </Tombol>
@@ -286,7 +312,18 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                 </BilahFilter>
             </div>
 
-            <Tabel<Baris>
+            {editMassalTarget !== null ? (
+                <PanelEditMassalPengawas
+                    key={editMassalTarget.map((b) => b.id).join(',')}
+                    target={editMassalTarget}
+                    padaSelesai={() => {
+                        setEditMassalTarget(null);
+                        setPilih([]);
+                    }}
+                    padaBatal={() => setEditMassalTarget(null)}
+                />
+            ) : (
+                <Tabel<Baris>
                 hal={baris}
                 kunci={(b) => b.id}
                 kosong="Belum ada pengguna di peran ini."
@@ -409,6 +446,7 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                     },
                 ]}
             />
+            )}
 
             <p className="mt-3 text-[11px] text-ink-3">
                 {jumlah.toLocaleString('id-ID')} akun pada peran ini. Akun tidak pernah
@@ -920,5 +958,298 @@ function FormKuotaAi({
                 </div>
             </form>
         </Modal>
+    );
+}
+
+type BarisEditPengawas = {
+    id: number;
+    username: string;
+    name: string;
+    staff_code: string;
+    email: string;
+    phone: string;
+    address: string;
+    password: string;
+    is_active: boolean;
+};
+
+function buatDrafPengawas(target: Baris[]): BarisEditPengawas[] {
+    return target.map((b) => ({
+        id: b.id,
+        username: b.username,
+        name: b.nama,
+        staff_code: b.profil.staff_code ?? '',
+        email: b.email ?? '',
+        phone: b.phone ?? '',
+        address: b.profil.address ?? '',
+        password: '',
+        is_active: b.aktif,
+    }));
+}
+
+function PanelEditMassalPengawas({
+    target,
+    padaSelesai,
+    padaBatal,
+}: {
+    target: Baris[];
+    padaSelesai: () => void;
+    padaBatal: () => void;
+}) {
+    const awal = buatDrafPengawas(target);
+    const [draf, setDraf] = useState<BarisEditPengawas[]>(awal);
+    const [proses, setProses] = useState(false);
+    const [galat, setGalat] = useState<Record<string, string>>({});
+    const [idTerkirim, setIdTerkirim] = useState<number[]>([]);
+
+    const ubahKolom = <K extends keyof BarisEditPengawas>(
+        id: number,
+        kolom: K,
+        nilai: BarisEditPengawas[K],
+    ) => {
+        setDraf((prev) => prev.map((r) => (r.id === id ? { ...r, [kolom]: nilai } : r)));
+    };
+
+    const berubah = (r: BarisEditPengawas) => {
+        const asli = awal.find((a) => a.id === r.id);
+
+        if (!asli) {
+            return false;
+        }
+
+        return (
+            r.name !== asli.name ||
+            r.staff_code !== asli.staff_code ||
+            r.email !== asli.email ||
+            r.phone !== asli.phone ||
+            r.address !== asli.address ||
+            r.password !== '' ||
+            r.is_active !== asli.is_active
+        );
+    };
+
+    const barisBerubah = draf.filter(berubah);
+
+    const galatUntuk = (id: number, kolom: string): string | undefined => {
+        const indeks = idTerkirim.indexOf(id);
+
+        if (indeks === -1) {
+            return undefined;
+        }
+
+        return galat[`pengawas.${indeks}.${kolom}`];
+    };
+
+    const kirim = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (barisBerubah.length === 0) {
+            return;
+        }
+
+        setProses(true);
+        setGalat({});
+        setIdTerkirim(barisBerubah.map((r) => r.id));
+
+        router.put(
+            '/admin/pengguna/pengawas/massal',
+            {
+                pengawas: barisBerubah.map((r) => ({
+                    id: r.id,
+                    name: r.name,
+                    staff_code: r.staff_code || null,
+                    email: r.email || null,
+                    phone: r.phone || null,
+                    address: r.address || null,
+                    password: r.password || null,
+                    is_active: r.is_active,
+                })),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    padaSelesai();
+                },
+                onError: (errors) => {
+                    setGalat(errors);
+                },
+                onFinish: () => {
+                    setProses(false);
+                },
+            },
+        );
+    };
+
+    const kelasSel =
+        'w-full rounded-wf border border-line bg-surface px-2 py-1 text-xs text-ink outline-none focus:border-accent';
+
+    return (
+        <form
+            onSubmit={kirim}
+            className="rounded-wf border border-line bg-surface"
+        >
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2/60 px-4 py-2.5">
+                <div>
+                    <p className="text-sm font-medium text-ink">
+                        Edit massal pengawas ({draf.length} baris)
+                    </p>
+                    <p className="text-[11px] text-ink-3">
+                        {barisBerubah.length} baris diubah. Kosongkan password bila tidak ingin
+                        mengubahnya.
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    <Tombol
+                        type="submit"
+                        nada="pri"
+                        disabled={proses || barisBerubah.length === 0}
+                    >
+                        {proses
+                            ? 'Menyimpan...'
+                            : `Simpan perubahan (${barisBerubah.length})`}
+                    </Tombol>
+                    <Tombol onClick={padaBatal} disabled={proses}>
+                        Batal
+                    </Tombol>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[60rem] text-xs">
+                    <thead>
+                        <tr className="border-b border-line bg-surface-2/40 text-left text-[11px] text-ink-3">
+                            <th className="px-3 py-2 font-medium">Username</th>
+                            <th className="w-32 px-2 py-2 font-medium">Kode pegawai</th>
+                            <th className="min-w-[12rem] px-2 py-2 font-medium">Nama lengkap</th>
+                            <th className="min-w-[11rem] px-2 py-2 font-medium">Email</th>
+                            <th className="w-36 px-2 py-2 font-medium">Telepon</th>
+                            <th className="min-w-[11rem] px-2 py-2 font-medium">Alamat</th>
+                            <th className="w-36 px-2 py-2 font-medium">Password baru</th>
+                            <th className="w-16 px-3 py-2 text-center font-medium">Aktif</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line/60">
+                        {draf.map((r) => {
+                            const sudahUbah = berubah(r);
+
+                            return (
+                                <tr
+                                    key={r.id}
+                                    className={sudahUbah ? 'bg-accent-soft/20' : undefined}
+                                >
+                                    <td className="px-3 py-2 align-top font-mono text-[11px] text-ink-3">
+                                        {r.username}
+                                    </td>
+                                    <td className="px-2 py-1.5 align-top">
+                                        <input
+                                            value={r.staff_code}
+                                            onChange={(e) =>
+                                                ubahKolom(r.id, 'staff_code', e.target.value)
+                                            }
+                                            placeholder="-"
+                                            className={kelasSel + ' font-mono'}
+                                        />
+                                        {galatUntuk(r.id, 'staff_code') && (
+                                            <p className="mt-0.5 text-[10px] text-bad">
+                                                {galatUntuk(r.id, 'staff_code')}
+                                            </p>
+                                        )}
+                                    </td>
+                                    <td className="px-2 py-1.5 align-top">
+                                        <input
+                                            value={r.name}
+                                            onChange={(e) =>
+                                                ubahKolom(r.id, 'name', e.target.value)
+                                            }
+                                            required
+                                            className={kelasSel}
+                                        />
+                                        {galatUntuk(r.id, 'name') && (
+                                            <p className="mt-0.5 text-[10px] text-bad">
+                                                {galatUntuk(r.id, 'name')}
+                                            </p>
+                                        )}
+                                    </td>
+                                    <td className="px-2 py-1.5 align-top">
+                                        <input
+                                            type="email"
+                                            value={r.email}
+                                            onChange={(e) =>
+                                                ubahKolom(r.id, 'email', e.target.value)
+                                            }
+                                            placeholder="-"
+                                            className={kelasSel}
+                                        />
+                                        {galatUntuk(r.id, 'email') && (
+                                            <p className="mt-0.5 text-[10px] text-bad">
+                                                {galatUntuk(r.id, 'email')}
+                                            </p>
+                                        )}
+                                    </td>
+                                    <td className="px-2 py-1.5 align-top">
+                                        <input
+                                            value={r.phone}
+                                            onChange={(e) =>
+                                                ubahKolom(r.id, 'phone', e.target.value)
+                                            }
+                                            placeholder="-"
+                                            className={kelasSel + ' font-mono'}
+                                        />
+                                        {galatUntuk(r.id, 'phone') && (
+                                            <p className="mt-0.5 text-[10px] text-bad">
+                                                {galatUntuk(r.id, 'phone')}
+                                            </p>
+                                        )}
+                                    </td>
+                                    <td className="px-2 py-1.5 align-top">
+                                        <input
+                                            value={r.address}
+                                            onChange={(e) =>
+                                                ubahKolom(r.id, 'address', e.target.value)
+                                            }
+                                            placeholder="-"
+                                            className={kelasSel}
+                                        />
+                                        {galatUntuk(r.id, 'address') && (
+                                            <p className="mt-0.5 text-[10px] text-bad">
+                                                {galatUntuk(r.id, 'address')}
+                                            </p>
+                                        )}
+                                    </td>
+                                    <td className="px-2 py-1.5 align-top">
+                                        <input
+                                            type="text"
+                                            value={r.password}
+                                            onChange={(e) =>
+                                                ubahKolom(r.id, 'password', e.target.value)
+                                            }
+                                            placeholder="Tetap"
+                                            autoComplete="new-password"
+                                            className={kelasSel + ' font-mono'}
+                                        />
+                                        {galatUntuk(r.id, 'password') && (
+                                            <p className="mt-0.5 text-[10px] text-bad">
+                                                {galatUntuk(r.id, 'password')}
+                                            </p>
+                                        )}
+                                    </td>
+                                    <td className="px-3 py-2 text-center align-top">
+                                        <input
+                                            type="checkbox"
+                                            checked={r.is_active}
+                                            onChange={(e) =>
+                                                ubahKolom(r.id, 'is_active', e.target.checked)
+                                            }
+                                            className="size-4 accent-accent"
+                                            aria-label={`Aktifkan ${r.name}`}
+                                        />
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </form>
     );
 }
