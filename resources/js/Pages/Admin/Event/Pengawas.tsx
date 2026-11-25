@@ -1,7 +1,17 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import { konfirmasi } from '@/Components/dialog';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Chip, Inbox, Kotak, Peringatan, Tombol, kelasInput } from '@/Components/ui';
+import {
+    Chip,
+    Inbox,
+    Kotak,
+    Modal,
+    Peringatan,
+    Tombol,
+    TombolTautan,
+    kelasInput,
+} from '@/Components/ui';
 
 /**
  * Pengawas & penempatan ruang - wireframe plate 17, PRD §9.6.
@@ -124,6 +134,19 @@ type SesiKolom = {
     jam: string | null;
 };
 
+type PengecualianItem = {
+    id: number;
+    supervisor_id: number;
+    nama: string;
+    username: string | null;
+    exam_session_id: number;
+    sesi_label: string;
+    ujian: string | null;
+    hari_tanggal: string | null;
+    jam: string | null;
+    reason: string;
+};
+
 type Props = {
     event: { id: number; kode: string; nama: string; status: string; status_label: string };
     baris: Baris[];
@@ -139,6 +162,7 @@ type Props = {
     calon: { id: number; nama: string; username: string; peran: string }[];
     aturan?: AturanPengawas;
     matriks?: MatriksBaris[];
+    daftar_pengecualian?: PengecualianItem[];
     sesi_kolom?: SesiKolom[];
     beban_pengawas?: Record<number, { terpakai: number; maks: number }>;
     sesi_tanpa_ruang: { id: number; label: string; ujian: string | null }[];
@@ -154,6 +178,7 @@ export default function EventPengawas({
     calon,
     aturan,
     matriks = [],
+    daftar_pengecualian = [],
     sesi_kolom = [],
     beban_pengawas = {},
     sesi_tanpa_ruang,
@@ -168,6 +193,22 @@ export default function EventPengawas({
         return param === 'ketersediaan' || param === 'rekap' ? param : 'jadwal';
     })();
     const [tab, setTab] = useState<'jadwal' | 'ketersediaan' | 'rekap'>(tabAwal);
+    const [modalPengecualian, setModalPengecualian] = useState(false);
+
+    const resetPengawasan = async () => {
+        const setuju = await konfirmasi({
+            judul: 'Reset seluruh penugasan pengawas?',
+            pesan: `Seluruh ${angka.ditugaskan} penugasan pengawas pada event ini akan dihapus. Aturan penjadwalan dan daftar pengecualian tetap tersimpan.`,
+            labelYa: 'Ya, reset pengawasan',
+            nada: 'bahaya',
+        });
+
+        if (!setuju) {
+            return;
+        }
+
+        router.post(`${jalur}/pengawas/reset`, {}, { preserveScroll: true });
+    };
 
     return (
         <AdminLayout
@@ -179,6 +220,20 @@ export default function EventPengawas({
                         <span className="text-ink-3">Event:</span>
                         <span className="font-medium text-ink">{event.nama}</span>
                     </span>
+
+                    <TombolTautan
+                        href={`${jalur}/pengawas/pdf`}
+                        title="Unduh jadwal pengawasan sebagai PDF"
+                    >
+                        Unduh PDF
+                    </TombolTautan>
+
+                    <Tombol
+                        onClick={() => setModalPengecualian(true)}
+                        title="Lihat, ubah, atau hapus daftar pengecualian pengawas"
+                    >
+                        Pengecualian ({daftar_pengecualian.length})
+                    </Tombol>
 
                     <TombolTautanKeLamanSesi per_sesi={per_sesi} jalur_sesi={jalur_sesi} />
 
@@ -194,6 +249,19 @@ export default function EventPengawas({
                         }
                     >
                         Tugaskan otomatis
+                    </Tombol>
+
+                    <Tombol
+                        nada="bahaya"
+                        disabled={angka.ditugaskan === 0}
+                        title={
+                            angka.ditugaskan === 0
+                                ? 'Belum ada penugasan pengawas untuk direset.'
+                                : 'Hapus seluruh penugasan pengawas pada event ini'
+                        }
+                        onClick={resetPengawasan}
+                    >
+                        Reset pengawasan
                     </Tombol>
                 </>
             }
@@ -317,6 +385,14 @@ export default function EventPengawas({
             )}
 
             {tab === 'rekap' && <RekapBeban matriks={matriks} />}
+
+            <ModalPengecualian
+                terbuka={modalPengecualian}
+                jalur={jalur}
+                daftar={daftar_pengecualian}
+                sesi_kolom={sesi_kolom}
+                padaTutup={() => setModalPengecualian(false)}
+            />
         </AdminLayout>
     );
 }
@@ -1061,5 +1137,250 @@ function RekapBeban({ matriks }: { matriks: MatriksBaris[] }) {
                 </table>
             </div>
         </section>
+    );
+}
+
+function ModalPengecualian({
+    terbuka,
+    jalur,
+    daftar,
+    sesi_kolom,
+    padaTutup,
+}: {
+    terbuka: boolean;
+    jalur: string;
+    daftar: PengecualianItem[];
+    sesi_kolom: SesiKolom[];
+    padaTutup: () => void;
+}) {
+    const [cari, setCari] = useState('');
+    const [editId, setEditId] = useState<number | null>(null);
+    const [sesiId, setSesiId] = useState<number>(0);
+    const [alasan, setAlasan] = useState('');
+    const [proses, setProses] = useState(false);
+
+    const tersaring = daftar.filter((item) => {
+        const q = cari.trim().toLowerCase();
+        if (!q) {
+            return true;
+        }
+        return (
+            item.nama.toLowerCase().includes(q) ||
+            (item.username ?? '').toLowerCase().includes(q) ||
+            item.sesi_label.toLowerCase().includes(q) ||
+            (item.ujian ?? '').toLowerCase().includes(q) ||
+            item.reason.toLowerCase().includes(q)
+        );
+    });
+
+    const mulaiEdit = (item: PengecualianItem) => {
+        setEditId(item.id);
+        setSesiId(item.exam_session_id);
+        setAlasan(item.reason);
+    };
+
+    const batalEdit = () => {
+        setEditId(null);
+        setAlasan('');
+    };
+
+    const simpanEdit = (id: number) => {
+        setProses(true);
+        router.put(
+            `${jalur}/pengawas/pengecualian/${id}`,
+            { exam_session_id: sesiId, reason: alasan.trim() || null },
+            {
+                preserveScroll: true,
+                onSuccess: () => setEditId(null),
+                onFinish: () => setProses(false),
+            },
+        );
+    };
+
+    const hapus = async (item: PengecualianItem) => {
+        const setuju = await konfirmasi({
+            judul: `Hapus pengecualian ${item.nama}?`,
+            pesan: `${item.nama} akan kembali tersedia untuk bertugas pada ${item.sesi_label}${item.hari_tanggal ? ` (${item.hari_tanggal})` : ''}.`,
+            labelYa: 'Hapus',
+            nada: 'bahaya',
+        });
+
+        if (!setuju) {
+            return;
+        }
+
+        router.delete(`${jalur}/pengawas/pengecualian/${item.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (editId === item.id) {
+                    setEditId(null);
+                }
+            },
+        });
+    };
+
+    return (
+        <Modal
+            judul={`Daftar pengecualian pengawas (${daftar.length})`}
+            terbuka={terbuka}
+            padaTutup={() => {
+                batalEdit();
+                padaTutup();
+            }}
+        >
+            <div className="space-y-3">
+                {daftar.length > 0 && (
+                    <input
+                        type="search"
+                        value={cari}
+                        onChange={(e) => setCari(e.target.value)}
+                        placeholder="Cari pengawas, sesi, atau alasan..."
+                        className={kelasInput}
+                    />
+                )}
+
+                {tersaring.length === 0 ? (
+                    <p className="rounded-wf border border-line bg-surface-2/40 px-3 py-6 text-center text-xs text-ink-3">
+                        {daftar.length === 0
+                            ? 'Belum ada pengecualian pengawas pada event ini.'
+                            : 'Tidak ada pengecualian yang cocok dengan pencarian.'}
+                    </p>
+                ) : (
+                    <div className="max-h-96 space-y-2 overflow-y-auto pr-0.5">
+                        {tersaring.map((item) => {
+                            const sedangEdit = editId === item.id;
+
+                            return (
+                                <div
+                                    key={item.id}
+                                    className="rounded-wf border border-line bg-surface-2/30 p-3 text-xs"
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <div className="font-medium text-ink">
+                                                {item.nama}
+                                                {item.username && (
+                                                    <span className="ml-1.5 font-mono text-[11px] font-normal text-ink-3">
+                                                        {item.username}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {!sedangEdit && (
+                                                <>
+                                                    <div className="mt-0.5 text-[11px] text-ink-2">
+                                                        <span className="font-mono">
+                                                            {item.sesi_label}
+                                                        </span>
+                                                        {item.hari_tanggal && (
+                                                            <> · {item.hari_tanggal}</>
+                                                        )}
+                                                        {item.jam && (
+                                                            <span className="font-mono">
+                                                                {' '}
+                                                                {item.jam}
+                                                            </span>
+                                                        )}
+                                                        {item.ujian && <> · {item.ujian}</>}
+                                                    </div>
+                                                    <div className="mt-1 text-[11px] text-ink-3">
+                                                        Alasan:{' '}
+                                                        <span className="text-ink-2">
+                                                            {item.reason || '—'}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {!sedangEdit && (
+                                            <div className="flex shrink-0 gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => mulaiEdit(item)}
+                                                    className="rounded-wf border border-line bg-surface px-2 py-1 text-[11px] text-ink hover:bg-surface-2"
+                                                >
+                                                    Ubah
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => hapus(item)}
+                                                    className="rounded-wf border border-bad/40 bg-surface px-2 py-1 text-[11px] text-bad hover:bg-bad/10"
+                                                >
+                                                    Hapus
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {sedangEdit && (
+                                        <div className="mt-2.5 space-y-2 border-t border-line/60 pt-2.5">
+                                            <label className="block">
+                                                <span className="mb-1 block text-[11px] text-ink-3">
+                                                    Sesi
+                                                </span>
+                                                <select
+                                                    value={sesiId}
+                                                    onChange={(e) =>
+                                                        setSesiId(Number(e.target.value))
+                                                    }
+                                                    className={kelasInput + ' py-1.5 text-xs'}
+                                                >
+                                                    {sesi_kolom.map((s) => (
+                                                        <option key={s.id} value={s.id}>
+                                                            {s.label}
+                                                            {s.tanggal ? ` · ${s.tanggal}` : ''}
+                                                            {s.jam ? ` ${s.jam}` : ''}
+                                                            {s.ujian ? ` — ${s.ujian}` : ''}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+
+                                            <label className="block">
+                                                <span className="mb-1 block text-[11px] text-ink-3">
+                                                    Alasan (opsional)
+                                                </span>
+                                                <input
+                                                    type="text"
+                                                    maxLength={120}
+                                                    value={alasan}
+                                                    onChange={(e) => setAlasan(e.target.value)}
+                                                    placeholder="Izin / rapat / dinas luar"
+                                                    className={kelasInput + ' py-1.5 text-xs'}
+                                                />
+                                            </label>
+
+                                            <div className="flex justify-end gap-1.5 pt-1">
+                                                <Tombol
+                                                    nada="pri"
+                                                    disabled={proses}
+                                                    onClick={() => simpanEdit(item.id)}
+                                                >
+                                                    {proses ? 'Menyimpan...' : 'Simpan'}
+                                                </Tombol>
+                                                <Tombol disabled={proses} onClick={batalEdit}>
+                                                    Batal
+                                                </Tombol>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <div className="flex justify-end pt-1">
+                    <Tombol
+                        onClick={() => {
+                            batalEdit();
+                            padaTutup();
+                        }}
+                    >
+                        Tutup
+                    </Tombol>
+                </div>
+            </div>
+        </Modal>
     );
 }

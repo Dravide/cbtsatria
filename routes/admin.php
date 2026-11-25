@@ -252,8 +252,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/events/{event}/penempatan/daftar-peserta', [ExamPenempatanController::class, 'daftarPeserta'])->name('events.penempatan.daftar-peserta');
 
     Route::get('/events/{event}/pengawas', [ExamPengawasController::class, 'index'])->name('events.pengawas');
+    Route::get('/events/{event}/pengawas/pdf', [ExamPengawasController::class, 'pdf'])->name('events.pengawas.pdf');
     Route::get('/events/{event}/pengawas/sesi/{sesi}', [ExamPengawasController::class, 'sesi'])->name('events.pengawas.sesi');
     Route::post('/events/{event}/pengawas/otomatis', [ExamPengawasController::class, 'otomatis'])->name('events.pengawas.otomatis');
+    Route::post('/events/{event}/pengawas/reset', [ExamPengawasController::class, 'resetPengawasan'])->name('events.pengawas.reset');
     Route::post('/events/{event}/pengawas/ruang/{ruang}', [ExamPengawasController::class, 'tugaskan'])->name('events.pengawas.tugaskan');
     Route::delete('/events/{event}/pengawas/{tugas}', [ExamPengawasController::class, 'batalkan'])->name('events.pengawas.batal');
     Route::post('/events/{event}/pengawas/tukar', [ExamPengawasController::class, 'tukar'])
@@ -262,6 +264,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('events.pengawas.aturan');
     Route::post('/events/{event}/pengawas/pengecualian', [ExamPengawasController::class, 'togglePengecualian'])
         ->name('events.pengawas.pengecualian');
+    Route::put('/events/{event}/pengawas/pengecualian/{pengecualian}', [ExamPengawasController::class, 'ubahPengecualian'])
+        ->name('events.pengawas.pengecualian.update');
+    Route::delete('/events/{event}/pengawas/pengecualian/{pengecualian}', [ExamPengawasController::class, 'hapusPengecualian'])
+        ->name('events.pengawas.pengecualian.hapus');
     Route::post('/events/{event}/pengawas/kosongkan-hari', [ExamPengawasController::class, 'kosongkanHari'])
         ->name('events.pengawas.kosongkan_hari');
     Route::post('/events/{event}/pengawas/kuota', [ExamPengawasController::class, 'simpanKuota'])

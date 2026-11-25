@@ -11,9 +11,11 @@ use App\Domain\Exam\Models\SupervisionAssignment;
 use App\Domain\Exam\Models\SupervisorSessionExclusion;
 use App\Domain\Exam\Services\PengawasService;
 use App\Domain\Identity\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -199,6 +201,32 @@ class ExamPengawasController
 
         $melebihiBatas = collect($matriks)->where('status_kuota', 'melebihi')->count();
 
+        $daftarPengecualian = SupervisorSessionExclusion::query()
+            ->where('event_id', $event->id)
+            ->with([
+                'supervisor:id,name,username',
+                'session:id,exam_id,session_number,access_opens_at,hard_end_at',
+                'session.exam:id,title,subject_id',
+                'session.exam.subject:id,name',
+            ])
+            ->orderBy('exam_session_id')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (SupervisorSessionExclusion $e) => [
+                'id' => $e->id,
+                'supervisor_id' => $e->supervisor_id,
+                'nama' => $e->supervisor?->name ?? 'Pengawas',
+                'username' => $e->supervisor?->username,
+                'exam_session_id' => $e->exam_session_id,
+                'sesi_label' => $e->session?->label() ?? 'Sesi',
+                'ujian' => $e->session?->exam?->subject?->name ?? $e->session?->exam?->title,
+                'hari_tanggal' => $e->session?->access_opens_at?->locale('id')->translatedFormat('l, d M Y'),
+                'jam' => $e->session?->access_opens_at?->format('H:i'),
+                'reason' => $e->reason ?? '',
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('Admin/Event/Pengawas', [
             'event' => $this->ringkas($event),
             'baris' => $baris,
@@ -231,6 +259,7 @@ class ExamPengawasController
 
             'aturan' => $aturan,
             'matriks' => $matriks,
+            'daftar_pengecualian' => $daftarPengecualian,
             'sesi_kolom' => $sesi->map(fn (ExamSession $s) => [
                 'id' => $s->id,
                 'label' => $s->label(),
@@ -255,6 +284,87 @@ class ExamPengawasController
                 ->values()
                 ->all(),
         ]);
+    }
+
+    /**
+     * Unduh jadwal pengawasan satu event sebagai dokumen PDF (A4 portrait).
+     */
+    public function pdf(SchoolEvent $event): HttpResponse
+    {
+        Gate::authorize('view', $event);
+
+        $event->load(['school', 'academicYear', 'semester']);
+
+        $sesi = ExamSession::query()
+            ->whereIn('exam_id', $event->exams()->pluck('id'))
+            ->with(['exam:id,code,title,subject_id', 'exam.subject:id,code,name'])
+            ->orderBy('access_opens_at')
+            ->orderBy('session_number')
+            ->orderBy('id')
+            ->get();
+
+        $ruangan = ExamSessionRoom::query()
+            ->whereIn('exam_session_id', $sesi->pluck('id'))
+            ->with([
+                'eventRoom.room:id,code,name,location',
+                'supervisors.supervisor:id,name,username',
+            ])
+            ->orderBy('exam_session_id')
+            ->orderBy('id')
+            ->get();
+
+        $totalPenugasan = 0;
+
+        $daftarSesi = $sesi->map(function (ExamSession $s) use ($ruangan, &$totalPenugasan): ?array {
+            $ruangSesi = $ruangan->where('exam_session_id', $s->id)->values();
+
+            if ($ruangSesi->isEmpty()) {
+                return null;
+            }
+
+            $barisRuang = $ruangSesi->map(function (ExamSessionRoom $r) use (&$totalPenugasan): array {
+                $pengawas = $r->supervisors
+                    ->filter(fn (SupervisionAssignment $t) => $t->status === 'aktif' && $t->supervisor !== null)
+                    ->map(fn (SupervisionAssignment $t) => $t->supervisor->name)
+                    ->values()
+                    ->all();
+
+                $totalPenugasan += count($pengawas);
+
+                return [
+                    'kode' => $r->eventRoom?->room?->code ?? '—',
+                    'nama' => $r->eventRoom?->room?->name ?? '—',
+                    'lokasi' => $r->eventRoom?->room?->location,
+                    'pengawas' => $pengawas,
+                ];
+            })->all();
+
+            return [
+                'label' => $s->label(),
+                'mapel' => $s->exam?->subject?->name ?? $s->exam?->title ?? 'Ujian',
+                'hari_tanggal' => $s->access_opens_at?->locale('id')->translatedFormat('l, d M Y') ?? '—',
+                'waktu' => $s->access_opens_at
+                    ? $s->access_opens_at->format('H:i').'–'.($s->hard_end_at?->format('H:i') ?? '?')
+                    : '—',
+                'ruang' => $barisRuang,
+            ];
+        })->filter()->values()->all();
+
+        $kode = preg_replace('/[^A-Za-z0-9\-_]+/', '-', strtolower($event->code)) ?: (string) $event->id;
+
+        return Pdf::loadView('laporan.jadwal-pengawasan', [
+            'sekolah' => $event->school,
+            'event' => $event,
+            'sesi' => $daftarSesi,
+            'ringkasan' => [
+                'sesi' => count($daftarSesi),
+                'ruang' => $ruangan->count(),
+                'penugasan' => $totalPenugasan,
+            ],
+            'dicetak' => now()->format('d/m/Y H:i'),
+        ])
+            ->setPaper('a4', 'portrait')
+            ->download("jadwal-pengawasan-{$kode}.pdf");
     }
 
     /**
@@ -654,6 +764,101 @@ class ExamPengawasController
         $logger->log('Mengosongkan penugasan pengawas satu sesi', $event, ['sesi_id' => $sesi->id, 'dihapus' => $dihapus]);
 
         return back()->with('sukses', "{$dihapus} penugasan pengawas pada sesi ini dihapus.");
+    }
+
+    /**
+     * Reset seluruh penugasan pengawas pada semua sesi event ini.
+     */
+    public function resetPengawasan(
+        SchoolEvent $event,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $sesiIds = ExamSession::query()
+            ->whereIn('exam_id', $event->exams()->pluck('id'))
+            ->pluck('id');
+
+        $ruangIds = ExamSessionRoom::query()
+            ->whereIn('exam_session_id', $sesiIds)
+            ->pluck('id');
+
+        $dihapus = $ruangIds->isEmpty()
+            ? 0
+            : SupervisionAssignment::query()
+                ->whereIn('exam_session_room_id', $ruangIds)
+                ->delete();
+
+        if ($dihapus === 0) {
+            return back()->with('galat', 'Belum ada penugasan pengawas yang dapat direset.');
+        }
+
+        $logger->log('Mereset seluruh penugasan pengawas event', $event, ['dihapus' => $dihapus]);
+
+        return back()->with('sukses', "{$dihapus} penugasan pengawas pada event ini dihapus.");
+    }
+
+    public function ubahPengecualian(
+        Request $request,
+        SchoolEvent $event,
+        SupervisorSessionExclusion $pengecualian,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+        abort_unless((int) $pengecualian->event_id === (int) $event->id, 404);
+
+        $data = $request->validate([
+            'exam_session_id' => ['required', 'integer'],
+            'reason' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $sesi = ExamSession::query()->with('exam')->find($data['exam_session_id']);
+        abort_unless($sesi !== null && (int) $sesi->exam?->event_id === (int) $event->id, 404);
+
+        $duplikat = SupervisorSessionExclusion::query()
+            ->where('event_id', $event->id)
+            ->where('exam_session_id', $sesi->id)
+            ->where('supervisor_id', $pengecualian->supervisor_id)
+            ->whereKeyNot($pengecualian->id)
+            ->exists();
+
+        if ($duplikat) {
+            return back()->with('galat', 'Pengawas tersebut sudah memiliki pengecualian pada sesi tujuan.');
+        }
+
+        $pengecualian->update([
+            'exam_session_id' => $sesi->id,
+            'reason' => ($data['reason'] ?? '') !== '' ? $data['reason'] : null,
+        ]);
+
+        $logger->log('Memperbarui pengecualian pengawas', $event, [
+            'id' => $pengecualian->id,
+            'supervisor_id' => $pengecualian->supervisor_id,
+            'exam_session_id' => $sesi->id,
+        ]);
+
+        return back()->with('sukses', 'Pengecualian pengawas diperbarui.');
+    }
+
+    public function hapusPengecualian(
+        SchoolEvent $event,
+        SupervisorSessionExclusion $pengecualian,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+        abort_unless((int) $pengecualian->event_id === (int) $event->id, 404);
+
+        $info = [
+            'id' => $pengecualian->id,
+            'supervisor_id' => $pengecualian->supervisor_id,
+            'exam_session_id' => $pengecualian->exam_session_id,
+        ];
+
+        $pengecualian->delete();
+
+        $logger->log('Menghapus pengecualian pengawas', $event, $info);
+
+        return back()->with('sukses', 'Pengecualian pengawas dihapus.');
     }
 
     /* ------------------------------------------------------------ Pembantu */
