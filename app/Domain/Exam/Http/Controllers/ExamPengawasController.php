@@ -639,7 +639,7 @@ class ExamPengawasController
             'event_id' => $event->id,
             'exam_session_id' => $sesi->id,
             'supervisor_id' => (int) $data['supervisor_id'],
-            'reason' => $data['reason'] ?: null,
+            'reason' => ($data['reason'] ?? null) ?: null,
             'created_by' => (int) $request->user()->id,
         ]);
 
@@ -676,7 +676,7 @@ class ExamPengawasController
                 ],
                 [
                     'school_id' => $event->school_id,
-                    'reason' => $data['reason'] ?: 'Libur / izin harian',
+                    'reason' => ($data['reason'] ?? null) ?: 'Libur / izin harian',
                     'created_by' => (int) $request->user()->id,
                 ],
             );
