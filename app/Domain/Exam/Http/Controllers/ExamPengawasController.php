@@ -554,8 +554,13 @@ class ExamPengawasController
     ): RedirectResponse {
         Gate::authorize('update', $event);
 
+        $data = $request->validate([
+            'mode' => ['nullable', 'in:cepat,expert'],
+        ]);
+        $mode = $data['mode'] ?? 'cepat';
+
         try {
-            $hasil = $service->tugaskanOtomatis($event, (int) $request->user()->id);
+            $hasil = $service->tugaskanOtomatis($event, (int) $request->user()->id, null, $mode);
         } catch (DomainException $e) {
             return back()->with('galat', $e->getMessage());
         }
@@ -564,6 +569,21 @@ class ExamPengawasController
 
         if ($hasil['penugasan'] === 0 && $hasil['dilewati'] === 0) {
             return back()->with('sukses', 'Setiap ruang sudah punya pengawas yang cukup.');
+        }
+
+        if ($mode === 'expert') {
+            $detik = number_format(($hasil['durasi_ms'] ?? 0) / 1000, 2, ',', '.');
+            $iterasi = $hasil['iterasi'] ?? 1;
+            $pesan = "Mode Expert selesai ({$detik} dtk, {$iterasi} percobaan): {$hasil['penugasan']} penugasan dibuat di {$hasil['ruang']} ruang.";
+
+            if ($hasil['dilewati'] > 0) {
+                return back()->with(
+                    'galat',
+                    $pesan." {$hasil['dilewati']} slot belum terpenuhi karena batas kuota/pengecualian/bentrok.",
+                );
+            }
+
+            return back()->with('sukses', $pesan.' Seluruh slot terpenuhi.');
         }
 
         $pesan = "{$hasil['penugasan']} penugasan dibuat di {$hasil['ruang']} ruang.";

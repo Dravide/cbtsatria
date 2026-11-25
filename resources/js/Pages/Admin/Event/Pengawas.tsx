@@ -194,6 +194,21 @@ export default function EventPengawas({
     })();
     const [tab, setTab] = useState<'jadwal' | 'ketersediaan' | 'rekap'>(tabAwal);
     const [modalPengecualian, setModalPengecualian] = useState(false);
+    const [modalOtomatis, setModalOtomatis] = useState(false);
+    const [prosesOtomatis, setProsesOtomatis] = useState<'cepat' | 'expert' | null>(null);
+
+    const jalankanOtomatis = (mode: 'cepat' | 'expert') => {
+        setProsesOtomatis(mode);
+        router.post(
+            `${jalur}/pengawas/otomatis`,
+            { mode },
+            {
+                preserveScroll: true,
+                onSuccess: () => setModalOtomatis(false),
+                onFinish: () => setProsesOtomatis(null),
+            },
+        );
+    };
 
     const resetPengawasan = async () => {
         const setuju = await konfirmasi({
@@ -242,11 +257,9 @@ export default function EventPengawas({
                         title={
                             baris.length === 0
                                 ? 'Belum ada sesi ber-ruang. Susun jadwalnya terlebih dahulu.'
-                                : 'Bagikan seluruh pengawas ke ruang yang belum terjaga'
+                                : 'Pilih Mode Cepat atau Mode Expert untuk menugaskan pengawas otomatis'
                         }
-                        onClick={() =>
-                            router.post(`${jalur}/pengawas/otomatis`, {}, { preserveScroll: true })
-                        }
+                        onClick={() => setModalOtomatis(true)}
                     >
                         Tugaskan otomatis
                     </Tombol>
@@ -393,6 +406,82 @@ export default function EventPengawas({
                 sesi_kolom={sesi_kolom}
                 padaTutup={() => setModalPengecualian(false)}
             />
+
+            <Modal
+                judul="Tugaskan pengawas otomatis"
+                terbuka={modalOtomatis}
+                padaTutup={() => {
+                    if (!prosesOtomatis) {
+                        setModalOtomatis(false);
+                    }
+                }}
+            >
+                <div className="space-y-3">
+                    {prosesOtomatis ? (
+                        <div className="rounded-wf border border-line bg-surface-2/50 px-4 py-6 text-center">
+                            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                            <p className="text-sm font-medium text-ink">
+                                {prosesOtomatis === 'expert'
+                                    ? 'Menyusun jadwal optimal (Mode Expert)...'
+                                    : 'Menugaskan pengawas (Mode Cepat)...'}
+                            </p>
+                            <p className="mt-1 text-xs text-ink-3">
+                                {prosesOtomatis === 'expert'
+                                    ? 'Mencari kombinasi terbaik dengan MRV, swap berantai, dan multi-iterasi agar seluruh slot terpenuhi.'
+                                    : 'Membagikan pengawas ke ruang yang tersedia.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-xs text-ink-2">
+                                Pilih mode penjadwalan otomatis yang sesuai dengan tingkat kepadatan
+                                kuota dan pengecualian event ini.
+                            </p>
+
+                            <div className="grid gap-2.5 sm:grid-cols-2">
+                                <button
+                                    type="button"
+                                    onClick={() => jalankanOtomatis('cepat')}
+                                    className="rounded-wf border border-line bg-surface p-3.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/20"
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-semibold text-ink">
+                                            Mode Cepat
+                                        </span>
+                                        <Chip nada="mute">Instan</Chip>
+                                    </div>
+                                    <p className="mt-1.5 text-xs leading-relaxed text-ink-2">
+                                        Penugasan satu lintasan berurutan per ruang. Cepat untuk
+                                        jadwal longgar dengan banyak pengawas tersedia.
+                                    </p>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => jalankanOtomatis('expert')}
+                                    className="rounded-wf border border-accent/60 bg-accent-soft/15 p-3.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/30"
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-semibold text-ink">
+                                            Mode Expert
+                                        </span>
+                                        <Chip nada="info">Optimal</Chip>
+                                    </div>
+                                    <p className="mt-1.5 text-xs leading-relaxed text-ink-2">
+                                        Pencarian mendalam (MRV, swap berantai, multi-iterasi) untuk
+                                        memaksimalkan keterpenuhan ruang saat kuota &amp;
+                                        pengecualian ketat. Proses sedikit lebih lama.
+                                    </p>
+                                </button>
+                            </div>
+
+                            <div className="flex justify-end pt-1">
+                                <Tombol onClick={() => setModalOtomatis(false)}>Batal</Tombol>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </Modal>
         </AdminLayout>
     );
 }

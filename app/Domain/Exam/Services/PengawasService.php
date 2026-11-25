@@ -378,35 +378,21 @@ class PengawasService
     }
 
     /**
-     * Tugaskan otomatis: SATU pengawas dulu untuk setiap ruang, baru ditambah
-     * yang kedua bila pengawasnya masih tersisa.
+     * Tugaskan otomatis: mode 'cepat' (greedy satu lintasan) atau 'expert'
+     * (solver CSP dengan MRV, chain-swap repair, dan multi-iterasi ala aSc Timetables).
      *
-     * ---------------------------------------------------------------------
-     * Mengapa dua putaran, bukan satu
-     * ---------------------------------------------------------------------
-     * Versi satu-putaran mengisi tiap ruang sampai DUA orang sebelum pindah ke
-     * ruang berikutnya. Pada sekolah yang pengawasnya lebih sedikit daripada
-     * dua kali jumlah ruangnya, hasilnya adalah bencana yang sunyi: delapan
-     * ruang pertama berisi dua orang, dan sisanya NOL. Ruang tanpa pengawas
-     * adalah ruang yang tidak bisa dibuka, jadi tombol "Tugaskan otomatis" -
-     * yang gunanya menolong - justru meninggalkan separuh ujian tanpa
-     * pengawas, dan Admin baru menyadarinya saat sesinya menolak dibuka.
-     *
-     * Putaran pertama memastikan setiap ruang punya SATU orang; putaran kedua
-     * baru menambah orang kedua selama calonnya masih ada. Dengan begitu
-     * keadaan terburuknya adalah "semua ruang satu pengawas" - dan itu keadaan
-     * yang sah, bukan kegagalan.
-     *
-     * Gilirannya diambil dari kepanitiaan berjabatan pengawas - itu daftar
-     * orang yang sekolah sudah tetapkan untuk mengawas. Yang bentrok
-     * DILEWATI, bukan dijadikan galat: seluruh gunanya tombol ini adalah
-     * menyelesaikan pekerjaan yang membosankan, dan berhenti pada benturan
-     * pertama berarti Admin tetap harus menugaskan sisanya satu per satu.
-     *
-     * @return array{ruang: int, penugasan: int, dilewati: int}
+     * @return array{ruang: int, penugasan: int, dilewati: int, total_slot?: int, terpenuhi?: int, iterasi?: int, durasi_ms?: int, mode?: string}
      */
-    public function tugaskanOtomatis(SchoolEvent $event, ?int $olehUserId = null, ?int $khususSesiId = null): array
-    {
+    public function tugaskanOtomatis(
+        SchoolEvent $event,
+        ?int $olehUserId = null,
+        ?int $khususSesiId = null,
+        string $mode = 'cepat',
+    ): array {
+        if ($mode === 'expert') {
+            return $this->tugaskanOtomatisExpert($event, $olehUserId, $khususSesiId);
+        }
+
         $calon = $this->calonPengawas($event);
 
         if ($calon === []) {
@@ -564,7 +550,688 @@ class PengawasService
             'ruang' => count($tersentuh),
             'penugasan' => $dibuat,
             'dilewati' => count($dilewati),
+            'mode' => 'cepat',
         ];
+    }
+
+    /**
+     * Mode Expert: solver penjadwalan mendalam (MRV + chain-swap ejection + multi-restart)
+     * untuk memaksimalkan keterpenuhan seluruh ruang sambil menghormati kuota,
+     * pengecualian, benturan waktu, dan pemerataan beban.
+     *
+     * @return array{ruang: int, penugasan: int, dilewati: int, total_slot: int, terpenuhi: int, iterasi: int, durasi_ms: int, mode: string}
+     */
+    private function tugaskanOtomatisExpert(
+        SchoolEvent $event,
+        ?int $olehUserId = null,
+        ?int $khususSesiId = null,
+    ): array {
+        $mulai = microtime(true);
+        $calon = $this->calonPengawas($event);
+
+        if ($calon === []) {
+            throw new DomainException(
+                'Belum ada panitia berjabatan pengawas. Tambahkan pengawas di laman Kepanitiaan terlebih dahulu.',
+            );
+        }
+
+        $aturan = $this->aturan($event);
+        $target = $aturan['target_per_ruang'];
+        $idUjianEvent = $event->exams()->pluck('id');
+
+        $idSesiTarget = ExamSession::query()
+            ->whereIn('exam_id', $idUjianEvent)
+            ->when($khususSesiId !== null, fn ($q) => $q->where('id', $khususSesiId))
+            ->pluck('id');
+
+        $ruangan = ExamSessionRoom::query()
+            ->whereIn('exam_session_id', $idSesiTarget)
+            ->with(['supervisors', 'session.exam'])
+            ->orderBy('exam_session_id')
+            ->orderBy('id')
+            ->get();
+
+        // Bangun daftar slot yang harus diisi: Tier 1 (pengawas pertama per ruang) lalu Tier 2.
+        $slots = [];
+        $sudahDiRuang = [];
+
+        foreach ([1, 2] as $tier) {
+            if ($tier > $target) {
+                continue;
+            }
+
+            foreach ($ruangan as $r) {
+                $aktif = $r->supervisors->where('status', 'aktif');
+                $sudahDiRuang[$r->id] = $aktif->pluck('supervisor_id')->map(fn ($v) => (int) $v)->all();
+
+                if ($aktif->count() >= $tier) {
+                    continue;
+                }
+
+                $sesi = $r->session;
+                $startTs = $sesi?->access_opens_at?->getTimestamp() ?? 0;
+                $endTs = $sesi?->hard_end_at?->getTimestamp() ?? ($startTs + 3600);
+
+                $slots[] = [
+                    'room_id' => (int) $r->id,
+                    'school_id' => (int) $r->school_id,
+                    'sesi_id' => (int) $r->exam_session_id,
+                    'tgl' => $sesi?->access_opens_at?->toDateString() ?? '',
+                    'start_ts' => $startTs,
+                    'end_ts' => $endTs,
+                    'subject_id' => (int) ($sesi?->exam?->subject_id ?? 0),
+                    'tier' => $tier,
+                ];
+            }
+        }
+
+        if ($slots === []) {
+            return [
+                'ruang' => 0,
+                'penugasan' => 0,
+                'dilewati' => 0,
+                'total_slot' => 0,
+                'terpenuhi' => 0,
+                'iterasi' => 0,
+                'durasi_ms' => (int) round((microtime(true) - $mulai) * 1000),
+                'mode' => 'expert',
+            ];
+        }
+
+        $calonIds = array_map(fn (User $u) => (int) $u->id, $calon);
+        $kuotaPerOrang = $this->kuotaPerOrang($event);
+        $pengecualian = $aturan['hormati_pengecualian'] ? $this->pengecualianEvent($event) : [];
+
+        // Beban awal seluruh event.
+        $bebanEventAwal = array_fill_keys($calonIds, 0);
+        $bebanHariAwal = array_fill_keys($calonIds, []);
+        $idSesiSemua = ExamSession::query()->whereIn('exam_id', $idUjianEvent)->pluck('id');
+        $semuaRuangEvent = ExamSessionRoom::query()
+            ->whereIn('exam_session_id', $idSesiSemua)
+            ->with(['session:id,access_opens_at', 'supervisors:id,exam_session_room_id,supervisor_id,status'])
+            ->get();
+
+        foreach ($semuaRuangEvent as $sr) {
+            $tgl = $sr->session?->access_opens_at?->toDateString() ?? '';
+            foreach ($sr->supervisors as $sup) {
+                $sid = (int) $sup->supervisor_id;
+                if ($sup->status !== 'aktif' || ! array_key_exists($sid, $bebanEventAwal)) {
+                    continue;
+                }
+                $bebanEventAwal[$sid]++;
+                if ($tgl !== '') {
+                    $bebanHariAwal[$sid][$tgl] = ($bebanHariAwal[$sid][$tgl] ?? 0) + 1;
+                }
+            }
+        }
+
+        // Interval sibuk bawaan lintas seluruh event sekolah agar tidak pernah bentrok waktu.
+        $sibukAwal = array_fill_keys($calonIds, []);
+        SupervisionAssignment::query()
+            ->whereIn('supervisor_id', $calonIds)
+            ->with('room.session:id,access_opens_at,hard_end_at')
+            ->get()
+            ->each(function (SupervisionAssignment $t) use (&$sibukAwal): void {
+                $sid = (int) $t->supervisor_id;
+                $s = $t->start_at?->getTimestamp() ?? $t->room?->session?->access_opens_at?->getTimestamp();
+                $e = $t->end_at?->getTimestamp() ?? $t->room?->session?->hard_end_at?->getTimestamp();
+                if ($s !== null && $e !== null) {
+                    $sibukAwal[$sid][] = [$s, $e];
+                }
+            });
+
+        // Penalti lunak: guru mapel & wali kelas.
+        $guruMapel = [];
+        if ($aturan['hindari_guru_mapel']) {
+            TeachingAssignment::query()
+                ->where('school_id', $event->school_id)
+                ->get(['subject_id', 'teacher_id'])
+                ->each(function ($ta) use (&$guruMapel): void {
+                    $guruMapel[(int) $ta->subject_id][(int) $ta->teacher_id] = true;
+                });
+        }
+
+        $waliKelasRuang = [];
+        if ($aturan['hindari_wali_kelas'] && $ruangan->isNotEmpty()) {
+            ExamParticipant::query()
+                ->join('event_participants', 'event_participants.id', '=', 'exam_participants.event_participant_id')
+                ->join('classes', 'classes.id', '=', 'event_participants.class_id')
+                ->whereIn('exam_participants.exam_session_room_id', $ruangan->pluck('id'))
+                ->where('exam_participants.status', ExamParticipant::STATUS_TERDAFTAR)
+                ->whereNotNull('classes.homeroom_teacher_id')
+                ->select('exam_participants.exam_session_room_id', 'classes.homeroom_teacher_id')
+                ->distinct()
+                ->get()
+                ->each(function ($row) use (&$waliKelasRuang): void {
+                    $waliKelasRuang[(int) $row->exam_session_room_id][(int) $row->homeroom_teacher_id] = true;
+                });
+        }
+
+        // Hitung kelayakan dasar tiap (slot, pengawas) & kelangkaan pengawas (scarcity).
+        $totalSlot = count($slots);
+        $layakDasar = [];
+        $kelangkaan = array_fill_keys($calonIds, 0);
+        $maksEventMap = [];
+
+        foreach ($calonIds as $sid) {
+            $maksEventMap[$sid] = $kuotaPerOrang[$sid] ?? $aturan['maks_per_event'];
+        }
+
+        foreach ($slots as $idx => $sl) {
+            $layakDasar[$idx] = [];
+            foreach ($calonIds as $sid) {
+                if (in_array($sid, $sudahDiRuang[$sl['room_id']] ?? [], true)) {
+                    continue;
+                }
+                if (isset($pengecualian["{$sl['sesi_id']}:{$sid}"])) {
+                    continue;
+                }
+                if ($this->adaIrisanInterval($sibukAwal[$sid], $sl['start_ts'], $sl['end_ts'])) {
+                    continue;
+                }
+                $layakDasar[$idx][] = $sid;
+                $kelangkaan[$sid]++;
+            }
+        }
+
+        $batasWaktu = 3.5; // detik maksimal pencarian
+        $maksIterasi = 60;
+        $terbaik = null;
+        $skorTerbaik = null;
+        $iterasi = 0;
+
+        for ($iter = 0; $iter < $maksIterasi; $iter++) {
+            if ($iter > 0 && (microtime(true) - $mulai) >= $batasWaktu) {
+                break;
+            }
+
+            $iterasi++;
+            $acak = $iter > 0;
+
+            $penugasan = array_fill(0, $totalSlot, null);
+            $bebanEvent = $bebanEventAwal;
+            $bebanHari = $bebanHariAwal;
+            $ruangTerisi = $sudahDiRuang;
+            $slotPerPengawas = array_fill_keys($calonIds, []);
+
+            // Tahap 1: Konstruktif MRV (slot paling sempit kandidatnya diisi lebih dulu), per tier.
+            foreach ([1, 2] as $tier) {
+                if ($tier > $target) {
+                    continue;
+                }
+
+                $belum = [];
+                foreach ($slots as $idx => $sl) {
+                    if ($sl['tier'] === $tier) {
+                        $belum[$idx] = true;
+                    }
+                }
+
+                while ($belum !== []) {
+                    $pilihSlot = null;
+                    $kandidatTerbaikSlot = [];
+                    $minKandidat = PHP_INT_MAX;
+
+                    foreach (array_keys($belum) as $idx) {
+                        $kand = $this->kandidatValidExpert(
+                            $idx,
+                            $slots,
+                            $layakDasar[$idx],
+                            $ruangTerisi,
+                            $bebanEvent,
+                            $bebanHari,
+                            $slotPerPengawas,
+                            $maksEventMap,
+                            $aturan['maks_per_hari'],
+                        );
+
+                        $jml = count($kand);
+                        if ($jml < $minKandidat || ($jml === $minKandidat && $acak && random_int(0, 1) === 1)) {
+                            $minKandidat = $jml;
+                            $pilihSlot = $idx;
+                            $kandidatTerbaikSlot = $kand;
+                            if ($jml === 0) {
+                                break;
+                            }
+                        }
+                    }
+
+                    unset($belum[$pilihSlot]);
+
+                    if ($kandidatTerbaikSlot === []) {
+                        continue;
+                    }
+
+                    // Pilih kandidat dengan penalti lunak terkecil, lalu kelangkaan / beban terendah.
+                    usort($kandidatTerbaikSlot, function (int $a, int $b) use (
+                        $pilihSlot,
+                        $slots,
+                        $aturan,
+                        $waliKelasRuang,
+                        $guruMapel,
+                        $bebanEvent,
+                        $kelangkaan,
+                        $acak,
+                    ): int {
+                        $sl = $slots[$pilihSlot];
+                        $penA = $this->penaltiLunak($sl, $a, $aturan, $waliKelasRuang, $guruMapel);
+                        $penB = $this->penaltiLunak($sl, $b, $aturan, $waliKelasRuang, $guruMapel);
+                        if ($penA !== $penB) {
+                            return $penA <=> $penB;
+                        }
+
+                        if ($aturan['prioritas'] === 'merata') {
+                            $bebA = $bebanEvent[$a];
+                            $bebB = $bebanEvent[$b];
+                            if ($bebA !== $bebB) {
+                                return $bebA <=> $bebB;
+                            }
+                        }
+
+                        // Prioritaskan pengawas yang lebih langka ketersediaannya agar tidak tersisa di akhir.
+                        if ($kelangkaan[$a] !== $kelangkaan[$b]) {
+                            return $kelangkaan[$a] <=> $kelangkaan[$b];
+                        }
+
+                        return $acak ? random_int(-1, 1) : ($a <=> $b);
+                    });
+
+                    $chosen = $kandidatTerbaikSlot[0];
+                    $this->pasangSlotExpert(
+                        $pilihSlot,
+                        $chosen,
+                        $slots,
+                        $penugasan,
+                        $bebanEvent,
+                        $bebanHari,
+                        $ruangTerisi,
+                        $slotPerPengawas,
+                    );
+                }
+            }
+
+            // Tahap 2: Perbaikan augmenting-path / chain-swap (ejection ala aSc Timetables)
+            // untuk slot yang masih kosong.
+            $masihKosong = true;
+            $putaranRepair = 0;
+
+            while ($masihKosong && $putaranRepair < 5) {
+                $putaranRepair++;
+                $masihKosong = false;
+
+                foreach ($slots as $idx => $sl) {
+                    if ($penugasan[$idx] !== null) {
+                        continue;
+                    }
+
+                    if ($this->cobaPerbaikiSlotExpert(
+                        $idx,
+                        $slots,
+                        $layakDasar,
+                        $penugasan,
+                        $bebanEvent,
+                        $bebanHari,
+                        $ruangTerisi,
+                        $slotPerPengawas,
+                        $maksEventMap,
+                        $aturan['maks_per_hari'],
+                        $acak,
+                    )) {
+                        $masihKosong = true;
+                    }
+                }
+            }
+
+            // Evaluasi kualitas solusi: (tier1 terisi, total terisi, -penalti lunak, -sebaran beban).
+            $tier1Terisi = 0;
+            $totalTerisi = 0;
+            $totalPenalti = 0;
+
+            foreach ($slots as $idx => $sl) {
+                $sid = $penugasan[$idx];
+                if ($sid === null) {
+                    continue;
+                }
+                $totalTerisi++;
+                if ($sl['tier'] === 1) {
+                    $tier1Terisi++;
+                }
+                $totalPenalti += $this->penaltiLunak($sl, $sid, $aturan, $waliKelasRuang, $guruMapel);
+            }
+
+            $sebaran = $bebanEvent === [] ? 0 : (max($bebanEvent) - min($bebanEvent));
+            $skor = [$tier1Terisi, $totalTerisi, -$totalPenalti, -$sebaran];
+
+            if ($skorTerbaik === null || $skor > $skorTerbaik) {
+                $skorTerbaik = $skor;
+                $terbaik = $penugasan;
+            }
+
+            // Berhenti lebih cepat jika sudah 100% terpenuhi dengan penalti 0 dan beban merata.
+            if ($totalTerisi === $totalSlot && $totalPenalti === 0 && $sebaran <= 1) {
+                break;
+            }
+        }
+
+        $dibuat = 0;
+        $tersentuh = [];
+
+        DB::transaction(function () use ($slots, $terbaik, $olehUserId, &$dibuat, &$tersentuh): void {
+            foreach ($slots as $idx => $sl) {
+                $sid = $terbaik[$idx] ?? null;
+                if ($sid === null) {
+                    continue;
+                }
+
+                $tugas = SupervisionAssignment::query()->firstOrCreate(
+                    [
+                        'school_id' => $sl['school_id'],
+                        'exam_session_room_id' => $sl['room_id'],
+                        'supervisor_id' => $sid,
+                    ],
+                    [
+                        'assigned_by' => $olehUserId,
+                        'start_at' => null,
+                        'end_at' => null,
+                        'status' => 'aktif',
+                    ],
+                );
+
+                if ($tugas->wasRecentlyCreated) {
+                    $dibuat++;
+                    $tersentuh[$sl['room_id']] = true;
+                }
+            }
+        });
+
+        $durasiMs = (int) round((microtime(true) - $mulai) * 1000);
+        $belumTerpenuhi = $totalSlot - $dibuat;
+
+        return [
+            'ruang' => count($tersentuh),
+            'penugasan' => $dibuat,
+            'dilewati' => max(0, $belumTerpenuhi),
+            'total_slot' => $totalSlot,
+            'terpenuhi' => $dibuat,
+            'iterasi' => $iterasi,
+            'durasi_ms' => $durasiMs,
+            'mode' => 'expert',
+        ];
+    }
+
+    /**
+     * @param  array<int, array{0: int, 1: int}>  $intervals
+     */
+    private function adaIrisanInterval(array $intervals, int $start, int $end): bool
+    {
+        foreach ($intervals as [$s, $e]) {
+            if ($start < $e && $s < $end) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $slot
+     * @param  array<string, mixed>  $aturan
+     * @param  array<int, array<int, bool>>  $waliKelasRuang
+     * @param  array<int, array<int, bool>>  $guruMapel
+     */
+    private function penaltiLunak(
+        array $slot,
+        int $supId,
+        array $aturan,
+        array $waliKelasRuang,
+        array $guruMapel,
+    ): int {
+        $p = 0;
+        if ($aturan['hindari_wali_kelas'] && isset($waliKelasRuang[$slot['room_id']][$supId])) {
+            $p++;
+        }
+        if ($aturan['hindari_guru_mapel'] && $slot['subject_id'] > 0 && isset($guruMapel[$slot['subject_id']][$supId])) {
+            $p++;
+        }
+
+        return $p;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $slots
+     * @param  array<int, int>  $kandidatDasar
+     * @param  array<int, array<int, int>>  $ruangTerisi
+     * @param  array<int, int>  $bebanEvent
+     * @param  array<int, array<string, int>>  $bebanHari
+     * @param  array<int, array<int, int>>  $slotPerPengawas
+     * @param  array<int, int>  $maksEventMap
+     * @return array<int, int>
+     */
+    private function kandidatValidExpert(
+        int $slotIdx,
+        array $slots,
+        array $kandidatDasar,
+        array $ruangTerisi,
+        array $bebanEvent,
+        array $bebanHari,
+        array $slotPerPengawas,
+        array $maksEventMap,
+        int $maksHari,
+    ): array {
+        $sl = $slots[$slotIdx];
+        $hasil = [];
+
+        foreach ($kandidatDasar as $sid) {
+            if (in_array($sid, $ruangTerisi[$sl['room_id']] ?? [], true)) {
+                continue;
+            }
+
+            $maksEvent = $maksEventMap[$sid] ?? 0;
+            if ($maksEvent > 0 && ($bebanEvent[$sid] ?? 0) >= $maksEvent) {
+                continue;
+            }
+
+            if ($maksHari > 0 && $sl['tgl'] !== '' && ($bebanHari[$sid][$sl['tgl']] ?? 0) >= $maksHari) {
+                continue;
+            }
+
+            $bentrok = false;
+            foreach ($slotPerPengawas[$sid] ?? [] as $lainIdx) {
+                $lain = $slots[$lainIdx];
+                if ($sl['start_ts'] < $lain['end_ts'] && $lain['start_ts'] < $sl['end_ts']) {
+                    $bentrok = true;
+                    break;
+                }
+            }
+
+            if (! $bentrok) {
+                $hasil[] = $sid;
+            }
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $slots
+     * @param  array<int, int|null>  $penugasan
+     * @param  array<int, int>  $bebanEvent
+     * @param  array<int, array<string, int>>  $bebanHari
+     * @param  array<int, array<int, int>>  $ruangTerisi
+     * @param  array<int, array<int, int>>  $slotPerPengawas
+     */
+    private function pasangSlotExpert(
+        int $slotIdx,
+        int $sid,
+        array $slots,
+        array &$penugasan,
+        array &$bebanEvent,
+        array &$bebanHari,
+        array &$ruangTerisi,
+        array &$slotPerPengawas,
+    ): void {
+        $sl = $slots[$slotIdx];
+        $penugasan[$slotIdx] = $sid;
+        $bebanEvent[$sid] = ($bebanEvent[$sid] ?? 0) + 1;
+        if ($sl['tgl'] !== '') {
+            $bebanHari[$sid][$sl['tgl']] = ($bebanHari[$sid][$sl['tgl']] ?? 0) + 1;
+        }
+        $ruangTerisi[$sl['room_id']][] = $sid;
+        $slotPerPengawas[$sid][] = $slotIdx;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $slots
+     * @param  array<int, int|null>  $penugasan
+     * @param  array<int, int>  $bebanEvent
+     * @param  array<int, array<string, int>>  $bebanHari
+     * @param  array<int, array<int, int>>  $ruangTerisi
+     * @param  array<int, array<int, int>>  $slotPerPengawas
+     */
+    private function lepasSlotExpert(
+        int $slotIdx,
+        array $slots,
+        array &$penugasan,
+        array &$bebanEvent,
+        array &$bebanHari,
+        array &$ruangTerisi,
+        array &$slotPerPengawas,
+    ): void {
+        $sid = $penugasan[$slotIdx];
+        if ($sid === null) {
+            return;
+        }
+        $sl = $slots[$slotIdx];
+        $penugasan[$slotIdx] = null;
+        $bebanEvent[$sid] = max(0, ($bebanEvent[$sid] ?? 1) - 1);
+        if ($sl['tgl'] !== '') {
+            $bebanHari[$sid][$sl['tgl']] = max(0, ($bebanHari[$sid][$sl['tgl']] ?? 1) - 1);
+        }
+        $ruangTerisi[$sl['room_id']] = array_values(array_filter(
+            $ruangTerisi[$sl['room_id']] ?? [],
+            fn (int $x) => $x !== $sid,
+        ));
+        $slotPerPengawas[$sid] = array_values(array_filter(
+            $slotPerPengawas[$sid] ?? [],
+            fn (int $x) => $x !== $slotIdx,
+        ));
+    }
+
+    /**
+     * Coba isi satu slot kosong dengan memindahkan 1 slot penghalang milik pengawas
+     * yang layak ke pengawas lain yang bebas (ejection / swap berantai).
+     *
+     * @param  array<int, array<string, mixed>>  $slots
+     * @param  array<int, array<int, int>>  $layakDasar
+     * @param  array<int, int|null>  $penugasan
+     * @param  array<int, int>  $bebanEvent
+     * @param  array<int, array<string, int>>  $bebanHari
+     * @param  array<int, array<int, int>>  $ruangTerisi
+     * @param  array<int, array<int, int>>  $slotPerPengawas
+     * @param  array<int, int>  $maksEventMap
+     */
+    private function cobaPerbaikiSlotExpert(
+        int $slotIdx,
+        array $slots,
+        array $layakDasar,
+        array &$penugasan,
+        array &$bebanEvent,
+        array &$bebanHari,
+        array &$ruangTerisi,
+        array &$slotPerPengawas,
+        array $maksEventMap,
+        int $maksHari,
+        bool $acak,
+    ): bool {
+        $sl = $slots[$slotIdx];
+        $kandidat = $layakDasar[$slotIdx];
+
+        if ($acak) {
+            shuffle($kandidat);
+        }
+
+        foreach ($kandidat as $sid) {
+            if (in_array($sid, $ruangTerisi[$sl['room_id']] ?? [], true)) {
+                continue;
+            }
+
+            // Cari slot milik $sid dalam run ini yang menghalangi $sid masuk ke $slotIdx.
+            $penghalang = [];
+            foreach ($slotPerPengawas[$sid] ?? [] as $milikIdx) {
+                $milik = $slots[$milikIdx];
+                if ($sl['start_ts'] < $milik['end_ts'] && $milik['start_ts'] < $sl['end_ts']) {
+                    $penghalang[] = $milikIdx;
+                }
+            }
+
+            if ($penghalang === []) {
+                $maksEvent = $maksEventMap[$sid] ?? 0;
+                $penuhHari = $maksHari > 0 && $sl['tgl'] !== '' && ($bebanHari[$sid][$sl['tgl']] ?? 0) >= $maksHari;
+                $penuhEvent = $maksEvent > 0 && ($bebanEvent[$sid] ?? 0) >= $maksEvent;
+
+                if ($penuhHari) {
+                    foreach ($slotPerPengawas[$sid] ?? [] as $milikIdx) {
+                        if ($slots[$milikIdx]['tgl'] === $sl['tgl']) {
+                            $penghalang[] = $milikIdx;
+                        }
+                    }
+                } elseif ($penuhEvent) {
+                    $penghalang = $slotPerPengawas[$sid] ?? [];
+                }
+            }
+
+            foreach ($penghalang as $pindahIdx) {
+                // Lepas sementara $pindahIdx dari $sid, lalu cek apakah $pindahIdx bisa pindah ke orang lain
+                // dan $sid kini valid untuk $slotIdx.
+                $this->lepasSlotExpert($pindahIdx, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+
+                $sidValidSekarang = in_array(
+                    $sid,
+                    $this->kandidatValidExpert(
+                        $slotIdx,
+                        $slots,
+                        [$sid],
+                        $ruangTerisi,
+                        $bebanEvent,
+                        $bebanHari,
+                        $slotPerPengawas,
+                        $maksEventMap,
+                        $maksHari,
+                    ),
+                    true,
+                );
+
+                if ($sidValidSekarang) {
+                    $pengganti = array_values(array_filter(
+                        $this->kandidatValidExpert(
+                            $pindahIdx,
+                            $slots,
+                            $layakDasar[$pindahIdx],
+                            $ruangTerisi,
+                            $bebanEvent,
+                            $bebanHari,
+                            $slotPerPengawas,
+                            $maksEventMap,
+                            $maksHari,
+                        ),
+                        fn (int $x) => $x !== $sid,
+                    ));
+
+                    if ($pengganti !== []) {
+                        $penggantiId = $acak ? $pengganti[array_rand($pengganti)] : $pengganti[0];
+                        $this->pasangSlotExpert($pindahIdx, $penggantiId, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+                        $this->pasangSlotExpert($slotIdx, $sid, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+
+                        return true;
+                    }
+                }
+
+                // Kembalikan bila tidak berhasil.
+                $this->pasangSlotExpert($pindahIdx, $sid, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+            }
+        }
+
+        return false;
     }
 
     /**
