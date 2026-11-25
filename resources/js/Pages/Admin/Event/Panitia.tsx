@@ -81,12 +81,93 @@ type Props = {
     jabatan: string[];
 };
 
+const adalahPengawas = (p: Pick<Baris, 'jabatan'>) =>
+    p.jabatan.toLowerCase().includes('pengawas');
+
 export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: Props) {
+    const [tab, setTab] = useState<'panitia' | 'pengawas'>('panitia');
     const [panel, setPanel] = useState<'tutup' | 'tambah' | 'massal' | number>('tutup');
+
+    const daftarPanitia = panitia.filter((p) => !adalahPengawas(p));
+    const daftarPengawas = panitia.filter(adalahPengawas);
+    const barisAktif = tab === 'pengawas' ? daftarPengawas : daftarPanitia;
 
     const sedangDiubah = typeof panel === 'number' ? panitia.find((p) => p.id === panel) : undefined;
 
     const tutup = () => setPanel('tutup');
+    const arahkanTab = (jabatanTersimpan: string) => {
+        setTab(jabatanTersimpan.toLowerCase().includes('pengawas') ? 'pengawas' : 'panitia');
+    };
+
+    const kolomKodePengawas = {
+        // Kolom ini menjawab satu pertanyaan yang ditanyakan
+        // Admin pada hari-H: "pengawas ini bisa masuk atau
+        // tidak". Karena itu yang ditampilkan adalah KODE-nya,
+        // dan kode itu SELALU terlihat - ia dicetak menjadi
+        // kartu pengawas, jadi Admin harus membacanya kapan
+        // saja, bukan sekali pada respons penerbitannya.
+        judul: 'Kode pengawas',
+        kelas: 'w-52',
+        render: (b: Baris) => {
+            // Tombolnya tidak dirender untuk orang yang pasti
+            // ditolak server: tanpa akun, ia tidak bisa
+            // ditugaskan ke ruang mana pun sehingga kodenya
+            // tidak akan punya pintu. Server tetap menolaknya
+            // sendiri - layar hanya tidak menjanjikan yang
+            // pasti gagal.
+            const bisa = b.akun !== null && adalahPengawas(b);
+
+            if (!bisa) {
+                return <span className="text-xs text-ink-3">&mdash;</span>;
+            }
+
+            return (
+                <span className="flex flex-col gap-1.5">
+                    {b.kode ? (
+                        <KodeTeks kode={b.kode} />
+                    ) : (
+                        <Chip nada="mute">belum ada</Chip>
+                    )}
+                    <span className="flex flex-wrap items-center gap-1.5">
+                        <Tombol
+                            onClick={async () => {
+                                // Menekan ini MENGGANTI kode,
+                                // dan kartu yang sudah tercetak
+                                // berhenti berlaku. Karena itu
+                                // konfirmasinya hanya muncul
+                                // bila kodenya memang sudah ada.
+                                if (b.kode) {
+                                    const setuju = await konfirmasi({
+                                        judul: `Ganti kode pengawas ${b.nama}?`,
+                                        pesan: 'Kode lama langsung berhenti berlaku, dan kartu yang sudah tercetak harus dibuat ulang.',
+                                        labelYa: 'Ganti kode',
+                                        nada: 'bahaya',
+                                    });
+
+                                    if (!setuju) {
+                                        return;
+                                    }
+                                }
+
+                                router.post(
+                                    `/admin/events/${event.id}/panitia/${b.id}/kode`,
+                                    {},
+                                    { preserveScroll: true },
+                                );
+                            }}
+                        >
+                            {b.kode ? 'Terbitkan ulang' : 'Terbitkan kode'}
+                        </Tombol>
+                        {b.kode && b.kode_terbit && (
+                            <span className="text-[11px] text-ink-3">
+                                terbit {b.kode_terbit}
+                            </span>
+                        )}
+                    </span>
+                </span>
+            );
+        },
+    };
 
     return (
         <AdminLayout
@@ -110,33 +191,33 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                     >
                         Cetak kartu
                     </TombolTautan>
-                    {/* Terbitkan kode massal bersebelahan dengan "Tambahkan
-                        massal": keduanya menjawab keadaan yang sama - puluhan
-                        pengawas yang harus disiapkan sebelum hari ujian.
+                    {/* Terbitkan kode massal hanya relevan untuk tab pengawas.
                         Tombolnya TIDAK mengganti kode yang sudah ada; itu
                         dikatakan di konfirmasinya, karena nama "terbitkan
                         semua" mudah dibaca sebagai "ganti semua". */}
-                    <Tombol
-                        onClick={async () => {
-                            const setuju = await konfirmasi({
-                                judul: 'Terbitkan kode untuk pengawas yang belum punya?',
-                                pesan: 'Kode yang sudah ada TIDAK diubah, sehingga kartu yang sudah dicetak tetap berlaku.',
-                                labelYa: 'Terbitkan kode',
-                            });
+                    {tab === 'pengawas' && (
+                        <Tombol
+                            onClick={async () => {
+                                const setuju = await konfirmasi({
+                                    judul: 'Terbitkan kode untuk pengawas yang belum punya?',
+                                    pesan: 'Kode yang sudah ada TIDAK diubah, sehingga kartu yang sudah dicetak tetap berlaku.',
+                                    labelYa: 'Terbitkan kode',
+                                });
 
-                            if (!setuju) {
-                                return;
-                            }
+                                if (!setuju) {
+                                    return;
+                                }
 
-                            router.post(
-                                `/admin/events/${event.id}/panitia/kode-massal`,
-                                {},
-                                { preserveScroll: true },
-                            );
-                        }}
-                    >
-                        Terbitkan kode massal
-                    </Tombol>
+                                router.post(
+                                    `/admin/events/${event.id}/panitia/kode-massal`,
+                                    {},
+                                    { preserveScroll: true },
+                                );
+                            }}
+                        >
+                            Terbitkan kode massal
+                        </Tombol>
+                    )}
                     <span className="mx-1 h-6 w-px self-center bg-line" aria-hidden />
                     {/* Massal ada di header, di samping satu-per-satu, supaya
                         panelnya bisa dibuka tanpa lebih dulu menempuh jalur
@@ -145,7 +226,7 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                         Tambahkan massal
                     </Tombol>
                     <Tombol nada="pri" onClick={() => setPanel('tambah')}>
-                        Tambah panitia
+                        {tab === 'pengawas' ? 'Tambah pengawas' : 'Tambah panitia'}
                     </Tombol>
                 </span>
             }
@@ -153,23 +234,49 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
             <Head title={`Kepanitiaan · ${event.nama}`} />
 
             <div className="mb-3 grid gap-3 sm:grid-cols-3">
-                <KPI label="Panitia" nilai={panitia.length} />
-                <KPI
-                    label="Pengawas"
-                    nilai={
-                        panitia.filter((p) => p.jabatan.toLowerCase().includes('pengawas')).length
-                    }
-                />
+                <KPI label="Panitia" nilai={daftarPanitia.length} />
+                <KPI label="Pengawas" nilai={daftarPengawas.length} />
                 <KPI
                     label="Cakupan ruang"
                     nilai={panitia.filter((p) => p.cakupan_kode === 'ruang').length}
                 />
             </div>
 
+            <div className="mb-3 flex flex-wrap gap-1 border-b border-line" role="tablist">
+                {(
+                    [
+                        ['panitia', `Panitia (${daftarPanitia.length})`],
+                        ['pengawas', `Pengawas (${daftarPengawas.length})`],
+                    ] as const
+                ).map(([kunci, label]) => (
+                    <button
+                        key={kunci}
+                        type="button"
+                        role="tab"
+                        aria-selected={tab === kunci}
+                        onClick={() => setTab(kunci)}
+                        className={
+                            '-mb-px border-b-2 px-3 py-2 text-xs font-medium transition-colors ' +
+                            (tab === kunci
+                                ? 'border-accent text-accent'
+                                : 'border-transparent text-ink-3 hover:text-ink')
+                        }
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+
             <Tabel<Baris>
-                hal={{ data: panitia, total: panitia.length }}
+                hal={{ data: barisAktif, total: barisAktif.length }}
                 kunci={(b) => b.id}
-                kosong="Belum ada panitia. Event tanpa panitia tidak bisa mencapai status siap."
+                kosong={
+                    tab === 'pengawas'
+                        ? 'Belum ada pengawas. Tambahkan anggota dengan jabatan yang memuat "pengawas" agar bisa ditugaskan ke ruang ujian.'
+                        : panitia.length === 0
+                          ? 'Belum ada panitia. Event tanpa panitia tidak bisa mencapai status siap.'
+                          : 'Belum ada panitia non-pengawas di event ini.'
+                }
                 kolom={[
                     {
                         judul: 'Nama',
@@ -229,76 +336,7 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                         kelas: 'w-32',
                         render: (b) => <Chip nada={nadaStatus(b.status)}>{b.status}</Chip>,
                     },
-                    {
-                        // Kolom ini menjawab satu pertanyaan yang ditanyakan
-                        // Admin pada hari-H: "pengawas ini bisa masuk atau
-                        // tidak". Karena itu yang ditampilkan adalah KODE-nya,
-                        // dan kode itu SELALU terlihat - ia dicetak menjadi
-                        // kartu pengawas, jadi Admin harus membacanya kapan
-                        // saja, bukan sekali pada respons penerbitannya.
-                        judul: 'Kode pengawas',
-                        kelas: 'w-52',
-                        render: (b) => {
-                            // Tombolnya tidak dirender untuk orang yang pasti
-                            // ditolak server: tanpa akun, ia tidak bisa
-                            // ditugaskan ke ruang mana pun sehingga kodenya
-                            // tidak akan punya pintu. Server tetap menolaknya
-                            // sendiri - layar hanya tidak menjanjikan yang
-                            // pasti gagal.
-                            const bisa =
-                                b.akun !== null && b.jabatan.toLowerCase().includes('pengawas');
-
-                            if (!bisa) {
-                                return <span className="text-xs text-ink-3">&mdash;</span>;
-                            }
-
-                            return (
-                                <span className="flex flex-col gap-1.5">
-                                    {b.kode ? (
-                                        <KodeTeks kode={b.kode} />
-                                    ) : (
-                                        <Chip nada="mute">belum ada</Chip>
-                                    )}
-                                    <span className="flex flex-wrap items-center gap-1.5">
-                                        <Tombol
-                                            onClick={async () => {
-                                                // Menekan ini MENGGANTI kode,
-                                                // dan kartu yang sudah tercetak
-                                                // berhenti berlaku. Karena itu
-                                                // konfirmasinya hanya muncul
-                                                // bila kodenya memang sudah ada.
-                                                if (b.kode) {
-                                                    const setuju = await konfirmasi({
-                                                        judul: `Ganti kode pengawas ${b.nama}?`,
-                                                        pesan: 'Kode lama langsung berhenti berlaku, dan kartu yang sudah tercetak harus dibuat ulang.',
-                                                        labelYa: 'Ganti kode',
-                                                        nada: 'bahaya',
-                                                    });
-
-                                                    if (!setuju) {
-                                                        return;
-                                                    }
-                                                }
-
-                                                router.post(
-                                                    `/admin/events/${event.id}/panitia/${b.id}/kode`,
-                                                    {},
-                                                    { preserveScroll: true },
-                                                );
-                                            }}
-                                        >
-                                            {b.kode ? 'Terbitkan ulang' : 'Terbitkan kode'}
-                                        </Tombol>
-                                        {b.kode && b.kode_terbit && (
-                                            <span className="text-[11px] text-ink-3">
-                                                terbit {b.kode_terbit}
-                                            </span>
-                                        )}
-                                    </span>
-                                </span>
-                            );
-                        },
-                    },
+                    ...(tab === 'pengawas' ? [kolomKodePengawas] : []),
                     {
                         judul: '',
                         kelas: 'w-40',
@@ -341,17 +379,19 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                 </Inbox>
             </div>
 
-            <div className="mt-3">
-                <Inbox>
-                    <strong>Kode pengawas</strong> diketik pengawasnya di pintu ruang
-                    (<code className="font-mono text-[11px]">/p/&lt;slug&gt;</code>). Tautan di
-                    daun pintu menentukan <em>ruang</em>; kode ini menentukan <em>siapa</em> yang
-                    masuk, dan hanya berlaku bila orangnya ditugaskan di ruang-sesi itu.
-                    Kodenya selalu terlihat di tabel ini, jadi bisa langsung dipakai untuk membuat
-                    kartu pengawas. Menekan &ldquo;Terbitkan ulang&rdquo; menggantinya, kode
-                    lama langsung berhenti berlaku.
-                </Inbox>
-            </div>
+            {tab === 'pengawas' && (
+                <div className="mt-3">
+                    <Inbox>
+                        <strong>Kode pengawas</strong> diketik pengawasnya di pintu ruang
+                        (<code className="font-mono text-[11px]">/p/&lt;slug&gt;</code>). Tautan di
+                        daun pintu menentukan <em>ruang</em>; kode ini menentukan <em>siapa</em> yang
+                        masuk, dan hanya berlaku bila orangnya ditugaskan di ruang-sesi itu.
+                        Kodenya selalu terlihat di tabel ini, jadi bisa langsung dipakai untuk membuat
+                        kartu pengawas. Menekan &ldquo;Terbitkan ulang&rdquo; menggantinya, kode
+                        lama langsung berhenti berlaku.
+                    </Inbox>
+                </div>
+            )}
 
             {/* Cabang render SENDIRI, bukan berbagi simpul dengan
                 `PanelPanitia`. Kalau keduanya menempati simpul yang sama,
@@ -361,12 +401,14 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                 ini. Dua komponen berbeda = dua simpul berbeda. */}
             {panel === 'massal' && (
                 <PanelMassal
-                    key="massal"
+                    key={`massal-${tab}`}
                     event={event}
                     akun={akun}
                     ruang={ruang}
                     jabatan={jabatan}
                     panitia={panitia}
+                    jabatanBawaan={tab === 'pengawas' ? 'pengawas' : ''}
+                    padaSimpan={arahkanTab}
                     padaTutup={tutup}
                 />
             )}
@@ -378,12 +420,14 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                     // tanpa menutupnya memakai ULANG komponen yang sama, dan
                     // `useForm` tidak pernah menyetel ulang nilai awalnya -
                     // yang tersimpan lalu adalah isi panitia yang pertama.
-                    key={typeof panel === 'number' ? panel : 'tambah'}
+                    key={typeof panel === 'number' ? panel : `tambah-${tab}`}
                     event={event}
                     panitia={sedangDiubah}
                     akun={akun}
                     ruang={ruang}
                     jabatan={jabatan}
+                    jabatanBawaan={tab === 'pengawas' ? 'pengawas' : ''}
+                    padaSimpan={arahkanTab}
                     padaTutup={tutup}
                 />
             )}
@@ -397,6 +441,8 @@ function PanelPanitia({
     akun,
     ruang,
     jabatan,
+    jabatanBawaan,
+    padaSimpan,
     padaTutup,
 }: {
     event: Props['event'];
@@ -404,13 +450,15 @@ function PanelPanitia({
     akun: Props['akun'];
     ruang: Props['ruang'];
     jabatan: string[];
+    jabatanBawaan: string;
+    padaSimpan: (jabatanTersimpan: string) => void;
     padaTutup: () => void;
 }) {
     const ubah = panitia !== undefined;
 
     const { data, setData, processing, errors, reset } = useForm({
         name: panitia?.nama ?? '',
-        position: panitia?.jabatan ?? '',
+        position: panitia?.jabatan ?? jabatanBawaan,
         user_id: null as number | null,
         email: panitia?.email ?? '',
         phone: panitia?.phone ?? '',
@@ -446,6 +494,7 @@ function PanelPanitia({
         const opsi = {
             preserveScroll: true,
             onSuccess: () => {
+                padaSimpan(isi.position);
                 reset();
                 padaTutup();
             },
@@ -458,8 +507,14 @@ function PanelPanitia({
         }
     };
 
+    const judulModal = ubah
+        ? `Ubah ${panitia!.nama}`
+        : jabatanBawaan === 'pengawas'
+          ? 'Tambah pengawas'
+          : 'Tambah panitia';
+
     return (
-        <Modal judul={ubah ? `Ubah ${panitia!.nama}` : 'Tambah panitia'} terbuka padaTutup={padaTutup}>
+        <Modal judul={judulModal} terbuka padaTutup={padaTutup}>
             <form onSubmit={kirim} className="space-y-3">
                 <Field
                     label="Akun"
@@ -630,6 +685,8 @@ function PanelMassal({
     ruang,
     jabatan,
     panitia,
+    jabatanBawaan,
+    padaSimpan,
     padaTutup,
 }: {
     event: Props['event'];
@@ -637,11 +694,13 @@ function PanelMassal({
     ruang: Props['ruang'];
     jabatan: string[];
     panitia: Baris[];
+    jabatanBawaan: string;
+    padaSimpan: (jabatanTersimpan: string) => void;
     padaTutup: () => void;
 }) {
     const { data, setData, processing, errors, reset } = useForm({
         user_id: [] as number[],
-        position: '',
+        position: jabatanBawaan,
         scope: 'event',
         ruang_id: [] as number[],
     });
@@ -670,6 +729,7 @@ function PanelMassal({
         router.post(`/admin/events/${event.id}/panitia/massal`, data, {
             preserveScroll: true,
             onSuccess: () => {
+                padaSimpan(data.position);
                 reset();
                 padaTutup();
             },
@@ -683,7 +743,13 @@ function PanelMassal({
     const semuaSudah = tampil.length > 0 && tampil.every((a) => sudah.has(a.username));
 
     return (
-        <Modal judul="Tambah panitia massal" terbuka padaTutup={padaTutup}>
+        <Modal
+            judul={
+                jabatanBawaan === 'pengawas' ? 'Tambah pengawas massal' : 'Tambah panitia massal'
+            }
+            terbuka
+            padaTutup={padaTutup}
+        >
             <form onSubmit={kirim} className="space-y-3">
                 <Inbox>
                     Nama diambil dari akunnya, jadi tidak ada kolom nama. Satu jabatan dan satu
