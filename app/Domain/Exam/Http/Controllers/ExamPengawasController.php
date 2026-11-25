@@ -77,33 +77,6 @@ class ExamPengawasController
             ->orderBy('id')
             ->get();
 
-        // Tampilkan hanya baris untuk sesi yang SUDAH punya peserta terdaftar.
-        // Laman ini menugaskan pengawas ke ruang yang benar-benar akan dipakai;
-        // sesi yang belum punya peserta sama sekali belum membutuhkan pengawas,
-        // dan menampilkan jadwalnya sekarang berarti menawarkan penugasan untuk
-        // ujian yang tidak menjalankan siapa pun - keramaian yang menenggelamkan
-        // sesi yang justru membutuhkan perhatian.
-        //
-        // Kelayakannya dihitung per UJIAN, bukan per sesi: peserta tergabung ke
-        // ujian, dan satu ujian biasanya punya satu sesi (sesi susulan dikecualikan
-        // terpisah). Ujian inilah yang dijadwalkan - sesi sebenarnya gelombangnya.
-        $idUjianBerpeserta = ExamParticipant::query()
-            ->whereIn('exam_id', $event->exams()->pluck('id'))
-            ->where('status', ExamParticipant::STATUS_TERDAFTAR)
-            ->distinct()
-            ->pluck('exam_id');
-
-        // Baris SESI-TANPA-RUANG dihitung terhadap himpunan ruangan SEBELUM
-        // penyaringan ini. Sesi yang belum punya peserta sengaja tidak muncul
-        // pada tabel, tetapi ia TETAP punya ruang - dan menyatakannya sebagai
-        // "sesi tanpa ruang" adalah laporan yang salah tentang keadaannya.
-        $semuaRuangan = $ruangan;
-
-        $ruangan = $ruangan->filter(
-            fn (ExamSessionRoom $r) => $r->session?->exam_id !== null
-                && $idUjianBerpeserta->contains($r->session->exam_id),
-        );
-
         $kelasPerRuangSesi = $ruangan->isEmpty()
             ? collect()
             : ExamParticipant::query()
@@ -273,7 +246,7 @@ class ExamPengawasController
             'jalur_sesi' => "/admin/events/{$event->id}/pengawas/sesi",
 
             'sesi_tanpa_ruang' => $sesi
-                ->reject(fn (ExamSession $s) => $semuaRuangan->contains('exam_session_id', $s->id))
+                ->reject(fn (ExamSession $s) => $ruangan->contains('exam_session_id', $s->id))
                 ->map(fn (ExamSession $s) => [
                     'id' => $s->id,
                     'label' => $s->label(),
@@ -782,12 +755,11 @@ class ExamPengawasController
      * `ruangTanpaPengawas()` - dan menuliskannya ulang di TypeScript berarti
      * tiga aturan yang bisa berbeda.
      *
-     * `idUjianBerpeserta` dipakai sebagai penyaring yang SAMA dengan tabel
-     * datar: sesi yang belum punya peserta tidak ditampilkan, karena ia belum
-     * membutuhkan pengawas.
+     * Semua ruang-sesi ditampilkan walau peserta belum disebar agar Admin
+     * tetap bisa menyusun penugasan pengawas lebih awal.
      *
      * @param  Collection<int, ExamSession>  $sesi
-     * @param  Collection<int, ExamSessionRoom>  $ruangan  Sudah disaring.
+     * @param  Collection<int, ExamSessionRoom>  $ruangan
      * @return array<int, array<string, mixed>>
      */
     private function kelompokkanPerSesi($sesi, $ruangan, $kelasPerRuangSesi = null): array
