@@ -96,14 +96,31 @@ class EventCommitteeController
      * Cetak kartu panitia/pengawas (PDF) dan catat ke log audit karena berkas memuat kode pintu.
      */
     public function kartu(
+        Request $request,
         SchoolEvent $event,
         KartuPengawas $kartu,
         ActivityLogger $logger,
     ): HttpResponse {
         Gate::authorize('view', $event);
 
+        $kelompok = match ($request->query('kelompok')) {
+            'panitia' => 'panitia',
+            'pengawas' => 'pengawas',
+            default => null,
+        };
+
         // Muat sekali agar jumlah yang dicatat ke log selalu sama dengan isi PDF.
         $panitia = $this->panitia($event);
+
+        if ($kelompok === 'pengawas') {
+            $panitia = $panitia
+                ->filter(fn (EventCommitteeMember $p) => str_contains(mb_strtolower($p->position), 'pengawas'))
+                ->values();
+        } elseif ($kelompok === 'panitia') {
+            $panitia = $panitia
+                ->reject(fn (EventCommitteeMember $p) => str_contains(mb_strtolower($p->position), 'pengawas'))
+                ->values();
+        }
 
         $pdf = $kartu->buat(
             $event,
@@ -112,12 +129,13 @@ class EventCommitteeController
         );
 
         $logger->log('Mencetak kartu panitia', $event, [
+            'kelompok' => $kelompok ?? 'semua',
             'jumlah' => $panitia->count(),
         ]);
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$kartu->namaBerkas($event).'"',
+            'Content-Disposition' => 'inline; filename="'.$kartu->namaBerkas($event, $kelompok).'"',
         ]);
     }
 

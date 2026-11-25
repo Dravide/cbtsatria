@@ -71,8 +71,12 @@ class KartuPengawas
         ])->setPaper(self::UKURAN, 'portrait')->output();
     }
 
-    public function namaBerkas(SchoolEvent $event): string
+    public function namaBerkas(SchoolEvent $event, ?string $kelompok = null): string
     {
+        if ($kelompok === 'pengawas') {
+            return 'kartu-pengawas-'.$event->code.'.pdf';
+        }
+
         return 'kartu-panitia-'.$event->code.'.pdf';
     }
 

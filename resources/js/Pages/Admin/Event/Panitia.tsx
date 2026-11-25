@@ -87,6 +87,7 @@ const adalahPengawas = (p: Pick<Baris, 'jabatan'>) =>
 export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: Props) {
     const [tab, setTab] = useState<'panitia' | 'pengawas'>('panitia');
     const [panel, setPanel] = useState<'tutup' | 'tambah' | 'massal' | number>('tutup');
+    const [modalKartu, setModalKartu] = useState(false);
 
     const daftarPanitia = panitia.filter((p) => !adalahPengawas(p));
     const daftarPengawas = panitia.filter(adalahPengawas);
@@ -185,12 +186,12 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                     >
                         Unduh Excel
                     </TombolTautan>
-                    <TombolTautan
-                        href={`/admin/events/${event.id}/panitia/kartu`}
-                        title="Cetak kartu pengawas & panitia (PDF)"
+                    <Tombol
+                        onClick={() => setModalKartu(true)}
+                        title="Pilih cetak kartu panitia atau kartu pengawas (PDF)"
                     >
                         Cetak kartu
-                    </TombolTautan>
+                    </Tombol>
                     {/* Terbitkan kode massal hanya relevan untuk tab pengawas.
                         Tombolnya TIDAK mengganti kode yang sudah ada; itu
                         dikatakan di konfirmasinya, karena nama "terbitkan
@@ -392,6 +393,71 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                     </Inbox>
                 </div>
             )}
+
+            <Modal
+                judul="Cetak kartu (PDF)"
+                terbuka={modalKartu}
+                padaTutup={() => setModalKartu(false)}
+            >
+                <div className="space-y-3">
+                    <p className="text-xs text-ink-2">
+                        Pilih kelompok kartu yang ingin dicetak dalam bentuk PDF:
+                    </p>
+
+                    <div className="grid gap-2.5 sm:grid-cols-2">
+                        <a
+                            href={`/admin/events/${event.id}/panitia/kartu?kelompok=panitia`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setModalKartu(false)}
+                            className="block rounded-wf border border-line bg-surface p-3.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/20"
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-ink">
+                                    Kartu Panitia
+                                </span>
+                                <Chip nada="info">{daftarPanitia.length} orang</Chip>
+                            </div>
+                            <p className="mt-1.5 text-xs leading-relaxed text-ink-2">
+                                Mencetak kartu identitas untuk seluruh anggota panitia non-pengawas
+                                (ketua, sekretaris, proktor, teknisi, dll.).
+                            </p>
+                        </a>
+
+                        <a
+                            href={`/admin/events/${event.id}/panitia/kartu?kelompok=pengawas`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setModalKartu(false)}
+                            className="block rounded-wf border border-line bg-surface p-3.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/20"
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-ink">
+                                    Kartu Pengawas
+                                </span>
+                                <Chip nada="ok">{daftarPengawas.length} orang</Chip>
+                            </div>
+                            <p className="mt-1.5 text-xs leading-relaxed text-ink-2">
+                                Mencetak kartu khusus pengawas beserta kode pintu ruang 6 angka
+                                untuk masuk ke portal presensi.
+                            </p>
+                        </a>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                        <a
+                            href={`/admin/events/${event.id}/panitia/kartu`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setModalKartu(false)}
+                            className="text-xs text-accent hover:underline"
+                        >
+                            Cetak semua ({panitia.length} orang)
+                        </a>
+                        <Tombol onClick={() => setModalKartu(false)}>Batal</Tombol>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Cabang render SENDIRI, bukan berbagi simpul dengan
                 `PanelPanitia`. Kalau keduanya menempati simpul yang sama,
