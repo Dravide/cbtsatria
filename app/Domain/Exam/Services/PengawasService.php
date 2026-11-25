@@ -507,7 +507,7 @@ class PengawasService
                         continue;
                     }
 
-                    if (isset($pengecualian["{$r->exam_session_id}:{$orang->id}"])) {
+                    if (array_key_exists("{$r->exam_session_id}:{$orang->id}", $pengecualian)) {
                         $dilewati[$orang->id] = true;
 
                         continue;
@@ -721,7 +721,7 @@ class PengawasService
                 if (in_array($sid, $sudahDiRuang[$sl['room_id']] ?? [], true)) {
                     continue;
                 }
-                if (isset($pengecualian["{$sl['sesi_id']}:{$sid}"])) {
+                if (array_key_exists("{$sl['sesi_id']}:{$sid}", $pengecualian)) {
                     continue;
                 }
                 if ($this->adaIrisanInterval($sibukAwal[$sid], $sl['start_ts'], $sl['end_ts'])) {
