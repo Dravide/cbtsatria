@@ -225,6 +225,11 @@ export default function EventPengawas({
         router.post(`${jalur}/pengawas/reset`, {}, { preserveScroll: true });
     };
 
+    const butuhSlot = angka.ruang * (aturan?.target_per_ruang ?? angka.minimal_per_ruang);
+    const adaKuotaTakTerbatas = matriks.some((m) => m.maks === 0);
+    const totalKuota = matriks.reduce((acc, m) => acc + (m.maks > 0 ? m.maks : 0), 0);
+    const selisihKuota = totalKuota - butuhSlot;
+
     return (
         <AdminLayout
             judul="Pengawas & penempatan ruang"
@@ -281,8 +286,20 @@ export default function EventPengawas({
         >
             <Head title={`Pengawas · ${event.nama}`} />
 
-            <div className="mb-3 grid gap-3 sm:grid-cols-4">
+            <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <KPI label="Ruang" nilai={angka.ruang} catatan="seluruh sesi" />
+                <KPI
+                    label="Total kuota"
+                    nilai={adaKuotaTakTerbatas ? '∞' : totalKuota}
+                    nada={adaKuotaTakTerbatas ? 'ok' : selisihKuota < 0 ? 'bad' : 'ok'}
+                    catatan={
+                        adaKuotaTakTerbatas
+                            ? `butuh ${butuhSlot} slot · tanpa batas`
+                            : selisihKuota < 0
+                              ? `butuh ${butuhSlot} · kurang ${Math.abs(selisihKuota)}`
+                              : `butuh ${butuhSlot} · cukup${selisihKuota > 0 ? ` (+${selisihKuota})` : ''}`
+                    }
+                />
                 <KPI
                     label="Pengawas ditugaskan"
                     nilai={angka.ditugaskan}
@@ -394,6 +411,8 @@ export default function EventPengawas({
                     jalur={jalur}
                     matriks={matriks}
                     sesi_kolom={sesi_kolom}
+                    butuhSlot={butuhSlot}
+                    maksDefault={aturan?.maks_per_event ?? 0}
                 />
             )}
 
@@ -750,7 +769,7 @@ function KPI({
     catatan,
 }: {
     label: string;
-    nilai: number;
+    nilai: number | string;
     nada?: 'ok' | 'warn' | 'bad';
     catatan?: string;
 }) {
@@ -900,10 +919,14 @@ function MatriksKetersediaan({
     jalur,
     matriks,
     sesi_kolom,
+    butuhSlot,
+    maksDefault,
 }: {
     jalur: string;
     matriks: MatriksBaris[];
     sesi_kolom: SesiKolom[];
+    butuhSlot: number;
+    maksDefault: number;
 }) {
     const [cari, setCari] = useState('');
     const [orangId, setOrangId] = useState<number>(matriks[0]?.id ?? 0);
@@ -1033,6 +1056,28 @@ function MatriksKetersediaan({
     const semuaTersaringTerpilih =
         tersaring.length > 0 && tersaring.every((m) => pilihIds.includes(m.id));
 
+    // Hitung total kuota secara langsung termasuk angka yang sedang diedit di kuotaDraft.
+    let adaTakTerbatas = false;
+    let totalKuotaLive = 0;
+
+    for (const m of matriks) {
+        const draftVal = kuotaDraft[m.id];
+        const efektif =
+            draftVal !== undefined
+                ? draftVal.trim() === ''
+                    ? maksDefault
+                    : Math.min(50, Math.max(0, Number(draftVal)))
+                : m.maks;
+
+        if (efektif === 0) {
+            adaTakTerbatas = true;
+        } else {
+            totalKuotaLive += efektif;
+        }
+    }
+
+    const selisihLive = totalKuotaLive - butuhSlot;
+
     return (
         <section className="space-y-3">
             <Kotak>
@@ -1141,6 +1186,31 @@ function MatriksKetersediaan({
                                 Simpan perubahan baris ({draftBerubah.length})
                             </Tombol>
                         )}
+                        <div className="ml-auto flex items-center gap-2 rounded-wf border border-line bg-surface-2/60 px-3 py-1.5 text-xs">
+                            <span className="text-ink-3">Total kuota:</span>
+                            <span
+                                className={
+                                    'font-mono font-semibold ' +
+                                    (adaTakTerbatas || selisihLive >= 0 ? 'text-ok' : 'text-bad')
+                                }
+                            >
+                                {adaTakTerbatas ? '∞' : totalKuotaLive} / {butuhSlot}
+                            </span>
+                            <span
+                                className={
+                                    'text-[11px] ' +
+                                    (adaTakTerbatas || selisihLive >= 0 ? 'text-ok' : 'text-bad')
+                                }
+                            >
+                                {adaTakTerbatas
+                                    ? '(tanpa batas)'
+                                    : selisihLive < 0
+                                      ? `(kurang ${Math.abs(selisihLive)})`
+                                      : selisihLive === 0
+                                        ? '(pas)'
+                                        : `(+${selisihLive} cadangan)`}
+                            </span>
+                        </div>
                     </div>
                 )}
             </Kotak>
@@ -1163,7 +1233,17 @@ function MatriksKetersediaan({
                                 />
                             </th>
                             <th className="px-3 py-2">Pengawas</th>
-                            <th className="px-3 py-2">Kuota Khusus</th>
+                            <th className="px-3 py-2">
+                                Kuota Khusus{' '}
+                                <span
+                                    className={
+                                        'font-mono normal-case ' +
+                                        (adaTakTerbatas || selisihLive >= 0 ? 'text-ok' : 'text-bad')
+                                    }
+                                >
+                                    ({adaTakTerbatas ? '∞' : totalKuotaLive}/{butuhSlot})
+                                </span>
+                            </th>
                             {sesi_kolom.map((s) => (
                                 <th key={s.id} className="px-2 py-2 text-center">
                                     <div className="font-mono text-ink">{s.label}</div>
