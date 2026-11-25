@@ -1240,6 +1240,7 @@ function MatriksKetersediaan({
                                         {sesi_kolom.map((s) => {
                                             const dikecualikan = m.dikecualikan_sesi.includes(s.id);
                                             const tugas = m.penugasan.find((p) => p.sesi_id === s.id);
+                                            const kuotaPenuh = m.maks > 0 && m.terpakai >= m.maks;
                                             return (
                                                 <td key={s.id} className="px-2 py-2 text-center">
                                                     <button
@@ -1248,7 +1249,9 @@ function MatriksKetersediaan({
                                                         title={
                                                             dikecualikan
                                                                 ? 'Klik untuk tandai tersedia'
-                                                                : 'Klik untuk kosongkan di sesi ini'
+                                                                : kuotaPenuh && !tugas
+                                                                  ? `Kuota sudah penuh (${m.terpakai}/${m.maks}). Klik bila ingin tetap dikosongkan di sesi ini.`
+                                                                  : 'Klik untuk kosongkan di sesi ini'
                                                         }
                                                         className={
                                                             'rounded-wf border px-2 py-1 text-[11px] font-medium ' +
@@ -1256,14 +1259,18 @@ function MatriksKetersediaan({
                                                                 ? 'border-bad/40 bg-bad/10 text-bad'
                                                                 : tugas
                                                                   ? 'border-accent/40 bg-accent/10 text-accent'
-                                                                  : 'border-line bg-wf-soft text-ink-2 hover:border-ink-3')
+                                                                  : kuotaPenuh
+                                                                    ? 'border-warn/40 bg-warn/10 text-warn'
+                                                                    : 'border-line bg-wf-soft text-ink-2 hover:border-ink-3')
                                                         }
                                                     >
                                                         {dikecualikan
                                                             ? 'Kosong'
                                                             : tugas
                                                               ? tugas.ruang
-                                                              : 'Tersedia'}
+                                                              : kuotaPenuh
+                                                                ? 'Kuota penuh'
+                                                                : 'Tersedia'}
                                                     </button>
                                                 </td>
                                             );

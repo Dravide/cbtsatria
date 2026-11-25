@@ -613,6 +613,7 @@ class PengawasService
                     'room_id' => (int) $r->id,
                     'school_id' => (int) $r->school_id,
                     'sesi_id' => (int) $r->exam_session_id,
+                    'sesi_label' => $sesi?->label() ?? 'Sesi',
                     'tgl' => $sesi?->access_opens_at?->toDateString() ?? '',
                     'start_ts' => $startTs,
                     'end_ts' => $endTs,
@@ -984,16 +985,59 @@ class PengawasService
         });
 
         $durasiMs = (int) round((microtime(true) - $mulai) * 1000);
-        $belumTerpenuhi = $totalSlot - $dibuat;
+        $belumTerpenuhi = max(0, $totalSlot - $dibuat);
+        $diagnosis = null;
+
+        if ($belumTerpenuhi > 0) {
+            $bagian = [];
+            $takTerbatas = false;
+            $sisaKapasitas = 0;
+
+            foreach ($calonIds as $sid) {
+                $maks = $maksEventMap[$sid] ?? 0;
+                if ($maks === 0) {
+                    $takTerbatas = true;
+                    break;
+                }
+                $sisaKapasitas += max(0, $maks - ($bebanEventAwal[$sid] ?? 0));
+            }
+
+            if (! $takTerbatas && $sisaKapasitas < $totalSlot) {
+                $kurangKuota = $totalSlot - $sisaKapasitas;
+                $bagian[] = "Total butuh {$totalSlot} slot, sisa kapasitas kuota seluruh pengawas hanya {$sisaKapasitas} (kurang {$kurangKuota} kuota).";
+            }
+
+            $kosongPerSesi = [];
+            foreach ($slots as $idx => $sl) {
+                if (($terbaik[$idx] ?? null) === null) {
+                    $lbl = (string) ($sl['sesi_label'] ?? 'Sesi');
+                    $kosongPerSesi[$lbl] = ($kosongPerSesi[$lbl] ?? 0) + 1;
+                }
+            }
+
+            if ($kosongPerSesi !== []) {
+                $potong = array_slice($kosongPerSesi, 0, 4, true);
+                $teksSesi = [];
+                foreach ($potong as $lbl => $jml) {
+                    $teksSesi[] = "{$lbl} ({$jml} slot)";
+                }
+                $sisaSesi = count($kosongPerSesi) - count($potong);
+                $akhiran = $sisaSesi > 0 ? ", +{$sisaSesi} sesi lain" : '';
+                $bagian[] = 'Belum terisi di: '.implode(', ', $teksSesi).$akhiran.'.';
+            }
+
+            $diagnosis = $bagian !== [] ? implode(' ', $bagian) : null;
+        }
 
         return [
             'ruang' => count($tersentuh),
             'penugasan' => $dibuat,
-            'dilewati' => max(0, $belumTerpenuhi),
+            'dilewati' => $belumTerpenuhi,
             'total_slot' => $totalSlot,
             'terpenuhi' => $dibuat,
             'iterasi' => $iterasi,
             'durasi_ms' => $durasiMs,
+            'diagnosis' => $diagnosis,
             'mode' => 'expert',
         ];
     }

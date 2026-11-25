@@ -577,10 +577,11 @@ class ExamPengawasController
             $pesan = "Mode Expert selesai ({$detik} dtk, {$iterasi} percobaan): {$hasil['penugasan']} penugasan dibuat di {$hasil['ruang']} ruang.";
 
             if ($hasil['dilewati'] > 0) {
-                return back()->with(
-                    'galat',
-                    $pesan." {$hasil['dilewati']} slot belum terpenuhi karena batas kuota/pengecualian/bentrok.",
-                );
+                $detail = ! empty($hasil['diagnosis'])
+                    ? ' '.$hasil['diagnosis']
+                    : " {$hasil['dilewati']} slot belum terpenuhi karena batas kuota/pengecualian/bentrok.";
+
+                return back()->with('galat', $pesan.$detail);
             }
 
             return back()->with('sukses', $pesan.' Seluruh slot terpenuhi.');
