@@ -473,77 +473,74 @@ class PengawasService
         $tersentuh = [];
         $dilewati = [];
 
-        foreach ($ruangan as $r) {
-            $kurang = $target - $r->supervisors->count();
-
-            if ($kurang <= 0) {
-                continue;
-            }
-
-            $tgl = $r->session?->access_opens_at?->toDateString() ?? '';
-            $subjectId = (int) ($r->session?->exam?->subject_id ?? 0);
-
-            // Urutkan calon sesuai prioritas: 'merata' mendahulukan beban terkecil,
-            // sedangkan penalti lunak (wali kelas / guru mapel) ditaruh di belakang
-            // agar tetap dihindari selama masih ada calon lain.
-            $kandidat = collect($calon)->sortBy(function (User $orang, int $idx) use (
-                $aturan,
-                $bebanEvent,
-                $guruMapel,
-                $waliKelasRuang,
-                $r,
-                $subjectId,
-            ): array {
-                $penaltiWali = ($aturan['hindari_wali_kelas'] && isset($waliKelasRuang[$r->id][$orang->id])) ? 1 : 0;
-                $penaltiMapel = ($aturan['hindari_guru_mapel'] && $subjectId > 0 && isset($guruMapel[$subjectId][$orang->id])) ? 1 : 0;
-                $beban = $aturan['prioritas'] === 'merata' ? ($bebanEvent[$orang->id] ?? 0) : 0;
-
-                return [$penaltiWali + $penaltiMapel, $beban, $idx];
-            });
-
-            foreach ($kandidat as $orang) {
-                if ($kurang <= 0) {
-                    break;
-                }
-
-                if ($r->supervisors->contains('supervisor_id', $orang->id)) {
+        // Dua putaran: pastikan setiap ruang mendapat 1 pengawas dulu sebelum
+        // ruang mana pun mendapat pengawas kedua.
+        for ($putaran = 1; $putaran <= $target; $putaran++) {
+            foreach ($ruangan as $r) {
+                if ($r->supervisors->count() >= $putaran) {
                     continue;
                 }
 
-                if (isset($pengecualian["{$r->exam_session_id}:{$orang->id}"])) {
-                    $dilewati[$orang->id] = true;
+                $tgl = $r->session?->access_opens_at?->toDateString() ?? '';
+                $subjectId = (int) ($r->session?->exam?->subject_id ?? 0);
 
-                    continue;
-                }
+                // Urutkan calon sesuai prioritas: 'merata' mendahulukan beban terkecil,
+                // sedangkan penalti lunak (wali kelas / guru mapel) ditaruh di belakang
+                // agar tetap dihindari selama masih ada calon lain.
+                $kandidat = collect($calon)->sortBy(function (User $orang, int $idx) use (
+                    $aturan,
+                    $bebanEvent,
+                    $guruMapel,
+                    $waliKelasRuang,
+                    $r,
+                    $subjectId,
+                ): array {
+                    $penaltiWali = ($aturan['hindari_wali_kelas'] && isset($waliKelasRuang[$r->id][$orang->id])) ? 1 : 0;
+                    $penaltiMapel = ($aturan['hindari_guru_mapel'] && $subjectId > 0 && isset($guruMapel[$subjectId][$orang->id])) ? 1 : 0;
+                    $beban = $aturan['prioritas'] === 'merata' ? ($bebanEvent[$orang->id] ?? 0) : 0;
 
-                $maksEvent = $kuotaPerOrang[$orang->id] ?? $aturan['maks_per_event'];
-                if ($maksEvent > 0 && ($bebanEvent[$orang->id] ?? 0) >= $maksEvent) {
-                    $dilewati[$orang->id] = true;
+                    return [$penaltiWali + $penaltiMapel, $beban, $idx];
+                });
 
-                    continue;
-                }
-
-                if ($aturan['maks_per_hari'] > 0 && $tgl !== '' && ($bebanHari[$orang->id][$tgl] ?? 0) >= $aturan['maks_per_hari']) {
-                    $dilewati[$orang->id] = true;
-
-                    continue;
-                }
-
-                try {
-                    $this->tugaskan($r, $orang, $olehUserId);
-                    $dibuat++;
-                    $kurang--;
-                    $tersentuh[$r->id] = true;
-                    $bebanEvent[$orang->id] = ($bebanEvent[$orang->id] ?? 0) + 1;
-                    if ($tgl !== '') {
-                        $bebanHari[$orang->id][$tgl] = ($bebanHari[$orang->id][$tgl] ?? 0) + 1;
+                foreach ($kandidat as $orang) {
+                    if ($r->supervisors->contains('supervisor_id', $orang->id)) {
+                        continue;
                     }
-                } catch (ValidationException) {
-                    $dilewati[$orang->id] = true;
+
+                    if (isset($pengecualian["{$r->exam_session_id}:{$orang->id}"])) {
+                        $dilewati[$orang->id] = true;
+
+                        continue;
+                    }
+
+                    $maksEvent = $kuotaPerOrang[$orang->id] ?? $aturan['maks_per_event'];
+                    if ($maksEvent > 0 && ($bebanEvent[$orang->id] ?? 0) >= $maksEvent) {
+                        $dilewati[$orang->id] = true;
+
+                        continue;
+                    }
+
+                    if ($aturan['maks_per_hari'] > 0 && $tgl !== '' && ($bebanHari[$orang->id][$tgl] ?? 0) >= $aturan['maks_per_hari']) {
+                        $dilewati[$orang->id] = true;
+
+                        continue;
+                    }
+
+                    try {
+                        $this->tugaskan($r, $orang, $olehUserId);
+                        $dibuat++;
+                        $tersentuh[$r->id] = true;
+                        $bebanEvent[$orang->id] = ($bebanEvent[$orang->id] ?? 0) + 1;
+                        if ($tgl !== '') {
+                            $bebanHari[$orang->id][$tgl] = ($bebanHari[$orang->id][$tgl] ?? 0) + 1;
+                        }
+                        $r->load('supervisors');
+                        break;
+                    } catch (ValidationException) {
+                        $dilewati[$orang->id] = true;
+                    }
                 }
             }
-
-            $r->load('supervisors');
         }
 
         return [
@@ -802,7 +799,10 @@ class PengawasService
                         continue;
                     }
 
-                    // Pilih kandidat dengan penalti lunak terkecil, lalu kelangkaan / beban terendah.
+                    // Variasikan strategi antar-iterasi: iterasi genap utamakan kelangkaan dulu,
+                    // iterasi ganjil utamakan pemerataan beban dulu agar ruang solusi lebih luas.
+                    $utamakanLangka = ($iter % 2 === 1);
+
                     usort($kandidatTerbaikSlot, function (int $a, int $b) use (
                         $pilihSlot,
                         $slots,
@@ -811,6 +811,7 @@ class PengawasService
                         $guruMapel,
                         $bebanEvent,
                         $kelangkaan,
+                        $utamakanLangka,
                         $acak,
                     ): int {
                         $sl = $slots[$pilihSlot];
@@ -818,6 +819,10 @@ class PengawasService
                         $penB = $this->penaltiLunak($sl, $b, $aturan, $waliKelasRuang, $guruMapel);
                         if ($penA !== $penB) {
                             return $penA <=> $penB;
+                        }
+
+                        if ($utamakanLangka && $kelangkaan[$a] !== $kelangkaan[$b]) {
+                            return $kelangkaan[$a] <=> $kelangkaan[$b];
                         }
 
                         if ($aturan['prioritas'] === 'merata') {
@@ -828,7 +833,6 @@ class PengawasService
                             }
                         }
 
-                        // Prioritaskan pengawas yang lebih langka ketersediaannya agar tidak tersisa di akhir.
                         if ($kelangkaan[$a] !== $kelangkaan[$b]) {
                             return $kelangkaan[$a] <=> $kelangkaan[$b];
                         }
@@ -850,12 +854,12 @@ class PengawasService
                 }
             }
 
-            // Tahap 2: Perbaikan augmenting-path / chain-swap (ejection ala aSc Timetables)
-            // untuk slot yang masih kosong.
+            // Tahap 2: Perbaikan augmenting-path / chain-swap (iterative deepening DFS
+            // hingga kedalaman 4, ala aSc Timetables) untuk slot yang masih kosong.
             $masihKosong = true;
             $putaranRepair = 0;
 
-            while ($masihKosong && $putaranRepair < 5) {
+            while ($masihKosong && $putaranRepair < 6) {
                 $putaranRepair++;
                 $masihKosong = false;
 
@@ -864,22 +868,57 @@ class PengawasService
                         continue;
                     }
 
-                    if ($this->cobaPerbaikiSlotExpert(
-                        $idx,
-                        $slots,
-                        $layakDasar,
-                        $penugasan,
-                        $bebanEvent,
-                        $bebanHari,
-                        $ruangTerisi,
-                        $slotPerPengawas,
-                        $maksEventMap,
-                        $aturan['maks_per_hari'],
-                        $acak,
-                    )) {
+                    $berhasil = false;
+                    foreach ([1, 2, 3, 4] as $kedalaman) {
+                        $dikunjungi = [$idx => true];
+                        $sisaNode = 350;
+
+                        if ($this->cobaPerbaikiSlotDfs(
+                            $idx,
+                            $kedalaman,
+                            $sisaNode,
+                            $dikunjungi,
+                            $slots,
+                            $layakDasar,
+                            $penugasan,
+                            $bebanEvent,
+                            $bebanHari,
+                            $ruangTerisi,
+                            $slotPerPengawas,
+                            $maksEventMap,
+                            $aturan['maks_per_hari'],
+                            $acak,
+                        )) {
+                            $berhasil = true;
+                            break;
+                        }
+                    }
+
+                    if ($berhasil) {
                         $masihKosong = true;
                     }
                 }
+            }
+
+            // Tahap 2b: Pastikan tidak ada slot Tier 1 (ruang tanpa pengawas sama sekali)
+            // yang kosong selama masih bisa meminjam pengawas dari slot Tier 2.
+            foreach ($slots as $idx => $sl) {
+                if ($sl['tier'] !== 1 || $penugasan[$idx] !== null) {
+                    continue;
+                }
+
+                $this->cobaPinjamDariTierDua(
+                    $idx,
+                    $slots,
+                    $layakDasar,
+                    $penugasan,
+                    $bebanEvent,
+                    $bebanHari,
+                    $ruangTerisi,
+                    $slotPerPengawas,
+                    $maksEventMap,
+                    $aturan['maks_per_hari'],
+                );
             }
 
             // Evaluasi kualitas solusi: (tier1 terisi, total terisi, -penalti lunak, -sebaran beban).
@@ -1118,9 +1157,11 @@ class PengawasService
     }
 
     /**
-     * Coba isi satu slot kosong dengan memindahkan 1 slot penghalang milik pengawas
-     * yang layak ke pengawas lain yang bebas (ejection / swap berantai).
+     * DFS augmenting-path / ejection-chain hingga kedalaman $sisaKedalaman:
+     * mencoba mengisi $slotIdx secara langsung, atau memindahkan slot penghalang
+     * milik pengawas yang layak secara berantai hingga menemukan pengawas bebas.
      *
+     * @param  array<int, bool>  $dikunjungi
      * @param  array<int, array<string, mixed>>  $slots
      * @param  array<int, array<int, int>>  $layakDasar
      * @param  array<int, int|null>  $penugasan
@@ -1130,8 +1171,11 @@ class PengawasService
      * @param  array<int, array<int, int>>  $slotPerPengawas
      * @param  array<int, int>  $maksEventMap
      */
-    private function cobaPerbaikiSlotExpert(
+    private function cobaPerbaikiSlotDfs(
         int $slotIdx,
+        int $sisaKedalaman,
+        int &$sisaNode,
+        array &$dikunjungi,
         array $slots,
         array $layakDasar,
         array &$penugasan,
@@ -1143,6 +1187,35 @@ class PengawasService
         int $maksHari,
         bool $acak,
     ): bool {
+        if ($sisaNode <= 0) {
+            return false;
+        }
+        $sisaNode--;
+
+        // Cek langsung apakah ada kandidat yang sudah bebas sekarang.
+        $langsung = $this->kandidatValidExpert(
+            $slotIdx,
+            $slots,
+            $layakDasar[$slotIdx],
+            $ruangTerisi,
+            $bebanEvent,
+            $bebanHari,
+            $slotPerPengawas,
+            $maksEventMap,
+            $maksHari,
+        );
+
+        if ($langsung !== []) {
+            $chosen = $acak ? $langsung[array_rand($langsung)] : $langsung[0];
+            $this->pasangSlotExpert($slotIdx, $chosen, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+
+            return true;
+        }
+
+        if ($sisaKedalaman <= 0) {
+            return false;
+        }
+
         $sl = $slots[$slotIdx];
         $kandidat = $layakDasar[$slotIdx];
 
@@ -1151,6 +1224,10 @@ class PengawasService
         }
 
         foreach ($kandidat as $sid) {
+            if ($sisaNode <= 0) {
+                return false;
+            }
+
             if (in_array($sid, $ruangTerisi[$sl['room_id']] ?? [], true)) {
                 continue;
             }
@@ -1181,8 +1258,11 @@ class PengawasService
             }
 
             foreach ($penghalang as $pindahIdx) {
-                // Lepas sementara $pindahIdx dari $sid, lalu cek apakah $pindahIdx bisa pindah ke orang lain
-                // dan $sid kini valid untuk $slotIdx.
+                if (isset($dikunjungi[$pindahIdx])) {
+                    continue;
+                }
+
+                // Lepas $pindahIdx dari $sid dan cek apakah $sid kini bisa mengisi $slotIdx.
                 $this->lepasSlotExpert($pindahIdx, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
 
                 $sidValidSekarang = in_array(
@@ -1202,32 +1282,102 @@ class PengawasService
                 );
 
                 if ($sidValidSekarang) {
-                    $pengganti = array_values(array_filter(
-                        $this->kandidatValidExpert(
-                            $pindahIdx,
-                            $slots,
-                            $layakDasar[$pindahIdx],
-                            $ruangTerisi,
-                            $bebanEvent,
-                            $bebanHari,
-                            $slotPerPengawas,
-                            $maksEventMap,
-                            $maksHari,
-                        ),
-                        fn (int $x) => $x !== $sid,
-                    ));
+                    $this->pasangSlotExpert($slotIdx, $sid, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+                    $dikunjungi[$pindahIdx] = true;
 
-                    if ($pengganti !== []) {
-                        $penggantiId = $acak ? $pengganti[array_rand($pengganti)] : $pengganti[0];
-                        $this->pasangSlotExpert($pindahIdx, $penggantiId, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
-                        $this->pasangSlotExpert($slotIdx, $sid, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
-
+                    if ($this->cobaPerbaikiSlotDfs(
+                        $pindahIdx,
+                        $sisaKedalaman - 1,
+                        $sisaNode,
+                        $dikunjungi,
+                        $slots,
+                        $layakDasar,
+                        $penugasan,
+                        $bebanEvent,
+                        $bebanHari,
+                        $ruangTerisi,
+                        $slotPerPengawas,
+                        $maksEventMap,
+                        $maksHari,
+                        $acak,
+                    )) {
                         return true;
                     }
+
+                    unset($dikunjungi[$pindahIdx]);
+                    $this->lepasSlotExpert($slotIdx, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
                 }
 
-                // Kembalikan bila tidak berhasil.
+                // Kembalikan bila cabang ini tidak berhasil.
                 $this->pasangSlotExpert($pindahIdx, $sid, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Bila sebuah slot Tier 1 (ruang tanpa pengawas sama sekali) masih kosong,
+     * pinjam pengawas dari slot Tier 2 agar setiap ruang minimal memiliki 1 pengawas.
+     *
+     * @param  array<int, array<string, mixed>>  $slots
+     * @param  array<int, array<int, int>>  $layakDasar
+     * @param  array<int, int|null>  $penugasan
+     * @param  array<int, int>  $bebanEvent
+     * @param  array<int, array<string, int>>  $bebanHari
+     * @param  array<int, array<int, int>>  $ruangTerisi
+     * @param  array<int, array<int, int>>  $slotPerPengawas
+     * @param  array<int, int>  $maksEventMap
+     */
+    private function cobaPinjamDariTierDua(
+        int $slotIdx,
+        array $slots,
+        array $layakDasar,
+        array &$penugasan,
+        array &$bebanEvent,
+        array &$bebanHari,
+        array &$ruangTerisi,
+        array &$slotPerPengawas,
+        array $maksEventMap,
+        int $maksHari,
+    ): bool {
+        $sl = $slots[$slotIdx];
+
+        foreach ($layakDasar[$slotIdx] as $sid) {
+            if (in_array($sid, $ruangTerisi[$sl['room_id']] ?? [], true)) {
+                continue;
+            }
+
+            foreach ($slotPerPengawas[$sid] ?? [] as $milikIdx) {
+                if ($slots[$milikIdx]['tier'] !== 2) {
+                    continue;
+                }
+
+                $this->lepasSlotExpert($milikIdx, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+
+                $valid = in_array(
+                    $sid,
+                    $this->kandidatValidExpert(
+                        $slotIdx,
+                        $slots,
+                        [$sid],
+                        $ruangTerisi,
+                        $bebanEvent,
+                        $bebanHari,
+                        $slotPerPengawas,
+                        $maksEventMap,
+                        $maksHari,
+                    ),
+                    true,
+                );
+
+                if ($valid) {
+                    $this->pasangSlotExpert($slotIdx, $sid, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
+
+                    return true;
+                }
+
+                $this->pasangSlotExpert($milikIdx, $sid, $slots, $penugasan, $bebanEvent, $bebanHari, $ruangTerisi, $slotPerPengawas);
             }
         }
 
