@@ -318,10 +318,24 @@ class ExamPengawasController
             ->orderBy('id')
             ->get();
 
+        $kelasPerRuangSesi = $ruangan->isEmpty()
+            ? collect()
+            : ExamParticipant::query()
+                ->join('event_participants', 'event_participants.id', '=', 'exam_participants.event_participant_id')
+                ->join('classes', 'classes.id', '=', 'event_participants.class_id')
+                ->whereIn('exam_participants.exam_session_room_id', $ruangan->pluck('id'))
+                ->where('exam_participants.status', ExamParticipant::STATUS_TERDAFTAR)
+                ->select('exam_participants.exam_session_room_id', 'classes.name as kelas_nama')
+                ->distinct()
+                ->orderBy('classes.name')
+                ->get()
+                ->groupBy('exam_session_room_id')
+                ->map(fn ($items) => $items->pluck('kelas_nama')->values()->all());
+
         $totalPenugasan = 0;
         $petaGuru = [];
 
-        $daftarSesi = $sesi->map(function (ExamSession $s) use ($ruangan, &$totalPenugasan, &$petaGuru): ?array {
+        $daftarSesi = $sesi->map(function (ExamSession $s) use ($ruangan, $kelasPerRuangSesi, &$totalPenugasan, &$petaGuru): ?array {
             $ruangSesi = $ruangan->where('exam_session_id', $s->id)->values();
 
             if ($ruangSesi->isEmpty()) {
@@ -336,6 +350,7 @@ class ExamPengawasController
             $labelSesi = $s->label();
 
             $barisRuang = $ruangSesi->map(function (ExamSessionRoom $r) use (
+                $kelasPerRuangSesi,
                 &$totalPenugasan,
                 &$petaGuru,
                 $hariTanggal,
@@ -346,6 +361,7 @@ class ExamPengawasController
                 $kodeRuang = $r->eventRoom?->room?->code ?? '—';
                 $namaRuang = $r->eventRoom?->room?->name ?? '—';
                 $lokasi = $r->eventRoom?->room?->location;
+                $kelas = $kelasPerRuangSesi->get($r->id, []);
 
                 $pengawas = [];
                 foreach ($r->supervisors as $t) {
@@ -370,6 +386,8 @@ class ExamPengawasController
                         'mapel' => $mapel,
                         'ruang_kode' => $kodeRuang,
                         'ruang_nama' => $namaRuang,
+                        'lokasi' => $lokasi,
+                        'kelas' => $kelas,
                     ];
                 }
 
@@ -377,6 +395,7 @@ class ExamPengawasController
                     'kode' => $kodeRuang,
                     'nama' => $namaRuang,
                     'lokasi' => $lokasi,
+                    'kelas' => $kelas,
                     'pengawas' => $pengawas,
                 ];
             })->all();

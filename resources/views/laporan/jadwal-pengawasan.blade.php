@@ -139,11 +139,11 @@
                     <thead>
                         <tr>
                             <th style="width: 5%; text-align: center;">No</th>
-                            <th style="width: 24%;">Hari &amp; Tanggal</th>
-                            <th style="width: 14%;">Waktu</th>
-                            <th style="width: 9%;">Sesi</th>
-                            <th style="width: 28%;">Mata Pelajaran</th>
-                            <th style="width: 20%;">Ruang</th>
+                            <th style="width: 22%;">Hari &amp; Tanggal</th>
+                            <th style="width: 13%;">Waktu</th>
+                            <th style="width: 8%;">Sesi</th>
+                            <th style="width: 24%;">Mata Pelajaran</th>
+                            <th style="width: 28%;">Ruang &amp; Lokasi / Kelas</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -157,7 +157,13 @@
                                 <td>
                                     <span class="mono"><strong>{{ $t['ruang_kode'] }}</strong></span>
                                     @if ($t['ruang_nama'] && $t['ruang_nama'] !== $t['ruang_kode'])
-                                        <span class="lokasi">· {{ $t['ruang_nama'] }}</span>
+                                        <span>· {{ $t['ruang_nama'] }}</span>
+                                    @endif
+                                    @if (!empty($t['lokasi']))
+                                        <span class="lokasi">({{ $t['lokasi'] }})</span>
+                                    @endif
+                                    @if (!empty($t['kelas']))
+                                        <div class="lokasi">Kelas: {{ implode(', ', $t['kelas']) }}</div>
                                     @endif
                                 </td>
                             </tr>
@@ -196,7 +202,10 @@
                                 <td>
                                     {{ $r['nama'] }}
                                     @if (!empty($r['lokasi']))
-                                        <span class="lokasi">· {{ $r['lokasi'] }}</span>
+                                        <span class="lokasi">({{ $r['lokasi'] }})</span>
+                                    @endif
+                                    @if (!empty($r['kelas']))
+                                        <div class="lokasi">Kelas: {{ implode(', ', $r['kelas']) }}</div>
                                     @endif
                                 </td>
                                 <td>
