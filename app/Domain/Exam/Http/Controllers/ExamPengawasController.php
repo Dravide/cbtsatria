@@ -290,10 +290,13 @@ class ExamPengawasController
 
     /**
      * Unduh jadwal pengawasan satu event sebagai dokumen PDF (A4 portrait).
+     * Mendukung format ?format=ruang (per sesi/ruangan) dan ?format=guru (per pengawas).
      */
-    public function pdf(SchoolEvent $event): HttpResponse
+    public function pdf(Request $request, SchoolEvent $event): HttpResponse
     {
         Gate::authorize('view', $event);
+
+        $format = $request->query('format') === 'guru' ? 'guru' : 'ruang';
 
         $event->load(['school', 'academicYear', 'semester']);
 
@@ -316,57 +319,100 @@ class ExamPengawasController
             ->get();
 
         $totalPenugasan = 0;
+        $petaGuru = [];
 
-        $daftarSesi = $sesi->map(function (ExamSession $s) use ($ruangan, &$totalPenugasan): ?array {
+        $daftarSesi = $sesi->map(function (ExamSession $s) use ($ruangan, &$totalPenugasan, &$petaGuru): ?array {
             $ruangSesi = $ruangan->where('exam_session_id', $s->id)->values();
 
             if ($ruangSesi->isEmpty()) {
                 return null;
             }
 
-            $barisRuang = $ruangSesi->map(function (ExamSessionRoom $r) use (&$totalPenugasan): array {
-                $pengawas = $r->supervisors
-                    ->filter(fn (SupervisionAssignment $t) => $t->status === 'aktif' && $t->supervisor !== null)
-                    ->map(fn (SupervisionAssignment $t) => $t->supervisor->name)
-                    ->values()
-                    ->all();
+            $hariTanggal = $s->access_opens_at?->locale('id')->translatedFormat('l, d M Y') ?? '—';
+            $waktu = $s->access_opens_at
+                ? $s->access_opens_at->format('H:i').'–'.($s->hard_end_at?->format('H:i') ?? '?')
+                : '—';
+            $mapel = $s->exam?->subject?->name ?? $s->exam?->title ?? 'Ujian';
+            $labelSesi = $s->label();
 
-                $totalPenugasan += count($pengawas);
+            $barisRuang = $ruangSesi->map(function (ExamSessionRoom $r) use (
+                &$totalPenugasan,
+                &$petaGuru,
+                $hariTanggal,
+                $waktu,
+                $mapel,
+                $labelSesi,
+            ): array {
+                $kodeRuang = $r->eventRoom?->room?->code ?? '—';
+                $namaRuang = $r->eventRoom?->room?->name ?? '—';
+                $lokasi = $r->eventRoom?->room?->location;
+
+                $pengawas = [];
+                foreach ($r->supervisors as $t) {
+                    if ($t->status !== 'aktif' || $t->supervisor === null) {
+                        continue;
+                    }
+                    $pengawas[] = $t->supervisor->name;
+                    $totalPenugasan++;
+
+                    $sid = (int) $t->supervisor_id;
+                    if (! isset($petaGuru[$sid])) {
+                        $petaGuru[$sid] = [
+                            'nama' => $t->supervisor->name,
+                            'username' => $t->supervisor->username,
+                            'tugas' => [],
+                        ];
+                    }
+                    $petaGuru[$sid]['tugas'][] = [
+                        'hari_tanggal' => $hariTanggal,
+                        'waktu' => $waktu,
+                        'sesi' => $labelSesi,
+                        'mapel' => $mapel,
+                        'ruang_kode' => $kodeRuang,
+                        'ruang_nama' => $namaRuang,
+                    ];
+                }
 
                 return [
-                    'kode' => $r->eventRoom?->room?->code ?? '—',
-                    'nama' => $r->eventRoom?->room?->name ?? '—',
-                    'lokasi' => $r->eventRoom?->room?->location,
+                    'kode' => $kodeRuang,
+                    'nama' => $namaRuang,
+                    'lokasi' => $lokasi,
                     'pengawas' => $pengawas,
                 ];
             })->all();
 
             return [
-                'label' => $s->label(),
-                'mapel' => $s->exam?->subject?->name ?? $s->exam?->title ?? 'Ujian',
-                'hari_tanggal' => $s->access_opens_at?->locale('id')->translatedFormat('l, d M Y') ?? '—',
-                'waktu' => $s->access_opens_at
-                    ? $s->access_opens_at->format('H:i').'–'.($s->hard_end_at?->format('H:i') ?? '?')
-                    : '—',
+                'label' => $labelSesi,
+                'mapel' => $mapel,
+                'hari_tanggal' => $hariTanggal,
+                'waktu' => $waktu,
                 'ruang' => $barisRuang,
             ];
         })->filter()->values()->all();
 
+        usort($petaGuru, fn (array $a, array $b) => strcasecmp($a['nama'], $b['nama']));
+
         $kode = preg_replace('/[^A-Za-z0-9\-_]+/', '-', strtolower($event->code)) ?: (string) $event->id;
+        $namaBerkas = $format === 'guru'
+            ? "jadwal-pengawasan-guru-{$kode}.pdf"
+            : "jadwal-pengawasan-ruang-{$kode}.pdf";
 
         return Pdf::loadView('laporan.jadwal-pengawasan', [
             'sekolah' => $event->school,
             'event' => $event,
+            'format' => $format,
             'sesi' => $daftarSesi,
+            'perGuru' => $petaGuru,
             'ringkasan' => [
                 'sesi' => count($daftarSesi),
                 'ruang' => $ruangan->count(),
+                'guru' => count($petaGuru),
                 'penugasan' => $totalPenugasan,
             ],
             'dicetak' => now()->format('d/m/Y H:i'),
         ])
             ->setPaper('a4', 'portrait')
-            ->download("jadwal-pengawasan-{$kode}.pdf");
+            ->download($namaBerkas);
     }
 
     /**

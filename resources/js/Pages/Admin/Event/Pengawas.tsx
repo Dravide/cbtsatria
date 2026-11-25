@@ -9,7 +9,6 @@ import {
     Modal,
     Peringatan,
     Tombol,
-    TombolTautan,
     kelasInput,
 } from '@/Components/ui';
 
@@ -198,6 +197,7 @@ export default function EventPengawas({
     const [tab, setTab] = useState<'jadwal' | 'ketersediaan' | 'rekap'>(tabAwal);
     const [modalPengecualian, setModalPengecualian] = useState(false);
     const [modalOtomatis, setModalOtomatis] = useState(false);
+    const [modalPdf, setModalPdf] = useState(false);
     const [prosesOtomatis, setProsesOtomatis] = useState<'cepat' | 'expert' | null>(null);
 
     const jalankanOtomatis = (mode: 'cepat' | 'expert') => {
@@ -275,12 +275,12 @@ export default function EventPengawas({
                         <span className="font-medium text-ink">{event.nama}</span>
                     </span>
 
-                    <TombolTautan
-                        href={`${jalur}/pengawas/pdf`}
-                        title="Unduh jadwal pengawasan sebagai PDF"
+                    <Tombol
+                        onClick={() => setModalPdf(true)}
+                        title="Pilih format unduhan PDF jadwal pengawasan (per ruangan atau per guru)"
                     >
                         Unduh PDF
-                    </TombolTautan>
+                    </Tombol>
 
                     <Tombol
                         onClick={() => setModalPengecualian(true)}
@@ -502,6 +502,58 @@ export default function EventPengawas({
                 terkunci={terkunci}
                 padaTutup={() => setModalPengecualian(false)}
             />
+
+            <Modal
+                judul="Unduh jadwal pengawasan (PDF)"
+                terbuka={modalPdf}
+                padaTutup={() => setModalPdf(false)}
+            >
+                <div className="space-y-3">
+                    <p className="text-xs text-ink-2">
+                        Pilih format pengelompokan dokumen PDF yang ingin diunduh:
+                    </p>
+
+                    <div className="grid gap-2.5 sm:grid-cols-2">
+                        <a
+                            href={`${jalur}/pengawas/pdf?format=ruang`}
+                            onClick={() => setModalPdf(false)}
+                            className="block rounded-wf border border-line bg-surface p-3.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/20"
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-ink">
+                                    Per Ruangan
+                                </span>
+                                <Chip nada="info">Per sesi</Chip>
+                            </div>
+                            <p className="mt-1.5 text-xs leading-relaxed text-ink-2">
+                                Dikelompokkan per sesi ujian, menampilkan daftar ruang beserta
+                                pengawasnya. Cocok ditempel di papan pengumuman.
+                            </p>
+                        </a>
+
+                        <a
+                            href={`${jalur}/pengawas/pdf?format=guru`}
+                            onClick={() => setModalPdf(false)}
+                            className="block rounded-wf border border-line bg-surface p-3.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/20"
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-ink">
+                                    Per Guru / Pengawas
+                                </span>
+                                <Chip nada="ok">Personal</Chip>
+                            </div>
+                            <p className="mt-1.5 text-xs leading-relaxed text-ink-2">
+                                Dikelompokkan per nama pengawas, menampilkan seluruh jadwal hari,
+                                tanggal, jam, sesi, mapel, dan ruang tugasnya.
+                            </p>
+                        </a>
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                        <Tombol onClick={() => setModalPdf(false)}>Batal</Tombol>
+                    </div>
+                </div>
+            </Modal>
 
             <Modal
                 judul="Tugaskan pengawas otomatis"
