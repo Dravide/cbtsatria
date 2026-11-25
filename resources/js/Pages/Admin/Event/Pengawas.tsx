@@ -101,6 +101,7 @@ type AturanPengawas = {
     hormati_pengecualian: boolean;
     hindari_wali_kelas: boolean;
     hindari_guru_mapel: boolean;
+    hindari_ruang_sama?: boolean;
     tolak_melebihi_kuota: boolean;
 };
 
@@ -972,6 +973,7 @@ function PanelAturan({
                         {(
                             [
                                 ['hormati_pengecualian', 'Hormati sesi dikosongkan'],
+                                ['hindari_ruang_sama', 'Tidak boleh mengawas di ruang yang sama (1 event)'],
                                 ['hindari_wali_kelas', 'Hindari wali kelas peserta'],
                                 ['hindari_guru_mapel', 'Hindari guru mapel ujian'],
                                 ['tolak_melebihi_kuota', 'Tolak penugasan manual melebihi kuota'],
@@ -980,7 +982,7 @@ function PanelAturan({
                             <label key={kunci} className="inline-flex items-center gap-1.5">
                                 <input
                                     type="checkbox"
-                                    checked={form[kunci]}
+                                    checked={Boolean(form[kunci])}
                                     onChange={(e) => setForm({ ...form, [kunci]: e.target.checked })}
                                 />
                                 <span>{label}</span>

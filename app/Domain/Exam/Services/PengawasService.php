@@ -122,6 +122,7 @@ class PengawasService
                 'hormati_pengecualian' => (bool) ($data['hormati_pengecualian'] ?? true),
                 'hindari_wali_kelas' => (bool) ($data['hindari_wali_kelas'] ?? false),
                 'hindari_guru_mapel' => (bool) ($data['hindari_guru_mapel'] ?? false),
+                'hindari_ruang_sama' => (bool) ($data['hindari_ruang_sama'] ?? false),
                 'tolak_melebihi_kuota' => (bool) ($data['tolak_melebihi_kuota'] ?? false),
             ]),
         ])->save();
@@ -210,6 +211,33 @@ class PengawasService
 
         if ($event !== null && $sesi !== null) {
             $aturan = $this->aturan($event);
+
+            if ($aturan['hindari_ruang_sama'] && $ruang->event_room_id !== null) {
+                $idRuangSama = ExamSessionRoom::query()
+                    ->whereIn('exam_session_id', ExamSession::query()
+                        ->whereIn('exam_id', $event->exams()->pluck('id'))
+                        ->pluck('id'))
+                    ->where('event_room_id', $ruang->event_room_id)
+                    ->where('id', '!=', $ruang->id)
+                    ->pluck('id');
+
+                if ($idRuangSama->isNotEmpty()) {
+                    $pernah = SupervisionAssignment::query()
+                        ->where('supervisor_id', $pengawas->id)
+                        ->where('status', 'aktif')
+                        ->whereIn('exam_session_room_id', $idRuangSama)
+                        ->exists();
+
+                    if ($pernah) {
+                        $ruang->loadMissing('eventRoom.room:id,code');
+                        $kodeRuang = $ruang->eventRoom?->room?->code ?? 'ruang tersebut';
+
+                        throw ValidationException::withMessages([
+                            'supervisor_id' => "{$pengawas->name} sudah ditugaskan di {$kodeRuang} pada sesi lain di event ini.",
+                        ]);
+                    }
+                }
+            }
 
             if ($aturan['tolak_melebihi_kuota']) {
                 if ($aturan['hormati_pengecualian']) {
@@ -425,6 +453,7 @@ class PengawasService
         // tetap menghitung kuota event & kuota harian dengan akurat.
         $bebanEvent = [];
         $bebanHari = [];
+        $ruangEventTerpakai = [];
         $semuaRuangEvent = ExamSessionRoom::query()
             ->whereIn('exam_session_id', ExamSession::query()
                 ->whereIn('exam_id', $event->exams()->pluck('id'))
@@ -441,6 +470,9 @@ class PengawasService
                 $bebanEvent[$sup->supervisor_id] = ($bebanEvent[$sup->supervisor_id] ?? 0) + 1;
                 if ($tgl !== '') {
                     $bebanHari[$sup->supervisor_id][$tgl] = ($bebanHari[$sup->supervisor_id][$tgl] ?? 0) + 1;
+                }
+                if ($sr->event_room_id !== null) {
+                    $ruangEventTerpakai[$sup->supervisor_id][(int) $sr->event_room_id] = true;
                 }
             }
         }
@@ -522,6 +554,12 @@ class PengawasService
                         continue;
                     }
 
+                    if ($aturan['hindari_ruang_sama'] && $r->event_room_id !== null && isset($ruangEventTerpakai[$orang->id][(int) $r->event_room_id])) {
+                        $dilewati[$orang->id] = true;
+
+                        continue;
+                    }
+
                     if ($aturan['maks_per_hari'] > 0 && $tgl !== '' && ($bebanHari[$orang->id][$tgl] ?? 0) >= $aturan['maks_per_hari']) {
                         $dilewati[$orang->id] = true;
 
@@ -535,6 +573,9 @@ class PengawasService
                         $bebanEvent[$orang->id] = ($bebanEvent[$orang->id] ?? 0) + 1;
                         if ($tgl !== '') {
                             $bebanHari[$orang->id][$tgl] = ($bebanHari[$orang->id][$tgl] ?? 0) + 1;
+                        }
+                        if ($r->event_room_id !== null) {
+                            $ruangEventTerpakai[$orang->id][(int) $r->event_room_id] = true;
                         }
                         $r->load('supervisors');
                         break;
@@ -613,6 +654,7 @@ class PengawasService
 
                 $slots[] = [
                     'room_id' => (int) $r->id,
+                    'event_room_id' => (int) ($r->event_room_id ?? 0),
                     'school_id' => (int) $r->school_id,
                     'sesi_id' => (int) $r->exam_session_id,
                     'sesi_label' => $sesi?->label() ?? 'Sesi',
@@ -645,6 +687,7 @@ class PengawasService
         // Beban awal seluruh event.
         $bebanEventAwal = array_fill_keys($calonIds, 0);
         $bebanHariAwal = array_fill_keys($calonIds, []);
+        $ruangEventAwal = array_fill_keys($calonIds, []);
         $idSesiSemua = ExamSession::query()->whereIn('exam_id', $idUjianEvent)->pluck('id');
         $semuaRuangEvent = ExamSessionRoom::query()
             ->whereIn('exam_session_id', $idSesiSemua)
@@ -661,6 +704,9 @@ class PengawasService
                 $bebanEventAwal[$sid]++;
                 if ($tgl !== '') {
                     $bebanHariAwal[$sid][$tgl] = ($bebanHariAwal[$sid][$tgl] ?? 0) + 1;
+                }
+                if ($sr->event_room_id !== null) {
+                    $ruangEventAwal[$sid][(int) $sr->event_room_id] = true;
                 }
             }
         }
@@ -717,6 +763,8 @@ class PengawasService
             $maksEventMap[$sid] = $kuotaPerOrang[$sid] ?? $aturan['maks_per_event'];
         }
 
+        $hindariRuangSama = (bool) $aturan['hindari_ruang_sama'];
+
         foreach ($slots as $idx => $sl) {
             $layakDasar[$idx] = [];
             foreach ($calonIds as $sid) {
@@ -724,6 +772,9 @@ class PengawasService
                     continue;
                 }
                 if (array_key_exists("{$sl['sesi_id']}:{$sid}", $pengecualian)) {
+                    continue;
+                }
+                if ($hindariRuangSama && $sl['event_room_id'] > 0 && isset($ruangEventAwal[$sid][$sl['event_room_id']])) {
                     continue;
                 }
                 if ($this->adaIrisanInterval($sibukAwal[$sid], $sl['start_ts'], $sl['end_ts'])) {
@@ -783,6 +834,7 @@ class PengawasService
                             $slotPerPengawas,
                             $maksEventMap,
                             $aturan['maks_per_hari'],
+                            $hindariRuangSama,
                         );
 
                         $jml = count($kand);
@@ -890,6 +942,7 @@ class PengawasService
                             $slotPerPengawas,
                             $maksEventMap,
                             $aturan['maks_per_hari'],
+                            $hindariRuangSama,
                             $acak,
                         )) {
                             $berhasil = true;
@@ -921,6 +974,7 @@ class PengawasService
                     $slotPerPengawas,
                     $maksEventMap,
                     $aturan['maks_per_hari'],
+                    $hindariRuangSama,
                 );
             }
 
@@ -1102,6 +1156,7 @@ class PengawasService
         array $slotPerPengawas,
         array $maksEventMap,
         int $maksHari,
+        bool $hindariRuangSama = false,
     ): array {
         $sl = $slots[$slotIdx];
         $hasil = [];
@@ -1124,6 +1179,10 @@ class PengawasService
             foreach ($slotPerPengawas[$sid] ?? [] as $lainIdx) {
                 $lain = $slots[$lainIdx];
                 if ($sl['start_ts'] < $lain['end_ts'] && $lain['start_ts'] < $sl['end_ts']) {
+                    $bentrok = true;
+                    break;
+                }
+                if ($hindariRuangSama && $sl['event_room_id'] > 0 && $lain['event_room_id'] === $sl['event_room_id']) {
                     $bentrok = true;
                     break;
                 }
@@ -1231,6 +1290,7 @@ class PengawasService
         array &$slotPerPengawas,
         array $maksEventMap,
         int $maksHari,
+        bool $hindariRuangSama,
         bool $acak,
     ): bool {
         if ($sisaNode <= 0) {
@@ -1249,6 +1309,7 @@ class PengawasService
             $slotPerPengawas,
             $maksEventMap,
             $maksHari,
+            $hindariRuangSama,
         );
 
         if ($langsung !== []) {
@@ -1278,11 +1339,14 @@ class PengawasService
                 continue;
             }
 
-            // Cari slot milik $sid dalam run ini yang menghalangi $sid masuk ke $slotIdx.
+            // Cari slot milik $sid dalam run ini yang menghalangi $sid masuk ke $slotIdx
+            // (bentrok waktu atau ruang fisik yang sama bila hindari_ruang_sama aktif).
             $penghalang = [];
             foreach ($slotPerPengawas[$sid] ?? [] as $milikIdx) {
                 $milik = $slots[$milikIdx];
-                if ($sl['start_ts'] < $milik['end_ts'] && $milik['start_ts'] < $sl['end_ts']) {
+                $bentrokWaktu = $sl['start_ts'] < $milik['end_ts'] && $milik['start_ts'] < $sl['end_ts'];
+                $ruangSama = $hindariRuangSama && $sl['event_room_id'] > 0 && $milik['event_room_id'] === $sl['event_room_id'];
+                if ($bentrokWaktu || $ruangSama) {
                     $penghalang[] = $milikIdx;
                 }
             }
@@ -1323,6 +1387,7 @@ class PengawasService
                         $slotPerPengawas,
                         $maksEventMap,
                         $maksHari,
+                        $hindariRuangSama,
                     ),
                     true,
                 );
@@ -1345,6 +1410,7 @@ class PengawasService
                         $slotPerPengawas,
                         $maksEventMap,
                         $maksHari,
+                        $hindariRuangSama,
                         $acak,
                     )) {
                         return true;
@@ -1386,6 +1452,7 @@ class PengawasService
         array &$slotPerPengawas,
         array $maksEventMap,
         int $maksHari,
+        bool $hindariRuangSama = false,
     ): bool {
         $sl = $slots[$slotIdx];
 
@@ -1413,6 +1480,7 @@ class PengawasService
                         $slotPerPengawas,
                         $maksEventMap,
                         $maksHari,
+                        $hindariRuangSama,
                     ),
                     true,
                 );

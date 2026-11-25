@@ -129,6 +129,7 @@ class SchoolEvent extends Model
             'hormati_pengecualian' => true,
             'hindari_wali_kelas' => false,
             'hindari_guru_mapel' => false,
+            'hindari_ruang_sama' => false,
             'tolak_melebihi_kuota' => false,
         ];
 
@@ -144,6 +145,7 @@ class SchoolEvent extends Model
             'hormati_pengecualian' => (bool) ($tersimpan['hormati_pengecualian'] ?? $bawaan['hormati_pengecualian']),
             'hindari_wali_kelas' => (bool) ($tersimpan['hindari_wali_kelas'] ?? $bawaan['hindari_wali_kelas']),
             'hindari_guru_mapel' => (bool) ($tersimpan['hindari_guru_mapel'] ?? $bawaan['hindari_guru_mapel']),
+            'hindari_ruang_sama' => (bool) ($tersimpan['hindari_ruang_sama'] ?? $bawaan['hindari_ruang_sama']),
             'tolak_melebihi_kuota' => (bool) ($tersimpan['tolak_melebihi_kuota'] ?? $bawaan['tolak_melebihi_kuota']),
         ];
     }

@@ -635,6 +635,7 @@ class ExamPengawasController
             'hormati_pengecualian' => ['required', 'boolean'],
             'hindari_wali_kelas' => ['required', 'boolean'],
             'hindari_guru_mapel' => ['required', 'boolean'],
+            'hindari_ruang_sama' => ['sometimes', 'boolean'],
             'tolak_melebihi_kuota' => ['required', 'boolean'],
         ]);
 
