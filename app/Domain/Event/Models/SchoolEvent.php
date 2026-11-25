@@ -148,6 +148,32 @@ class SchoolEvent extends Model
         ];
     }
 
+    public function pengawasanTerkunci(): bool
+    {
+        $tersimpan = is_array($this->pengawas_settings) ? $this->pengawas_settings : [];
+
+        return (bool) ($tersimpan['terkunci'] ?? false);
+    }
+
+    /**
+     * @return array{terkunci: bool, dikunci_pada: ?string, dikunci_oleh: ?string}
+     */
+    public function kunciPengawasan(): array
+    {
+        $tersimpan = is_array($this->pengawas_settings) ? $this->pengawas_settings : [];
+        $terkunci = (bool) ($tersimpan['terkunci'] ?? false);
+
+        return [
+            'terkunci' => $terkunci,
+            'dikunci_pada' => $terkunci && is_string($tersimpan['dikunci_pada'] ?? null)
+                ? $tersimpan['dikunci_pada']
+                : null,
+            'dikunci_oleh' => $terkunci && is_string($tersimpan['dikunci_oleh'] ?? null)
+                ? $tersimpan['dikunci_oleh']
+                : null,
+        ];
+    }
+
     /** @return BelongsTo<AcademicYear, $this> */
     public function academicYear(): BelongsTo
     {

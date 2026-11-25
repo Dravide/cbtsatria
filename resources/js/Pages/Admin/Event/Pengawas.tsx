@@ -161,6 +161,7 @@ type Props = {
     };
     calon: { id: number; nama: string; username: string; peran: string }[];
     aturan?: AturanPengawas;
+    kunci?: { terkunci: boolean; dikunci_pada: string | null; dikunci_oleh: string | null };
     matriks?: MatriksBaris[];
     daftar_pengecualian?: PengecualianItem[];
     sesi_kolom?: SesiKolom[];
@@ -177,6 +178,7 @@ export default function EventPengawas({
     angka,
     calon,
     aturan,
+    kunci,
     matriks = [],
     daftar_pengecualian = [],
     sesi_kolom = [],
@@ -225,6 +227,37 @@ export default function EventPengawas({
         router.post(`${jalur}/pengawas/reset`, {}, { preserveScroll: true });
     };
 
+    const terkunci = Boolean(kunci?.terkunci);
+
+    const kunciPengawasan = async () => {
+        const setuju = await konfirmasi({
+            judul: 'Kunci jadwal pengawasan?',
+            pesan: 'Setelah dikunci, penugasan otomatis, reset, ubah aturan, kuota, dan pengecualian akan ditahan agar jadwal yang sudah final tidak berubah tanpa sengaja.',
+            labelYa: 'Ya, kunci pengawasan',
+        });
+
+        if (!setuju) {
+            return;
+        }
+
+        router.post(`${jalur}/pengawas/kunci`, {}, { preserveScroll: true });
+    };
+
+    const bukaKunciPengawasan = async () => {
+        const setuju = await konfirmasi({
+            judul: 'Buka kunci jadwal pengawasan?',
+            pesan: 'Jadwal pengawasan akan kembali bisa diubah (penugasan, reset, aturan, kuota, dan pengecualian).',
+            labelYa: 'Ya, buka kunci',
+            nada: 'bahaya',
+        });
+
+        if (!setuju) {
+            return;
+        }
+
+        router.post(`${jalur}/pengawas/buka-kunci`, {}, { preserveScroll: true });
+    };
+
     const butuhSlot = angka.ruang * (aturan?.target_per_ruang ?? angka.minimal_per_ruang);
     const adaKuotaTakTerbatas = matriks.some((m) => m.maks === 0);
     const totalKuota = matriks.reduce((acc, m) => acc + (m.maks > 0 ? m.maks : 0), 0);
@@ -258,11 +291,13 @@ export default function EventPengawas({
                     <TombolTautanKeLamanSesi per_sesi={per_sesi} jalur_sesi={jalur_sesi} />
 
                     <Tombol
-                        disabled={baris.length === 0}
+                        disabled={baris.length === 0 || terkunci}
                         title={
-                            baris.length === 0
-                                ? 'Belum ada sesi ber-ruang. Susun jadwalnya terlebih dahulu.'
-                                : 'Pilih Mode Cepat atau Mode Expert untuk menugaskan pengawas otomatis'
+                            terkunci
+                                ? 'Jadwal pengawasan sedang dikunci.'
+                                : baris.length === 0
+                                  ? 'Belum ada sesi ber-ruang. Susun jadwalnya terlebih dahulu.'
+                                  : 'Pilih Mode Cepat atau Mode Expert untuk menugaskan pengawas otomatis'
                         }
                         onClick={() => setModalOtomatis(true)}
                     >
@@ -271,16 +306,36 @@ export default function EventPengawas({
 
                     <Tombol
                         nada="bahaya"
-                        disabled={angka.ditugaskan === 0}
+                        disabled={angka.ditugaskan === 0 || terkunci}
                         title={
-                            angka.ditugaskan === 0
-                                ? 'Belum ada penugasan pengawas untuk direset.'
-                                : 'Hapus seluruh penugasan pengawas pada event ini'
+                            terkunci
+                                ? 'Jadwal pengawasan sedang dikunci.'
+                                : angka.ditugaskan === 0
+                                  ? 'Belum ada penugasan pengawas untuk direset.'
+                                  : 'Hapus seluruh penugasan pengawas pada event ini'
                         }
                         onClick={resetPengawasan}
                     >
                         Reset pengawasan
                     </Tombol>
+
+                    {terkunci ? (
+                        <Tombol
+                            nada="sek"
+                            onClick={bukaKunciPengawasan}
+                            title="Buka kunci agar jadwal pengawasan bisa diubah kembali"
+                        >
+                            Buka kunci
+                        </Tombol>
+                    ) : (
+                        <Tombol
+                            nada="pri"
+                            onClick={kunciPengawasan}
+                            title="Kunci jadwal pengawasan agar tidak berubah tanpa sengaja"
+                        >
+                            Kunci pengawasan
+                        </Tombol>
+                    )}
                 </>
             }
         >
@@ -318,6 +373,25 @@ export default function EventPengawas({
                     catatan={aturan && aturan.maks_per_event > 0 ? `batas ${aturan.maks_per_event}×/event` : 'tanpa batas'}
                 />
             </div>
+
+            {terkunci && (
+                <div className="mb-3">
+                    <Peringatan>
+                        <strong>Jadwal pengawasan sedang dikunci</strong>
+                        {kunci?.dikunci_oleh || kunci?.dikunci_pada ? (
+                            <>
+                                {' '}
+                                ({[kunci?.dikunci_oleh && `oleh ${kunci.dikunci_oleh}`, kunci?.dikunci_pada]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                                )
+                            </>
+                        ) : null}
+                        . Penugasan, reset, aturan, kuota, dan pengecualian ditahan sampai kunci
+                        dibuka.
+                    </Peringatan>
+                </div>
+            )}
 
             <div className="mb-4 flex flex-wrap gap-1 border-b border-line">
                 {(
@@ -367,7 +441,7 @@ export default function EventPengawas({
 
             {tab === 'jadwal' && (
                 <>
-                    {aturan && <PanelAturan jalur={jalur} aturan={aturan} />}
+                    {aturan && <PanelAturan jalur={jalur} aturan={aturan} terkunci={terkunci} />}
 
                     {per_sesi.length === 0 ? (
                         <Kotak>
@@ -413,6 +487,7 @@ export default function EventPengawas({
                     sesi_kolom={sesi_kolom}
                     butuhSlot={butuhSlot}
                     maksDefault={aturan?.maks_per_event ?? 0}
+                    terkunci={terkunci}
                 />
             )}
 
@@ -423,6 +498,7 @@ export default function EventPengawas({
                 jalur={jalur}
                 daftar={daftar_pengecualian}
                 sesi_kolom={sesi_kolom}
+                terkunci={terkunci}
                 padaTutup={() => setModalPengecualian(false)}
             />
 
@@ -793,7 +869,15 @@ function KPI({
     );
 }
 
-function PanelAturan({ jalur, aturan }: { jalur: string; aturan: AturanPengawas }) {
+function PanelAturan({
+    jalur,
+    aturan,
+    terkunci = false,
+}: {
+    jalur: string;
+    aturan: AturanPengawas;
+    terkunci?: boolean;
+}) {
     const [form, setForm] = useState<AturanPengawas>(aturan);
     const [terbuka, setTerbuka] = useState(false);
 
@@ -905,7 +989,7 @@ function PanelAturan({ jalur, aturan }: { jalur: string; aturan: AturanPengawas 
                     </div>
 
                     <div className="mt-3 flex justify-end">
-                        <Tombol nada="pri" onClick={simpan}>
+                        <Tombol nada="pri" disabled={terkunci} onClick={simpan}>
                             Simpan aturan
                         </Tombol>
                     </div>
@@ -921,12 +1005,14 @@ function MatriksKetersediaan({
     sesi_kolom,
     butuhSlot,
     maksDefault,
+    terkunci = false,
 }: {
     jalur: string;
     matriks: MatriksBaris[];
     sesi_kolom: SesiKolom[];
     butuhSlot: number;
     maksDefault: number;
+    terkunci?: boolean;
 }) {
     const [cari, setCari] = useState('');
     const [orangId, setOrangId] = useState<number>(matriks[0]?.id ?? 0);
@@ -1133,7 +1219,7 @@ function MatriksKetersediaan({
                                     className={kelasInput + ' w-40'}
                                 />
                             </label>
-                            <Tombol nada="sek" onClick={kosongkanHari}>
+                            <Tombol nada="sek" disabled={terkunci} onClick={kosongkanHari}>
                                 Kosongkan hari
                             </Tombol>
                         </>
@@ -1162,13 +1248,13 @@ function MatriksKetersediaan({
                         </label>
                         <Tombol
                             nada="pri"
-                            disabled={prosesMassal || sasaranMassal.length === 0}
+                            disabled={terkunci || prosesMassal || sasaranMassal.length === 0}
                             onClick={() => terapkanKuotaMassal(kuotaMassal)}
                         >
                             Terapkan kuota
                         </Tombol>
                         <Tombol
-                            disabled={prosesMassal || sasaranMassal.length === 0}
+                            disabled={terkunci || prosesMassal || sasaranMassal.length === 0}
                             onClick={() => {
                                 setKuotaMassal('');
                                 terapkanKuotaMassal('');
@@ -1180,7 +1266,7 @@ function MatriksKetersediaan({
                         {draftBerubah.length > 0 && (
                             <Tombol
                                 nada="sek"
-                                disabled={prosesMassal}
+                                disabled={terkunci || prosesMassal}
                                 onClick={simpanSemuaDraftKuota}
                             >
                                 Simpan perubahan baris ({draftBerubah.length})
@@ -1310,8 +1396,9 @@ function MatriksKetersediaan({
                                                 />
                                                 <button
                                                     type="button"
+                                                    disabled={terkunci}
                                                     onClick={() => simpanKuota(m.id, draft)}
-                                                    className="rounded-wf border border-line px-2 py-1 text-[11px] text-ink hover:bg-surface-2"
+                                                    className="rounded-wf border border-line px-2 py-1 text-[11px] text-ink hover:bg-surface-2 disabled:opacity-50"
                                                 >
                                                     Simpan
                                                 </button>
@@ -1325,13 +1412,16 @@ function MatriksKetersediaan({
                                                 <td key={s.id} className="px-2 py-2 text-center">
                                                     <button
                                                         type="button"
+                                                        disabled={terkunci}
                                                         onClick={() => toggleSesi(s.id, m.id)}
                                                         title={
-                                                            dikecualikan
-                                                                ? 'Klik untuk tandai tersedia'
-                                                                : kuotaPenuh && !tugas
-                                                                  ? `Kuota sudah penuh (${m.terpakai}/${m.maks}). Klik bila ingin tetap dikosongkan di sesi ini.`
-                                                                  : 'Klik untuk kosongkan di sesi ini'
+                                                            terkunci
+                                                                ? 'Jadwal pengawasan sedang dikunci'
+                                                                : dikecualikan
+                                                                  ? 'Klik untuk tandai tersedia'
+                                                                  : kuotaPenuh && !tugas
+                                                                    ? `Kuota sudah penuh (${m.terpakai}/${m.maks}). Klik bila ingin tetap dikosongkan di sesi ini.`
+                                                                    : 'Klik untuk kosongkan di sesi ini'
                                                         }
                                                         className={
                                                             'rounded-wf border px-2 py-1 text-[11px] font-medium ' +
@@ -1481,12 +1571,14 @@ function ModalPengecualian({
     jalur,
     daftar,
     sesi_kolom,
+    terkunci = false,
     padaTutup,
 }: {
     terbuka: boolean;
     jalur: string;
     daftar: PengecualianItem[];
     sesi_kolom: SesiKolom[];
+    terkunci?: boolean;
     padaTutup: () => void;
 }) {
     const [cari, setCari] = useState('');
@@ -1628,7 +1720,7 @@ function ModalPengecualian({
                                             )}
                                         </div>
 
-                                        {!sedangEdit && (
+                                        {!sedangEdit && !terkunci && (
                                             <div className="flex shrink-0 gap-1.5">
                                                 <button
                                                     type="button"

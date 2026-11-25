@@ -259,6 +259,7 @@ class ExamPengawasController
                 ->all(),
 
             'aturan' => $aturan,
+            'kunci' => $event->kunciPengawasan(),
             'matriks' => $matriks,
             'daftar_pengecualian' => $daftarPengecualian,
             'sesi_kolom' => $sesi->map(fn (ExamSession $s) => [
@@ -494,6 +495,10 @@ class ExamPengawasController
         Gate::authorize('update', $event);
         $this->pastikanRuangMilikEvent($ruang, $event);
 
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
+
         $data = $request->validate([
             'supervisor_id' => ['required', 'integer'],
         ]);
@@ -529,6 +534,10 @@ class ExamPengawasController
         Gate::authorize('update', $event);
         $this->pastikanTugasMilikEvent($tugas, $event);
 
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
+
         $nama = $tugas->supervisor?->name ?? 'Pengawas';
 
         $service->batalkan($tugas);
@@ -553,6 +562,10 @@ class ExamPengawasController
         ActivityLogger $logger,
     ): RedirectResponse {
         Gate::authorize('update', $event);
+
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
 
         $data = $request->validate([
             'mode' => ['nullable', 'in:cepat,expert'],
@@ -610,6 +623,10 @@ class ExamPengawasController
     ): RedirectResponse {
         Gate::authorize('update', $event);
 
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
+
         $data = $request->validate([
             'maks_per_event' => ['required', 'integer', 'min:0', 'max:50'],
             'maks_per_hari' => ['required', 'integer', 'min:0', 'max:20'],
@@ -633,6 +650,10 @@ class ExamPengawasController
         ActivityLogger $logger,
     ): RedirectResponse {
         Gate::authorize('update', $event);
+
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
 
         $data = $request->validate([
             'exam_session_id' => ['required', 'integer'],
@@ -688,6 +709,10 @@ class ExamPengawasController
         ActivityLogger $logger,
     ): RedirectResponse {
         Gate::authorize('update', $event);
+
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
 
         $data = $request->validate([
             'supervisor_id' => ['required', 'integer'],
@@ -749,6 +774,10 @@ class ExamPengawasController
     ): RedirectResponse {
         Gate::authorize('update', $event);
 
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
+
         $data = $request->validate([
             'supervisor_id' => ['required', 'integer'],
             'maks_mengawas' => ['nullable', 'integer', 'min:0', 'max:50'],
@@ -771,6 +800,10 @@ class ExamPengawasController
         ActivityLogger $logger,
     ): RedirectResponse {
         Gate::authorize('update', $event);
+
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
 
         $data = $request->validate([
             'kuota' => ['required', 'array', 'min:1'],
@@ -806,6 +839,10 @@ class ExamPengawasController
         $sesi->loadMissing('exam');
         abort_unless($sesi->exam?->event_id === $event->id, 404);
 
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
+
         try {
             $hasil = $service->tugaskanOtomatis($event, (int) $request->user()->id, $sesi->id);
         } catch (DomainException $e) {
@@ -837,6 +874,10 @@ class ExamPengawasController
         $sesi->loadMissing('exam');
         abort_unless($sesi->exam?->event_id === $event->id, 404);
 
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
+
         $dihapus = $service->kosongkanSesi($sesi);
         $logger->log('Mengosongkan penugasan pengawas satu sesi', $event, ['sesi_id' => $sesi->id, 'dihapus' => $dihapus]);
 
@@ -851,6 +892,10 @@ class ExamPengawasController
         ActivityLogger $logger,
     ): RedirectResponse {
         Gate::authorize('update', $event);
+
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
 
         $sesiIds = ExamSession::query()
             ->whereIn('exam_id', $event->exams()->pluck('id'))
@@ -883,6 +928,10 @@ class ExamPengawasController
     ): RedirectResponse {
         Gate::authorize('update', $event);
         abort_unless((int) $pengecualian->event_id === (int) $event->id, 404);
+
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
 
         $data = $request->validate([
             'exam_session_id' => ['required', 'integer'],
@@ -925,6 +974,10 @@ class ExamPengawasController
         Gate::authorize('update', $event);
         abort_unless((int) $pengecualian->event_id === (int) $event->id, 404);
 
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
+
         $info = [
             'id' => $pengecualian->id,
             'supervisor_id' => $pengecualian->supervisor_id,
@@ -936,6 +989,64 @@ class ExamPengawasController
         $logger->log('Menghapus pengecualian pengawas', $event, $info);
 
         return back()->with('sukses', 'Pengecualian pengawas dihapus.');
+    }
+
+    public function kunciPengawasan(
+        Request $request,
+        SchoolEvent $event,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        if ($event->pengawasanTerkunci()) {
+            return back()->with('galat', 'Jadwal pengawasan event ini sudah dikunci.');
+        }
+
+        $lama = is_array($event->pengawas_settings) ? $event->pengawas_settings : [];
+        $event->forceFill([
+            'pengawas_settings' => array_merge($lama, [
+                'terkunci' => true,
+                'dikunci_pada' => now()->format('d M Y H:i'),
+                'dikunci_oleh' => $request->user()?->name,
+            ]),
+        ])->save();
+
+        $logger->log('Mengunci jadwal pengawasan event', $event);
+
+        return back()->with('sukses', 'Jadwal pengawasan dikunci. Perubahan penugasan, aturan, kuota, dan pengecualian kini ditahan.');
+    }
+
+    public function bukaKunciPengawasan(
+        SchoolEvent $event,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        if (! $event->pengawasanTerkunci()) {
+            return back()->with('galat', 'Jadwal pengawasan event ini belum dikunci.');
+        }
+
+        $lama = is_array($event->pengawas_settings) ? $event->pengawas_settings : [];
+        $event->forceFill([
+            'pengawas_settings' => array_merge($lama, [
+                'terkunci' => false,
+                'dikunci_pada' => null,
+                'dikunci_oleh' => null,
+            ]),
+        ])->save();
+
+        $logger->log('Membuka kunci jadwal pengawasan event', $event);
+
+        return back()->with('sukses', 'Kunci jadwal pengawasan dibuka.');
+    }
+
+    private function tolakJikaTerkunci(SchoolEvent $event): ?RedirectResponse
+    {
+        if (! $event->pengawasanTerkunci()) {
+            return null;
+        }
+
+        return back()->with('galat', 'Jadwal pengawasan sedang dikunci. Buka kunci terlebih dahulu untuk mengubahnya.');
     }
 
     /* ------------------------------------------------------------ Pembantu */
@@ -978,6 +1089,10 @@ class ExamPengawasController
         ActivityLogger $logger,
     ): RedirectResponse {
         Gate::authorize('update', $event);
+
+        if ($respon = $this->tolakJikaTerkunci($event)) {
+            return $respon;
+        }
 
         $data = $request->validate([
             'a' => ['required', 'integer'],

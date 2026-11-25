@@ -109,8 +109,10 @@ class PengawasService
      */
     public function simpanAturan(SchoolEvent $event, array $data): array
     {
+        $lama = is_array($event->pengawas_settings) ? $event->pengawas_settings : [];
+
         $event->forceFill([
-            'pengawas_settings' => [
+            'pengawas_settings' => array_merge($lama, [
                 'maks_per_event' => max(0, (int) ($data['maks_per_event'] ?? 0)),
                 'maks_per_hari' => max(0, (int) ($data['maks_per_hari'] ?? 0)),
                 'target_per_ruang' => in_array((int) ($data['target_per_ruang'] ?? 1), [1, 2], true)
@@ -121,7 +123,7 @@ class PengawasService
                 'hindari_wali_kelas' => (bool) ($data['hindari_wali_kelas'] ?? false),
                 'hindari_guru_mapel' => (bool) ($data['hindari_guru_mapel'] ?? false),
                 'tolak_melebihi_kuota' => (bool) ($data['tolak_melebihi_kuota'] ?? false),
-            ],
+            ]),
         ])->save();
 
         return $event->aturanPengawas();

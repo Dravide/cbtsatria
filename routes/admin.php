@@ -256,6 +256,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/events/{event}/pengawas/sesi/{sesi}', [ExamPengawasController::class, 'sesi'])->name('events.pengawas.sesi');
     Route::post('/events/{event}/pengawas/otomatis', [ExamPengawasController::class, 'otomatis'])->name('events.pengawas.otomatis');
     Route::post('/events/{event}/pengawas/reset', [ExamPengawasController::class, 'resetPengawasan'])->name('events.pengawas.reset');
+    Route::post('/events/{event}/pengawas/kunci', [ExamPengawasController::class, 'kunciPengawasan'])->name('events.pengawas.kunci');
+    Route::post('/events/{event}/pengawas/buka-kunci', [ExamPengawasController::class, 'bukaKunciPengawasan'])->name('events.pengawas.buka_kunci');
     Route::post('/events/{event}/pengawas/ruang/{ruang}', [ExamPengawasController::class, 'tugaskan'])->name('events.pengawas.tugaskan');
     Route::delete('/events/{event}/pengawas/{tugas}', [ExamPengawasController::class, 'batalkan'])->name('events.pengawas.batal');
     Route::post('/events/{event}/pengawas/tukar', [ExamPengawasController::class, 'tukar'])
