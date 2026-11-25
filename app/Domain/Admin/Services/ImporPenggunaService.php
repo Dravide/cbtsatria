@@ -24,69 +24,13 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Impor pengguna bertahap - PRD §5.7, plate 05.
- *
- * =====================================================================
- * Tiga langkah, dan hanya langkah KETIGA yang menyimpan akun
- * =====================================================================
- *   1. UNGGAH     berkas ke disk privat, hitung hash, status `menunggu`.
- *   2. PRATINJAU  urai, periksa SETIAP baris, simpan hasilnya, status
- *                 `dipratinjau`. Tidak ada satu pun baris `users` yang
- *                 ditulis di langkah ini.
- *   3. KONFIRMASI simpan baris yang SAH saja, tulis laporan galat, status
- *                 `dikonfirmasi`.
- *
- * Yang membedakannya dari `ImporSoalService` bukan panjangnya, melainkan
- * bahwa satu baris di sini bisa berarti DUA hal: akun baru, atau akun lama
- * yang diperbarui. Pratinjau karena itu menghitung keduanya terpisah, dan
- * angkanya terlihat SEBELUM Admin menekan Konfirmasi.
- *
- * =====================================================================
- * Username dan sandi akun lama tidak pernah disentuh
- * =====================================================================
- * Username unik GLOBAL dan tertempel di kartu login siswa. Kalau Admin
- * memperbaiki NIS yang salah ketik di berkasnya lalu username diturunkan
- * ulang, nama akun berubah diam-diam - dan setiap siswa yang menghafalnya
- * terkunci pada hari ujian. Karena itu `perbarui()` dipanggil TANPA kunci
- * `username` maupun `password`, dan `UserRegistrar` memang sudah dirancang
- * begitu: ia hanya menyentuh `name/email/phone/is_active` beserta profilnya.
- *
- * Sandi akun BARU adalah `password`, sama dengan jalur buat manual
- * (`UserController::store`). Tidak ada kolom sandi di template - sandi mentah
- * yang beredar di satu lembar Excel bersama seluruh siswa adalah kebocoran.
- *
- * =====================================================================
- * Sel kosong pada baris PERBARUI berarti "jangan ubah kolom itu"
- * =====================================================================
- * Dan itu arah kegagalan yang dipilih dengan sadar. Alternatifnya - sel
- * kosong berarti "kosongkan" - membuat berkas yang hanya memuat nama dan
- * kelas MENGHAPUS email, telepon, jenis kelamin, dan alamat seluruh akun yang
- * disentuhnya, tanpa satu pun baris galat yang berbunyi. Impor massal adalah
- * tempat terburuk untuk kerusakan yang tidak berbunyi.
- *
- * Harganya disebut apa adanya: kolom yang sudah terisi TIDAK BISA dikosongkan
- * lewat impor. Yang perlu mengosongkannya membuka akunnya di `/admin/pengguna`.
- *
- * =====================================================================
- * Berkas ditolak SELURUHNYA bila kolom kelas diisi tanpa tahun ajaran aktif
- * =====================================================================
- * Satu-satunya pemeriksaan tingkat berkas di luar keempat baku (bukan zip,
- * tanpa lembar, tanpa kolom wajib, melebihi batas). Alasannya: keadaannya
- * tidak bisa diperbaiki per baris. Admin harus MENGAKTIFKAN tahun ajarannya
- * lebih dulu - satu tindakan - dan 1.284 baris gagal untuk satu tindakan
- * adalah laporan yang menyiksa pembacanya tanpa memberinya jalan keluar.
- *
- * Berkas yang kolom kelasnya kosong tetap jalan tanpa tahun ajaran aktif:
- * keadaan itu normal untuk guru dan pengawas.
+ * Impor pengguna bertahap: unggah ke disk privat, pratinjau tanpa menulis akun, lalu konfirmasi.
+ * Baris perbarui tidak pernah mengubah username/sandi, dan sel kosong tidak mengosongkan kolom lama.
  */
 class ImporPenggunaService
 {
     /**
-     * Panjang maksimum per kolom, selaras aturan `UserController::aturan()`.
-     *
-     * Diperiksa per baris, bukan dipotong diam-diam: nilai yang dipotong
-     * menghasilkan akun dengan NIS yang berbeda dari yang tertulis di berkas,
-     * dan Admin tidak punya cara mengetahui yang mana.
+     * Batas panjang maksimum per kolom (selaras UserController::aturan()); ditolak per baris, tidak dipotong.
      *
      * @var array<string, int>
      */
@@ -110,11 +54,7 @@ class ImporPenggunaService
         private readonly ActivityLogger $logger,
     ) {}
 
-    /* ===================================================== 1. Unggah */
-
     /**
-     * Terima berkasnya, simpan ke disk privat, dan catat barisnya.
-     *
      * @throws ValidationException
      */
     public function unggah(UploadedFile $berkas, int $schoolId, int $userId): UserImportBatch
@@ -144,10 +84,7 @@ class ImporPenggunaService
 
         $hash = hash('sha256', $isi);
 
-        // Mengunggah ulang berkas yang sama adalah dua kali impor yang sama.
-        // Pada mode "perbarui akun lama" akibatnya tidak terlihat sebagai
-        // duplikat, melainkan sebagai `updated_at` yang bergeser pada 1.284
-        // akun - kerusakan yang tidak berbunyi sama sekali.
+        // Tolak berkas dengan hash yang sama agar impor tidak berjalan dua kali.
         $sudahAda = UserImportBatch::query()
             ->where('user_id', $userId)
             ->where('berkas_hash', $hash)
@@ -165,9 +102,7 @@ class ImporPenggunaService
             $batch = UserImportBatch::create([
                 'school_id' => $schoolId,
                 'user_id' => $userId,
-                // Diisi di bawah, setelah id barisnya ada: jalurnya memuat id
-                // batch, dan kolomnya NOT NULL. Satu UPDATE, dan tidak ada
-                // berkas yang ditulis ke jalur yang tidak tercatat.
+                // Diisi setelah ID batch tersedia karena jalur memuat ID dan kolomnya NOT NULL.
                 'file_path' => '',
                 'nama_asli' => $berkas->getClientOriginalName(),
                 'berkas_hash' => $hash,
@@ -187,10 +122,8 @@ class ImporPenggunaService
         });
     }
 
-    /* ================================================== 2. Pratinjau */
-
     /**
-     * Urai berkasnya dan periksa setiap barisnya - tanpa menyimpan satu akun.
+     * Urai dan validasi setiap baris tanpa menulis akun ke basis data.
      *
      * @throws ValidationException
      */
@@ -211,7 +144,6 @@ class ImporPenggunaService
         try {
             $baris = $pembaca->baca(Storage::disk('local')->path($batch->file_path));
         } catch (BerkasImportTidakTerbaca $e) {
-            // Pesan kelas itu ditulis untuk ADMIN, dan ditampilkan apa adanya.
             $this->tolakBerkas($batch, $e->getMessage());
         }
 
@@ -230,16 +162,7 @@ class ImporPenggunaService
 
         $sekolahId = (int) $batch->school_id;
 
-        // Diperiksa SEBELUM perulangan, bukan di dalamnya. Keadaannya tidak
-        // bisa diperbaiki per baris - Admin harus mengaktifkan tahun ajarannya
-        // lebih dulu - dan 1.284 baris gagal untuk satu tindakan adalah
-        // laporan yang menyiksa pembacanya tanpa memberinya jalan keluar.
-        //
-        // Yang diperiksa adalah apakah kolomnya DIISI, bukan apakah kelasnya
-        // bisa dicocokkan: tanpa tahun ajaran aktif tidak ada satu pun kelas
-        // yang bisa dicocokkan, sehingga barisnya akan gagal dengan pesan
-        // "kelas tidak ada" - sebab yang menyesatkan untuk keadaan yang
-        // sebenarnya.
+        // Tolak seluruh berkas sejak awal jika kolom kelas terisi tetapi belum ada tahun ajaran aktif.
         $tahunAktif = $this->tahunAktif($sekolahId);
 
         if ($tahunAktif === null && $this->adaBarisKelas($penjajar, $baris, $noJudul)) {
@@ -248,9 +171,7 @@ class ImporPenggunaService
                 'Tanpa tahun ajaran aktif, tidak ada kelas yang bisa dicocokkan.');
         }
 
-        // Tahun ajaran dan kelasnya dibaca SEKALI untuk seluruh berkas.
-        // Membacanya per baris berarti 1.284 query untuk daftar yang sama - dan
-        // lebih buruk lagi, daftar yang bisa berbeda antar barisnya.
+        // Muat daftar kelas sekali untuk seluruh berkas agar tidak terjadi N+1 query.
         $kelas = $this->petaKelas($tahunAktif);
 
         $emailDipakai = $this->emailSekolah($sekolahId);
@@ -261,8 +182,7 @@ class ImporPenggunaService
         $dibuat = 0;
         $diperbarui = 0;
 
-        // Deteksi duplikat DI DALAM BERKAS sebelum menyentuh basis data:
-        // "peran|nomor" -> nomor baris pertama yang memakainya.
+        // Peta "peran|nomor" => nomor baris pertama untuk deteksi duplikat dalam satu berkas.
         $terlihat = [];
 
         foreach ($baris as $nomor => $sel) {
@@ -329,11 +249,7 @@ class ImporPenggunaService
         return $batch->fresh();
     }
 
-    /* ================================================= 3. Konfirmasi */
-
     /**
-     * Simpan baris yang sah saja.
-     *
      * @throws ValidationException
      */
     public function konfirmasi(UserImportBatch $batch): UserImportBatch
@@ -382,24 +298,8 @@ class ImporPenggunaService
         return $batch->fresh();
     }
 
-    /* ------------------------------------------------------- Pembatalan */
-
     /**
-     * Buang berkas yang belum diimpor - beserta berkasnya di disk.
-     *
-     * =====================================================================
-     * Mengapa barisnya DIHAPUS, bukan sekadar ditandai
-     * =====================================================================
-     * `berkas_hash` unik per (sekolah, Admin), dan itulah yang menolak
-     * unggahan ulang berkas yang sama. Baris yang dibatalkan harus melepaskan
-     * kuncinya, kalau tidak Admin yang membatalkan pratinjau berkas salah,
-     * memperbaiki berkasnya, lalu mengunggahnya kembali akan ditolak dengan
-     * "berkas ini sudah pernah Anda unggah" - oleh baris yang ia sendiri baru
-     * saja batalkan.
-     *
-     * Yang TIDAK boleh dibatalkan adalah berkas `dikonfirmasi`: akunnya sudah
-     * tertulis. Menghapus barisnya berarti menghapus catatan bahwa impor itu
-     * pernah terjadi, dan tidak mengembalikan satu akun pun.
+     * Hapus batch yang belum dikonfirmasi beserta berkasnya agar hash berkas bisa diunggah ulang.
      *
      * @throws ValidationException
      */
@@ -416,9 +316,7 @@ class ImporPenggunaService
             'status' => $batch->statusImpor()->value,
         ]);
 
-        // Folder batch memuat berkas unggahan DAN laporan galatnya - lihat
-        // `folder()`. Menghapus foldernya berarti tidak ada berkas yatim yang
-        // tertinggal di disk privat tanpa baris yang menunjuknya.
+        // Hapus seluruh folder batch agar tidak ada berkas unggahan atau laporan galat yang yatim.
         Storage::disk('local')->deleteDirectory(
             $this->folder((int) $batch->school_id, (int) $batch->id),
         );
@@ -426,11 +324,7 @@ class ImporPenggunaService
         $batch->delete();
     }
 
-    /* ------------------------------------------------------- Mekanisme */
-
     /**
-     * Tulis seluruh baris sah, beserta penempatan kelasnya.
-     *
      * @param  array<int, array<string, mixed>>  $rincian
      * @return array{tersimpan: int, dibuat: int, diperbarui: int, gagal_total: int, rincian: array<int, array<string, mixed>>}
      */
@@ -439,21 +333,14 @@ class ImporPenggunaService
         int $sekolahId,
         ?AcademicYear $tahunAktif,
     ): array {
-        // Kelas yang sah SEKARANG, diperiksa ulang untuk seluruh baris
-        // sekaligus. Kelas bisa saja dihapus antara pratinjau dan konfirmasi,
-        // dan baris yang menunjuk padanya harus DIKELUARKAN dari transaksi
-        // sebelum penulisan - satu baris basi tidak boleh me-rollback 1.283
-        // akun yang sah.
+        // Periksa ulang keberadaan kelas karena kelas bisa dihapus antara pratinjau dan konfirmasi.
         $kelasAda = $this->idKelas($tahunAktif);
 
         $tersimpan = 0;
         $dibuat = 0;
         $diperbarui = 0;
 
-        // Transaksi per BARIS, bukan satu transaksi untuk seluruh berkas.
-        // Satu baris yang gagal di tengah 1.284 baris tidak boleh membatalkan
-        // 1.283 akun yang sudah benar - dan itulah yang membuat laporan galat
-        // punya arti: sisanya benar-benar tersimpan.
+        // Transaksi per baris agar satu baris gagal tidak membatalkan akun lain yang sah.
         foreach ($rincian as $i => $baris) {
             if (! ($baris['sah'] ?? false)) {
                 continue;
@@ -492,22 +379,15 @@ class ImporPenggunaService
             'tersimpan' => $tersimpan,
             'dibuat' => $dibuat,
             'diperbarui' => $diperbarui,
-            // Dihitung dari `$rincian` AKHIR, bukan dari angka pratinjau: ia
-            // sudah memuat baris yang gagal sejak awal DAN baris yang baru
-            // gagal saat ditulis. Menjumlahkan keduanya secara terpisah -
-            // seperti versi pertama method ini - menghitung ulang galat
-            // pratinjau dari sumber lain, dan angkanya bisa berbeda dari
-            // laporan yang ditulis.
+            // Hitung dari rincian akhir agar mencakup galat pratinjau maupun galat saat penulisan.
             'gagal_total' => count(array_filter($rincian, fn ($b) => ! ($b['sah'] ?? false))),
             'rincian' => $rincian,
         ];
     }
 
     /**
-     * Tulis satu baris: akunnya, profilnya, dan kelasnya.
-     *
      * @param  array<string, mixed>  $baris
-     * @return string `baru` atau `diperbarui`.
+     * @return string `baru` atau `diperbarui`
      */
     private function tulisSatu(array $baris, int $sekolahId, ?AcademicYear $tahunAktif): string
     {
@@ -520,9 +400,7 @@ class ImporPenggunaService
                 ->where('school_id', $sekolahId)
                 ->find((int) $baris['user_id']);
 
-            // Akun yang hilang antara pratinjau dan konfirmasi diperlakukan
-            // sebagai akun BARU, bukan sebagai galat: Admin yang menghapus
-            // satu akun di tab lain tidak boleh membuat 1.284 barisnya gagal.
+            // Jika akun terhapus antara pratinjau dan konfirmasi, buat akun baru agar baris tidak gagal.
             if ($user !== null) {
                 $this->registrar->perbarui($user, $muatan);
                 $aksi = 'diperbarui';
@@ -550,8 +428,6 @@ class ImporPenggunaService
     }
 
     /**
-     * Buat akun baru dari muatan barisnya.
-     *
      * @param  array<string, mixed>  $muatan
      */
     private function buatAkun(array $muatan, int $sekolahId, Role $peran): User
@@ -562,8 +438,7 @@ class ImporPenggunaService
             array_merge($muatan, [
                 'role' => $peran,
                 'username' => $this->registrar->usernameDari($nomor, (string) $this->kodeSekolah($sekolahId)),
-                // Kunci ini WAJIB ada: `UserRegistrar::buat()` membacanya
-                // tanpa syarat. Nilainya sama dengan jalur buat manual.
+                // Wajib dikirim karena UserRegistrar::buat() membacanya tanpa syarat.
                 'password' => User::SANDI_BAWAAN,
             ]),
             $sekolahId,
@@ -571,8 +446,6 @@ class ImporPenggunaService
     }
 
     /**
-     * Periksa satu baris, kembalikan hasilnya - sah atau tidak.
-     *
      * @param  array<int, string>  $sel
      * @param  array<string, int>  $kelas  nama kelas (huruf kecil) => id
      * @param  array<int, string>  $emailDipakai  user_id => email
@@ -617,9 +490,7 @@ class ImporPenggunaService
         $peran = $this->peranDari($peranMentah);
 
         if ($peran === null) {
-            // Peran `admin` ditolak dengan sebabnya sendiri: itu jalur
-            // eskalasi hak lewat spreadsheet, dan Admin yang membacanya harus
-            // tahu bahwa penolakannya bukan salah tulis.
+            // Tolak peran admin secara eksplisit untuk mencegah eskalasi hak lewat spreadsheet.
             $pesan = strtolower(trim($peranMentah)) === 'admin'
                 ? 'Peran "admin" tidak bisa dibuat lewat impor. Buat akun Admin satu per satu di laman Pengguna.'
                 : 'Peran "'.$peranMentah.'" tidak dikenal. Isi salah satu dari: '.$this->daftarPeran().'.';
@@ -634,7 +505,6 @@ class ImporPenggunaService
             return array_merge($dasar, ['kolom' => 'nama', 'pesan' => 'Kolom nama kosong.']);
         }
 
-        // Panjangnya diperiksa per baris - lihat catatan konstanta PANJANG.
         foreach (self::PANJANG as $kolom => $maks) {
             $isi = $penjajar->ambil($sel, $kolom);
 
@@ -664,9 +534,6 @@ class ImporPenggunaService
 
         $dasar['nomor_identitas'] = $nomorIdentitas;
 
-        // Duplikat DI DALAM BERKAS diperiksa lebih dulu: dua baris ber-NIS
-        // sama adalah kesalahan menyusun berkasnya, dan pesan yang menyebut
-        // nomor baris pertama adalah satu-satunya yang bisa ditindaklanjuti.
         $kunci = $peran->value.'|'.$nomorIdentitas;
 
         if (array_key_exists($kunci, $terlihat)) {
@@ -706,9 +573,7 @@ class ImporPenggunaService
             }
         }
 
-        // Kelas hanya bermakna bagi siswa. Kolomnya ada di SEMUA baris karena
-        // templatenya satu, jadi baris guru yang kebetulan mengisinya
-        // diabaikan - bukan dilaporkan sebagai galat.
+        // Abaikan kolom kelas untuk non-siswa karena semua peran memakai satu template.
         $kelasId = null;
         $kelasNama = $penjajar->ambil($sel, 'kelas');
 
@@ -727,8 +592,7 @@ class ImporPenggunaService
             $kelasId = $kelas[$kunciKelas];
         }
 
-        // Akun lama dicari SESUDAH pemeriksaan ringan, supaya berkas yang
-        // salah tulis tidak menghabiskan 1.284 query sebelum ditolak.
+        // Cari akun lama setelah validasi ringan agar baris salah tidak membebani basis data.
         $kandidat = $this->pencari->cari($peran, $nomorIdentitas, $sekolahId);
 
         if ($kandidat->count() > 1) {
@@ -762,8 +626,7 @@ class ImporPenggunaService
         $telepon = $penjajar->ambil($sel, 'telepon');
         $alamat = $penjajar->ambil($sel, 'alamat');
 
-        // Sel kosong TIDAK ikut dikirim pada baris perbarui - lihat catatan
-        // kepala kelas. Pada baris baru ia tidak berbeda dari null.
+        // Lewati sel kosong agar baris perbarui tidak menimpa data lama dengan null.
         $muatan = [
             'role' => $peran->value,
             'name' => $nama,
@@ -790,9 +653,7 @@ class ImporPenggunaService
                 ->find($kelasId);
 
             if ($kelasModel !== null) {
-                // Rencananya dihitung TANPA menulis apa pun, dan itulah yang
-                // membuat pratinjau tidak bisa berbeda dari yang tersimpan:
-                // `tempatkan()` memakai perhitungan yang sama persis.
+                // Hitung rencana penempatan tanpa menulis agar pratinjau identik dengan konfirmasi.
                 $rencana = $this->penempatan->rencana((int) $lama->id, $kelasModel);
 
                 $dasar['kelas_aksi'] = $rencana['aksi'];
@@ -813,12 +674,7 @@ class ImporPenggunaService
     }
 
     /**
-     * Kolom identitas sesuai perannya.
-     *
-     * Hanya kolom yang BERISI yang dikirim: `nisn` yang selalu dikirim sebagai
-     * null akan mengosongkan NISN akun lama pada setiap impor yang kolomnya
-     * belum diisi - kerusakan yang sama dengan sel kosong, dan alasan yang
-     * sama pula.
+     * Hanya sertakan kolom identitas yang terisi agar baris perbarui tidak mengosongkan data lama.
      *
      * @param  array<int, string>  $sel
      * @return array<string, string>
@@ -826,22 +682,19 @@ class ImporPenggunaService
     private function kolomIdentitas(Role $peran, PenjajarPengguna $penjajar, array $sel): array
     {
         $kolom = match ($peran) {
-            Role::Student => ['nis', 'nisn'],
-            Role::Teacher => ['nip'],
-            Role::Supervisor => ['staff_code'],
+            Role::Student => ['nis' => 'nis', 'nisn' => 'nisn'],
+            Role::Teacher => ['nip' => 'nip'],
+            Role::Supervisor => ['staff_code' => 'kode_pegawai'],
             default => [],
         };
 
         $isi = [];
 
-        foreach ($kolom as $satu) {
-            // Nama kolom di template berbeda dari nama kolom di basis data
-            // untuk satu hal saja: `kode_pegawai` -> `staff_code`. Namanya di
-            // template mengikuti istilah yang dipakai sekolah.
-            $nilai = $penjajar->ambil($sel, $satu);
+        foreach ($kolom as $kolomDb => $kolomTemplate) {
+            $nilai = $penjajar->ambil($sel, $kolomTemplate);
 
             if ($nilai !== '') {
-                $isi[$satu] = $nilai;
+                $isi[$kolomDb] = $nilai;
             }
         }
 
@@ -849,15 +702,7 @@ class ImporPenggunaService
     }
 
     /**
-     * Buang sel kosong.
-     *
-     * Pada baris perbarui, kunci yang ABSEN berarti "jangan ubah kolom itu" -
-     * lihat catatan kepala kelas - dan itulah pekerjaan penyaringan ini.
-     *
-     * Ia dipakai untuk baris baru juga meski di sana null dan absen sama saja:
-     * satu jalur untuk keduanya berarti tidak ada dua perilaku yang bisa
-     * berbeda diam-diam, dan satu tempat yang dibaca siapa pun yang bertanya
-     * "apa yang terjadi pada kolom yang saya biarkan kosong".
+     * Buang sel kosong agar baris perbarui tidak mengosongkan kolom yang sudah terisi.
      *
      * @param  array<string, string|null>  $nilai
      * @return array<string, string>
@@ -867,16 +712,8 @@ class ImporPenggunaService
         return array_filter($nilai, fn ($v) => $v !== null && $v !== '');
     }
 
-    /* ---------------------------------------------------------- Pembantu */
-
     /**
-     * Apakah ada baris data yang mengisi kolom kelas.
-     *
-     * Diperiksa dari SEL BERKASNYA, bukan dari hasil pemeriksaan per baris.
-     * Baris yang salah tulis - nama kosong, peran tidak dikenal - tetap
-     * dihitung bila kolom kelasnya terisi, dan itu memang yang diinginkan:
-     * yang diperiksa di sini adalah keadaan berkasnya, bukan kesahihan
-     * barisnya.
+     * Cek langsung dari sel mentah apakah ada baris data yang mengisi kolom kelas.
      *
      * @param  array<int, array<int, string>>  $baris
      */
@@ -1038,13 +875,7 @@ class ImporPenggunaService
     }
 
     /**
-     * Tandai berkasnya gagal lalu LEMPAR - selalu, tanpa kecuali.
-     *
-     * Satu method, bukan `tandaiGagal()` yang dipanggil dua-tiga kali: versi
-     * pertama `ImporSoalService` melempar hanya di satu cabang, dan tiga
-     * cabang lain membuat Guru menerima lencana HIJAU "berkasnya tidak bisa
-     * dibaca". Warna lencana adalah seluruh isi pesannya bagi siapa pun yang
-     * membacanya sambil lalu.
+     * Tandai batch gagal lalu selalu lempar ValidationException agar UI tidak menampilkan status sukses.
      *
      * @throws ValidationException
      */
@@ -1069,11 +900,7 @@ class ImporPenggunaService
     }
 
     /**
-     * Tulis laporan galat `.csv` ke disk privat.
-     *
-     * Ditaruh di disk yang sama dengan berkasnya: keduanya bahan yang belum
-     * boleh dibaca siapa pun yang menebak namanya. Yang bisa mengunduhnya
-     * adalah rute berwenang setelah memeriksa kepemilikan barisnya.
+     * Tulis laporan galat CSV ke disk privat yang sama dengan berkas unggahan.
      *
      * @param  array<int, array<string, mixed>>  $rincian
      */
@@ -1081,8 +908,7 @@ class ImporPenggunaService
     {
         $pegangan = fopen('php://temp', 'r+');
 
-        // BOM: tanpa itu Excel berbahasa Indonesia menampilkan huruf beraksen
-        // yang rusak di pesannya.
+        // Sertakan BOM UTF-8 agar Excel membaca karakter beraksen dengan benar.
         fwrite($pegangan, "\xEF\xBB\xBF");
 
         fputcsv($pegangan, ['baris', 'peran', 'nama', 'nomor', 'kolom', 'pesan'], ';', '"', '\\');
