@@ -1344,15 +1344,13 @@ function MatriksKetersediaan({
                                                                     : 'border-line bg-wf-soft text-ink-2 hover:border-ink-3')
                                                         }
                                                     >
-                                                        {dikecualikan && tugas
-                                                            ? `Kosong · ${tugas.ruang}`
-                                                            : dikecualikan
-                                                              ? 'Kosong'
-                                                              : tugas
-                                                                ? tugas.ruang
-                                                                : kuotaPenuh
-                                                                  ? 'Kuota penuh'
-                                                                  : 'Tersedia'}
+                                                        {dikecualikan
+                                                            ? 'Kosong'
+                                                            : tugas
+                                                              ? tugas.ruang
+                                                              : kuotaPenuh
+                                                                ? 'Kuota penuh'
+                                                                : 'Tersedia'}
                                                     </button>
                                                 </td>
                                             );

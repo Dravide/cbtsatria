@@ -665,6 +665,18 @@ class ExamPengawasController
             'created_by' => (int) $request->user()->id,
         ]);
 
+        // Batalkan penugasan yang sudah ada pada sesi ini agar status "Kosong" benar-benar kosong.
+        $ruangSesiIds = ExamSessionRoom::query()
+            ->where('exam_session_id', $sesi->id)
+            ->pluck('id');
+
+        if ($ruangSesiIds->isNotEmpty()) {
+            SupervisionAssignment::query()
+                ->where('supervisor_id', (int) $data['supervisor_id'])
+                ->whereIn('exam_session_room_id', $ruangSesiIds)
+                ->delete();
+        }
+
         $logger->log('Mengosongkan ketersediaan pengawas di sesi', $event, $data);
 
         return back()->with('sukses', 'Pengawas dikosongkan pada sesi tersebut.');
@@ -705,6 +717,19 @@ class ExamPengawasController
 
             if ($baris->wasRecentlyCreated) {
                 $dibuat++;
+            }
+        }
+
+        if ($idSesiHari->isNotEmpty()) {
+            $ruangHariIds = ExamSessionRoom::query()
+                ->whereIn('exam_session_id', $idSesiHari)
+                ->pluck('id');
+
+            if ($ruangHariIds->isNotEmpty()) {
+                SupervisionAssignment::query()
+                    ->where('supervisor_id', (int) $data['supervisor_id'])
+                    ->whereIn('exam_session_room_id', $ruangHariIds)
+                    ->delete();
             }
         }
 
