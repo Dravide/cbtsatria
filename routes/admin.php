@@ -272,6 +272,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('events.pengawas.kosongkan_hari');
     Route::post('/events/{event}/pengawas/kuota', [ExamPengawasController::class, 'simpanKuota'])
         ->name('events.pengawas.kuota');
+    Route::post('/events/{event}/pengawas/kuota-massal', [ExamPengawasController::class, 'simpanKuotaMassal'])
+        ->name('events.pengawas.kuota_massal');
     Route::post('/events/{event}/pengawas/sesi/{sesi}/otomatis', [ExamPengawasController::class, 'otomatisSesi'])
         ->name('events.pengawas.sesi.otomatis');
     Route::post('/events/{event}/pengawas/sesi/{sesi}/kosongkan', [ExamPengawasController::class, 'kosongkanSesi'])

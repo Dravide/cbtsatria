@@ -824,6 +824,9 @@ function MatriksKetersediaan({
     const [tanggal, setTanggal] = useState<string>(tanggalUnik[0] ?? '');
     const [alasan, setAlasan] = useState('');
     const [kuotaDraft, setKuotaDraft] = useState<Record<number, string>>({});
+    const [pilihIds, setPilihIds] = useState<number[]>([]);
+    const [kuotaMassal, setKuotaMassal] = useState('');
+    const [prosesMassal, setProsesMassal] = useState(false);
 
     const tersaring = matriks.filter((m) => {
         const q = cari.trim().toLowerCase();
@@ -857,9 +860,89 @@ function MatriksKetersediaan({
         router.post(
             `${jalur}/pengawas/kuota`,
             { supervisor_id: supervisorId, maks_mengawas: parsed },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onSuccess: () =>
+                    setKuotaDraft((prev) => {
+                        const salinan = { ...prev };
+                        delete salinan[supervisorId];
+                        return salinan;
+                    }),
+            },
         );
     };
+
+    const draftBerubah = Object.entries(kuotaDraft)
+        .map(([idStr, nilai]) => {
+            const id = Number(idStr);
+            const item = matriks.find((m) => m.id === id);
+            const asli = item?.maks_khusus !== null && item?.maks_khusus !== undefined
+                ? String(item.maks_khusus)
+                : '';
+
+            if (nilai === asli) {
+                return null;
+            }
+
+            return {
+                supervisor_id: id,
+                maks_mengawas: nilai.trim() === '' ? null : Math.min(50, Math.max(0, Number(nilai))),
+            };
+        })
+        .filter((x): x is { supervisor_id: number; maks_mengawas: number | null } => x !== null);
+
+    const simpanSemuaDraftKuota = () => {
+        if (draftBerubah.length === 0) {
+            return;
+        }
+
+        setProsesMassal(true);
+        router.post(
+            `${jalur}/pengawas/kuota-massal`,
+            { kuota: draftBerubah },
+            {
+                preserveScroll: true,
+                onSuccess: () => setKuotaDraft({}),
+                onFinish: () => setProsesMassal(false),
+            },
+        );
+    };
+
+    const sasaranMassal =
+        pilihIds.length > 0
+            ? tersaring.filter((m) => pilihIds.includes(m.id))
+            : tersaring;
+
+    const terapkanKuotaMassal = (nilaiStr: string) => {
+        if (sasaranMassal.length === 0) {
+            return;
+        }
+
+        const parsed =
+            nilaiStr.trim() === '' ? null : Math.min(50, Math.max(0, Number(nilaiStr)));
+
+        setProsesMassal(true);
+        router.post(
+            `${jalur}/pengawas/kuota-massal`,
+            {
+                kuota: sasaranMassal.map((m) => ({
+                    supervisor_id: m.id,
+                    maks_mengawas: parsed,
+                })),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setKuotaDraft({});
+                    setPilihIds([]);
+                },
+                onFinish: () => setProsesMassal(false),
+            },
+        );
+    };
+
+    const semuaTersaringTerpilih =
+        tersaring.length > 0 && tersaring.every((m) => pilihIds.includes(m.id));
 
     return (
         <section className="space-y-3">
@@ -922,12 +1005,74 @@ function MatriksKetersediaan({
                         </>
                     )}
                 </div>
+
+                {matriks.length > 0 && (
+                    <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-line pt-3">
+                        <label className="text-xs text-ink-2">
+                            <span className="mb-1 block">
+                                Kuota khusus massal (
+                                {pilihIds.length > 0
+                                    ? `${sasaranMassal.length} dipilih`
+                                    : `semua ${sasaranMassal.length} tampil`}
+                                )
+                            </span>
+                            <input
+                                type="number"
+                                min={0}
+                                max={50}
+                                value={kuotaMassal}
+                                onChange={(e) => setKuotaMassal(e.target.value)}
+                                placeholder="Default"
+                                className={kelasInput + ' w-32 font-mono'}
+                            />
+                        </label>
+                        <Tombol
+                            nada="pri"
+                            disabled={prosesMassal || sasaranMassal.length === 0}
+                            onClick={() => terapkanKuotaMassal(kuotaMassal)}
+                        >
+                            Terapkan kuota
+                        </Tombol>
+                        <Tombol
+                            disabled={prosesMassal || sasaranMassal.length === 0}
+                            onClick={() => {
+                                setKuotaMassal('');
+                                terapkanKuotaMassal('');
+                            }}
+                            title="Kembalikan kuota khusus ke bawaan aturan event"
+                        >
+                            Reset ke default
+                        </Tombol>
+                        {draftBerubah.length > 0 && (
+                            <Tombol
+                                nada="sek"
+                                disabled={prosesMassal}
+                                onClick={simpanSemuaDraftKuota}
+                            >
+                                Simpan perubahan baris ({draftBerubah.length})
+                            </Tombol>
+                        )}
+                    </div>
+                )}
             </Kotak>
 
             <div className="overflow-x-auto rounded-wf border border-line bg-surface">
                 <table className="w-full border-collapse text-left text-xs">
                     <thead>
                         <tr className="border-b border-line bg-surface-2/60 text-[11px] uppercase text-ink-3">
+                            <th className="w-9 px-3 py-2 text-center">
+                                <input
+                                    type="checkbox"
+                                    checked={semuaTersaringTerpilih}
+                                    onChange={(e) =>
+                                        setPilihIds(
+                                            e.target.checked ? tersaring.map((m) => m.id) : [],
+                                        )
+                                    }
+                                    className="size-3.5 accent-accent"
+                                    aria-label="Pilih semua pengawas"
+                                />
+                            </th>
                             <th className="px-3 py-2">Pengawas</th>
                             <th className="px-3 py-2">Kuota Khusus</th>
                             {sesi_kolom.map((s) => (
@@ -944,7 +1089,7 @@ function MatriksKetersediaan({
                         {tersaring.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={2 + sesi_kolom.length}
+                                    colSpan={3 + sesi_kolom.length}
                                     className="px-3 py-6 text-center text-ink-3"
                                 >
                                     Belum ada calon pengawas.
@@ -957,6 +1102,21 @@ function MatriksKetersediaan({
                                     (m.maks_khusus !== null ? String(m.maks_khusus) : '');
                                 return (
                                     <tr key={m.id}>
+                                        <td className="px-3 py-2 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={pilihIds.includes(m.id)}
+                                                onChange={(e) =>
+                                                    setPilihIds((prev) =>
+                                                        e.target.checked
+                                                            ? [...prev, m.id]
+                                                            : prev.filter((x) => x !== m.id),
+                                                    )
+                                                }
+                                                className="size-3.5 accent-accent"
+                                                aria-label={`Pilih ${m.nama}`}
+                                            />
+                                        </td>
                                         <td className="px-3 py-2">
                                             <div className="font-medium text-ink">{m.nama}</div>
                                             <div className="font-mono text-[10px] text-ink-3">

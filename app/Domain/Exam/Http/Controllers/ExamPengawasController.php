@@ -16,6 +16,7 @@ use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -716,6 +717,36 @@ class ExamPengawasController
         $logger->log('Memperbarui kuota mengawas pengawas', $event, $data);
 
         return back()->with('sukses', 'Kuota pengawas diperbarui.');
+    }
+
+    public function simpanKuotaMassal(
+        Request $request,
+        SchoolEvent $event,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('update', $event);
+
+        $data = $request->validate([
+            'kuota' => ['required', 'array', 'min:1'],
+            'kuota.*.supervisor_id' => ['required', 'integer'],
+            'kuota.*.maks_mengawas' => ['nullable', 'integer', 'min:0', 'max:50'],
+        ]);
+
+        $diperbarui = 0;
+
+        DB::transaction(function () use ($event, $data, &$diperbarui) {
+            foreach ($data['kuota'] as $item) {
+                $diperbarui += $event->committee()
+                    ->where('user_id', (int) $item['supervisor_id'])
+                    ->update(['maks_mengawas' => $item['maks_mengawas'] ?? null]);
+            }
+        });
+
+        $logger->log('Memperbarui kuota mengawas secara massal', $event, [
+            'jumlah' => $diperbarui,
+        ]);
+
+        return back()->with('sukses', "Kuota mengawas untuk {$diperbarui} pengawas diperbarui.");
     }
 
     public function otomatisSesi(
