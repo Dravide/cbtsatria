@@ -1,6 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { formatUkuran } from '@/Components/angka';
+import { konfirmasi } from '@/Components/dialog';
 import AdminLayout from '@/Layouts/AdminLayout';
 import {
     BilahFilter,
@@ -16,31 +17,8 @@ import {
 } from '@/Components/ui';
 
 /**
- * Laman 05 - Pengguna. Wireframe plate 05.
- *
- * Empat tab peran, satu tabel. Tab bukan navigasi ke empat laman: yang
- * berubah hanya penyaring role, dan tepi halaman "1-50 dari 1.284" tetap satu
- * baris tabel yang sama.
- *
- * ---------------------------------------------------------------------
- * Username diturunkan dari NIS/NIP, tetapi BISA diganti
- * ---------------------------------------------------------------------
- * Saat akun dibuat, username tidak diketik Admin: ia diturunkan dari NIS/NIP
- * di server. Alasannya ada di layar login - kalau Admin mengarang username,
- * ia bisa mengarang yang bertabrakan dengan akun sekolah lain, dan
- * kegagalannya muncul jauh kemudian di layar login siswa pada hari ujian.
- *
- * Tetapi NIS dan NIP memang salah ketik. Karena itu ada tindakan tersendiri
- * untuk MENGGANTI username akun yang sudah ada - dan bukan kolom di form
- * Ubah. Perbedaannya bukan tata letak: sebagai kolom di antara nama dan
- * email, username akan ikut tersimpan setiap kali Admin memperbaiki surel
- * seseorang, dan satu salah ketik yang tidak disadari mengunci siswa itu
- * pada hari ujian. Sebagai tindakan tersendiri, ia menuntut niat, dan
- * layarnya bisa menyebut akibatnya lebih dulu.
- *
- * Yang tidak berubah: memperbaiki NIS tidak pernah menurunkan username ulang.
- * Username tertempel di kartu login, dan mengubahnya diam-diam di belakang
- * perbaikan NIS berarti mengunci setiap siswa yang sudah menghafalnya.
+ * Username awal diturunkan dari NIS/NIP di server; memperbarui NIS tidak otomatis mengubah username.
+ * Penggantian username dipisah ke modal tersendiri agar tidak ikut berubah secara tidak sengaja saat menyunting profil.
  */
 type Profil = {
     nis: string | null;
@@ -74,15 +52,7 @@ type Props = {
     format: string[];
 };
 
-/**
- * Satu baris riwayat ekspor.
- *
- * `status_nada` datang dari server (`UserExport::nadaStatus()`), bukan
- * dihitung di sini - `nadaStatus()` di `ui.tsx` memetakan kosakata status
- * event, presensi, dan master data; ia tidak mengenal `menunggu`/`diproses`.
- * Menghitungnya di model berarti komponen bersama itu tidak perlu disentuh
- * setiap ada kosakata status baru.
- */
+/** `status_nada` dihitung di `UserExport::nadaStatus()` karena `ui.tsx` tidak memetakan status ekspor. */
 type Ekspor = {
     id: number;
     format: string;
@@ -105,7 +75,6 @@ const LABEL_TAB: Record<string, string> = {
     admin: 'Admin',
 };
 
-/** Field yang relevan per peran - form yang sama, isi yang berbeda. */
 const FIELD_PERAN: Record<string, { nama: string; label: string; kunci: string }[]> = {
     student: [
         { nama: 'nis', label: 'NIS', kunci: 'nis' },
@@ -158,31 +127,46 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
         setPilih([]);
     };
 
-    /*
-     * Kartu akun hanya untuk GURU - tab ini juga menampilkan siswa dan
-     * pengawas, dan kartu akun siswa dicetak per kelas dari laman lain.
-     * Server menyaring rolenya juga; tombol ini menyembunyikannya supaya
-     * Admin tidak menekan tombol yang pasti ditolak.
-     */
+    // Kartu akun dari halaman ini khusus guru; kartu siswa dicetak per kelas di halaman lain.
     const adaKartu = tab === 'teacher';
+    const tabPengawas = tab === 'supervisor';
 
-    /**
-     * Cetak kartu satu guru, atau semua yang dicentang.
-     *
-     * Unduhan lewat `<a>`/navigasi, bukan `router.get`: berkasnya bukan
-     * laman Inertia, dan respons PDF/ZIP tidak bisa diurai sebagai props.
-     * Karena itu alamatnya disusun lalu dibuka di tab baru - pola yang sama
-     * dengan tombol ekspor berkas di laman lain.
-     */
+    const resetPengawas = async () => {
+        const total = tabnya.supervisor ?? 0;
+
+        if (total === 0) {
+            return;
+        }
+
+        const setuju = await konfirmasi({
+            judul: `Hapus semua ${total.toLocaleString('id-ID')} akun pengawas?`,
+            pesan: 'Seluruh akun pada tab Pengawas di sekolah ini akan dihapus dan sesi loginnya diakhiri. Data riwayat ujian tetap tersimpan.',
+            labelYa: 'Ya, hapus semua pengawas',
+            nada: 'bahaya',
+        });
+
+        if (!setuju) {
+            return;
+        }
+
+        router.post(
+            '/admin/pengguna/reset-pengawas',
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => setPilih([]),
+            },
+        );
+    };
+
+    /** Buka unduhan PDF/ZIP di tab baru (bukan `router.get`) karena respons bukan halaman Inertia. */
     const cetakKartu = (id?: number[]) => {
         const parameter = new URLSearchParams();
 
         if (id && id.length > 0) {
             id.forEach((satu) => parameter.append('guru[]', String(satu)));
         } else {
-            // Seluruh hasil saringan, bukan satu halaman: Admin yang mencari
-            // "budi" lalu menekan "Semua kartu" mengharapkan semua yang
-            // cocok, bukan lima puluh baris pertama.
+            // Ekspor seluruh hasil saringan aktif, bukan hanya halaman tabel saat ini.
             parameter.set('semua', '1');
 
             if (filter.cari) {
@@ -210,6 +194,15 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                             title="Kartu akun seluruh guru pada penyaring ini - satu PDF per guru, dibungkus ZIP"
                         >
                             Kartu akun
+                        </Tombol>
+                    )}
+                    {tabPengawas && (tabnya.supervisor ?? 0) > 0 && (
+                        <Tombol
+                            nada="bahaya"
+                            onClick={resetPengawas}
+                            title="Hapus semua akun pengawas di sekolah ini"
+                        >
+                            Reset pengawas
                         </Tombol>
                     )}
                     <Tombol nada="pri" onClick={() => setTambah(true)}>
@@ -376,9 +369,7 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                         : []),
                     {
                         judul: '',
-                        // Lebar kolom aksi mengikuti jumlah tautannya: tab
-                        // Guru punya empat (Kartu, Kuota AI, Username, Ubah),
-                        // tab lain dua.
+                        // Tab guru menampilkan empat aksi (Kartu, Kuota AI, Username, Ubah); tab lain dua.
                         kelas: adaKartu ? 'w-52 text-right' : 'w-32 text-right',
                         render: (b) => (
                             <span className="flex justify-end gap-3">
@@ -434,14 +425,7 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                 padaTutup={() => setTambah(false)}
             />
 
-            {/*
-             * `key` di sini BUKAN hiasan. `useForm` menetapkan nilai awalnya
-             * sekali saat komponen dipasang, dan komponen ini tetap terpasang
-             * meski modalnya tertutup - Modal hanya mengembalikan null, ia
-             * tidak melepas anaknya. Tanpa key, menekan "Ubah" pada baris
-             * kedua akan menampilkan isi baris PERTAMA yang tadi dibuka: state
-             * form-nya tidak pernah disetel ulang.
-             */}
+            {/* Key memaksa remount agar nilai awal useForm disetel ulang saat berganti pengguna (Modal tidak melepas anaknya). */}
             <FormPengguna
                 key={ubah?.id ?? 'kosong'}
                 terbuka={ubah !== null}
@@ -473,38 +457,6 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
     );
 }
 
-/**
- * Permintaan ekspor - modal, bukan tiga tombol di header.
- *
- * ---------------------------------------------------------------------
- * Mengapa modal
- * ---------------------------------------------------------------------
- * Yang membuat ekspor ini berguna justru hal yang tidak terlihat di tombolnya:
- * ia mengekspor TAB DAN PENYARING yang sedang aktif. Admin yang menekan
- * "Ekspor" pada tab Guru sambil mengetik "budi" mengharapkan satu berkas
- * berisi guru bernama Budi - dan mendapatkannya. Tanpa kalimat yang
- * menyebutkannya, ia akan mengira dirinya mengekspor seluruh sekolah, dan
- * satu-satunya cara mengetahui jawabannya adalah membuka berkasnya.
- *
- * Header di laman ini sudah memuat Impor dan Tambah; modal ini satu-satunya
- * tempat yang bisa mengatakan APA yang akan diekspor sebelum menekan tombol.
- */
-/**
- * Ganti username - modal tersendiri, bukan kolom di form Ubah.
- *
- * ---------------------------------------------------------------------
- * Mengapa dipisah dari form Ubah
- * ---------------------------------------------------------------------
- * Username adalah satu-satunya identitas yang diketik saat login, dan ia
- * tertempel di kartu siswa. Sebagai satu kolom di antara nama, email, dan
- * telepon, ia akan ikut tersimpan setiap kali Admin memperbaiki alamat surel
- * seseorang - dan satu salah ketik yang tidak disadari mengunci siswa itu
- * pada hari ujian, tanpa galat apa pun di layar Admin.
- *
- * Sebagai tindakan tersendiri, ia menuntut niat, dan layarnya bisa menyebut
- * akibatnya sebelum Admin mengetik: siswa yang menghafal angka lama akan
- * gagal masuk, dan kartunya perlu dicetak ulang.
- */
 function FormGantiUsername({
     pengguna,
     padaTutup,
@@ -586,10 +538,7 @@ function FormEkspor({
 
         router.post(
             '/admin/pengguna/ekspor',
-            // Peran dan penyaringnya dikirim APA ADANYA dari layar. Server
-            // menyimpannya di `parameter_json` lalu memberikannya ke job, dan
-            // itulah satu-satunya jalur yang membuat berkasnya berisi baris
-            // yang Admin lihat - bukan seluruh 1.284 akun.
+            // Kirim tab dan filter aktif agar job mengekspor subset yang sedang dilihat.
             { format: satuFormat, role: tab, cari: filter.cari, status: filter.status },
             { onFinish: () => setProses(false) },
         );
@@ -644,14 +593,7 @@ function FormEkspor({
     );
 }
 
-/**
- * Riwayat ekspor - lima terakhir, di bawah tabel.
- *
- * Menyalin blok "Ekspor terakhir" di `Laporan.tsx`, dengan satu aturan yang
- * sama: tautan unduhnya HANYA muncul saat statusnya `selesai`. Tautan yang
- * berakhir 404 pada ekspor yang masih menunggu membuat Admin menyimpulkan
- * berkasnya hilang, padahal ia hanya belum jadi.
- */
+/** Tautan unduh hanya ditampilkan saat status `selesai` agar tidak mengarah ke 404. */
 function RiwayatEkspor({ ekspor }: { ekspor: Ekspor[] }) {
     return (
         <section className="mt-4 rounded-wf border border-line bg-surface">
@@ -701,11 +643,7 @@ function RiwayatEkspor({ ekspor }: { ekspor: Ekspor[] }) {
                                 Unduh
                             </a>
                         ) : (
-                            // Lebar tetap supaya status dan tautan sejajar di
-                            // seluruh baris: tanpa itu, baris yang belum
-                            // selesai membuat chip-nya bergeser ke kanan, dan
-                            // daftarnya terlihat berantakan justru saat sedang
-                            // ada pekerjaan berjalan.
+                            // Penahan lebar agar chip status tetap sejajar dengan baris yang punya tombol Unduh.
                             <span className="w-[3.5rem]" />
                         )}
                     </div>
@@ -715,7 +653,6 @@ function RiwayatEkspor({ ekspor }: { ekspor: Ekspor[] }) {
     );
 }
 
-/** Nada chip dari server, disempitkan ke yang dikenal `Chip`. */
 function nadaChip(nada: string): 'ok' | 'warn' | 'bad' | 'info' | 'mute' {
     switch (nada) {
         case 'ok':
@@ -728,14 +665,6 @@ function nadaChip(nada: string): 'ok' | 'warn' | 'bad' | 'info' | 'mute' {
     }
 }
 
-/**
- * Form tambah/ubah, satu komponen.
- *
- * Field identitas mengikuti peran: siswa punya NIS/NISN, guru punya NIP,
- * pengawas punya kode pegawai. Menampilkan ketiganya sekaligus berarti
- * menampilkan field yang pasti dikosongkan - dan field yang boleh kosong
- * selalu dikosongkan.
- */
 function FormPengguna({
     terbuka,
     tab,
@@ -759,10 +688,7 @@ function FormPengguna({
         staff_code: profil?.staff_code ?? '',
         email: pengguna?.email ?? '',
         phone: pengguna?.phone ?? '',
-        // Selalu kosong, termasuk saat mengubah. Mengisinya dengan apa pun
-        // berarti menaruh sandi orang lain di dalam DOM - dan
-        // UserRegistrar::perbarui memang tidak menyentuh sandi yang tidak
-        // dikirim, jadi mengosongkannya bukan kehilangan.
+        // Selalu kosong saat ubah; UserRegistrar::perbarui tidak menimpa sandi jika tidak dikirim.
         password: '',
         is_active: pengguna?.aktif ?? true,
         gender: profil?.gender ?? '',
@@ -856,13 +782,7 @@ function FormPengguna({
                     />
                 </Field>
 
-                {/*
-                 * Jenis kelamin dan alamat HANYA untuk siswa dan guru - dua
-                 * peran yang punya kolomnya di tabel profilnya. Pengawas tidak
-                 * punya `gender` sama sekali, dan menampilkan field yang akan
-                 * dibuang service berarti menawarkan isian yang tidak
-                 * tersimpan.
-                 */}
+                {/* Kolom gender hanya ada pada profil siswa dan guru. */}
                 {data.role !== 'supervisor' && data.role !== 'admin' && (
                     <Field label="Jenis kelamin (opsional)" galat={errors.gender}>
                         <select

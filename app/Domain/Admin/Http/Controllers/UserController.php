@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -361,6 +362,52 @@ class UserController
         $logger->log('Reset password pengguna', null, ['jumlah' => $jumlah]);
 
         return back()->with('sukses', $jumlah.' sandi direset ke "password".');
+    }
+
+    /**
+     * Hapus (soft-delete) semua akun pengawas di sekolah aktif.
+     *
+     * Memakai SoftDeletes agar foreign key riwayat ujian dan presensi yang
+     * berstatus restrictOnDelete tetap terjaga, sambil membebaskan username
+     * agar pengawas baru dapat diimpor ulang dengan kode yang sama.
+     */
+    public function resetPengawas(ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('viewAny', User::class);
+
+        $pengawas = User::query()
+            ->where('role', Role::Supervisor)
+            ->get();
+
+        if ($pengawas->isEmpty()) {
+            return back()->with('galat', 'Tidak ada akun pengawas untuk dihapus.');
+        }
+
+        $jumlah = $pengawas->count();
+        $ids = $pengawas->pluck('id')->all();
+        $waktu = now()->timestamp;
+
+        DB::transaction(function () use ($pengawas, $ids, $waktu) {
+            DB::table('sessions')->whereIn('user_id', $ids)->delete();
+
+            foreach ($pengawas as $satu) {
+                $satu->forceFill([
+                    'is_active' => false,
+                    'username' => sprintf(
+                        'hapus-%d-%d-%s',
+                        $satu->id,
+                        $waktu,
+                        Str::limit($satu->username, 180, ''),
+                    ),
+                ])->save();
+
+                $satu->delete();
+            }
+        });
+
+        $logger->log('Mereset semua akun pengawas', null, ['jumlah' => $jumlah]);
+
+        return back()->with('sukses', $jumlah.' akun pengawas dihapus.');
     }
 
     /**
