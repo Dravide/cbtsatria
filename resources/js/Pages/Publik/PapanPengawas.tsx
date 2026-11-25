@@ -28,6 +28,7 @@ type Ruang = {
     lokasi: string | null;
     sesi: string;
     ujian: string | null;
+    hari_tanggal: string | null;
     jam: string;
 };
 
@@ -105,6 +106,11 @@ export default function PapanPengawas({ sekolah, slug, nama, ruang, diperbarui }
                                                 <span className="font-mono text-[11px] text-ink-2">
                                                     {r.sesi}
                                                 </span>
+                                                {r.hari_tanggal && (
+                                                    <span className="mt-0.5 block text-[11px] text-ink-2">
+                                                        {r.hari_tanggal}
+                                                    </span>
+                                                )}
                                                 <span className="mt-0.5 block font-mono text-[11px] text-ink-3">
                                                     {r.jam}
                                                 </span>

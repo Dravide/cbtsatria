@@ -160,6 +160,7 @@ class PapanPengawas
                 'lokasi' => $b['ruang']->eventRoom?->room?->location,
                 'sesi' => $b['sesi']->label(),
                 'ujian' => $b['sesi']->exam?->title,
+                'hari_tanggal' => $b['sesi']->access_opens_at?->locale('id')->translatedFormat('l, d M Y'),
                 'jam' => $this->jam($b['sesi']),
             ])->values()->all(),
         ];
