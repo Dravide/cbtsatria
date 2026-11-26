@@ -2,41 +2,6 @@ import { Link } from '@inertiajs/react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Chip } from '@/Components/ui';
 
-/**
- * Kosakata rangka ponsel - wireframe-peran.html kelompok J.
- *
- * =====================================================================
- * Mengapa komponen React, bukan kelas CSS `.wd .scr .notch`
- * =====================================================================
- * Wireframe menggambarnya sebagai CSS karena wireframe itu GAMBAR. Yang
- * dipakai pengawas adalah aplikasi, dan tiga hal membuat salinan kelasnya
- * salah:
- *
- *   1. Tabbar itu NAVIGASI. Ia harus tahu rute mana yang sedang dibuka dan
- *      merender Link. CSS tidak bisa memutuskan apa pun.
- *   2. `.wd .hd .sp { margin-left:auto }` adalah aturan keturunan yang
- *      bersandar pada selektor bersarang; Tailwind 4 tidak punya cara wajar
- *      menuliskannya sebagai @utility.
- *   3. Seluruh primitif UI lain sudah tinggal di Components/ui.tsx. Menaruh
- *      separuhnya di CSS berarti dua tempat yang harus dibaca untuk
- *      memahami satu laman.
- *
- * Ukurannya pun berbeda dengan gambar: wireframe memakai .wd selebar 238px
- * karena ia memperlihatkan sebuah ponsel di dalam halaman. Aplikasi ini
- * DIRENDER di dalam ponsel, jadi bingkai ponsel palsu di dalam ponsel
- * sungguhan membuang layar yang justru paling sempit.
- */
-
-/* --------------------------------------------------------------- Bilah */
-
-/**
- * Bilah atas - padanan `.wd .hd`.
- *
- * `kiri` menerima chip (kode ruang) atau crumb; `kanan` menerima chip
- * keadaan, timer, atau satu tombol. `sp` yang mendorong ke kanan diperoleh
- * dari `ml-auto` pada wadah kanan, bukan dari elemen kosong - di wireframe
- * elemen kosong itu ada karena CSS tidak bisa mengukur sisa lebar.
- */
 export function BilahPonsel({
     kiri,
     kanan,
@@ -59,16 +24,7 @@ export function BilahPonsel({
     );
 }
 
-/* -------------------------------------------------------------- Tabbar */
-
-/**
- * Tabbar - empat tab, dan tiap-tiapnya menunjuk ruang yang SEDANG dibuka.
- *
- * Keempat tab butuh `{ruang}` di alamatnya, sehingga tabbar tidak bisa
- * dirender tanpa ruang. Di laman yang memang tidak punya ruang - beranda
- * pengawas, pintu ruang - tabbar tidak dirender sama sekali, bukan
- * dirender dengan tautan mati.
- */
+/** Hanya dirender pada halaman yang memiliki konteks ruang. */
 const TAB = [
     { label: 'Presensi', segmen: 'presensi' },
     { label: 'Token', segmen: 'token' },
@@ -76,32 +32,43 @@ const TAB = [
     { label: 'Laporan', segmen: 'berita-acara' },
 ] as const;
 
-export function TabbarPonsel({ ruangId, aktif }: { ruangId: number; aktif: string }) {
+export function TabbarPonsel({
+    ruangId,
+    aktif,
+    tandaBeritaAcara = false,
+}: {
+    ruangId: number;
+    aktif: string;
+    tandaBeritaAcara?: boolean;
+}) {
     return (
-        // Tanpa `sticky` dan tanpa garis tepi sendiri: bilah ini sekarang
-        // duduk di DALAM wadah melayang yang digambar `KerangkaPonsel`, dan
-        // dua garis tepi - satu dari wadah, satu dari bilah - terbaca sebagai
-        // kotak di dalam kotak.
+        // Tanpa sticky dan border sendiri agar tidak ganda dengan wadah KerangkaPonsel.
         <nav className="grid grid-cols-4">
             {TAB.map((t) => {
                 const on = t.segmen === aktif;
+                const adaTanda = tandaBeritaAcara && t.segmen === 'berita-acara' && !on;
 
                 return (
                     <Link
                         key={t.segmen}
                         href={`/pengawas/ruang/${ruangId}/${t.segmen}`}
                         className={
-                            // `min-h-11` = 44px: tabbar adalah navigasi utama
-                            // yang ditekan dengan jempol sambil berdiri, dan
-                            // `py-2.5` saja memberinya 34px. Empat tab
-                            // bersebelahan tanpa 44px berarti salah tab.
-                            'grid min-h-11 place-items-center px-1 text-center text-[11px] font-medium transition-colors ' +
+                            // Minimal 44px untuk target sentuh jempol.
+                            'relative grid min-h-11 place-items-center px-1 text-center text-[11px] font-medium transition-colors ' +
                             (on
                                 ? 'border-t-2 border-accent text-accent'
                                 : 'border-t-2 border-transparent text-ink-2 hover:text-ink')
                         }
                     >
-                        {t.label}
+                        <span className="inline-flex items-center gap-1">
+                            {t.label}
+                            {adaTanda && (
+                                <span
+                                    className="inline-block size-1.5 rounded-full bg-bad"
+                                    aria-label="Berita acara belum dikirim"
+                                />
+                            )}
+                        </span>
                     </Link>
                 );
             })}
@@ -109,41 +76,7 @@ export function TabbarPonsel({ ruangId, aktif }: { ruangId: number; aktif: strin
     );
 }
 
-/* --------------------------------------------------------------- Kotak */
-
-/**
- * Kotak isi ponsel - padanan `.box`.
- *
- * `solid` = kotak terisi (kepala ruang, blok utama); tanpa `solid` ia kotak
- * biasa dengan latar permukaan. Bedanya dipakai wireframe untuk memisahkan
- * "ini isi pokoknya" dari "ini daftar di bawahnya".
- *
- * =====================================================================
- * `daftar` - kelas yang tidak melakukan apa-apa di luar konsol siswa
- * =====================================================================
- * Kotak ini dipakai konsol PENGAWAS dan konsol SISWA, dan keduanya memakai
- * material yang berbeda: pengawas memakai kotak bersudut membulat seperti
- * sisa konsol lain, siswa memakai lembar putih bergaris dari tema Terrazzo.
- *
- * Karena itu kelas `daftar` dipasang di sini dan seluruh gayanya hidup di
- * `resources/css/konsol-siswa.css` di bawah selektor `.konsol-siswa .daftar`.
- * Di halaman pengawas kelas itu tidak punya aturan sama sekali: yang tinggal
- * hanya utility Tailwind di bawah, dan kotaknya persis seperti sebelumnya.
- *
- * =====================================================================
- * Kepalanya TIDAK berkapit dan tidak berjarak huruf
- * =====================================================================
- * Sampai redesign ini kepala kotak berbunyi `text-[11px] tracking-wide
- * uppercase`, dan itu satu-satunya kalimat yang paling sering muncul di
- * seluruh konsol - dua belas kotak, dua belas kali. Lantai 67 melarangnya:
- * kapital berjarak pada label menaikkan tinggi baris tanpa menambah satu
- * informasi pun, dan pada ponsel ia memperlambat pembacaan justru di tempat
- * yang paling sering dibaca.
- *
- * Gantinya: huruf badan satu tingkat lebih kecil, sentence case, tanpa
- * jarak huruf. Yang menandai kepala sekarang adalah GARIS di bawahnya
- * (daftar) atau latar yang satu langkah lebih gelap - bukan hurufnya.
- */
+/** Kelas `daftar` tidak bergaya di konsol pengawas; override tema siswa ada di `konsol-siswa.css`. */
 export function KotakPonsel({
     judul,
     kanan,
@@ -175,17 +108,6 @@ export function KotakPonsel({
     );
 }
 
-/* ----------------------------------------------------------------- KPI */
-
-/**
- * Angka ringkas - padanan `.kpi`.
- *
- * Nilainya `string` juga, bukan hanya `number`: "0 / 0" dan "28 / 32" adalah
- * nilai yang sah di wireframe, dan memaksanya jadi angka berarti memaksa
- * pemanggilnya menyusun ulang tampilannya di luar komponen ini.
- *
- * Labelnya 11px sentence case - lantai 67 dan 75. Sebelumnya 10px berkapit.
- */
 export function KpiPonsel({
     label,
     nilai,
@@ -201,38 +123,14 @@ export function KpiPonsel({
 
     return (
         <div className="daftar min-w-0 rounded-wf border border-line bg-surface px-2 py-1.5">
-            {/* `break-words` + `leading-tight`: lima ubin sebaris pada ponsel
-                320px hanya menyisakan ~40px isi, dan label seperti
-                "Izin/alpa" harus MEMBUNGKUS di sana - bukan meluber keluar
-                ubinnya dan bukan memaksa ubinnya melebar. */}
+            {/* Izinkan label membungkus agar lima ubin sebaris tidak meluber di layar 320px. */}
             <span className="block text-[11px] leading-tight break-words text-ink-2">{label}</span>
             <b className={'angka block font-display text-base leading-tight ' + warna}>{nilai}</b>
         </div>
     );
 }
 
-/* ---------------------------------------------------------- Baris kursi */
-
-/**
- * Satu kursi - DUA TINGKAT, bukan tabel lima kolom.
- *
- * =====================================================================
- * Aturan yang wajib dituruti, dan sebabnya
- * =====================================================================
- * Wireframe `:726` menulis kepalanya `24px minmax(0,1fr) auto` dengan tiga
- * kolom: nomor kursi, nama + chip, dan tindakan. Yang di tengah itu adalah
- * SATU sel berisi nama di atas dan chip presensi/pengerjaan di bawahnya -
- * bukan lima kolom yang harus digeser ke samping.
- *
- * Bedanya bukan selera. Pengawas memegang ponsel dengan satu tangan sambil
- * berdiri; laman yang menuntut geseran mendatar dibaca sambil menggeser, dan
- * baris yang tergeser membuat orang salah menandai. Salah tandai di laman
- * ini berarti siswa yang hadir tercatat tidak hadir - dan presensi itulah
- * yang membuka gerbang ujiannya.
- *
- * Karena itu `chip` menerima daftar, dan `tindakan` selalu ada di kanan
- * pada tingkat kedua yang sama.
- */
+/** Tata letak dua tingkat tanpa gulir horizontal untuk penggunaan satu tangan di ponsel. */
 export function BarisKursi({
     kursi,
     nama,
@@ -270,21 +168,7 @@ export function BarisKursi({
     );
 }
 
-/* ---------------------------------------------------------------- Foto */
-
-/**
- * Kotak foto berita acara - padanan `.photo`.
- *
- * Lokasi diambil dari `rooms.location`, BUKAN dari geolokasi peramban. Ini
- * koreksi yang disengaja terhadap plate 18, yang meminta "waktu pengambilan
- * dan lokasi": PRD §12.4 menetapkan MVP tanpa GPS tracking, dan meminta izin
- * lokasi di hari-H untuk sebuah berkas adalah izin yang diminta pada saat
- * paling buruk. Nama ruangnya sudah cukup untuk menjawab "di mana ini
- * diambil" - dan itu data yang memang sudah ada.
- *
- * Dilarang "memperbaiki" ini menjadi gelokasi di fase berikutnya tanpa
- * mengubah PRD-nya lebih dulu.
- */
+/** Lokasi diambil dari `rooms.location`, bukan geolokasi browser (tanpa izin GPS). */
 export function PhotoPonsel({
     label,
     petunjuk,
@@ -320,8 +204,7 @@ export function PhotoPonsel({
                     rel="noreferrer"
                     className="block overflow-hidden rounded-wf border border-line bg-surface-2"
                 >
-                    {/* Berkasnya dari disk privat lewat rute berwenang, jadi
-                        gambar ini tidak bisa dibuka tanpa sesi ruangnya. */}
+                    {/* Berkas dilayani dari disk privat lewat rute terotorisasi. */}
                     <img src={url} alt={label} className="h-40 w-full object-cover" />
                 </a>
             ) : (
@@ -330,8 +213,6 @@ export function PhotoPonsel({
                 </div>
             )}
 
-            {/* 11px, bukan 10px: meta foto paling sering dibaca justru saat
-                pengawas meragukan berkasnya. Lihat lantai di `KotakPonsel`. */}
             {ada && (meta || namaBerkas) && (
                 <p className="font-mono text-[11px] text-ink-3">
                     {meta}
@@ -350,27 +231,9 @@ export function PhotoPonsel({
     );
 }
 
-/* ----------------------------------------------------------- Tanda tangan */
-
 /**
- * Kanvas tanda tangan - padanan `.sig`.
- *
- * ==== Mengapa kanvas, bukan unggahan berkas ====
- * Tanda tangan digambar dengan jari di layar. Tidak ada berkas yang pernah
- * ada, dan memaksa satu muncul berarti menyuruh pengawas memotret tanda
- * tangannya di atas kertas lalu memilihnya dari galeri - pekerjaan yang
- * hasilnya bukan tanda tangan melainkan foto tanda tangan.
- *
- * ==== Menyimpan apa ====
- * Data URL PNG, bukan blob. Bentuknya sama dengan yang digambar, bisa
- * disimpan sebagai teks di kolom `tanda_tangan`, dan tidak menuntut unggahan
- * multipart untuk satu goresan.
- *
- * ==== Yang diukur ====
- * `toDataURL` mengembalikan kanvas KOSONG bila belum ada goresan, dan itu
- * keadaan yang bisa dideteksi sebelum dikirim. Tombol simpan dimatikan
- * selama belum ada goresan - kalau tidak, tanda tangan kosong tersimpan dan
- * laporan yang menuntutnya akan menganggap dirinya lengkap.
+ * Kanvas tanda tangan yang disimpan sebagai data URL PNG.
+ * Tombol simpan nonaktif sampai ada goresan agar kanvas kosong tidak tersimpan.
  */
 export function TtdPonsel({
     peran,
@@ -402,9 +265,7 @@ export function TtdPonsel({
     const [namaTtd, setNamaTtd] = useState('');
     const [adaGoresan, setAdaGoresan] = useState(false);
 
-    // Kanvas dengan latar putih dan garis 2px. Latar putihnya bukan hiasan:
-    // PNG transparan di atas kertas putih terlihat sama, tetapi berkasnya
-    // berbeda saat dicetak, dan berita acara ini memang untuk dicetak.
+    // Latar putih diperlukan agar hasil cetak PNG tidak transparan.
     useEffect(() => {
         const el = kanvas.current;
 
@@ -418,8 +279,7 @@ export function TtdPonsel({
             return;
         }
 
-        // Lebar piksel sebenarnya, bukan lebar CSS: kanvas yang diskalakan
-        // menghasilkan goresan yang pecah saat dicetak.
+        // Skalakan dengan devicePixelRatio agar goresan tetap tajam saat dicetak.
         const rasio = window.devicePixelRatio || 1;
         el.width = el.clientWidth * rasio;
         el.height = el.clientHeight * rasio;
@@ -485,9 +345,7 @@ export function TtdPonsel({
         kirim({ peran, nama: namaTtd.trim(), tanda_tangan: data });
     };
 
-    // Admin boleh membaca dan mengunduh, dan TIDAK boleh menandatangani.
-    // Kalimatnya dinyatakan di UI, bukan hanya ditolak server, karena
-    // tombol yang pasti ditolak lebih baik tidak muncul (blueprint `:962`).
+    // Sembunyikan kanvas untuk admin (read-only) alih-alih hanya menolak di server.
     const tampilKanvas = bolehTtd && !ada;
 
     return (
@@ -532,9 +390,6 @@ export function TtdPonsel({
                         onPointerMove={gerak}
                         onPointerUp={henti}
                         onPointerLeave={henti}
-                        /* Bidang gambar, bukan gambar: tanpa label ia
-                           diumumkan pembaca layar sebagai kanvas kosong
-                           tanpa petunjuk apa yang harus dilakukan. */
                         role="img"
                         aria-label={`Area tanda tangan ${label}. Gambar tanda tangan dengan jari.`}
                         className="h-24 w-full touch-none rounded-wf border border-line bg-white"

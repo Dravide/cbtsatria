@@ -77,7 +77,7 @@ export default function KerangkaPonsel({
     children,
     aksiBawah,
 }: Props) {
-    const { auth, pengawasRuang, identitasAplikasi } = usePage().props as unknown as {
+    const { auth, pengawasRuang, statusBeritaAcara, identitasAplikasi } = usePage().props as unknown as {
         auth: { pengguna: { nama: string; peran_label: string } | null };
         pengawasRuang: {
             ruang_id: number;
@@ -89,10 +89,24 @@ export default function KerangkaPonsel({
             slug: string;
             pengawas: string | null;
         } | null;
+        statusBeritaAcara?: {
+            ruang_id: number;
+            final: boolean;
+            sesi_berakhir: boolean;
+            sesi_status: string | null;
+        } | null;
         identitasAplikasi?: { nama: string; logo: string | null };
     };
 
     const lewatTautan = pengawasRuang !== null;
+    const beritaAcaraBelumFinal =
+        tabbar !== undefined &&
+        statusBeritaAcara != null &&
+        statusBeritaAcara.ruang_id === tabbar.ruangId &&
+        !statusBeritaAcara.final;
+    const beritaAcaraMendesak =
+        beritaAcaraBelumFinal &&
+        (statusBeritaAcara.sesi_berakhir || statusBeritaAcara.sesi_status === 'selesai');
 
     return (
         <>
@@ -177,6 +191,33 @@ export default function KerangkaPonsel({
 
                     <main className="min-w-0 flex-1 space-y-3 px-3 py-3">
                         <UmpanBalik />
+                        {beritaAcaraBelumFinal && tabbar && tabbar.aktif !== 'berita-acara' && (
+                            <div
+                                className={
+                                    'flex items-center justify-between gap-2 rounded-wf border px-3 py-2 text-xs ' +
+                                    (beritaAcaraMendesak
+                                        ? 'border-bad bg-bad-bg text-bad'
+                                        : 'border-warn/50 bg-warn-bg text-warn')
+                                }
+                            >
+                                <span className="leading-snug font-medium">
+                                    {beritaAcaraMendesak
+                                        ? 'Waktu sesi berakhir — Berita Acara belum dikirim!'
+                                        : 'Berita Acara ruang ini belum dilengkapi & dikirim.'}
+                                </span>
+                                <Link
+                                    href={`/pengawas/ruang/${tabbar.ruangId}/berita-acara`}
+                                    className={
+                                        'shrink-0 rounded-wf border px-2.5 py-1 text-[11px] font-semibold ' +
+                                        (beritaAcaraMendesak
+                                            ? 'border-bad bg-bad text-white'
+                                            : 'border-warn/50 bg-surface text-warn')
+                                    }
+                                >
+                                    {beritaAcaraMendesak ? 'Isi Sekarang' : 'Buka'}
+                                </Link>
+                            </div>
+                        )}
                         {children}
                     </main>
 
@@ -209,7 +250,11 @@ export default function KerangkaPonsel({
                         // ponsel bertepi lengkung memotong sudut bilahnya.
                         <div className="sticky bottom-0 z-20 px-3 pt-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                             <div className="overflow-hidden rounded-wf border border-line bg-surface/95 shadow-lg backdrop-blur">
-                                <TabbarPonsel ruangId={tabbar.ruangId} aktif={tabbar.aktif} />
+                                <TabbarPonsel
+                                    ruangId={tabbar.ruangId}
+                                    aktif={tabbar.aktif}
+                                    tandaBeritaAcara={beritaAcaraBelumFinal}
+                                />
                             </div>
                         </div>
                     )}

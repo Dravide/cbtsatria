@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Domain\Academic\Models\AcademicYear;
+use App\Domain\Attendance\Models\SessionReport;
 use App\Domain\Attendance\Services\KonteksRuang;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\ExamSessionRoom;
@@ -101,6 +102,7 @@ class HandleInertiaRequests extends Middleware
             // sedang membaca laman ini, dan satu ponsel bisa dipakai dua
             // orang bergantian.
             'pengawasRuang' => fn () => $this->pengawasRuang(),
+            'statusBeritaAcara' => fn () => $this->statusBeritaAcara($request),
 
             // Tahun ajaran aktif dikirim ke setiap laman karena bar atas
             // konsol menampilkannya di semua laman (wireframe plate 07).
@@ -202,6 +204,51 @@ class HandleInertiaRequests extends Middleware
             // kepala laman bisa menyebut siapa yang sedang berdiri di sini
             // dan bukan hanya ruang mana.
             'pengawas' => KonteksRuang::penggunaSesi()?->name,
+        ];
+    }
+
+    /**
+     * Status kelengkapan berita acara ruang sesi yang sedang dibuka pengawas.
+     *
+     * @return array{ruang_id: int, final: bool, sesi_berakhir: bool, sesi_status: ?string}|null
+     */
+    private function statusBeritaAcara(Request $request): ?array
+    {
+        $ruangParam = $request->route('ruang');
+        $ruangId = $ruangParam instanceof ExamSessionRoom
+            ? (int) $ruangParam->id
+            : (is_numeric($ruangParam) && str_starts_with($request->path(), 'pengawas/')
+                ? (int) $ruangParam
+                : null);
+
+        if ($ruangId === null && KonteksRuang::tautanSesi() !== null) {
+            $data = Session::get(KonteksRuang::KUNCI_SESI);
+            $ruangId = isset($data['exam_session_room_id']) ? (int) $data['exam_session_room_id'] : null;
+        }
+
+        if ($ruangId === null) {
+            return null;
+        }
+
+        $ruang = ExamSessionRoom::query()
+            ->withoutGlobalScopes()
+            ->with('session:id,status,hard_end_at')
+            ->find($ruangId, ['id', 'exam_session_id']);
+
+        if ($ruang === null) {
+            return null;
+        }
+
+        $laporan = SessionReport::query()
+            ->withoutGlobalScopes()
+            ->where('exam_session_room_id', $ruang->id)
+            ->first(['id', 'status']);
+
+        return [
+            'ruang_id' => (int) $ruang->id,
+            'final' => $laporan?->status === SessionReport::STATUS_FINAL,
+            'sesi_berakhir' => $ruang->session?->hard_end_at !== null && $ruang->session->hard_end_at->isPast(),
+            'sesi_status' => $ruang->session?->status?->value,
         ];
     }
 
