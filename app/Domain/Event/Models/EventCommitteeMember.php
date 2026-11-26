@@ -136,7 +136,7 @@ class EventCommitteeMember extends Model
     {
         return $this->user_id !== null
             && $this->status === 'aktif'
-            && str_contains(mb_strtolower($this->position), 'pengawas');
+            && (str_contains(mb_strtolower($this->position), 'pengawas') || $this->code !== null);
     }
 
     /** @return BelongsTo<SchoolEvent, $this> */

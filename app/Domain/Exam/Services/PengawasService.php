@@ -318,7 +318,7 @@ class PengawasService
             }
         }
 
-        return DB::transaction(function () use ($ruang, $pengawas, $olehUserId, $data) {
+        $tugas = DB::transaction(function () use ($ruang, $pengawas, $olehUserId, $data) {
             $tugas = SupervisionAssignment::query()->firstOrCreate(
                 [
                     'school_id' => $ruang->school_id,
@@ -344,6 +344,24 @@ class PengawasService
 
             return $tugas;
         });
+
+        // Panitia non-pengawas yang ditugaskan ke ruang khusus perangkat tetap butuh
+        // kode pintu 6 angka agar dapat membuka tautan pintu `/p/{slug}`.
+        if ($khususPerangkat && $event !== null) {
+            $panitia = $event->committee()
+                ->where('user_id', $pengawas->id)
+                ->where('status', 'aktif')
+                ->first();
+
+            if ($panitia !== null && $panitia->code === null) {
+                $panitia->forceFill([
+                    'code' => str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT),
+                    'code_issued_at' => now(),
+                ])->save();
+            }
+        }
+
+        return $tugas;
     }
 
     public function batalkan(SupervisionAssignment $tugas): void

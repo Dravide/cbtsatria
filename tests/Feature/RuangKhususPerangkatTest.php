@@ -2,6 +2,7 @@
 
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\Semester;
+use App\Domain\Attendance\Services\PencocokKodePengawas;
 use App\Domain\Event\Models\EventCommitteeMember;
 use App\Domain\Event\Models\EventParticipant;
 use App\Domain\Exam\Enums\ModePenempatan;
@@ -237,6 +238,10 @@ it('dapat menugaskan panitia event tanpa akun ke ruang khusus perangkat', functi
     $panitiaTanpaAkun->refresh();
 
     expect($panitiaTanpaAkun->user_id)->not->toBeNull()
+        ->and($panitiaTanpaAkun->code)->not->toBeNull()
+        ->and(strlen((string) $panitiaTanpaAkun->code))->toBe(6)
+        ->and(app(PencocokKodePengawas::class)->cocokkan($sesiRuangLab, (string) $panitiaTanpaAkun->code)?->id)
+        ->toBe($panitiaTanpaAkun->user_id)
         ->and(SupervisionAssignment::query()
             ->where('exam_session_room_id', $sesiRuangLab->id)
             ->pluck('supervisor_id')

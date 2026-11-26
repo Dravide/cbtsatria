@@ -139,12 +139,15 @@ class PencocokKodePengawas
             return collect();
         }
 
+        $ruang->loadMissing('eventRoom.room:id,khusus_perangkat');
+        $khususPerangkat = (bool) ($ruang->eventRoom?->room?->khusus_perangkat ?? false);
+
         return EventCommitteeMember::query()
             ->with('user')
             ->where('event_id', $eventId)
             ->whereIn('user_id', $pengawas)
             ->where('status', 'aktif')
-            ->where('position', 'like', '%pengawas%')
+            ->when(! $khususPerangkat, fn ($q) => $q->where('position', 'like', '%pengawas%'))
             ->whereNotNull('code')
             ->get();
     }
