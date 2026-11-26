@@ -112,3 +112,27 @@ it('menampilkan sinyal teknisi aktif pada /tv dan /tv/denyut', function () {
     expect($denyut['sinyal'])->toHaveCount(1)
         ->and($denyut['sinyal'][0]['ruang_id'])->toBe($data['ruang'][0]->id);
 });
+
+it('mengembalikan seluruh angka TV IFP ke nol saat sesi sudah selesai', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $data['event']->forceFill(['status' => EventStatus::Ongoing])->save();
+
+    app(SesiService::class)->mulai($data['sesi'], $this->admin->id);
+    app(SesiService::class)->tutup($data['sesi'], $this->admin->id);
+
+    Auth::logout();
+    app(SchoolResolver::class)->forget();
+
+    $props = $this->get('/tv/'.$this->sekolah->papan_slug)
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($props['potret']['keadaan'])->toBe('kosong')
+        ->and($props['potret']['ada'])->toBeFalse()
+        ->and($props['potret']['sesi'])->toBeNull()
+        ->and($props['potret']['ruang'])->toBe([])
+        ->and($props['potret']['angka']['peserta'])->toBe(0)
+        ->and($props['potret']['angka']['mengerjakan'])->toBe(0)
+        ->and($props['potret']['angka']['selesai'])->toBe(0)
+        ->and($props['selesai_iso'])->toBeNull();
+});

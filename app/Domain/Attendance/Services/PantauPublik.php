@@ -530,6 +530,7 @@ class PantauPublik
 
         $berjalan = $dasar()
             ->where('status', StatusSesi::Berjalan->value)
+            ->where(fn ($q) => $q->whereNull('hard_end_at')->orWhere('hard_end_at', '>=', now()))
             ->orderBy('access_opens_at')
             ->limit(self::MAKS_SESI)
             ->get();

@@ -59,6 +59,32 @@ class TvPublikController
     private function susunMuatan(School $sekolah): array
     {
         $potret = $this->pantau->susun($sekolah);
+
+        // Ketika sesi sudah selesai (tidak ada sesi berjalan maupun berikutnya),
+        // layar TV kembali ke angka 0 dan mengosongkan daftar ruang.
+        if (($potret['keadaan'] ?? null) === 'selesai') {
+            $potret = [
+                'ada' => false,
+                'keadaan' => 'kosong',
+                'sekolah' => $potret['sekolah'] ?? $sekolah->name,
+                'diperbarui_jam' => $potret['diperbarui_jam'] ?? now()->format('H:i:s'),
+                'sesi' => null,
+                'ruang' => [],
+                'angka' => [
+                    'peserta' => 0,
+                    'mengerjakan' => 0,
+                    'selesai' => 0,
+                    'belum_mulai' => 0,
+                    'terputus' => 0,
+                    'terkunci' => 0,
+                ],
+                'laporan' => [
+                    'selesai' => 0,
+                    'total' => 0,
+                ],
+            ];
+        }
+
         $sesiAktifId = isset($potret['sesi']['id']) ? (int) $potret['sesi']['id'] : null;
 
         $selesaiIso = null;
@@ -138,6 +164,11 @@ class TvPublikController
             ->withoutGlobalScopes()
             ->where('school_id', $sekolah->id)
             ->where('status', RoomSignal::STATUS_AKTIF)
+            ->whereHas('room.session', function ($q) {
+                $q->withoutGlobalScopes()
+                    ->whereNotIn('status', [StatusSesi::Selesai->value, StatusSesi::Batal->value])
+                    ->where(fn ($w) => $w->whereNull('hard_end_at')->orWhere('hard_end_at', '>=', now()));
+            })
             ->with([
                 'room' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'event_room_id'),
                 'room.eventRoom' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'room_id'),
