@@ -1377,6 +1377,72 @@ class PemantauanEventController
     }
 
     /**
+     * Hentikan pengerjaan seluruh peserta yang sedang berlangsung dalam satu ruang-sesi dengan pesan Admin.
+     */
+    public function hentikanMassal(
+        SchoolEvent $event,
+        Request $request,
+        ExamSessionRoom $ruang,
+        PengendaliPengerjaan $kendali,
+        ActivityLogger $logger,
+    ): RedirectResponse {
+        Gate::authorize('view', $event);
+
+        $ruang = $this->ruangDiEvent($event, (int) $ruang->id);
+
+        $valid = $request->validate([
+            'pesan' => ['required', 'string', 'min:4', 'max:300'],
+        ], [], ['pesan' => 'pesan penghentian']);
+
+        $pesan = trim($valid['pesan']);
+        $pelaku = 'Admin '.($request->user()?->name ?? '');
+
+        $dihentikan = 0;
+        $dilewati = 0;
+
+        foreach ($ruang->participants as $peserta) {
+            /** @var ExamParticipant $peserta */
+            $attempt = ExamAttempt::query()
+                ->where('exam_participant_id', $peserta->id)
+                ->orderByDesc('attempt_number')
+                ->first();
+
+            if ($attempt === null || $attempt->status !== ExamAttempt::STATUS_BERJALAN) {
+                $dilewati++;
+
+                continue;
+            }
+
+            try {
+                $kendali->blokir($attempt, $pesan, $pelaku, $request->user()?->id);
+                $dihentikan++;
+            } catch (RuntimeException) {
+                $dilewati++;
+            }
+        }
+
+        $logger->log('Menghentikan pengerjaan satu ruang', $ruang, [
+            'ruang' => $ruang->eventRoom?->room?->code,
+            'dihentikan' => $dihentikan,
+            'dilewati' => $dilewati,
+            'pesan' => $pesan,
+        ]);
+
+        if ($dihentikan === 0) {
+            return back()->with('galat', 'Tidak ada pengerjaan yang sedang berlangsung di ruang ini untuk dihentikan.');
+        }
+
+        $kodeRuang = $ruang->eventRoom?->room?->code ?? 'ini';
+        $ringkas = "{$dihentikan} pengerjaan di ruang {$kodeRuang} dihentikan. Pesan yang Anda tulis tampil di layar peserta.";
+
+        if ($dilewati > 0) {
+            $ringkas .= " {$dilewati} peserta dilewati karena tidak sedang mengerjakan.";
+        }
+
+        return back()->with('sukses', $ringkas);
+    }
+
+    /**
      * Susun baris monitoring per peserta; `nomor` dan `progres` dibaca dari snapshot heartbeat (`guard_flags_json`) agar tidak menambah query per anak.
      * Nomor kursi dihitung atas ruang event dengan kunci `student_id` agar konsisten dengan papan pengawas.
      *

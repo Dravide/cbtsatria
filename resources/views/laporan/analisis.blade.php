@@ -43,19 +43,11 @@
     </style>
 </head>
 <body>
-    <div class="pdf-kop-bar">
-        <table class="pdf-kop-table">
-            <tr>
-                <td style="vertical-align: middle;">
-                    <div class="pdf-kop-sekolah">{{ $sekolah['nama'] }}</div>
-                    <div class="pdf-kop-sub">Laporan Analisis Butir Soal</div>
-                </td>
-                <td style="vertical-align: middle; text-align: right; width: 36mm;">
-                    <span class="pdf-kop-lencana">Analisis Butir</span>
-                </td>
-            </tr>
-        </table>
-    </div>
+    @include('partials.pdf-kop', [
+        'lencana' => 'Analisis Butir',
+        'sub' => 'Laporan Analisis Butir Soal',
+        'kananSub' => 'Dicetak ' . now()->format('d/m/Y H:i'),
+    ])
 
     <div class="pdf-meta-bar">
         <strong>Ujian:</strong> {{ $ujian['judul'] }} &nbsp;·&nbsp;

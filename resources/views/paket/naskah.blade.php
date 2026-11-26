@@ -51,21 +51,11 @@
     </style>
 </head>
 <body>
-    <div class="pdf-kop-bar">
-        <table class="pdf-kop-table">
-            <tr>
-                <td style="vertical-align: middle;">
-                    <div class="pdf-kop-sekolah">{{ $sekolah['nama'] }}</div>
-                    <div class="pdf-kop-sub">{{ $paket['mapel'] ?? 'Mata Pelajaran' }}</div>
-                </td>
-                <td style="vertical-align: middle; text-align: right; width: 42mm;">
-                    <span class="pdf-kop-lencana">
-                        {{ $mode === 'kunci' ? 'Kunci Jawaban' : 'Naskah Soal' }}
-                    </span>
-                </td>
-            </tr>
-        </table>
-    </div>
+    @include('partials.pdf-kop', [
+        'lencana' => $mode === 'kunci' ? 'Kunci Jawaban' : 'Naskah Soal',
+        'sub' => $paket['mapel'] ?? 'Mata Pelajaran',
+        'kananSub' => 'Dicetak ' . now()->format('d/m/Y H:i'),
+    ])
 
     <div class="pdf-meta-bar">
         <strong>Paket:</strong> {{ $paket['nama'] }} (<span style="font-family: 'IBM Plex Mono', 'DejaVu Sans Mono', monospace;">{{ $paket['kode'] }}</span>) &nbsp;·&nbsp;

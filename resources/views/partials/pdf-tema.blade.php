@@ -46,6 +46,18 @@
     padding: 1mm 1.5mm;
 }
 
+.pdf-kop-logo-img {
+    max-height: 11mm;
+    max-width: 16mm;
+    display: block;
+}
+
+.pdf-kop-logo-kartu-img {
+    max-height: 8.5mm;
+    max-width: 14mm;
+    display: block;
+}
+
 .pdf-kop-sekolah {
     font-size: 11.5px;
     font-weight: bold;
@@ -57,6 +69,13 @@
     font-size: 8px;
     color: {{ $headerSub }};
     margin-top: 0.6mm;
+}
+
+.pdf-kop-sub-kanan {
+    font-size: 7.5px;
+    color: {{ $headerSub }};
+    margin-top: 1mm;
+    line-height: 1.3;
 }
 
 .pdf-kop-lencana {

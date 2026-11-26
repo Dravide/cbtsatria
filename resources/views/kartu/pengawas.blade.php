@@ -95,26 +95,13 @@
             <tr>
                 @foreach ($dua as $satu)
                     <td class="kartu">
-                        <div class="pdf-kop-bar-kartu kartu-kop">
-                            <table class="pdf-kop-table">
-                                <tr>
-                                    @if (! empty($sekolah['logo']))
-                                        <td style="width:18mm; vertical-align:middle; padding-right:2.5mm;">
-                                            <span class="pdf-logo-bingkai">
-                                                <img class="logo" src="{{ $sekolah['logo'] }}" alt="">
-                                            </span>
-                                        </td>
-                                    @endif
-                                    <td style="vertical-align:middle;">
-                                        <div class="pdf-kop-sekolah sekolah">{{ $sekolah['nama'] }}</div>
-                                        @if (! empty($sekolah['npsn']))
-                                            <div class="pdf-kop-sub npsn">NPSN {{ $sekolah['npsn'] }}</div>
-                                        @endif
-                                        <div class="pdf-kop-sub event">{{ $event['nama'] }} &middot; {{ $event['kode'] }}</div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
+                        @include('partials.pdf-kop-kartu', [
+                            'kelas' => 'kartu-kop',
+                            'kelasNama' => 'sekolah',
+                            'kelasSub' => 'npsn',
+                            'kelasSub2' => 'event',
+                            'sub' => $event['nama'] . ' · ' . $event['kode'],
+                        ])
 
                         <div class="kartu-isi">
                             <p class="nama">{{ $satu['nama'] }}</p>

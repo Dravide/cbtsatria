@@ -28,6 +28,7 @@ const KELOMPOK: KelompokMenu[] = [
         judul: 'Operasional',
         item: [
             { label: 'Kesehatan Sistem', href: '/super/sistem', ikon: 'denyut' },
+            { label: 'Log Galat', href: '/super/galat', ikon: 'perisai' },
             { label: 'Pengumuman Global', href: '/super/pengumuman', ikon: 'bendera' },
         ],
     },

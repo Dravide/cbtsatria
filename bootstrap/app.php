@@ -6,6 +6,7 @@ use App\Domain\Identity\Http\Middleware\AksesSiswa;
 use App\Domain\Tenancy\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\AksesSuperAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Services\ErrorLogger;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -53,19 +54,34 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
+        $exceptions->report(function (Throwable $exception): void {
+            $request = app()->bound('request') ? request() : null;
+            ErrorLogger::catat($exception, $request instanceof Request ? $request : null);
+        });
+
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
+            $status = $response->getStatusCode();
+            $errorCode = in_array($status, [403, 419, 500, 503], true)
+                ? ErrorLogger::catat($exception, $request, $status)
+                : null;
+
             if ($request->is('api/*') || $request->expectsJson()) {
                 return $response;
             }
 
-            $status = $response->getStatusCode();
-
             if ($status === 419) {
-                return back()->with('galat', 'Sesi halaman kedaluwarsa. Silakan coba lagi.');
+                $pesan = 'Sesi halaman kedaluwarsa. Silakan coba lagi.'
+                    .($errorCode ? " (Kode: {$errorCode})" : '');
+
+                return back()->with('galat', $pesan);
             }
 
             if (in_array($status, [403, 404, 503], true) || ($status === 500 && ! app()->hasDebugModeEnabled())) {
-                return Inertia::render('Galat', ['status' => $status])
+                return Inertia::render('Galat', [
+                    'status' => $status,
+                    'errorCode' => $errorCode,
+                    'portal' => ErrorLogger::deteksiPortal($request),
+                ])
                     ->toResponse($request)
                     ->setStatusCode($status);
             }

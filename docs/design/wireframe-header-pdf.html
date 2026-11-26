@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe Standar Header / Kop Unduhan PDF — School CBT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 var(--font-body)}
+code{font-family:var(--font-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+
+header.doc{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px}
+header.doc h1{margin:0 0 6px;font:600 22px/1.25 var(--font-display);letter-spacing:-.01em}
+header.doc p{margin:0;color:var(--ink-2);max-width:78ch}
+.nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.nav a{padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink-2);text-decoration:none;font-size:12px}
+.nav a:hover{border-color:var(--accent);color:var(--accent)}
+
+.plate{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);margin-bottom:28px;overflow:hidden}
+.plate-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--wf-head);border-bottom:1px solid var(--line)}
+.plate-head h2{margin:0;font:600 14px/1.3 var(--font-display)}
+.plate-head .meta{font:11px/1.2 var(--font-mono);color:var(--ink-3)}
+.plate-body{padding:18px}
+.note{margin:14px 0 0;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+
+/* Kertas A4 Simulasi (selalu putih seperti hasil cetak DomPDF) */
+.paper-sheet{
+  background:#ffffff;
+  color:#161b24;
+  border:1px solid #c6cedb;
+  border-radius:6px;
+  padding:18px 20px;
+  box-shadow:0 4px 16px rgba(16,22,32,.08);
+}
+
+/* Kop Utama Dokumen PDF */
+.pdf-kop{
+  background:var(--accent);
+  color:#ffffff;
+  border-radius:6px;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.pdf-kop.mono-cetak{
+  background:#ffffff;
+  color:#161b24;
+  border:1.5px solid #161b24;
+  border-bottom-width:3px;
+  border-radius:0;
+  padding:10px 4px 12px;
+}
+.pdf-logo{
+  width:46px;
+  height:46px;
+  border-radius:6px;
+  background:#ffffff;
+  border:1px solid rgba(0,0,0,.08);
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  font:700 15px/1 var(--font-display);
+  color:var(--accent);
+}
+.pdf-kop.mono-cetak .pdf-logo{
+  border:1px solid #d3d9e2;
+  color:#161b24;
+}
+.pdf-kop-info{min-width:0;flex:1}
+.pdf-kop-instansi{font:600 10px/1.2 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;opacity:.88}
+.pdf-kop-nama{font:700 15px/1.25 var(--font-display);margin-top:2px}
+.pdf-kop-alamat{font-size:11px;opacity:.92;margin-top:2px}
+.pdf-kop-kontak{font:10.5px/1.3 var(--font-mono);opacity:.85;margin-top:1px}
+.pdf-kop-right{text-align:right;flex:0 0 auto}
+.pdf-badge{
+  display:inline-block;
+  padding:4px 9px;
+  border-radius:5px;
+  background:#ffffff;
+  color:var(--accent);
+  font:700 10px/1.2 var(--font-mono);
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+.pdf-kop.mono-cetak .pdf-badge{
+  background:#161b24;
+  color:#ffffff;
+}
+.pdf-doc-sub{
+  margin-top:5px;
+  font:10px/1.3 var(--font-mono);
+  opacity:.9;
+}
+
+/* Meta Bar Konteks Dokumen */
+.pdf-meta{
+  margin-top:10px;
+  padding:8px 12px;
+  background:#f2f4f8;
+  border:1px solid #d3d9e2;
+  border-radius:5px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 18px;
+  font-size:11.5px;
+  color:#4a5565;
+}
+.pdf-meta strong{color:#161b24}
+
+/* Ghost Body Tabel di bawah kop */
+.ghost-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+  font-size:11.5px;
+}
+.ghost-table th{
+  background:#edf1f7;
+  border:1px solid #d3d9e2;
+  padding:6px 8px;
+  text-align:left;
+  font:600 10px/1.2 var(--font-mono);
+  text-transform:uppercase;
+  color:#4a5565;
+}
+.ghost-table td{
+  border:1px solid #e6eaf0;
+  padding:7px 8px;
+  color:#4a5565;
+}
+.ghost-bar{height:8px;border-radius:3px;background:#e4e9f0;display:inline-block}
+
+/* Plate 02 Grid Kartu */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:860px){.grid-2{grid-template-columns:1fr}}
+
+.kartu-cetak{
+  background:#ffffff;
+  border:1px solid #c6cedb;
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 2px 10px rgba(16,22,32,.06);
+}
+.kartu-kop{
+  background:var(--accent);
+  color:#ffffff;
+  padding:9px 12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.kartu-logo{
+  width:30px;height:30px;border-radius:4px;background:#fff;color:var(--accent);
+  display:grid;place-items:center;font:700 11px/1 var(--font-display);flex:0 0 auto;
+}
+.kartu-kop-title{font:700 12px/1.2 var(--font-display)}
+.kartu-kop-sub{font-size:10px;opacity:.9}
+.kartu-badge{
+  margin-left:auto;padding:3px 7px;border-radius:4px;background:#fff;color:var(--accent);
+  font:700 9.5px/1.2 var(--font-mono);text-transform:uppercase;white-space:nowrap;
+}
+.kartu-body{padding:12px;font-size:12px;color:#4a5565}
+
+/* Tabel inventaris (Plate 03) */
+table.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--line);background:var(--wf-bg)}
+table.tbl th,table.tbl td{padding:8px 10px;border-bottom:1px solid var(--wf-hair);text-align:left;vertical-align:top}
+table.tbl th{background:var(--wf-soft);font:600 11px/1.2 var(--font-mono);text-transform:uppercase;color:var(--ink-3)}
+.chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font:600 10.5px/1.3 var(--font-mono)}
+.chip.pri{background:var(--accent-soft);color:var(--accent)}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.mute{background:var(--surface-2);color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc">
+    <h1>Wireframe Standar Header (Kop) Unduhan PDF</h1>
+    <p>Penyeragaman kop dokumen untuk seluruh 13 keluaran PDF di aplikasi (laporan, jadwal, denah, daftar peserta, naskah soal, dan kartu cetak) lewat satu partial bersama <code>partials/pdf-kop.blade.php</code>, sehingga logo, nama sekolah, NPSN, alamat, kontak, dan identitas dokumen selalu konsisten.</p>
+    <nav class="nav">
+      <a href="#plate-01">Plate 01 · Kop Resmi Dokumen (A4/F4)</a>
+      <a href="#plate-02">Plate 02 · Kop Kompak Kartu Cetak</a>
+      <a href="#plate-03">Plate 03 · Peta 13 Berkas PDF</a>
+      <a href="#plate-04">Plate 04 · Varian Cetak Hemat Tinta (Monokrom)</a>
+    </nav>
+  </header>
+
+  <!-- ========================================================= PLATE 01 -->
+  <section class="plate" id="plate-01">
+    <div class="plate-head">
+      <h2>Plate 01 — Kop Resmi Dokumen A4/F4 (<code>partials/pdf-kop.blade.php</code>)</h2>
+      <span class="meta">Dipakai oleh: Jadwal, Laporan Nilai, Analisis, Naskah Soal, Denah, Tablo, Daftar Peserta</span>
+    </div>
+    <div class="plate-body">
+      <div class="paper-sheet">
+        <div class="pdf-kop">
+          <div class="pdf-logo">LOGO</div>
+          <div class="pdf-kop-info">
+            <div class="pdf-kop-instansi">NPSN 20203891 · KODE SEKOLAH: SMPN1CPN</div>
+            <div class="pdf-kop-nama">SMP Negeri 1 Cipanas</div>
+            <div class="pdf-kop-alamat">Jl. Raya Cipanas No. 45, Kec. Cipanas, Kab. Cianjur, Jawa Barat 43253</div>
+            <div class="pdf-kop-kontak">Telp. (0263) 512345 · Email: info@smpn1cipanas.sch.id</div>
+          </div>
+          <div class="pdf-kop-right">
+            <span class="pdf-badge">Jadwal Pengawasan</span>
+            <div class="pdf-doc-sub">
+              TA 2026/2027 · Ganjil<br>
+              Dicetak 26 Nov 2026, 08:15 WIB
+            </div>
+          </div>
+        </div>
+
+        <div class="pdf-meta">
+          <span><strong>Kegiatan:</strong> ASAS Ganjil 2026 (ASAS-2026)</span>
+          <span><strong>Format:</strong> Per Ruangan</span>
+          <span><strong>Jumlah Sesi:</strong> 4 sesi</span>
+          <span><strong>Total Penugasan:</strong> 48 ruang-sesi</span>
+        </div>
+
+        <table class="ghost-table">
+          <thead>
+            <tr>
+              <th style="width:40px">No</th>
+              <th style="width:120px">Ruang / Lokasi</th>
+              <th>Kelas Peserta</th>
+              <th>Pengawas Bertugas</th>
+              <th style="width:90px">Paraf</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>01</td>
+              <td><b>R-01</b> · Lt. 1 Sayap Timur</td>
+              <td>VII-A, VII-B</td>
+              <td>Siti Aminah, S.Pd.</td>
+              <td><span class="ghost-bar" style="width:60px"></span></td>
+            </tr>
+            <tr>
+              <td>02</td>
+              <td><b>R-02</b> · Lt. 1 Sayap Timur</td>
+              <td>VII-C, VII-D</td>
+              <td>Budi Santoso, M.Pd.</td>
+              <td><span class="ghost-bar" style="width:60px"></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">
+        <b>Sumber data otomatis dari tabel <code>schools</code>:</b> <code>logo_path</code> (fallback ke inisial sekolah bila belum unggah), <code>name</code>, <code>npsn</code>, <code>address</code>, <code>phone</code>, <code>email</code>, serta warna tema dari <code>IdentitasAplikasi::nilai()['warna']</code>. Jika kolom alamat/telepon kosong, baris tersebut otomatis disembunyikan agar kop tetap rapi.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 02 -->
+  <section class="plate" id="plate-02">
+    <div class="plate-head">
+      <h2>Plate 02 — Kop Kompak Kartu &amp; Pintu Ruang (<code>partials/pdf-kop-kartu.blade.php</code>)</h2>
+      <span class="meta">Dipakai oleh: Kartu Pengawas, Kartu Pintu Ruang, Kartu Akun Guru, Kartu Wali, Poster Publik</span>
+    </div>
+    <div class="plate-body">
+      <div class="grid-2">
+        <!-- Kartu Pengawas / Akun -->
+        <div class="kartu-cetak">
+          <div class="kartu-kop">
+            <div class="kartu-logo">LOGO</div>
+            <div>
+              <div class="kartu-kop-title">SMP Negeri 1 Cipanas</div>
+              <div class="kartu-kop-sub">ASAS Ganjil 2026 · Panitia Ujian</div>
+            </div>
+            <span class="kartu-badge">Kartu Pengawas</span>
+          </div>
+          <div class="kartu-body">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+              <div>
+                <div style="font-weight:700;color:#161b24;font-size:13px">Siti Aminah, S.Pd.</div>
+                <div style="font-size:11px;margin-top:2px">Jabatan: Pengawas Ruang</div>
+                <div style="font-family:var(--font-mono);font-size:15px;font-weight:700;color:var(--accent);margin-top:6px">KODE: 482910</div>
+              </div>
+              <div style="width:54px;height:54px;border:1px dashed #a9b5c5;border-radius:4px;display:grid;place-items:center;font:10px var(--font-mono);color:#8892a3">QR</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kartu Pintu Ruang / Poster -->
+        <div class="kartu-cetak">
+          <div class="kartu-kop">
+            <div class="kartu-logo">LOGO</div>
+            <div>
+              <div class="kartu-kop-title">SMP Negeri 1 Cipanas</div>
+              <div class="kartu-kop-sub">Jl. Raya Cipanas No. 45 · NPSN 20203891</div>
+            </div>
+            <span class="kartu-badge">Pintu Ruang</span>
+          </div>
+          <div class="kartu-body">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+              <div>
+                <div style="font-weight:700;color:#161b24;font-size:15px">RUANG R-01</div>
+                <div style="font-size:11px;margin-top:2px">Lantai 1 · Kapasitas 32 kursi</div>
+                <div style="font-size:10.5px;color:#77808f;margin-top:6px">Pindai QR untuk membuka portal pengawas ruang</div>
+              </div>
+              <div style="width:54px;height:54px;border:1px dashed #a9b5c5;border-radius:4px;display:grid;place-items:center;font:10px var(--font-mono);color:#8892a3">QR</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>Mengapa dipisah dari kop A4:</b> Kartu pengawas, kartu akun guru, dan kartu wali dicetak 2–4 kartu per lembar A4. Memakai kop A4 penuh akan menghabiskan setengah tinggi kartu. Varian kompak ini tetap membawa identitas sekolah (logo + nama + subjudul + lencana) dalam tinggi ±11 mm.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 03 -->
+  <section class="plate" id="plate-03">
+    <div class="plate-head">
+      <h2>Plate 03 — Peta Penerapan Header di Seluruh 13 Berkas PDF</h2>
+      <span class="meta">Inventaris View Blade PDF · Konsistensi Lintas Modul</span>
+    </div>
+    <div class="plate-body">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Dokumen Unduhan PDF</th>
+            <th>Berkas View Blade</th>
+            <th>Varian Header</th>
+            <th>Teks Lencana</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Jadwal Pengawasan</td>
+            <td><code>laporan/jadwal-pengawasan.blade.php</code></td>
+            <td><span class="chip pri">Kop Resmi A4</span></td>
+            <td><code>JADWAL PENGAWASAN</code></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Jadwal Ujian Event</td>
+            <td><code>laporan/jadwal-event.blade.php</code></td>
+            <td><span class="chip pri">Kop Resmi A4</span></td>
+            <td><code>JADWAL UJIAN</code></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Laporan Hasil / Nilai</td>
+            <td><code>laporan/pdf.blade.php</code></td>
+            <td><span class="chip pri">Kop Resmi A4</span></td>
+            <td><code>LAPORAN HASIL</code></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Analisis Butir Soal</td>
+            <td><code>laporan/analisis.blade.php</code></td>
+            <td><span class="chip pri">Kop Resmi A4</span></td>
+            <td><code>ANALISIS BUTIR</code></td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Naskah Soal / Kunci Jawaban</td>
+            <td><code>paket/naskah.blade.php</code></td>
+            <td><span class="chip pri">Kop Resmi A4</span></td>
+            <td><code>NASKAH SOAL</code> / <code>KUNCI JAWABAN</code></td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Daftar Peserta per Ruang</td>
+            <td><code>kartu/daftar-peserta.blade.php</code></td>
+            <td><span class="chip pri">Kop Resmi A4</span></td>
+            <td><code>DAFTAR PESERTA</code></td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Denah Kursi Ruang</td>
+            <td><code>kartu/denah.blade.php</code></td>
+            <td><span class="chip pri">Kop Resmi A4</span></td>
+            <td><code>DENAH RUANG</code></td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Tablo Penempatan Ruang</td>
+            <td><code>kartu/tablo.blade.php</code></td>
+            <td><span class="chip pri">Kop Resmi A4</span></td>
+            <td><code>TABLO PENEMPATAN</code></td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Kartu Panitia / Pengawas</td>
+            <td><code>kartu/pengawas.blade.php</code></td>
+            <td><span class="chip ok">Kop Kompak Kartu</span></td>
+            <td><code>KARTU PANITIA</code> / <code>KARTU PENGAWAS</code></td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Kartu Pintu Ruang</td>
+            <td><code>kartu/ruang.blade.php</code></td>
+            <td><span class="chip ok">Kop Kompak Kartu</span></td>
+            <td><code>PINTU RUANG</code></td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>Kartu Akun Guru / Staf</td>
+            <td><code>kartu/akun-guru.blade.php</code></td>
+            <td><span class="chip ok">Kop Kompak Kartu</span></td>
+            <td><code>AKUN PENGGUNA</code></td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>Kartu Pantau Wali Kelas</td>
+            <td><code>kartu/wali-kelas.blade.php</code></td>
+            <td><span class="chip ok">Kop Kompak Kartu</span></td>
+            <td><code>PANTAU WALI</code></td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>Poster Portal Publik Sekolah</td>
+            <td><code>kartu/portal-publik.blade.php</code></td>
+            <td><span class="chip ok">Kop Kompak Kartu</span></td>
+            <td><code>PORTAL PUBLIK</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 04 -->
+  <section class="plate" id="plate-04">
+    <div class="plate-head">
+      <h2>Plate 04 — Alternatif Gaya Kop Surat Resmi (Hemat Tinta / Fotokopi)</h2>
+      <span class="meta">Opsional · Bila Sekolah Memilih Gaya Kop Surat Hitam-Putih</span>
+    </div>
+    <div class="plate-body">
+      <div class="paper-sheet">
+        <div class="pdf-kop mono-cetak">
+          <div class="pdf-logo">LOGO</div>
+          <div class="pdf-kop-info">
+            <div class="pdf-kop-instansi">NPSN 20203891 · KODE SEKOLAH: SMPN1CPN</div>
+            <div class="pdf-kop-nama">SMP Negeri 1 Cipanas</div>
+            <div class="pdf-kop-alamat">Jl. Raya Cipanas No. 45, Kec. Cipanas, Kab. Cianjur, Jawa Barat 43253</div>
+            <div class="pdf-kop-kontak">Telp. (0263) 512345 · Email: info@smpn1cipanas.sch.id</div>
+          </div>
+          <div class="pdf-kop-right">
+            <span class="pdf-badge">Naskah Soal</span>
+            <div class="pdf-doc-sub">
+              Matematika · Kelas IX<br>
+              40 Butir · Dicetak 26 Nov 2026
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>Aturan halaman ke-2 dst. di DomPDF:</b> Kop surat hanya tampil di <b>halaman pertama</b> agar tidak mengulang blok besar di setiap halaman; halaman berikutnya otomatis mengulang kepala tabel (<code>thead { display: table-header-group; }</code>) dan nomor halaman di footer.
+      </p>
+    </div>
+  </section>
+</div>
+</body>
+</html>

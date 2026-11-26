@@ -182,8 +182,26 @@ export default function EventMonitoringRuang({
         );
     };
 
+    const [hentikanRuang, setHentikanRuang] = useState(false);
+    const [pesanRuang, setPesanRuang] = useState('');
+
+    const kirimHentikanRuang = () => {
+        router.post(
+            `/admin/events/${event.id}/monitoring/ruang/${ruang.id}/hentikan-massal`,
+            { pesan: pesanRuang },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setPesanRuang('');
+                    setHentikanRuang(false);
+                },
+            },
+        );
+    };
+
     // Hitung hanya peserta yang sudah punya pengerjaan aktif; peserta belum mulai tidak ikut direset.
     const bisaDireset = anak.filter((a) => a.status !== null && a.status !== 'batal').length;
+    const bisaDihentikan = anak.filter((a) => a.status === 'berlangsung').length;
 
     return (
         <AdminLayout
@@ -203,6 +221,16 @@ export default function EventMonitoringRuang({
                         </span>
                         Kembali ke monitoring
                     </Link>
+
+                    {bisaDihentikan > 0 && (
+                        <Tombol
+                            nada="bahaya"
+                            onClick={() => setHentikanRuang(true)}
+                            title="Hentikan pengerjaan seluruh peserta yang sedang berlangsung di ruang ini"
+                        >
+                            Hentikan semua ({bisaDihentikan})
+                        </Tombol>
+                    )}
 
                     {bisaDireset > 0 && (
                         <Tombol
@@ -381,6 +409,51 @@ export default function EventMonitoringRuang({
                             disabled={alasanRuang.trim().length < 8}
                         >
                             Reset {bisaDireset} pengerjaan
+                        </Tombol>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal
+                judul={`Hentikan seluruh ruang ${ruang.kode}`}
+                terbuka={hentikanRuang}
+                padaTutup={() => setHentikanRuang(false)}
+            >
+                <div className="space-y-3">
+                    <p className="text-xs leading-relaxed text-ink-2">
+                        <strong className="text-ink">{bisaDihentikan} pengerjaan</strong> yang
+                        sedang berlangsung di ruang ini akan dihentikan sekarang, dan pesan di
+                        bawah langsung tampil di layar setiap peserta. Pengerjaan dapat
+                        dilanjutkan kembali setelah kunci dibuka.
+                    </p>
+
+                    <p className="rounded-wf border border-warn/40 bg-warn-bg px-2.5 py-2 text-[11px] leading-relaxed text-ink-2">
+                        Peserta yang belum mulai, sudah selesai, atau sudah terkunci tidak
+                        tersentuh.
+                    </p>
+
+                    <Field
+                        label="Pesan untuk peserta"
+                        petunjuk="Ditampilkan di layar seluruh peserta yang dihentikan (minimal 4 karakter)."
+                    >
+                        <textarea
+                            value={pesanRuang}
+                            onChange={(e) => setPesanRuang(e.target.value)}
+                            rows={3}
+                            maxLength={300}
+                            placeholder="Contoh: Hentikan pengerjaan sementara, ikuti instruksi pengawas ruang."
+                            className={kelasInput + ' min-h-[84px] resize-y'}
+                        />
+                    </Field>
+
+                    <div className="flex justify-end gap-2">
+                        <Tombol onClick={() => setHentikanRuang(false)}>Batal</Tombol>
+                        <Tombol
+                            nada="bahaya"
+                            onClick={kirimHentikanRuang}
+                            disabled={pesanRuang.trim().length < 4}
+                        >
+                            Hentikan {bisaDihentikan} pengerjaan
                         </Tombol>
                     </div>
                 </div>

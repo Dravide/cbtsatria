@@ -58,19 +58,11 @@
     </style>
 </head>
 <body>
-    <div class="pdf-kop-bar">
-        <table class="pdf-kop-table">
-            <tr>
-                <td style="vertical-align: middle;">
-                    <div class="pdf-kop-sekolah">{{ $judul }}</div>
-                    <div class="pdf-kop-sub">Dibuat {{ $dibuat }} &middot; {{ $total }} baris</div>
-                </td>
-                <td style="vertical-align: middle; text-align: right; width: 32mm;">
-                    <span class="pdf-kop-lencana">Laporan</span>
-                </td>
-            </tr>
-        </table>
-    </div>
+    @include('partials.pdf-kop', [
+        'lencana' => 'Laporan Hasil',
+        'sub' => $judul,
+        'kananSub' => 'Dibuat ' . $dibuat . ' · ' . $total . ' baris',
+    ])
 
     <table class="data">
         <thead>

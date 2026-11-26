@@ -160,28 +160,9 @@
 </head>
 <body>
     <div class="kartu">
-        <div class="pdf-kop-bar-kartu">
-            <table class="pdf-kop-table">
-                <tr>
-                    @if (! empty($sekolah['logo']))
-                        <td style="width: 16mm; vertical-align: middle; padding-right: 3mm;">
-                            <span class="pdf-logo-bingkai">
-                                <img class="logo" src="{{ $sekolah['logo'] }}" alt="">
-                            </span>
-                        </td>
-                    @endif
-                    <td style="vertical-align: middle;">
-                        <div class="pdf-kop-sekolah">{{ $sekolah['nama'] }}</div>
-                        @if (! empty($sekolah['npsn']))
-                            <div class="pdf-kop-sub">NPSN {{ $sekolah['npsn'] }}</div>
-                        @endif
-                    </td>
-                    <td style="vertical-align: middle; text-align: right; width: 38mm;">
-                        <span class="pdf-kop-lencana">Kartu Pantau Wali</span>
-                    </td>
-                </tr>
-            </table>
-        </div>
+        @include('partials.pdf-kop-kartu', [
+            'lencana' => 'Kartu Pantau Wali',
+        ])
 
         <div class="isi">
             <div class="identitas">

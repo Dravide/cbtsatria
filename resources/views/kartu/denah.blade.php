@@ -97,28 +97,10 @@
     @foreach ($halaman as $i => $h)
         @php $terakhir = $i === count($halaman) - 1; @endphp
         <div class="halaman {{ $terakhir ? 'terakhir' : '' }}">
-            <div class="pdf-kop-bar">
-                <table class="pdf-kop-table">
-                    <tr>
-                        @if (! empty($sekolah['logo']))
-                            <td style="width:20mm; vertical-align:middle; padding-right:3mm;">
-                                <span class="pdf-logo-bingkai">
-                                    <img class="logo" src="{{ $sekolah['logo'] }}" alt="">
-                                </span>
-                            </td>
-                        @endif
-                        <td style="vertical-align:middle;">
-                            <div class="pdf-kop-sekolah">{{ $sekolah['nama'] }}</div>
-                            @if (! empty($sekolah['npsn']))
-                                <div class="pdf-kop-sub">NPSN {{ $sekolah['npsn'] }}</div>
-                            @endif
-                        </td>
-                        <td style="vertical-align:middle; text-align:right; width:42mm;">
-                            <span class="pdf-kop-lencana">Denah Tempat Duduk</span>
-                        </td>
-                    </tr>
-                </table>
-            </div>
+            @include('partials.pdf-kop', [
+                'lencana' => 'Denah Tempat Duduk',
+                'sub' => $h['ujian'] ?? 'Ujian',
+            ])
 
             <div class="pdf-meta-bar">
                 <div class="judul">{{ $h['nama'] ? $h['kode'].' · '.$h['nama'] : 'Ruang '.$h['kode'] }}</div>

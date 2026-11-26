@@ -34,19 +34,11 @@
     </style>
 </head>
 <body>
-    <div class="pdf-kop-bar">
-        <table class="pdf-kop-table">
-            <tr>
-                <td style="vertical-align: middle;">
-                    <div class="pdf-kop-sekolah">{{ $sekolah?->name ?? config('app.name') }}</div>
-                    <div class="pdf-kop-sub">{{ $event->name }}</div>
-                </td>
-                <td style="vertical-align: middle; text-align: right; width: 36mm;">
-                    <span class="pdf-kop-lencana">Jadwal Ujian</span>
-                </td>
-            </tr>
-        </table>
-    </div>
+    @include('partials.pdf-kop', [
+        'lencana' => 'Jadwal Ujian',
+        'sub' => $event->name,
+        'kananSub' => 'Dicetak ' . $dicetak,
+    ])
 
     <div class="pdf-meta-bar">
         <strong>Event:</strong> {{ $event->name }} &nbsp;·&nbsp;

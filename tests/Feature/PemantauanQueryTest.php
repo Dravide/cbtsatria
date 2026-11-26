@@ -1000,3 +1000,50 @@ it('menolak reset massal pada ruang milik event lain', function () {
         ])
         ->assertNotFound();
 });
+
+it('menghentikan seluruh pengerjaan yang sedang berjalan di satu ruang', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $peserta = $data['peserta'];
+    expect($peserta)->toHaveCount(2);
+
+    // Hanya peserta pertama yang mulai mengerjakan; peserta kedua belum mulai.
+    verifikasiHadir($this, $data['pengawas'], $data['ruang'][0], $peserta[0]);
+    mulaiAttempt($this, $data['siswa'][0], $peserta[0], $data['token']);
+
+    $pesan = 'Hentikan pengerjaan sementara, ikuti arahan pengawas.';
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/ruang/{$data['ruang'][0]->id}/hentikan-massal", [
+            'pesan' => $pesan,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('sukses');
+
+    $attempt = attemptBerjalan($peserta[0]);
+    expect($attempt->status)->toBe(ExamAttempt::STATUS_DIKUNCI)
+        ->and($attempt->lock_reason)->toBe($pesan)
+        ->and(ExamAttempt::query()->where('exam_participant_id', $peserta[1]->id)->exists())->toBeFalse()
+        ->and(ExamViolation::query()->where('violation_type', 'diblokir_admin')->count())->toBe(1);
+});
+
+it('mengembalikan galat saat hentikan semua dipanggil pada ruang tanpa pengerjaan berlangsung', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/ruang/{$data['ruang'][0]->id}/hentikan-massal", [
+            'pesan' => 'Hentikan semua peserta di ruang ini.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('galat');
+});
+
+it('menolak hentikan semua pada ruang milik event lain', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $lain = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+
+    masukUji($this, $this->admin)
+        ->post("/admin/events/{$data['event']->id}/monitoring/ruang/{$lain['ruang'][0]->id}/hentikan-massal", [
+            'pesan' => 'Ruang ini bukan milik event yang sedang dibuka.',
+        ])
+        ->assertNotFound();
+});

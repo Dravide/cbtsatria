@@ -2,19 +2,14 @@
 
 use App\Http\Controllers\Super\SuperAuditController;
 use App\Http\Controllers\Super\SuperDashboardController;
+use App\Http\Controllers\Super\SuperGalatController;
 use App\Http\Controllers\Super\SuperImpersonasiController;
 use App\Http\Controllers\Super\SuperPengumumanController;
 use App\Http\Controllers\Super\SuperSekolahController;
 use App\Http\Controllers\Super\SuperSistemController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|==========================================================================
-| Rute Super Admin Platform (`/super/*`)
-|==========================================================================
-| Keluar dari mode dukung berada di luar middleware `super_admin` karena
-| saat impersonasi berlangsung pengguna aktif adalah Admin sekolah tujuan.
-*/
+// Di luar middleware super_admin karena saat impersonasi pengguna aktif adalah Admin sekolah tujuan.
 Route::post('/super/impersonasi/keluar', [SuperImpersonasiController::class, 'keluar'])
     ->middleware('auth')
     ->name('super.impersonasi.keluar');
@@ -54,4 +49,13 @@ Route::middleware(['auth', 'super_admin'])
             ->name('pengumuman.destroy');
 
         Route::get('/audit', [SuperAuditController::class, 'index'])->name('audit.index');
+
+        Route::get('/galat', [SuperGalatController::class, 'index'])->name('galat.index');
+        Route::post('/galat/pangkas', [SuperGalatController::class, 'prune'])->name('galat.prune');
+        Route::get('/galat/{galat}', [SuperGalatController::class, 'show'])
+            ->whereNumber('galat')
+            ->name('galat.show');
+        Route::post('/galat/{galat}/selesai', [SuperGalatController::class, 'resolve'])
+            ->whereNumber('galat')
+            ->name('galat.resolve');
     });

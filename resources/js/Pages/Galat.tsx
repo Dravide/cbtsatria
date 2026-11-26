@@ -1,7 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
 
 type Props = {
     status: number;
+    errorCode?: string | null;
+    portal?: string | null;
 };
 
 const PESAN: Record<number, { judul: string; keterangan: string; lencana: string }> = {
@@ -33,15 +36,39 @@ const PESAN: Record<number, { judul: string; keterangan: string; lencana: string
         lencana: '500 · Gangguan Sistem',
         judul: 'Terjadi kesalahan pada server',
         keterangan:
-            'Permintaan Anda belum dapat diproses saat ini. Silakan coba lagi atau hubungi panitia/admin.',
+            'Permintaan Anda belum dapat diproses saat ini. Silakan coba lagi atau kirimkan kode referensi di bawah ini ke pengelola sistem.',
     },
 };
 
-export default function Galat({ status }: Props) {
-    const info = PESAN[status] ?? {
-        lencana: `${status} · Galat`,
-        judul: 'Halaman tidak dapat dimuat',
-        keterangan: 'Terjadi kendala saat membuka halaman ini. Silakan kembali ke beranda.',
+export default function Galat({ status, errorCode = null, portal = null }: Props) {
+    const [tersalin, setTersalin] = useState(false);
+    const adalahSiswa = portal === 'SSW';
+
+    const info =
+        adalahSiswa && status === 500
+            ? {
+                  lencana: '500 · Kendala Teknis',
+                  judul: 'Halaman mengalami kendala sementara',
+                  keterangan:
+                      'Jawaban yang sudah tersimpan tetap aman. Muat ulang halaman, atau tunjukkan kode ini kepada pengawas ruang bila kendala berlanjut.',
+              }
+            : (PESAN[status] ?? {
+                  lencana: `${status} · Galat`,
+                  judul: 'Halaman tidak dapat dimuat',
+                  keterangan: 'Terjadi kendala saat membuka halaman ini. Silakan kembali ke beranda.',
+              });
+
+    const salinKode = async () => {
+        if (!errorCode) {
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(errorCode);
+            setTersalin(true);
+            window.setTimeout(() => setTersalin(false), 2000);
+        } catch {
+            // Abaikan bila clipboard tidak tersedia
+        }
     };
 
     return (
@@ -58,6 +85,26 @@ export default function Galat({ status }: Props) {
                     </h1>
 
                     <p className="mt-2 text-sm leading-relaxed text-ink-2">{info.keterangan}</p>
+
+                    {errorCode && (
+                        <div className="mt-4 flex items-center justify-between gap-3 rounded-wf border border-line bg-surface-2/60 px-3.5 py-2.5">
+                            <div>
+                                <p className="font-mono text-[10px] tracking-wider text-ink-3 uppercase">
+                                    {adalahSiswa ? 'Kode Untuk Pengawas' : 'Kode Referensi Galat'}
+                                </p>
+                                <p className="mt-0.5 font-mono text-base font-bold tracking-wide text-bad">
+                                    {errorCode}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={salinKode}
+                                className="rounded-wf border border-line bg-surface px-2.5 py-1.5 text-[11px] font-medium text-ink-2 hover:bg-surface-2"
+                            >
+                                {tersalin ? 'Tersalin' : 'Salin Kode'}
+                            </button>
+                        </div>
+                    )}
 
                     <div className="mt-6 flex flex-wrap items-center gap-2">
                         <Link

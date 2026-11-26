@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe Sistem Log Galat Terkode (DB) — School CBT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 var(--font-body)}
+code{font-family:var(--font-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+header.doc{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px}
+header.doc h1{margin:0 0 6px;font:600 22px/1.25 var(--font-display);letter-spacing:-.01em}
+header.doc p{margin:0;color:var(--ink-2);max-width:78ch}
+.nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.nav a{padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink-2);text-decoration:none;font-size:12px}
+.nav a:hover{border-color:var(--accent);color:var(--accent)}
+
+.plate{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);margin-bottom:28px;overflow:hidden}
+.plate-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--wf-head);border-bottom:1px solid var(--line)}
+.plate-head h2{margin:0;font:600 14px/1.3 var(--font-display)}
+.plate-head .meta{font:11px/1.2 var(--font-mono);color:var(--ink-3)}
+.plate-body{padding:18px}
+.note{margin:14px 0 0;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+
+.app-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--wf-bg);margin-bottom:14px}
+.app-bar .crumb{font-size:12px;color:var(--ink-3);font-family:var(--font-mono)}
+.app-bar .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid-2-asym{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+@media (max-width:860px){.grid-2,.grid-2-asym{grid-template-columns:1fr}}
+
+.card{border:1px solid var(--line);border-radius:10px;background:var(--wf-bg);overflow:hidden}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--wf-head)}
+.card-head h3{margin:0;font:600 13px/1.2 var(--font-display)}
+.card-body{padding:14px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font:600 11px/1.35 var(--font-mono);white-space:nowrap}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.info{background:var(--info-bg);color:var(--info)}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.mute{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font:500 12px/1.2 var(--font-body);color:var(--ink);cursor:pointer;text-decoration:none}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.btn.sm{padding:4px 9px;font-size:11.5px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--wf-bg)}
+.kpi .l{font-size:11px;color:var(--ink-3)}
+.kpi .v{margin-top:2px;font:600 20px/1.2 var(--font-mono)}
+.kpi .s{margin-top:2px;font-size:11px;color:var(--ink-2)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.input,.select{padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:12px/1.3 var(--font-body)}
+.input{min-width:230px;flex:1;max-width:340px}
+
+table.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--line);background:var(--wf-bg)}
+table.tbl th,table.tbl td{padding:9px 10px;border-bottom:1px solid var(--wf-hair);text-align:left;vertical-align:top}
+table.tbl th{background:var(--wf-soft);font:600 11px/1.2 var(--font-mono);text-transform:uppercase;color:var(--ink-3)}
+table.tbl tr:hover td{background:var(--wf-soft)}
+
+/* Layar Galat (Plate 02) */
+.err-stage{background:var(--paper);border:1px dashed var(--wf-dash);border-radius:10px;padding:24px 16px;display:flex;justify-content:center}
+.err-box{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:var(--shadow)}
+.err-box h3{margin:12px 0 6px;font:700 18px/1.25 var(--font-display);letter-spacing:-.01em}
+.err-box p{margin:0;font-size:13px;color:var(--ink-2)}
+.ref-box{margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--wf-soft);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ref-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-family:var(--font-mono)}
+.ref-code{font:700 16px/1.2 var(--font-mono);color:var(--bad);letter-spacing:.02em}
+.err-actions{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
+
+/* Detail & Trace (Plate 04) */
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;font-size:12px}
+.kv .k{color:var(--ink-3);font-family:var(--font-mono);font-size:11px}
+.kv .v{color:var(--ink);word-break:break-word}
+.trace{margin-top:12px;border:1px solid var(--line);border-radius:8px;background:var(--wf-soft);padding:10px 12px;font:11.5px/1.55 var(--font-mono);overflow-x:auto}
+.trace .app-frame{color:var(--bad);font-weight:600}
+.trace .vendor-frame{color:var(--ink-3)}
+.json-box{border:1px solid var(--line);border-radius:8px;background:var(--wf-soft);padding:10px 12px;font:11.5px/1.5 var(--font-mono);color:var(--ink-2);white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc">
+    <h1>Wireframe Sistem Log Galat Terkode (Database)</h1>
+    <p>Rancangan pencatatan otomatis setiap galat aplikasi (<code>500</code>, <code>403</code>, <code>419</code>, exception tak tertangani, dan job gagal) ke tabel <code>error_logs</code> di basis data, lengkap dengan kode unik per area portal seperti <code>ER-ADM-001</code> dan <code>ER-GR-001</code> agar pelaporan masalah dari lapangan langsung menunjuk ke insiden yang tepat.</p>
+    <nav class="nav">
+      <a href="#plate-01">Plate 01 · Skema Kode &amp; Struktur DB</a>
+      <a href="#plate-02">Plate 02 · Layar Galat Pengguna (Galat.tsx)</a>
+      <a href="#plate-03">Plate 03 · Daftar Log Galat (/super/galat)</a>
+      <a href="#plate-04">Plate 04 · Detail Insiden &amp; Penyelesaian</a>
+    </nav>
+  </header>
+
+  <!-- ========================================================= PLATE 01 -->
+  <section class="plate" id="plate-01">
+    <div class="plate-head">
+      <h2>Plate 01 — Taksonomi Kode Galat &amp; Struktur Tabel <code>error_logs</code></h2>
+      <span class="meta">Aturan Penomoran · Database &amp; Exception Handler</span>
+    </div>
+    <div class="plate-body">
+      <div class="grid-2-asym">
+        <div class="card">
+          <div class="card-head">
+            <h3>Prefix Kode Berdasarkan Portal / Rute</h3>
+            <span class="chip info">Format: ER-{PORTAL}-{NO}</span>
+          </div>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Prefix</th>
+                <th>Area / Rute</th>
+                <th>Contoh Kode</th>
+                <th>Sasaran Pengguna</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="chip bad">ER-ADM</span></td>
+                <td><code>/admin/*</code></td>
+                <td><code>ER-ADM-001</code></td>
+                <td>Admin Sekolah</td>
+              </tr>
+              <tr>
+                <td><span class="chip warn">ER-GR</span></td>
+                <td><code>/guru/*</code></td>
+                <td><code>ER-GR-001</code></td>
+                <td>Guru / Penulis Soal</td>
+              </tr>
+              <tr>
+                <td><span class="chip info">ER-PGW</span></td>
+                <td><code>/pengawas/*</code>, <code>/p/*</code></td>
+                <td><code>ER-PGW-001</code></td>
+                <td>Pengawas Ruang</td>
+              </tr>
+              <tr>
+                <td><span class="chip ok">ER-SSW</span></td>
+                <td><code>/siswa/*</code>, <code>/hadir/*</code></td>
+                <td><code>ER-SSW-001</code></td>
+                <td>Siswa / Peserta Ujian</td>
+              </tr>
+              <tr>
+                <td><span class="chip mute">ER-SUP</span></td>
+                <td><code>/super/*</code></td>
+                <td><code>ER-SUP-001</code></td>
+                <td>Super Admin Platform</td>
+              </tr>
+              <tr>
+                <td><span class="chip mute">ER-PUB</span></td>
+                <td><code>/login</code>, <code>/jadwal/*</code>, <code>/tv/*</code>, <code>/wali/*</code></td>
+                <td><code>ER-PUB-001</code></td>
+                <td>Publik / Tamu / Wali</td>
+              </tr>
+              <tr>
+                <td><span class="chip mute">ER-SYS</span></td>
+                <td>Queue Job, Scheduler, Artisan CLI</td>
+                <td><code>ER-SYS-001</code></td>
+                <td>Latar Belakang Sistem</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Skema Ringkas Tabel <code>error_logs</code></h3>
+            <span class="chip mute">MySQL · Deduplikasi</span>
+          </div>
+          <div class="card-body">
+            <div class="kv">
+              <div class="k">code</div>
+              <div class="v"><code>ER-ADM-001</code> (unik, nomor urut per prefix)</div>
+              <div class="k">portal</div>
+              <div class="v"><code>ADM</code> | <code>GR</code> | <code>PGW</code> | <code>SSW</code> | <code>SUP</code> | <code>PUB</code> | <code>SYS</code></div>
+              <div class="k">fingerprint</div>
+              <div class="v">SHA-1(<code>exception + file + line + route</code>) — agar galat yang sama berulang tidak memenuhi tabel, cukup naikkan <code>occurrences</code></div>
+              <div class="k">status_code</div>
+              <div class="v"><code>500</code>, <code>419</code>, <code>403</code>, <code>404</code> (opsional/terfilter)</div>
+              <div class="k">exception</div>
+              <div class="v">Nama kelas &amp; pesan error lengkap</div>
+              <div class="k">location</div>
+              <div class="v"><code>file</code> + <code>line</code> + ringkasan <code>trace</code></div>
+              <div class="k">context</div>
+              <div class="v"><code>school_id</code>, <code>user_id</code>, <code>url</code>, <code>method</code>, <code>ip</code>, <code>payload_sanitized</code></div>
+              <div class="k">resolution</div>
+              <div class="v"><code>resolved_at</code>, <code>resolved_by</code>, <code>resolution_note</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>Pengaman DB &amp; Privasi:</b> (1) Jika koneksi database sendiri yang bermasalah saat mencatat log, exception logger otomatis jatuh kembali ke <code>laravel.log</code> agar tidak memicu loop error. (2) Field sensitif (<code>password</code>, <code>_token</code>, <code>api_key</code>, <code>code</code>) disensor menjadi <code>[REDACTED]</code> sebelum masuk DB. (3) Deduplikasi memakai <code>fingerprint</code>: jika <code>ER-ADM-001</code> terjadi 12 kali untuk bug yang sama dan belum ditandai selesai, barisnya tetap satu dengan penghitung <code>occurrences = 12</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 02 -->
+  <section class="plate" id="plate-02">
+    <div class="plate-head">
+      <h2>Plate 02 — Layar Galat Pengguna dengan Kode Referensi (<code>Galat.tsx</code>)</h2>
+      <span class="meta">Tampilan Akhir Pengguna · Tanpa Stack Trace Terbuka</span>
+    </div>
+    <div class="plate-body">
+      <div class="grid-2">
+        <!-- Varian Admin / Guru -->
+        <div>
+          <p style="margin:0 0 8px;font-size:12px;color:var(--ink-2)"><b>Varian A — Konsol Admin / Guru</b> (mis. saat membuka <code>/admin/events/1/mapel</code>)</p>
+          <div class="err-stage">
+            <div class="err-box">
+              <span class="chip bad">500 · Gangguan Sistem</span>
+              <h3>Terjadi kesalahan pada server</h3>
+              <p>Permintaan Anda belum dapat diproses saat ini. Silakan coba lagi atau kirimkan kode referensi di bawah ini ke pengelola sistem.</p>
+
+              <div class="ref-box">
+                <div>
+                  <div class="ref-label">Kode Referensi Galat</div>
+                  <div class="ref-code">ER-ADM-001</div>
+                </div>
+                <button class="btn sm" type="button">Salin Kode</button>
+              </div>
+
+              <div class="err-actions">
+                <a class="btn pri" href="#plate-02">Ke Beranda</a>
+                <button class="btn" type="button">Kembali</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Varian Siswa -->
+        <div>
+          <p style="margin:0 0 8px;font-size:12px;color:var(--ink-2)"><b>Varian B — Portal Siswa</b> (mis. saat mengerjakan/submit di <code>/siswa/*</code>)</p>
+          <div class="err-stage">
+            <div class="err-box">
+              <span class="chip warn">500 · Kendala Teknis</span>
+              <h3>Halaman mengalami kendala sementara</h3>
+              <p>Jawaban yang sudah tersimpan tetap aman. Muat ulang halaman, atau tunjukkan kode ini kepada pengawas ruang bila kendala berlanjut.</p>
+
+              <div class="ref-box">
+                <div>
+                  <div class="ref-label">Kode Untuk Pengawas</div>
+                  <div class="ref-code">ER-SSW-014</div>
+                </div>
+                <button class="btn sm" type="button">Salin Kode</button>
+              </div>
+
+              <div class="err-actions">
+                <a class="btn pri" href="#plate-02">Muat Ulang Halaman</a>
+                <button class="btn" type="button">Ke Jadwal Ujian</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>Mengapa kode ditampilkan ke pengguna, bukan pesan teknis mentah:</b> Di produksi (<code>APP_DEBUG=false</code>), stack trace tidak boleh terbuka ke siswa atau guru. Dengan menampilkan kode <code>ER-ADM-001</code> atau <code>ER-SSW-014</code>, pengguna cukup menyebut satu kode singkat di grup WhatsApp, dan tim teknis langsung mencarinya di konsol log galat.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 03 -->
+  <section class="plate" id="plate-03">
+    <div class="plate-head">
+      <h2>Plate 03 — Konsol Daftar Log Galat (<code>/super/galat</code>)</h2>
+      <span class="meta">Super Admin · Pemantauan Lintas Sekolah &amp; Portal</span>
+    </div>
+    <div class="plate-body">
+      <div class="app-bar">
+        <span class="crumb">/super/galat · Log Galat Aplikasi</span>
+        <div class="right">
+          <span class="chip mute">Auto-grouping aktif</span>
+          <button class="btn sm" type="button">Bersihkan yang selesai (&gt;30 hari)</button>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="l">Insiden Terbuka</div>
+          <div class="v" style="color:var(--bad)">7</div>
+          <div class="s">Perlu ditindaklanjuti</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Kejadian Hari Ini</div>
+          <div class="v">24</div>
+          <div class="s">Dari 3 sekolah</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Portal Siswa (Hari-H)</div>
+          <div class="v" style="color:var(--warn)">2</div>
+          <div class="s">Prioritas tinggi</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Selesai Pekan Ini</div>
+          <div class="v" style="color:var(--ok)">19</div>
+          <div class="s">Sudah diperbaiki</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <input class="input" type="search" placeholder="Cari kode (mis. ER-ADM-001), pesan, atau URL...">
+        <select class="select">
+          <option>Semua Portal</option>
+          <option>ER-ADM · Admin</option>
+          <option>ER-GR · Guru</option>
+          <option>ER-PGW · Pengawas</option>
+          <option>ER-SSW · Siswa</option>
+          <option>ER-SUP · Super Admin</option>
+          <option>ER-PUB · Publik</option>
+        </select>
+        <select class="select">
+          <option>Status: Terbuka</option>
+          <option>Status: Selesai</option>
+          <option>Semua Status</option>
+        </select>
+        <select class="select">
+          <option>Semua HTTP</option>
+          <option>500 Server Error</option>
+          <option>419 Session Expired</option>
+          <option>403 Forbidden</option>
+        </select>
+      </div>
+
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:125px">Kode</th>
+            <th style="width:70px">Portal</th>
+            <th>Pesan &amp; Lokasi</th>
+            <th>URL &amp; Konteks</th>
+            <th style="width:85px">Jumlah</th>
+            <th style="width:120px">Terakhir</th>
+            <th style="width:95px">Status</th>
+            <th style="width:70px">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="chip bad">ER-ADM-001</span></td>
+            <td><code>ADM</code></td>
+            <td>
+              <b>DecryptException: The MAC is invalid.</b><br>
+              <span style="color:var(--ink-3);font-family:var(--font-mono);font-size:11px">Encrypter.php:191</span>
+            </td>
+            <td>
+              <code>GET /admin/events/1/mapel</code><br>
+              <span style="color:var(--ink-3);font-size:11px">SMPN 1 Cipanas · Admin #1</span>
+            </td>
+            <td><b>12×</b></td>
+            <td style="font-family:var(--font-mono);font-size:11px">2 mnt lalu</td>
+            <td><span class="chip bad">Terbuka</span></td>
+            <td><a class="btn sm" href="#plate-04">Detail</a></td>
+          </tr>
+          <tr>
+            <td><span class="chip warn">ER-GR-004</span></td>
+            <td><code>GR</code></td>
+            <td>
+              <b>UniqueConstraintViolationException: paket_nama_unik</b><br>
+              <span style="color:var(--ink-3);font-family:var(--font-mono);font-size:11px">PaketSoalService.php:46</span>
+            </td>
+            <td>
+              <code>POST /guru/paket-soal</code><br>
+              <span style="color:var(--ink-3);font-size:11px">SMPN 1 Cipanas · Guru #6</span>
+            </td>
+            <td><b>3×</b></td>
+            <td style="font-family:var(--font-mono);font-size:11px">18 mnt lalu</td>
+            <td><span class="chip bad">Terbuka</span></td>
+            <td><a class="btn sm" href="#plate-04">Detail</a></td>
+          </tr>
+          <tr>
+            <td><span class="chip ok">ER-SSW-014</span></td>
+            <td><code>SSW</code></td>
+            <td>
+              <b>QueryException: Deadlock found when trying to get lock</b><br>
+              <span style="color:var(--ink-3);font-family:var(--font-mono);font-size:11px">KerjakanSiswaController.php:142</span>
+            </td>
+            <td>
+              <code>POST /siswa/ujian/42/jawab</code><br>
+              <span style="color:var(--ink-3);font-size:11px">SMPN 1 Cipanas · Siswa #218</span>
+            </td>
+            <td><b>1×</b></td>
+            <td style="font-family:var(--font-mono);font-size:11px">1 jam lalu</td>
+            <td><span class="chip ok">Selesai</span></td>
+            <td><a class="btn sm" href="#plate-04">Detail</a></td>
+          </tr>
+          <tr>
+            <td><span class="chip info">ER-PGW-002</span></td>
+            <td><code>PGW</code></td>
+            <td>
+              <b>TokenMismatchException (419): CSRF token mismatch</b><br>
+              <span style="color:var(--ink-3);font-family:var(--font-mono);font-size:11px">PreventRequestForgery.php:104</span>
+            </td>
+            <td>
+              <code>POST /p/ruang-03/presensi</code><br>
+              <span style="color:var(--ink-3);font-size:11px">SMPN 2 Cianjur · Tautan Ruang</span>
+            </td>
+            <td><b>5×</b></td>
+            <td style="font-family:var(--font-mono);font-size:11px">Kemarin</td>
+            <td><span class="chip ok">Selesai</span></td>
+            <td><a class="btn sm" href="#plate-04">Detail</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="note">
+        <b>Opsional per Sekolah:</b> Selain di <code>/super/galat</code> (lintas sekolah), Admin sekolah juga bisa diberi tampilan ringkas di <code>/admin/log</code> (tab <b>Log Galat</b>) yang hanya menampilkan galat milik sekolahnya tanpa stack trace sensitif server.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 04 -->
+  <section class="plate" id="plate-04">
+    <div class="plate-head">
+      <h2>Plate 04 — Detail Insiden Galat (<code>/super/galat/1</code>)</h2>
+      <span class="meta">Diagnostik · Stack Trace &amp; Status Penyelesaian</span>
+    </div>
+    <div class="plate-body">
+      <div class="app-bar">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="chip bad">ER-ADM-001</span>
+          <span class="chip mute">HTTP 500</span>
+          <b>Illuminate\Contracts\Encryption\DecryptException</b>
+        </div>
+        <div class="right">
+          <button class="btn sm" type="button">Salin Ringkasan</button>
+          <button class="btn sm ok" type="button">Tandai Selesai</button>
+        </div>
+      </div>
+
+      <div class="grid-2-asym">
+        <div class="card">
+          <div class="card-head">
+            <h3>Informasi &amp; Stack Trace</h3>
+            <span class="chip warn">Terjadi 12×</span>
+          </div>
+          <div class="card-body">
+            <p style="margin:0 0 12px;font-weight:600;color:var(--bad)">The MAC is invalid.</p>
+
+            <div class="kv">
+              <div class="k">URL</div>
+              <div class="v"><code>GET https://cbt.smpn1cipanas.sch.id/admin/events/1/mapel</code></div>
+              <div class="k">Pengguna</div>
+              <div class="v">Admin Sekolah (#1 · <code>admin</code>) — SMPN 1 Cipanas</div>
+              <div class="k">IP / Browser</div>
+              <div class="v"><code>103.144.xx.xx</code> · Chrome 158 (Windows)</div>
+              <div class="k">Pertama muncul</div>
+              <div class="v">26 Nov 2026 07:10:12 WIB</div>
+              <div class="k">Terakhir muncul</div>
+              <div class="v">26 Nov 2026 07:26:43 WIB</div>
+            </div>
+
+            <div class="trace">
+              <div class="app-frame">#0 vendor/laravel/framework/.../Encrypter.php:191 — decrypt()</div>
+              <div class="app-frame">#1 app/Http/Middleware/HandleInertiaRequests.php:34</div>
+              <div class="app-frame">#2 app/Domain/Tenancy/Http/Middleware/EnsureTenantContext.php:41</div>
+              <div class="vendor-frame">#3 vendor/laravel/framework/.../EncryptCookies.php:91</div>
+              <div class="vendor-frame">#4 vendor/laravel/framework/.../Pipeline.php:219</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:14px;align-content:start">
+          <div class="card">
+            <div class="card-head">
+              <h3>Konteks &amp; Payload (Ter-sanitasi)</h3>
+              <span class="chip mute">JSON</span>
+            </div>
+            <div class="card-body">
+              <div class="json-box">{
+  "route": "admin.events.mapel",
+  "params": { "event": "1" },
+  "query": {},
+  "input": {
+    "_token": "[REDACTED]"
+  },
+  "session_school_id": 1
+}</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h3>Catatan Penanganan</h3>
+              <span class="chip bad">Belum selesai</span>
+            </div>
+            <div class="card-body">
+              <textarea class="input" style="max-width:100%;width:100%;min-height:74px" placeholder="Tulis akar masalah &amp; tindakan perbaikan (mis. config:clear + hapus cookie lama)..."></textarea>
+              <div style="margin-top:8px;display:flex;justify-content:flex-end">
+                <button class="btn pri sm" type="button">Simpan &amp; Tandai Selesai</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>Alur kerja di lapangan:</b> Admin menemukan error di <code>/admin/events/1/mapel</code> &rarr; layar menampilkan <code>ER-ADM-001</code> &rarr; Admin mengirim kode <code>ER-ADM-001</code> &rarr; Super Admin membuka <code>/super/galat</code>, mengetik <code>ER-ADM-001</code> di kotak cari &rarr; langsung melihat URL, user, payload ter-sanitasi, dan stack trace tanpa perlu SSH ke server untuk membaca <code>laravel.log</code>.
+      </p>
+    </div>
+  </section>
+</div>
+</body>
+</html>
