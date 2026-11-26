@@ -218,7 +218,7 @@ export default function PengawasSesi({
                         return (
                             <section
                                 key={r.id}
-                                className="overflow-hidden rounded-wf border border-line bg-surface"
+                                className="rounded-wf border border-line bg-surface"
                             >
                                 <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5">
                                     <span className="font-mono text-xs font-medium text-ink">
@@ -278,7 +278,7 @@ export default function PengawasSesi({
                                 </header>
 
                                 {terbuka && (
-                                    <div className="border-t border-line bg-surface-2/30 px-3 py-3">
+                                    <div className="rounded-b-wf border-t border-line bg-surface-2/30 px-3 py-3">
                                         {r.khusus_perangkat && (
                                             <p className="mb-2 text-[11px] text-info">
                                                 Ruang Khusus Perangkat: dilewati dari rotasi pengawas
