@@ -32,6 +32,42 @@ const TAB = [
     { label: 'Laporan', segmen: 'berita-acara' },
 ] as const;
 
+function IkonTabPonsel({ segmen }: { segmen: (typeof TAB)[number]['segmen'] }) {
+    switch (segmen) {
+        case 'presensi':
+            return (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+            );
+        case 'token':
+            return (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="7.5" cy="15.5" r="4.5" />
+                    <path d="M10.85 12.15L21 2" />
+                    <path d="M18 5l3 3" />
+                    <path d="M15 8l2 2" />
+                </svg>
+            );
+        case 'monitoring':
+            return (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 12h4l3-7 4 14 3-7h4" />
+                </svg>
+            );
+        case 'berita-acara':
+            return (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                    <path d="M9 9h6" />
+                    <path d="M9 13h6" />
+                    <path d="M9 17h3" />
+                </svg>
+            );
+    }
+}
+
 export function TabbarPonsel({
     ruangId,
     aktif,
@@ -42,8 +78,8 @@ export function TabbarPonsel({
     tandaBeritaAcara?: boolean;
 }) {
     return (
-        // Tanpa sticky dan border sendiri agar tidak ganda dengan wadah KerangkaPonsel.
-        <nav className="grid grid-cols-4">
+        // Selaras dengan TabbarSiswa (.tabbar & .sel-hidup di konsol-siswa.css).
+        <nav className="tabbar grid grid-cols-4">
             {TAB.map((t) => {
                 const on = t.segmen === aktif;
                 const adaTanda = tandaBeritaAcara && t.segmen === 'berita-acara' && !on;
@@ -52,23 +88,22 @@ export function TabbarPonsel({
                     <Link
                         key={t.segmen}
                         href={`/pengawas/ruang/${ruangId}/${t.segmen}`}
+                        aria-current={on ? 'page' : undefined}
                         className={
-                            // Minimal 44px untuk target sentuh jempol.
-                            'relative grid min-h-11 place-items-center px-1 text-center text-[11px] font-medium transition-colors ' +
-                            (on
-                                ? 'border-t-2 border-accent text-accent'
-                                : 'border-t-2 border-transparent text-ink-2 hover:text-ink')
+                            'relative flex-col gap-0.5 py-1.5 text-[10px] ' +
+                            (on ? 'sel-hidup' : '')
                         }
                     >
-                        <span className="inline-flex items-center gap-1">
-                            {t.label}
+                        <span className="relative inline-flex">
+                            <IkonTabPonsel segmen={t.segmen} />
                             {adaTanda && (
                                 <span
-                                    className="inline-block size-1.5 rounded-full bg-bad"
+                                    className="absolute -top-0.5 -right-1.5 inline-block size-1.5 rounded-full bg-bad ring-1 ring-surface"
                                     aria-label="Berita acara belum dikirim"
                                 />
                             )}
                         </span>
+                        <span>{t.label}</span>
                     </Link>
                 );
             })}
