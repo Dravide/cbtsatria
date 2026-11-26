@@ -101,7 +101,11 @@ class MonitoringController
 
         $pengerjaan = $attempt->filter(fn (?ExamAttempt $a) => $a?->status === ExamAttempt::STATUS_BERJALAN)->count();
         $selesai = $attempt->filter(fn (?ExamAttempt $a) => $a?->status === ExamAttempt::STATUS_DIKIRIM)->count();
-        $terputus = $attempt->filter(fn (?ExamAttempt $a) => $a !== null && $a->terhubung() === false)->count();
+        $terputus = $attempt->filter(
+            fn (?ExamAttempt $a) => $a !== null
+                && $a->status === ExamAttempt::STATUS_BERJALAN
+                && $a->terhubung() === false,
+        )->count();
 
         return Inertia::render('Pengawas/Monitoring', [
             'ruang' => [
@@ -140,7 +144,7 @@ class MonitoringController
                     'status' => $a?->status,
                     'status_label' => $a?->labelStatus() ?? 'Belum mulai',
                     'status_nada' => $a?->nadaStatus() ?? 'mute',
-                    'terhubung' => $a?->terhubung(),
+                    'terhubung' => $a !== null && $a->status === ExamAttempt::STATUS_BERJALAN ? $a->terhubung() : null,
 
                     // Progres dihitung dari jawaban, dan jawaban adalah Fase 7.
                     // Bentuknya tetap dikirim supaya laman tidak berubah lagi.

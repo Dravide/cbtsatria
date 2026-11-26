@@ -535,8 +535,8 @@ class PemantauanEventController
                 'peserta' => $peserta->count(),
                 'mengerjakan' => $cari(fn (?ExamAttempt $a) => $a?->status === ExamAttempt::STATUS_BERJALAN),
                 'selesai' => $cari(fn (?ExamAttempt $a) => $a?->status === ExamAttempt::STATUS_DIKIRIM),
-                // Peserta yang belum punya attempt tidak dihitung terputus.
-                'terputus' => $cari(fn (?ExamAttempt $a) => $a !== null && ! $a->terhubung()),
+                // Hanya peserta yang sedang mengerjakan (berlangsung) yang dapat dihitung terputus.
+                'terputus' => $cari(fn (?ExamAttempt $a) => $a !== null && $a->status === ExamAttempt::STATUS_BERJALAN && ! $a->terhubung()),
                 'pelanggaran' => $peserta->sum(fn (ExamParticipant $p) => $attempt->get($p->id)?->violation_count ?? 0),
                 'terkunci' => $cari(fn (?ExamAttempt $a) => $a?->dikunci() ?? false),
                 'insiden' => $milik->sum(fn (ExamSessionRoom $r) => $insidenPerRuang[$r->id] ?? 0),
@@ -645,7 +645,7 @@ class PemantauanEventController
                 'terputus' => $anak->filter(function (ExamParticipant $p) use ($attempt) {
                     $a = $attempt->get($p->id);
 
-                    return $a !== null && ! $a->terhubung();
+                    return $a !== null && $a->status === ExamAttempt::STATUS_BERJALAN && ! $a->terhubung();
                 })->count(),
                 'pelanggaran' => $anak->sum(fn (ExamParticipant $p) => $attempt->get($p->id)?->violation_count ?? 0),
                 'terkunci' => $anak->filter(fn (ExamParticipant $p) => $attempt->get($p->id)?->dikunci() ?? false)->count(),
@@ -704,7 +704,7 @@ class PemantauanEventController
                 'terputus' => $anak->filter(function (ExamParticipant $p) use ($attempt) {
                     $a = $attempt->get($p->id);
 
-                    return $a !== null && ! $a->terhubung();
+                    return $a !== null && $a->status === ExamAttempt::STATUS_BERJALAN && ! $a->terhubung();
                 })->count(),
                 'pelanggaran' => $anak->sum(fn (ExamParticipant $p) => $attempt->get($p->id)?->violation_count ?? 0),
                 'terkunci' => $anak->filter(fn (ExamParticipant $p) => $attempt->get($p->id)?->dikunci() ?? false)->count(),
@@ -948,7 +948,7 @@ class PemantauanEventController
                 'terputus' => $anak->filter(function (ExamParticipant $p) use ($attempt) {
                     $a = $attempt->get($p->id);
 
-                    return $a !== null && ! $a->terhubung();
+                    return $a !== null && $a->status === ExamAttempt::STATUS_BERJALAN && ! $a->terhubung();
                 })->count(),
                 'terkunci' => $anak->filter(fn (ExamParticipant $p) => $attempt->get($p->id)?->dikunci() ?? false)->count(),
                 'pelanggaran' => $anak->sum(fn (ExamParticipant $p) => $attempt->get($p->id)?->violation_count ?? 0),
@@ -1474,8 +1474,8 @@ class PemantauanEventController
                     'status_label' => $a?->labelStatus() ?? 'Belum mulai',
                     'status_nada' => $a?->nadaStatus() ?? 'mute',
 
-                    // Null berarti belum ada heartbeat (berbeda dari nomor soal 1).
-                    'terhubung' => $a?->terhubung(),
+                    // Null berarti belum ada heartbeat atau pengerjaan sudah selesai/tidak berlangsung.
+                    'terhubung' => $a !== null && $a->status === ExamAttempt::STATUS_BERJALAN ? $a->terhubung() : null,
                     'nomor' => $a?->guard_flags_json['nomor'] ?? null,
                     'progres' => $a?->guard_flags_json['progres'] ?? null,
                     'denyut' => $a?->last_heartbeat_at?->format('H:i:s'),
