@@ -260,6 +260,16 @@ class ExamPengawasController
                 ->values()
                 ->all(),
 
+            'calon_panitia' => $penugasan->anggotaPanitia($event)
+                ->map(fn (EventCommitteeMember $m) => [
+                    'id' => $m->user_id !== null ? $m->user_id : -$m->id,
+                    'nama' => $m->name,
+                    'username' => $m->user?->username ?? 'tanpa akun',
+                    'peran' => $m->position,
+                ])
+                ->values()
+                ->all(),
+
             'aturan' => $aturan,
             'kunci' => $event->kunciPengawasan(),
             'matriks' => $matriks,

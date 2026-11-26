@@ -8,6 +8,7 @@ import {
     Kotak,
     Modal,
     Peringatan,
+    PilihCari,
     Tombol,
     kelasInput,
 } from '@/Components/ui';
@@ -162,6 +163,7 @@ type Props = {
         melebihi_batas?: number;
     };
     calon: { id: number; nama: string; username: string; peran: string }[];
+    calon_panitia?: { id: number; nama: string; username: string; peran: string }[];
     aturan?: AturanPengawas;
     kunci?: { terkunci: boolean; dikunci_pada: string | null; dikunci_oleh: string | null };
     matriks?: MatriksBaris[];
@@ -179,6 +181,7 @@ export default function EventPengawas({
     per_sesi,
     angka,
     calon,
+    calon_panitia = [],
     aturan,
     kunci,
     matriks = [],
@@ -463,10 +466,14 @@ export default function EventPengawas({
 
                     {baris.length > 0 && (
                         <JadwalPengawasan
+                            jalur={jalur}
                             baris={baris}
                             per_sesi={per_sesi}
                             jalur_sesi={jalur_sesi}
                             beban_pengawas={beban_pengawas}
+                            calon={calon}
+                            calonPanitia={calon_panitia}
+                            terkunci={terkunci}
                         />
                     )}
 
@@ -717,18 +724,117 @@ function TombolTautanKeLamanSesi({
 }
 
 function JadwalPengawasan({
+    jalur,
     baris,
     per_sesi,
     jalur_sesi,
     beban_pengawas,
+    calon,
+    calonPanitia,
+    terkunci,
 }: {
+    jalur: string;
     baris: Baris[];
     per_sesi: SesiKelompok[];
     jalur_sesi: string;
     beban_pengawas: Record<number, { terpakai: number; maks: number }>;
+    calon: { id: number; nama: string; username: string; peran: string }[];
+    calonPanitia: { id: number; nama: string; username: string; peran: string }[];
+    terkunci: boolean;
 }) {
     const [sesiDipilih, setSesiDipilih] = useState<number>(0);
     const [cari, setCari] = useState('');
+    const [target, setTarget] = useState<{
+        baris: Baris;
+        tugas: PengawasBaris | null;
+    } | null>(null);
+    const [aksiModal, setAksiModal] = useState<'ganti' | 'tukar'>('ganti');
+    const [calonId, setCalonId] = useState<number | null>(null);
+    const [tukarId, setTukarId] = useState<number | null>(null);
+    const [proses, setProses] = useState(false);
+    const [galat, setGalat] = useState<string | null>(null);
+
+    const bukaModal = (b: Baris, tugas: PengawasBaris | null, modeAwal: 'ganti' | 'tukar') => {
+        setTarget({ baris: b, tugas });
+        setAksiModal(modeAwal);
+        setCalonId(null);
+        setTukarId(null);
+        setGalat(null);
+    };
+
+    const tutupModal = () => {
+        if (proses) {
+            return;
+        }
+        setTarget(null);
+        setGalat(null);
+    };
+
+    const simpanGanti = () => {
+        if (!target || calonId === null) {
+            return;
+        }
+
+        setProses(true);
+        setGalat(null);
+
+        const tugasLama = target.tugas;
+        const ruangSesiId = target.baris.id;
+
+        router.post(
+            `${jalur}/pengawas/ruang/${ruangSesiId}`,
+            { supervisor_id: calonId },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    if (tugasLama) {
+                        router.delete(`${jalur}/pengawas/${tugasLama.id}`, {
+                            preserveScroll: true,
+                            onSuccess: () => {
+                                setTarget(null);
+                                setProses(false);
+                            },
+                            onError: () => {
+                                setGalat('Pengawas baru masuk, tetapi gagal melepas pengawas lama.');
+                                setProses(false);
+                            },
+                        });
+                        return;
+                    }
+                    setTarget(null);
+                    setProses(false);
+                },
+                onError: (e: Record<string, string>) => {
+                    setGalat(Object.values(e)[0] ?? 'Pengawas tidak bisa ditugaskan.');
+                    setProses(false);
+                },
+            },
+        );
+    };
+
+    const simpanTukar = () => {
+        if (!target?.tugas || tukarId === null) {
+            return;
+        }
+
+        setProses(true);
+        setGalat(null);
+
+        router.post(
+            `${jalur}/pengawas/tukar`,
+            { a: target.tugas.id, b: tukarId },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setTarget(null);
+                },
+                onError: (e: Record<string, string>) => {
+                    setGalat(Object.values(e)[0] ?? 'Penugasan tidak bisa ditukar.');
+                },
+                onFinish: () => setProses(false),
+            },
+        );
+    };
 
     const tersaring = baris.filter((b) => {
         if (sesiDipilih !== 0 && b.sesi_id !== sesiDipilih) {
@@ -877,14 +983,31 @@ function JadwalPengawasan({
                                     </td>
 
                                     <td className="px-3 py-2.5 text-right">
-                                        {b.sesi_id !== null && (
-                                            <Link
-                                                href={`${jalur_sesi}/${b.sesi_id}`}
-                                                className="text-xs font-medium text-accent hover:underline"
-                                            >
-                                                Atur →
-                                            </Link>
-                                        )}
+                                        <div className="flex items-center justify-end gap-2">
+                                            {!terkunci && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        bukaModal(
+                                                            b,
+                                                            b.pengawas[0] ?? null,
+                                                            'ganti',
+                                                        )
+                                                    }
+                                                    className="text-xs font-medium text-ink-2 hover:text-accent hover:underline"
+                                                >
+                                                    {b.pengawas.length > 0 ? 'Ganti / Tukar' : 'Tugaskan'}
+                                                </button>
+                                            )}
+                                            {b.sesi_id !== null && (
+                                                <Link
+                                                    href={`${jalur_sesi}/${b.sesi_id}`}
+                                                    className="text-xs font-medium text-accent hover:underline"
+                                                >
+                                                    Atur →
+                                                </Link>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -892,6 +1015,168 @@ function JadwalPengawasan({
                     </tbody>
                 </table>
             </div>
+
+            <Modal
+                judul={
+                    target
+                        ? `${target.tugas ? 'Ganti / Tukar' : 'Tugaskan'} · ${target.baris.ruang ?? 'Ruang'} (${target.baris.sesi ?? ''})`
+                        : 'Ganti / Tukar Pengawas'
+                }
+                terbuka={target !== null}
+                padaTutup={tutupModal}
+            >
+                {target && (
+                    <div className="space-y-3">
+                        {target.tugas && (
+                            <div className="rounded-wf border border-line bg-surface-2/50 px-3 py-2 text-xs text-ink-2">
+                                Pengawas saat ini:{' '}
+                                <strong className="text-ink">{target.tugas.nama ?? '—'}</strong>
+                                {target.baris.pengawas.length > 1 && (
+                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                        {target.baris.pengawas.map((p) => (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                onClick={() =>
+                                                    setTarget({ baris: target.baris, tugas: p })
+                                                }
+                                                className={
+                                                    'rounded-wf border px-2 py-0.5 text-[11px] ' +
+                                                    (target.tugas?.id === p.id
+                                                        ? 'border-accent bg-accent-soft font-medium text-accent'
+                                                        : 'border-line bg-surface text-ink-2 hover:bg-surface-2')
+                                                }
+                                            >
+                                                {p.nama ?? '—'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {target.tugas && (
+                            <div className="flex gap-1 border-b border-line">
+                                {(
+                                    [
+                                        ['ganti', 'Ganti dengan calon lain'],
+                                        ['tukar', 'Tukar dengan pengawas lain'],
+                                    ] as const
+                                ).map(([kunci, label]) => (
+                                    <button
+                                        key={kunci}
+                                        type="button"
+                                        onClick={() => {
+                                            setAksiModal(kunci);
+                                            setGalat(null);
+                                        }}
+                                        className={
+                                            'border-b-2 px-3 py-1.5 text-xs font-medium transition-colors ' +
+                                            (aksiModal === kunci
+                                                ? 'border-accent text-accent'
+                                                : 'border-transparent text-ink-3 hover:text-ink')
+                                        }
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {aksiModal === 'ganti' ? (
+                            <>
+                                {target.baris.khusus_perangkat && (
+                                    <p className="text-[11px] text-info">
+                                        Ruang Khusus Perangkat: langsung memilih dari anggota{' '}
+                                        <strong>Panitia Event</strong>.
+                                    </p>
+                                )}
+                                <PilihCari
+                                    label={
+                                        target.baris.khusus_perangkat
+                                            ? 'Panitia Event pengganti'
+                                            : 'Pengawas pengganti'
+                                    }
+                                    nilai={calonId}
+                                    pilihan={(target.baris.khusus_perangkat
+                                        ? calonPanitia
+                                        : calon
+                                    )
+                                        .filter((c) => c.id !== target.tugas?.user_id)
+                                        .map((c) => {
+                                            const b = beban_pengawas[c.id];
+                                            const ketBeban = b
+                                                ? b.maks > 0
+                                                    ? ` · ${b.terpakai}/${b.maks}`
+                                                    : ` · ${b.terpakai}×`
+                                                : '';
+                                            return {
+                                                id: c.id,
+                                                label: c.nama,
+                                                ket: `${c.peran}${ketBeban}`,
+                                            };
+                                        })}
+                                    padaPilih={(id) => setCalonId(id)}
+                                    kosong={
+                                        target.baris.khusus_perangkat
+                                            ? 'Tidak ada anggota panitia event lain.'
+                                            : 'Tidak ada calon pengawas lain.'
+                                    }
+                                />
+                            </>
+                        ) : (
+                            <PilihCari
+                                label="Tukar dengan penugasan lain"
+                                nilai={tukarId}
+                                pilihan={baris
+                                    .flatMap((otherB) =>
+                                        otherB.pengawas
+                                            .filter((otherP) => otherP.id !== target.tugas?.id)
+                                            .map((otherP) => ({
+                                                id: otherP.id,
+                                                sesiSama: otherB.sesi_id === target.baris.sesi_id,
+                                                label: `${otherP.nama ?? '—'} — ${otherB.ruang ?? '—'} (${otherB.sesi ?? '—'})`,
+                                                ket: `${otherB.tanggal ?? ''} ${otherB.jam ?? ''} · ${otherB.ujian ?? ''}`,
+                                            })),
+                                    )
+                                    .sort((a, b) => Number(b.sesiSama) - Number(a.sesiSama))
+                                    .map(({ id, label, ket }) => ({ id, label, ket }))}
+                                padaPilih={(id) => setTukarId(id)}
+                                kosong="Belum ada penugasan lain untuk ditukar."
+                            />
+                        )}
+
+                        {galat && <p className="text-xs text-bad">{galat}</p>}
+
+                        <div className="flex justify-end gap-2 pt-1">
+                            <Tombol disabled={proses} onClick={tutupModal}>
+                                Batal
+                            </Tombol>
+                            {aksiModal === 'ganti' ? (
+                                <Tombol
+                                    nada="pri"
+                                    disabled={proses || calonId === null}
+                                    onClick={simpanGanti}
+                                >
+                                    {proses
+                                        ? 'Menyimpan...'
+                                        : target.tugas
+                                          ? 'Ganti pengawas'
+                                          : 'Tugaskan'}
+                                </Tombol>
+                            ) : (
+                                <Tombol
+                                    nada="pri"
+                                    disabled={proses || tukarId === null}
+                                    onClick={simpanTukar}
+                                >
+                                    {proses ? 'Menukar...' : 'Tukar ruang'}
+                                </Tombol>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </section>
     );
 }
