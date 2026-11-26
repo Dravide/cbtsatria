@@ -1632,15 +1632,12 @@ class PengawasService
         }
 
         return DB::transaction(function () use ($panitia): User {
-            $slug = Str::slug($panitia->name, '.') ?: 'panitia';
-            $base = "panitia.{$panitia->id}.".Str::limit($slug, 20, '');
-            $username = $base;
             $urut = 1;
 
-            while (User::withTrashed()->where('username', $username)->exists()) {
-                $username = "{$base}.{$urut}";
+            do {
+                $username = sprintf('pnt.%03d', $urut);
                 $urut++;
-            }
+            } while (User::withTrashed()->where('username', $username)->exists());
 
             $user = User::create([
                 'school_id' => $panitia->school_id,

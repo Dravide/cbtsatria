@@ -238,6 +238,7 @@ it('dapat menugaskan panitia event tanpa akun ke ruang khusus perangkat', functi
     $panitiaTanpaAkun->refresh();
 
     expect($panitiaTanpaAkun->user_id)->not->toBeNull()
+        ->and($panitiaTanpaAkun->user?->username)->toMatch('/^pnt\.\d{3,}$/')
         ->and($panitiaTanpaAkun->code)->not->toBeNull()
         ->and(strlen((string) $panitiaTanpaAkun->code))->toBe(6)
         ->and(app(PencocokKodePengawas::class)->cocokkan($sesiRuangLab, (string) $panitiaTanpaAkun->code)?->id)
