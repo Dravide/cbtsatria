@@ -187,7 +187,6 @@ export default function BeritaAcara({
     return (
         <KerangkaPonsel
             judul="Berita acara"
-            gelap
             tabbar={{ ruangId: ruang.id, aktif: 'berita-acara' }}
             kiri={
                 <>

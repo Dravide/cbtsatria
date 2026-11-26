@@ -194,7 +194,6 @@ export default function RuangTugas({
     return (
         <KerangkaPonsel
             judul="Ruang tugas hari ini"
-            gelap
             kanan={
                 <Chip nada={pelaku === 'tautan' ? 'info' : 'mute'}>
                     {pelaku === 'tautan' ? 'tautan ruang' : 'akun'}

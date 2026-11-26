@@ -108,83 +108,76 @@ export default function KerangkaPonsel({
         beritaAcaraBelumFinal &&
         (statusBeritaAcara.sesi_berakhir || statusBeritaAcara.sesi_status === 'selesai');
 
+    const rangka = gelap ? 'konsol-pengawas bg-paper' : 'konsol-siswa bg-paper';
+
     return (
         <>
             <Head title={judul} />
 
-            <div className={'min-h-screen bg-paper' + (gelap ? ' konsol-pengawas' : '')}>
-                <div className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col border-line bg-paper sm:border-x">
+            <div className={'min-h-screen ' + rangka}>
+                <div className={'mx-auto flex min-h-screen w-full max-w-[26rem] flex-col border-line sm:border-x ' + rangka}>
                     {bilah && (
-                        <header className="sticky top-0 z-20 flex flex-col gap-1.5 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur">
+                        <header
+                            className={
+                                'sticky top-0 z-20 flex flex-col gap-2 border-b border-line px-3 ' +
+                                (!gelap && identitasAplikasi?.logo
+                                    ? 'border-t-2 border-t-accent bg-surface/95 pb-2 pt-2 shadow-[0_1px_4px_rgba(16,22,32,0.05)] backdrop-blur-sm'
+                                    : 'bg-surface/95 py-2 backdrop-blur-sm')
+                            }
+                        >
                             {identitasAplikasi?.logo && (
-                                <div className="flex justify-center border-b border-line/60 pb-1.5">
+                                <div className="flex justify-center border-b border-line/60 pb-2">
                                     <img
                                         src={identitasAplikasi.logo}
                                         alt={identitasAplikasi.nama}
-                                        className="h-5 w-auto max-w-[136px] object-contain"
+                                        className="h-5 w-auto max-w-[144px] object-contain"
                                     />
                                 </div>
                             )}
-                            <div className="flex items-center gap-2">
-                                <div className="flex min-w-0 items-center gap-2">
-                                {kiri ?? (
-                                    <Chip nada={lewatTautan ? 'info' : 'mute'}>
-                                        {pengawasRuang?.ruang ?? auth.pengguna?.peran_label ?? 'Pengawas'}
-                                    </Chip>
-                                )}
-                                <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-[11px] text-ink-3">
-                                    {pengawasRuang ? (
-                                        // Pemisahnya GARIS TEGAK kecil, bukan titik
-                                        // tengah: gate 63 menyebut rangkaian titik
-                                        // sebagai tanda baca halaman generator, dan
-                                        // kepala ini bisa memuat tiga segmen. Nama
-                                        // pengawas yang membuka pintu ini disebut
-                                        // sejak 2026-11-07 - kodenya menempel pada
-                                        // orang. Chip di kiri tetap menyebut KODE
-                                        // ruangnya, jadi kepalanya menjawab dua
-                                        // pertanyaan sekaligus: ruang mana, dan siapa.
-                                        <>
-                                            {pengawasRuang.pengawas && (
-                                                <>
-                                                    <span className="shrink-0">
-                                                        {pengawasRuang.pengawas}
-                                                    </span>
-                                                    <i className="h-3 w-px shrink-0 bg-line" />
-                                                </>
-                                            )}
-                                            <span className="min-w-0 truncate">
-                                                {[pengawasRuang.ruang_nama, pengawasRuang.sesi]
-                                                    .filter(Boolean)
-                                                    .join(' · ')}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        judul
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex min-w-0 flex-1 items-center gap-2">
+                                    {kiri ?? (
+                                        <Chip nada={lewatTautan ? 'info' : 'mute'}>
+                                            {pengawasRuang?.ruang ?? auth.pengguna?.peran_label ?? 'Pengawas'}
+                                        </Chip>
                                     )}
-                                </span>
-                            </div>
+                                    <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-[11px] text-ink-3">
+                                        {pengawasRuang ? (
+                                            <>
+                                                {pengawasRuang.pengawas && (
+                                                    <>
+                                                        <span className="shrink-0">
+                                                            {pengawasRuang.pengawas}
+                                                        </span>
+                                                        <i className="h-3 w-px shrink-0 bg-line" />
+                                                    </>
+                                                )}
+                                                <span className="min-w-0 truncate">
+                                                    {[pengawasRuang.ruang_nama, pengawasRuang.sesi]
+                                                        .filter(Boolean)
+                                                        .join(' · ')}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            judul
+                                        )}
+                                    </span>
+                                </div>
 
-                            <div className="ml-auto flex shrink-0 items-center gap-2">
-                                {kanan}
-                                {lewatTautan && (
-                                    <Link
-                                        href={`/p/${pengawasRuang.slug}/keluar`}
-                                        method="post"
-                                        as="button"
-                                        // `min-h-11` = 44px sasaran, tetapi
-                                        // `-my-2` menariknya kembali ke dalam
-                                        // padding kepala (8px atas + 8px
-                                        // bawah). Tanpa itu kepala yang
-                                        // lengket tumbuh 34px -> 60px dan
-                                        // memakan sepersepuluh layar ponsel
-                                        // hanya untuk satu tautan teks.
-                                        className="inline-grid min-h-11 -my-2 place-items-center rounded-wf px-2 text-[11px] text-ink-3 hover:text-bad"
-                                        title="Lepaskan sesi ruang ini dari ponsel"
-                                    >
-                                        Keluar
-                                    </Link>
-                                )}
-                            </div>
+                                <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                                    {kanan}
+                                    {lewatTautan && (
+                                        <Link
+                                            href={`/p/${pengawasRuang.slug}/keluar`}
+                                            method="post"
+                                            as="button"
+                                            className="inline-grid min-h-11 -my-2 place-items-center rounded-wf px-2 text-[11px] text-ink-3 hover:text-bad"
+                                            title="Lepaskan sesi ruang ini dari ponsel"
+                                        >
+                                            Keluar
+                                        </Link>
+                                    )}
+                                </div>
                             </div>
                         </header>
                     )}
