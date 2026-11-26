@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe Penanda Ruang Khusus Perangkat (Penempatan &amp; Pengawas) — School CBT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 var(--font-body)}
+code{font-family:var(--font-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+
+header.doc{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px}
+header.doc h1{margin:0 0 6px;font:600 22px/1.25 var(--font-display);letter-spacing:-.01em}
+header.doc p{margin:0;color:var(--ink-2);max-width:80ch}
+.nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.nav a{padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink-2);text-decoration:none;font-size:12px}
+.nav a:hover{border-color:var(--accent);color:var(--accent)}
+
+.plate{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);margin-bottom:28px;overflow:hidden}
+.plate-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:var(--wf-head);border-bottom:1px solid var(--line)}
+.plate-head h2{margin:0;font:600 14px/1.3 var(--font-display)}
+.plate-head .meta{font:11px/1.2 var(--font-mono);color:var(--ink-3)}
+.plate-body{padding:18px}
+.note{margin:14px 0 0;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+
+.app-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--wf-bg);margin-bottom:14px;flex-wrap:wrap}
+.app-bar .crumb{font-size:12px;color:var(--ink-3);font-family:var(--font-mono)}
+.app-bar .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:860px){.grid-2{grid-template-columns:1fr}}
+
+.card{border:1px solid var(--line);border-radius:10px;background:var(--wf-bg);overflow:hidden}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--wf-head)}
+.card-head h3{margin:0;font:600 13px/1.2 var(--font-display)}
+.card-body{padding:14px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font:600 11px/1.35 var(--font-mono);white-space:nowrap}
+.chip.pri{background:var(--accent-soft);color:var(--accent)}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.info{background:var(--info-bg);color:var(--info)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.mute{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font:500 12px/1.2 var(--font-body);color:var(--ink);cursor:pointer;text-decoration:none}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.sm{padding:4px 9px;font-size:11.5px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--wf-bg)}
+.kpi .l{font-size:11px;color:var(--ink-3)}
+.kpi .v{margin-top:2px;font:600 20px/1.2 var(--font-mono)}
+.kpi .s{margin-top:2px;font-size:11px;color:var(--ink-2)}
+
+table.tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--line);background:var(--wf-bg)}
+table.tbl th,table.tbl td{padding:9px 10px;border-bottom:1px solid var(--wf-hair);text-align:left;vertical-align:top}
+table.tbl th{background:var(--wf-soft);font:600 11px/1.2 var(--font-mono);text-transform:uppercase;color:var(--ink-3)}
+table.tbl tr.special td{background:var(--info-bg)}
+
+.flow-box{border:1px dashed var(--wf-dash);border-radius:8px;padding:12px 14px;background:var(--wf-soft)}
+.switch{width:38px;height:22px;border-radius:999px;background:var(--accent);position:relative;display:inline-block;vertical-align:middle}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:999px;background:#fff}
+.switch.off{background:var(--wf-line)}
+.switch.off::after{right:auto;left:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc">
+    <h1>Wireframe Ruang Khusus Perangkat (Acak Peserta &amp; Pengawas Panitia)</h1>
+    <p>Rancangan penanda khusus ruang (<code>khusus_perangkat</code>) agar ruang Lab Komputer tidak ikut teracak ke dalam pembagian kelas reguler, hanya menampung siswa bertanda <b>butuh perangkat</b> (dan pindah ruang darurat), serta pada jadwal pengawasan ditangani langsung oleh <b>Panitia</b>.</p>
+    <nav class="nav">
+      <a href="#plate-01">Plate 01 · Penanda Ruang &amp; Alur Pemisahan</a>
+      <a href="#plate-02">Plate 02 · Penempatan Peserta (/penempatan)</a>
+      <a href="#plate-03">Plate 03 · Jadwal Pengawas Panitia (/pengawas)</a>
+      <a href="#plate-04">Plate 04 · Modal Sebar &amp; Aturan Pengawasan</a>
+    </nav>
+  </header>
+
+  <!-- ========================================================= PLATE 01 -->
+  <section class="plate" id="plate-01">
+    <div class="plate-head">
+      <h2>Plate 01 — Penanda Khusus Ruang &amp; Pemisahan Dua Kolam</h2>
+      <span class="meta">Master Ruang (/admin/ruang) &amp; EventRoom</span>
+    </div>
+    <div class="plate-body">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h3>Form Tambah / Ubah Ruang (<code>/admin/ruang</code>)</h3>
+            <span class="chip info">Penanda Baru</span>
+          </div>
+          <div class="card-body" style="display:grid;gap:10px;font-size:12.5px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div class="flow-box">
+                <div style="font-size:11px;color:var(--ink-3)">Kode &amp; Nama Ruang</div>
+                <b>LAB-01 · Lab Komputer 1</b>
+              </div>
+              <div class="flow-box">
+                <div style="font-size:11px;color:var(--ink-3)">Kapasitas &amp; PC</div>
+                <b>30 kursi · 30 PC</b>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--info);border-radius:8px;background:var(--info-bg)">
+              <div>
+                <b style="color:var(--info)">Ruang Khusus Perangkat (Lab PC)</b>
+                <div style="font-size:11.5px;color:var(--ink-2);margin-top:2px">
+                  Ruang ini tidak ikut diacak untuk kelas reguler. Hanya diisi siswa bertanda <b>Butuh Perangkat</b> (dari menu Peserta) atau siswa darurat hari-H, dan diawasi langsung oleh <b>Panitia</b>.
+                </div>
+              </div>
+              <span class="switch" aria-label="Aktif"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Skema Pemisahan Saat Kocok / Sebar Ruang</h3>
+            <span class="chip pri">PenempatanKocok</span>
+          </div>
+          <div class="card-body" style="display:grid;gap:10px;font-size:12px">
+            <div class="flow-box">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <b>1. Kolam Reguler (BYOD / HP Siswa)</b>
+                <span class="chip mute">420 siswa → R-01 s.d. R-14</span>
+              </div>
+              <span style="color:var(--ink-2)">Siswa reguler (<code>butuh_perangkat = false</code>) hanya diacak ke ruang yang <b>tidak</b> bertanda Khusus Perangkat.</span>
+            </div>
+
+            <div class="flow-box" style="border-color:var(--info);background:var(--info-bg)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <b style="color:var(--info)">2. Kolam Khusus Perangkat (Lab PC)</b>
+                <span class="chip info">12 siswa → LAB-01</span>
+              </div>
+              <span style="color:var(--ink-2)">Hanya siswa bertanda <code>butuh_perangkat = true</code> yang masuk ke sini. Sisa 18 kursi tetap kosong &amp; siaga untuk <b>Pindah Ruang Darurat</b> bila ada HP siswa bermasalah saat ujian.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>Mengapa penanda ini eksplisit (bukan otomatis dari <code>PC &gt; 0</code>):</b> Ada sekolah yang punya ruang ber-PC 2–3 unit di ruang kelas biasa, atau memakai Lab PC untuk kelas reguler. Dengan penanda eksplisit <code>khusus_perangkat</code>, Admin memegang kendali penuh ruang mana yang steril dari acak kelas.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 02 -->
+  <section class="plate" id="plate-02">
+    <div class="plate-head">
+      <h2>Plate 02 — Laman Penempatan Ruang (<code>/admin/events/1/penempatan</code>)</h2>
+      <span class="meta">Pemisahan Ruang Reguler &amp; Ruang Khusus Perangkat</span>
+    </div>
+    <div class="plate-body">
+      <div class="app-bar">
+        <span class="crumb">/admin/events/1/penempatan · Penempatan Ruang</span>
+        <div class="right">
+          <button class="btn" type="button">Kocok ulang</button>
+          <button class="btn pri" type="button">Sebar peserta</button>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="l">Peserta Reguler</div>
+          <div class="v">420</div>
+          <div class="s">Masuk 14 ruang reguler</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Butuh Perangkat</div>
+          <div class="v" style="color:var(--info)">12</div>
+          <div class="s">Dari menu /peserta</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Kursi Khusus Lab</div>
+          <div class="v" style="color:var(--info)">30</div>
+          <div class="s">12 terisi · 18 siaga darurat</div>
+        </div>
+        <div class="kpi">
+          <div class="l">Kapasitas Reguler</div>
+          <div class="v" style="color:var(--ok)">448</div>
+          <div class="s">Cukup (sisa 28 kursi)</div>
+        </div>
+      </div>
+
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Ruang</th>
+            <th>Jenis Ruang</th>
+            <th>Kapasitas / PC</th>
+            <th>Terisi</th>
+            <th>Asal Kelas Peserta</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>R-01</b> · Ruang 1</td>
+            <td><span class="chip mute">Reguler (Acak Kelas)</span></td>
+            <td style="font-family:var(--font-mono)">32 kursi · 0 PC</td>
+            <td><b>30 / 32</b></td>
+            <td>VII-A (15), VII-B (15)</td>
+            <td><a class="btn sm" href="#plate-02">Denah</a></td>
+          </tr>
+          <tr>
+            <td><b>R-02</b> · Ruang 2</td>
+            <td><span class="chip mute">Reguler (Acak Kelas)</span></td>
+            <td style="font-family:var(--font-mono)">32 kursi · 0 PC</td>
+            <td><b>30 / 32</b></td>
+            <td>VII-C (15), VII-D (15)</td>
+            <td><a class="btn sm" href="#plate-02">Denah</a></td>
+          </tr>
+          <tr class="special">
+            <td><b>LAB-01</b> · Lab Komputer 1</td>
+            <td><span class="chip info">Khusus Perangkat · Non-Acak</span></td>
+            <td style="font-family:var(--font-mono)">30 kursi · 30 PC</td>
+            <td><b style="color:var(--info)">12 / 30</b></td>
+            <td>Hanya siswa <b>Butuh Perangkat</b> (lintas kelas: 12 siswa)</td>
+            <td><a class="btn sm" href="#plate-02">Denah &amp; Kios</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="note">
+        <b>Jika belum ada siswa bertanda <i>butuh perangkat</i>:</b> <code>LAB-01</code> tetap tampil dengan status <code>0 / 30 · Siaga darurat</code>. Siswa reguler tidak akan pernah dilempar masuk ke <code>LAB-01</code> walaupun kapasitas ruang reguler pas-pasan.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 03 -->
+  <section class="plate" id="plate-03">
+    <div class="plate-head">
+      <h2>Plate 03 — Jadwal Pengawas (<code>/admin/events/1/pengawas</code>)</h2>
+      <span class="meta">Ruang Khusus Perangkat Langsung Ditangani Panitia</span>
+    </div>
+    <div class="plate-body">
+      <div class="app-bar">
+        <span class="crumb">/admin/events/1/pengawas · Jadwal Pengawas</span>
+        <div class="right">
+          <button class="btn pri" type="button">Jadwalkan Otomatis</button>
+        </div>
+      </div>
+
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Ruang</th>
+            <th>Jenis</th>
+            <th>Sesi 1 (07:30–09:30)</th>
+            <th>Sesi 2 (10:00–12:00)</th>
+            <th>Aturan Penugasan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>R-01</b></td>
+            <td><span class="chip mute">Reguler</span></td>
+            <td>Siti Aminah, S.Pd.</td>
+            <td>Budi Santoso, M.Pd.</td>
+            <td>Diisi otomatis dari daftar <b>Pengawas</b></td>
+          </tr>
+          <tr>
+            <td><b>R-02</b></td>
+            <td><span class="chip mute">Reguler</span></td>
+            <td>Dewi Lestari, S.Pd.</td>
+            <td>Ahmad Fauzi, S.Pd.</td>
+            <td>Diisi otomatis dari daftar <b>Pengawas</b></td>
+          </tr>
+          <tr class="special">
+            <td><b>LAB-01</b></td>
+            <td><span class="chip info">Khusus Perangkat</span></td>
+            <td>
+              <span class="chip pri">Panitia: Hendra (Teknisi)</span>
+              <button class="btn sm" type="button" style="margin-left:6px">Ubah</button>
+            </td>
+            <td>
+              <span class="chip pri">Panitia: Hendra (Teknisi)</span>
+              <button class="btn sm" type="button" style="margin-left:6px">Ubah</button>
+            </td>
+            <td><b>Dilewati acak pengawas reguler</b> · Langsung menunjuk anggota <b>Panitia Event</b></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="note">
+        <b>Perilaku di Jadwal Pengawas:</b> Saat tombol <b>Jadwalkan Otomatis</b> dijalankan, ruang reguler diisi dari guru/pengawas reguler, sedangkan ruang <code>Khusus Perangkat</code> (<code>LAB-01</code>) <b>dilewati dari rotasi guru pengawas</b> dan otomatis/manual menugaskan anggota <b>Panitia Event</b> yang memiliki akun (sehingga panitia tersebut bisa langsung membuka portal pengawas `/pengawas/ruang/...` untuk mengawasi Lab &amp; mencetak token/presensi).
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================= PLATE 04 -->
+  <section class="plate" id="plate-04">
+    <div class="plate-head">
+      <h2>Plate 04 — Ringkasan Dampak Lintas Fitur</h2>
+      <span class="meta">Peserta · Penempatan · Pengawas · Pindah Darurat</span>
+    </div>
+    <div class="plate-body">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h3>Alur Siswa Bermasalah HP di Hari-H</h3>
+            <span class="chip ok">Terintegrasi</span>
+          </div>
+          <div class="card-body" style="font-size:12.5px;display:grid;gap:8px">
+            <div>1. Sebelum ujian: Admin tandai siswa tanpa HP di <code>/peserta</code> &rarr; otomatis masuk <code>LAB-01</code> saat sebar ruang.</div>
+            <div>2. Saat hari-H ada siswa di <code>R-03</code> yang HP-nya rusak/mati: Admin/Pengawas pakai <b>Pindah Ruang Darurat</b> ke <code>LAB-01</code> (sisa kursi PC masih tersedia karena tidak diisi kelas reguler).</div>
+            <div>3. Di <code>LAB-01</code>, siswa login lewat Kios PC (<code>/lab/{slug}/{nomor}</code>) dan diawasi langsung oleh Panitia yang ditugaskan di ruang itu.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Perubahan Data yang Dibutuhkan</h3>
+            <span class="chip mute">Minimal &amp; Aman</span>
+          </div>
+          <div class="card-body" style="font-size:12.5px;display:grid;gap:8px">
+            <div>&bull; Tambah kolom boolean <code>khusus_perangkat</code> (default <code>false</code>) pada tabel <code>rooms</code> (dan bisa dilihat/diatur di <code>/admin/ruang</code>).</div>
+            <div>&bull; <code>PenempatanKocok</code> memisahkan ruang <code>khusus_perangkat = true</code> dari kolam acak siswa reguler.</div>
+            <div>&bull; <code>PengawasService</code> melewati ruang <code>khusus_perangkat = true</code> saat rotasi pengawas reguler, dan memprioritaskan anggota <b>Panitia</b> untuk ruang tersebut.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

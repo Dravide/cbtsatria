@@ -63,7 +63,7 @@ class RoomController
 
         // Ringkasan dihitung dari SELURUH ruang, bukan dari halaman ini.
         // Angka ringkasan yang berubah saat berpindah halaman bukan ringkasan.
-        $semua = Room::query()->get(['capacity', 'device_count', 'status']);
+        $semua = Room::query()->get(['capacity', 'device_count', 'khusus_perangkat', 'status']);
 
         // Tautan pintu yang sedang berlaku untuk ruang-ruang di HALAMAN INI,
         // dalam satu kueri - bukan satu per baris. Laman ini dibuka Admin saat
@@ -95,6 +95,7 @@ class RoomController
                     'kapasitas' => $ruang->capacity,
                     'pc' => $ruang->device_count,
                     'byod' => $ruang->isByod(),
+                    'khusus_perangkat' => $ruang->isKhususPerangkat(),
                     'status' => $ruang->status,
 
                     // Slug tautan pintu yang sedang berlaku - dipakai laman
@@ -127,8 +128,11 @@ class RoomController
             'location' => ['nullable', 'string', 'max:255'],
             'capacity' => ['required', 'integer', 'min:0', 'max:1000'],
             'device_count' => ['required', 'integer', 'min:0', 'max:1000'],
+            'khusus_perangkat' => ['sometimes', 'boolean'],
             'status' => ['required', 'in:aktif,perbaikan,nonaktif'],
         ], [], ['code' => 'kode ruang', 'device_count' => 'jumlah PC']);
+
+        $data['khusus_perangkat'] = (bool) ($data['khusus_perangkat'] ?? false);
 
         // PC lebih banyak daripada kapasitas hampir selalu salah ketik, dan
         // salah ketik di sini muncul sebagai ruang yang "cukup" pada
@@ -156,8 +160,11 @@ class RoomController
             'location' => ['nullable', 'string', 'max:255'],
             'capacity' => ['required', 'integer', 'min:0', 'max:1000'],
             'device_count' => ['required', 'integer', 'min:0', 'max:1000'],
+            'khusus_perangkat' => ['sometimes', 'boolean'],
             'status' => ['required', 'in:aktif,perbaikan,nonaktif'],
         ]);
+
+        $data['khusus_perangkat'] = (bool) ($data['khusus_perangkat'] ?? false);
 
         if ($data['device_count'] > $data['capacity']) {
             return back()->withErrors([

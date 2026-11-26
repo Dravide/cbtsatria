@@ -57,6 +57,8 @@ type RuangPratinjau = {
     kode: string;
     nama: string | null;
     kapasitas: number;
+    pc?: number;
+    khusus_perangkat?: boolean;
     /** Tidak ada lagi: kursi tidak berbeda antar sesi. Selalu null. */
     kapasitas_sesi: number | null;
     dipakai_sesi: boolean;
@@ -118,6 +120,13 @@ type Props = {
         kursi_berperangkat: number;
         bertanda: number;
         perangkat_kurang: { nama: string; ruang: string }[];
+        peserta_reguler?: number;
+        kapasitas_reguler?: number;
+        kurang_reguler?: number;
+        ruang_reguler?: number;
+        ruang_khusus?: number;
+        kapasitas_khusus?: number;
+        terisi_khusus?: number;
 
         /** Ada bila eventnya belum punya ruang sama sekali. */
         pesan: string | null;
@@ -283,6 +292,38 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                     nada={laman.perangkat_kurang.length > 0 ? 'bad' : 'ok'}
                 />
             </div>
+
+            {(laman.ruang_khusus ?? 0) > 0 && (
+                <div className="mb-3 rounded-wf border border-info/40 bg-info-bg/40 px-3 py-2 text-xs text-ink-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Chip nada="info">Kolam Terpisah Aktif</Chip>
+                        <span>
+                            <strong>{laman.peserta_reguler ?? 0}</strong> peserta reguler &rarr;{' '}
+                            <strong>{laman.ruang_reguler ?? 0}</strong> ruang reguler (kapasitas{' '}
+                            <strong>{laman.kapasitas_reguler ?? 0}</strong>
+                            {(laman.kurang_reguler ?? 0) > 0 && (
+                                <span className="text-bad">
+                                    {' '}
+                                    · kurang {laman.kurang_reguler} kursi
+                                </span>
+                            )}
+                            ).
+                        </span>
+                        <span>
+                            <strong>{laman.ruang_khusus}</strong> ruang Khusus Perangkat (
+                            <strong>{laman.terisi_khusus ?? 0}</strong>/{laman.kapasitas_khusus ?? 0}{' '}
+                            terisi,{' '}
+                            <strong>
+                                {Math.max(
+                                    0,
+                                    (laman.kapasitas_khusus ?? 0) - (laman.terisi_khusus ?? 0),
+                                )}
+                            </strong>{' '}
+                            siaga darurat) tidak ikut acak kelas reguler.
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {laman.perangkat_kurang.length > 0 && (
                 <div className="mb-3">
@@ -478,10 +519,26 @@ export default function EventPenempatan({ event, laman, baris, pratinjau, denah_
                                 {pratinjau.ruang.map((r) => (
                                     <span
                                         key={r.id}
-                                        className="rounded-wf border border-line bg-surface px-2 py-1 font-mono text-[11px] text-ink-2"
-                                        title={`${r.nama ?? ''} · ${r.terisi} dari ${r.kapasitas} kursi, berlaku untuk semua sesi`}
+                                        className={
+                                            'inline-flex items-center gap-1.5 rounded-wf border px-2 py-1 font-mono text-[11px] ' +
+                                            (r.khusus_perangkat
+                                                ? 'border-info/50 bg-info-bg/50 text-info'
+                                                : 'border-line bg-surface text-ink-2')
+                                        }
+                                        title={
+                                            r.khusus_perangkat
+                                                ? `${r.nama ?? ''} · Khusus Perangkat (Non-Acak Kelas) · ${r.terisi} dari ${r.kapasitas} kursi`
+                                                : `${r.nama ?? ''} · ${r.terisi} dari ${r.kapasitas} kursi, berlaku untuk semua sesi`
+                                        }
                                     >
-                                        {r.kode} {r.terisi}/{r.kapasitas}
+                                        <span>
+                                            {r.kode} {r.terisi}/{r.kapasitas}
+                                        </span>
+                                        {r.khusus_perangkat && (
+                                            <span className="font-sans text-[10px] font-medium">
+                                                {r.terisi === 0 ? '· Siaga darurat' : '· Khusus Lab'}
+                                            </span>
+                                        )}
                                     </span>
                                 ))}
                             </div>
@@ -736,6 +793,9 @@ function RincianRuang({ ruang }: { ruang: RuangPratinjau[] }) {
                     >
                         <span className="font-mono font-medium text-ink">{r.kode}</span>
                         <span className="text-ink-2">{r.nama}</span>
+                        {r.khusus_perangkat && (
+                            <Chip nada="info">Khusus Perangkat · Non-Acak</Chip>
+                        )}
                         <span className="ml-auto font-mono text-[11px] text-ink-3">
                             {r.terisi}/{r.kapasitas}
                         </span>

@@ -199,15 +199,25 @@ class PengawasService
      */
     public function tugaskan(ExamSessionRoom $ruang, User $pengawas, ?int $olehUserId = null, array $data = []): SupervisionAssignment
     {
-        if (! in_array($pengawas->role, [Role::Supervisor, Role::Teacher], true)) {
-            throw ValidationException::withMessages([
-                'supervisor_id' => 'Hanya akun Pengawas atau Guru yang bisa ditugaskan mengawas.',
-            ]);
-        }
-
-        $ruang->loadMissing('session.exam.event');
+        $ruang->loadMissing('session.exam.event', 'eventRoom.room:id,code,khusus_perangkat');
         $sesi = $ruang->session;
         $event = $sesi?->exam?->event;
+        $khususPerangkat = (bool) ($ruang->eventRoom?->room?->khusus_perangkat ?? false);
+
+        if (! in_array($pengawas->role, [Role::Supervisor, Role::Teacher], true)) {
+            $panitiaAktif = $khususPerangkat
+                && $event !== null
+                && $event->committee()
+                    ->where('user_id', $pengawas->id)
+                    ->where('status', 'aktif')
+                    ->exists();
+
+            if (! $panitiaAktif) {
+                throw ValidationException::withMessages([
+                    'supervisor_id' => 'Hanya akun Pengawas atau Guru (atau Panitia Event untuk ruang khusus perangkat) yang bisa ditugaskan mengawas.',
+                ]);
+            }
+        }
 
         if ($event !== null && $sesi !== null) {
             $aturan = $this->aturan($event);
@@ -424,12 +434,7 @@ class PengawasService
         }
 
         $calon = $this->calonPengawas($event);
-
-        if ($calon === []) {
-            throw new DomainException(
-                'Belum ada panitia berjabatan pengawas. Tambahkan pengawas di laman Kepanitiaan terlebih dahulu.',
-            );
-        }
+        $calonPanitia = $this->calonPanitia($event);
 
         $aturan = $this->aturan($event);
         $target = $aturan['target_per_ruang'];
@@ -441,10 +446,31 @@ class PengawasService
 
         $ruangan = ExamSessionRoom::query()
             ->whereIn('exam_session_id', $idSesiEvent)
-            ->with(['supervisors', 'session.exam'])
+            ->with(['supervisors', 'session.exam', 'eventRoom.room:id,code,khusus_perangkat'])
             ->orderBy('exam_session_id')
             ->orderBy('id')
             ->get();
+
+        $ruangKhusus = $ruangan
+            ->filter(fn (ExamSessionRoom $r) => (bool) ($r->eventRoom?->room?->khusus_perangkat ?? false))
+            ->values();
+        $ruangReguler = $ruangan
+            ->reject(fn (ExamSessionRoom $r) => (bool) ($r->eventRoom?->room?->khusus_perangkat ?? false))
+            ->values();
+
+        if ($ruangReguler->isNotEmpty() && $calon === []) {
+            throw new DomainException(
+                'Belum ada panitia berjabatan pengawas. Tambahkan pengawas di laman Kepanitiaan terlebih dahulu.',
+            );
+        }
+
+        if ($ruangReguler->isEmpty() && $ruangKhusus->isNotEmpty() && $calonPanitia === []) {
+            throw new DomainException(
+                'Belum ada panitia event yang memiliki akun untuk mengawasi ruang khusus perangkat.',
+            );
+        }
+
+        $ruangan = $ruangReguler;
 
         $kuotaPerOrang = $this->kuotaPerOrang($event);
         $pengecualian = $aturan['hormati_pengecualian'] ? $this->pengecualianEvent($event) : [];
@@ -586,6 +612,20 @@ class PengawasService
             }
         }
 
+        if ($ruangKhusus->isNotEmpty()) {
+            $hasilKhusus = $this->tugaskanRuangKhususPanitia(
+                $ruangKhusus,
+                $calonPanitia,
+                $olehUserId,
+                $pengecualian,
+                $bebanEvent,
+                $bebanHari,
+            );
+            $dibuat += $hasilKhusus['dibuat'];
+            $tersentuh += $hasilKhusus['tersentuh'];
+            $dilewati += $hasilKhusus['dilewati'];
+        }
+
         return [
             'ruang' => count($tersentuh),
             'penugasan' => $dibuat,
@@ -608,12 +648,7 @@ class PengawasService
     ): array {
         $mulai = microtime(true);
         $calon = $this->calonPengawas($event);
-
-        if ($calon === []) {
-            throw new DomainException(
-                'Belum ada panitia berjabatan pengawas. Tambahkan pengawas di laman Kepanitiaan terlebih dahulu.',
-            );
-        }
+        $calonPanitia = $this->calonPanitia($event);
 
         $aturan = $this->aturan($event);
         $target = $aturan['target_per_ruang'];
@@ -624,12 +659,31 @@ class PengawasService
             ->when($khususSesiId !== null, fn ($q) => $q->where('id', $khususSesiId))
             ->pluck('id');
 
-        $ruangan = ExamSessionRoom::query()
+        $ruanganSemua = ExamSessionRoom::query()
             ->whereIn('exam_session_id', $idSesiTarget)
-            ->with(['supervisors', 'session.exam'])
+            ->with(['supervisors', 'session.exam', 'eventRoom.room:id,code,khusus_perangkat'])
             ->orderBy('exam_session_id')
             ->orderBy('id')
             ->get();
+
+        $ruangKhusus = $ruanganSemua
+            ->filter(fn (ExamSessionRoom $r) => (bool) ($r->eventRoom?->room?->khusus_perangkat ?? false))
+            ->values();
+        $ruangan = $ruanganSemua
+            ->reject(fn (ExamSessionRoom $r) => (bool) ($r->eventRoom?->room?->khusus_perangkat ?? false))
+            ->values();
+
+        if ($ruangan->isNotEmpty() && $calon === []) {
+            throw new DomainException(
+                'Belum ada panitia berjabatan pengawas. Tambahkan pengawas di laman Kepanitiaan terlebih dahulu.',
+            );
+        }
+
+        if ($ruangan->isEmpty() && $ruangKhusus->isNotEmpty() && $calonPanitia === []) {
+            throw new DomainException(
+                'Belum ada panitia event yang memiliki akun untuk mengawasi ruang khusus perangkat.',
+            );
+        }
 
         // Bangun daftar slot yang harus diisi: Tier 1 (pengawas pertama per ruang) lalu Tier 2.
         $slots = [];
@@ -668,12 +722,30 @@ class PengawasService
         }
 
         if ($slots === []) {
+            $dibuatKhusus = 0;
+            $tersentuhKhusus = [];
+
+            if ($ruangKhusus->isNotEmpty()) {
+                $bebanKosong = [];
+                $hariKosong = [];
+                $hasilKhusus = $this->tugaskanRuangKhususPanitia(
+                    $ruangKhusus,
+                    $calonPanitia,
+                    $olehUserId,
+                    $this->aturan($event)['hormati_pengecualian'] ? $this->pengecualianEvent($event) : [],
+                    $bebanKosong,
+                    $hariKosong,
+                );
+                $dibuatKhusus = $hasilKhusus['dibuat'];
+                $tersentuhKhusus = $hasilKhusus['tersentuh'];
+            }
+
             return [
-                'ruang' => 0,
-                'penugasan' => 0,
+                'ruang' => count($tersentuhKhusus),
+                'penugasan' => $dibuatKhusus,
                 'dilewati' => 0,
-                'total_slot' => 0,
-                'terpenuhi' => 0,
+                'total_slot' => $dibuatKhusus,
+                'terpenuhi' => $dibuatKhusus,
                 'iterasi' => 0,
                 'durasi_ms' => (int) round((microtime(true) - $mulai) * 1000),
                 'mode' => 'expert',
@@ -1039,6 +1111,19 @@ class PengawasService
                 }
             }
         });
+
+        if ($ruangKhusus->isNotEmpty()) {
+            $hasilKhusus = $this->tugaskanRuangKhususPanitia(
+                $ruangKhusus,
+                $calonPanitia,
+                $olehUserId,
+                $pengecualian,
+                $bebanEventAwal,
+                $bebanHariAwal,
+            );
+            $dibuat += $hasilKhusus['dibuat'];
+            $tersentuh += $hasilKhusus['tersentuh'];
+        }
 
         $durasiMs = (int) round((microtime(true) - $mulai) * 1000);
         $belumTerpenuhi = max(0, $totalSlot - $dibuat);
@@ -1496,6 +1581,102 @@ class PengawasService
         }
 
         return false;
+    }
+
+    /**
+     * Calon pengawas khusus ruang perangkat: seluruh anggota panitia event aktif yang memiliki akun.
+     * Anggota panitia non-pengawas (teknisi/ketua/koordinator/anggota) diprioritaskan lebih dulu
+     * agar pengawas reguler tetap fokus di ruang reguler.
+     *
+     * @return array<int, User>
+     */
+    public function calonPanitia(SchoolEvent $event): array
+    {
+        $anggota = $event->committee()
+            ->where('status', 'aktif')
+            ->whereNotNull('user_id')
+            ->get(['user_id', 'position']);
+
+        if ($anggota->isEmpty()) {
+            return [];
+        }
+
+        $posisiPerUser = $anggota->mapWithKeys(fn ($a) => [
+            (int) $a->user_id => mb_strtolower((string) $a->position),
+        ]);
+
+        return User::query()
+            ->whereIn('id', $posisiPerUser->keys()->all())
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->sortBy(function (User $u) use ($posisiPerUser): array {
+                $pos = $posisiPerUser->get($u->id, '');
+                $bukanPengawas = str_contains($pos, 'pengawas') ? 1 : 0;
+
+                return [$bukanPengawas, $u->name];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Tugaskan panitia event langsung ke ruang khusus perangkat (minimal 1 per ruang).
+     *
+     * @param  \Illuminate\Support\Collection<int, ExamSessionRoom>  $ruangKhusus
+     * @param  array<int, User>  $calonPanitia
+     * @param  array<string, ?string>  $pengecualian
+     * @param  array<int, int>  $bebanEvent
+     * @param  array<int, array<string, int>>  $bebanHari
+     * @return array{dibuat: int, tersentuh: array<int, bool>, dilewati: array<int, bool>}
+     */
+    private function tugaskanRuangKhususPanitia(
+        $ruangKhusus,
+        array $calonPanitia,
+        ?int $olehUserId,
+        array $pengecualian,
+        array &$bebanEvent,
+        array &$bebanHari,
+    ): array {
+        $dibuat = 0;
+        $tersentuh = [];
+        $dilewati = [];
+
+        if ($calonPanitia === []) {
+            return ['dibuat' => 0, 'tersentuh' => [], 'dilewati' => []];
+        }
+
+        foreach ($ruangKhusus as $r) {
+            if ($r->supervisors->where('status', 'aktif')->isNotEmpty()) {
+                continue;
+            }
+
+            $tgl = $r->session?->access_opens_at?->toDateString() ?? '';
+
+            foreach ($calonPanitia as $orang) {
+                if (array_key_exists("{$r->exam_session_id}:{$orang->id}", $pengecualian)) {
+                    $dilewati[$orang->id] = true;
+
+                    continue;
+                }
+
+                try {
+                    $this->tugaskan($r, $orang, $olehUserId);
+                    $dibuat++;
+                    $tersentuh[$r->id] = true;
+                    $bebanEvent[$orang->id] = ($bebanEvent[$orang->id] ?? 0) + 1;
+                    if ($tgl !== '') {
+                        $bebanHari[$orang->id][$tgl] = ($bebanHari[$orang->id][$tgl] ?? 0) + 1;
+                    }
+                    $r->load('supervisors');
+                    break;
+                } catch (ValidationException) {
+                    $dilewati[$orang->id] = true;
+                }
+            }
+        }
+
+        return ['dibuat' => $dibuat, 'tersentuh' => $tersentuh, 'dilewati' => $dilewati];
     }
 
     /**

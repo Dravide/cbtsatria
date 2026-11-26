@@ -115,4 +115,10 @@ class EventRoom extends Model
     {
         return $this->kursiBerPerangkat() > 0;
     }
+
+    /** Apakah ruang ini ditandai khusus perangkat (non-acak kelas reguler). */
+    public function isKhususPerangkat(): bool
+    {
+        return (bool) ($this->room?->khusus_perangkat ?? false);
+    }
 }

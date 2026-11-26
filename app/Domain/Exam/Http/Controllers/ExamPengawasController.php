@@ -69,7 +69,7 @@ class ExamPengawasController
         $ruangan = ExamSessionRoom::query()
             ->whereIn('exam_session_id', $sesi->pluck('id'))
             ->with([
-                'eventRoom.room:id,code,name,capacity',
+                'eventRoom.room:id,code,name,capacity,khusus_perangkat',
                 'session:id,exam_id,session_number,access_opens_at,hard_end_at',
                 'session.exam:id,code,title,subject_id',
                 'session.exam.subject:id,name',
@@ -98,6 +98,7 @@ class ExamPengawasController
             'id' => $r->id,
             'ruang' => $r->eventRoom?->room?->code,
             'ruang_nama' => $r->eventRoom?->room?->name,
+            'khusus_perangkat' => (bool) ($r->eventRoom?->room?->khusus_perangkat ?? false),
             'kapasitas' => $r->kapasitasEfektif(),
             'kelas' => $kelasPerRuangSesi->get($r->id, []),
             'sesi' => $r->session?->label(),
@@ -462,7 +463,7 @@ class ExamPengawasController
         $ruangan = ExamSessionRoom::query()
             ->where('exam_session_id', $sesi->id)
             ->with([
-                'eventRoom.room:id,code,name,capacity',
+                'eventRoom.room:id,code,name,capacity,khusus_perangkat',
                 'supervisors.supervisor:id,name,username,role',
             ])
             ->withCount(['participants as terisi' => fn ($q) => $q->where('status', 'terdaftar')])
@@ -473,6 +474,7 @@ class ExamPengawasController
             'id' => $r->id,
             'ruang' => $r->eventRoom?->room?->code,
             'ruang_nama' => $r->eventRoom?->room?->name,
+            'khusus_perangkat' => (bool) ($r->eventRoom?->room?->khusus_perangkat ?? false),
             'kapasitas' => $r->kapasitasEfektif(),
             'peserta' => (int) $r->terisi,
             'pengawas' => $r->supervisors
@@ -519,6 +521,26 @@ class ExamPengawasController
             ],
 
             'calon' => collect($penugasan->calonPengawas($event))
+                ->map(function (User $u) use ($aturan, $bebanEvent, $kuotaPerOrang, $pengecualian, $sesi): array {
+                    $terpakai = $bebanEvent[$u->id] ?? 0;
+                    $maks = $kuotaPerOrang[$u->id] ?? $aturan['maks_per_event'];
+                    $kunci = "{$sesi->id}:{$u->id}";
+
+                    return [
+                        'id' => $u->id,
+                        'nama' => $u->name,
+                        'username' => $u->username,
+                        'peran' => $u->role->label(),
+                        'terpakai' => $terpakai,
+                        'maks' => $maks,
+                        'dikecualikan' => array_key_exists($kunci, $pengecualian),
+                        'alasan_pengecualian' => $pengecualian[$kunci] ?? null,
+                    ];
+                })
+                ->values()
+                ->all(),
+
+            'calon_panitia' => collect($penugasan->calonPanitia($event))
                 ->map(function (User $u) use ($aturan, $bebanEvent, $kuotaPerOrang, $pengecualian, $sesi): array {
                     $terpakai = $bebanEvent[$u->id] ?? 0;
                     $maks = $kuotaPerOrang[$u->id] ?? $aturan['maks_per_event'];
@@ -1246,6 +1268,7 @@ class ExamPengawasController
                     'id' => $r->id,
                     'ruang' => $r->eventRoom?->room?->code,
                     'ruang_nama' => $r->eventRoom?->room?->name,
+                    'khusus_perangkat' => (bool) ($r->eventRoom?->room?->khusus_perangkat ?? false),
                     'kapasitas' => $r->kapasitasEfektif(),
                     'kelas' => $kelasPerRuangSesi->get($r->id, []),
                     'peserta' => (int) $r->terisi,

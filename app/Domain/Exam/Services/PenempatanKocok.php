@@ -15,79 +15,12 @@ use DomainException;
 use Illuminate\Support\Collection;
 
 /**
- * Kocokan penempatan peserta ke ruang - PRD §9.5, wireframe plate 16b.
- *
- * ---------------------------------------------------------------------
- * Rotasi antar kelas, BUKAN kocok rata
- * ---------------------------------------------------------------------
- * Yang diminta adalah ujian campuran: satu ruang berisi siswa dari beberapa
- * tingkatan. Kocok rata TIDAK menjamin itu. Kocok rata hanya membuatnya
- * MUNGKIN - dan pada sekolah dengan tiga kelas XII yang besar, kemungkinan
- * seisi satu ruang berisi satu kelas itu nyata. Yang paling buruk: tidak ada
- * satu pun angka di layar yang bisa membuktikan sebaliknya.
- *
- * Rotasi membuatnya menjadi aturan: peserta diambil bergiliran dari tiap kelas
- * - satu dari X-1, satu dari X-2, satu dari XI-1, dan seterusnya, lalu ulang -
- * sehingga setiap ruang pasti memuat campuran. Kelas yang pesertanya lebih
- * banyak habis belakangan, bukan lebih dulu.
- *
- * Cara yang tampak sederhana - habiskan kelas satu per satu - justru
- * menghasilkan yang sebaliknya: kelas pertama mengisi R-01 sampai penuh,
- * sehingga R-01 seisi satu kelas.
- *
- * ---------------------------------------------------------------------
- * Dan cara sederhana itu menjadi BENAR di mode `kelas`
- * ---------------------------------------------------------------------
- * Rotasi di atas adalah aturan untuk mode `campur`. Mode `kelas` meminta
- * kebalikannya, dan permintaannya sah: sebagian sekolah memang menugaskan
- * pengawas per kelas, mencetak satu lembar absen per kelas, dan mengumumkan
- * "kelas 9K di R-01" dalam satu kalimat. Karena itu rotasinya dipilih oleh
- * `antrean()`, bukan dipaksakan di sini.
- *
- * ---------------------------------------------------------------------
- * Satu peta untuk SELURUH event, bukan satu peta per sesi
- * ---------------------------------------------------------------------
- * Keputusan ini dibalik pada 07 Nov 2026, dan yang membalikkannya adalah
- * pertanyaan yang dijawab Admin di depan pintu: "anak saya di ruang berapa?".
- *
- * Dengan peta per sesi, jawabannya berbeda untuk setiap mapel - R-03 pada
- * Matematika, R-07 pada Bahasa Indonesia - dan siswa yang menghafal satu ruang
- * menemukan dirinya di ruang lain pada ujian berikutnya. Sekolah yang memakai
- * penempatan campuran memang menghendaki satu peta untuk seluruh ujian: satu
- * pengumuman, satu daftar ditempel, berlaku sampai selesai.
- *
- * ---------------------------------------------------------------------
- * Peta event disimpan sebagai RUANG EVENT, bukan ruang sesi
- * ---------------------------------------------------------------------
- * `exam_participants.exam_session_room_id` menunjuk baris `exam_session_rooms`,
- * dan baris itu milik SATU sesi: "R-01 pada Matematika sesi 1" dan "R-01 pada
- * Bahasa Indonesia sesi 1" adalah dua baris yang berbeda dengan id berbeda.
- *
- * Karena itu peta yang dihitung di sini berhenti di tingkat ruang EVENT
- * (`event_room_id`), yang berlaku untuk seluruh event. Penerjemahannya ke ruang
- * SESI dilakukan per sesi oleh `petaSesi()`, dan penulisannya tetap di
- * `PenempatanService` - satu-satunya penulis `exam_session_room_id`.
- *
- * Konsekuensinya harus disebut terang-terangan: seluruh ruang event harus
- * dipakai SETIAP sesi. Itu sudah menjadi aturan di laman jadwal (sesi memilih
- * ruang dari daftar ruang event), sehingga sesi yang ruangnya kurang adalah
- * keadaan yang perlu diperbaiki - dan `petaSesi()` mengatakannya tentang sesi
- * itu, bukan menambalnya diam-diam dengan kursi yang salah.
- *
- * ---------------------------------------------------------------------
- * Kocokan berbenih
- * ---------------------------------------------------------------------
- * `mt_srand` dengan benih dari `seed`, sehingga urutan yang sama bisa
- * dihasilkan ulang kapan saja. Tanpa ini, membuka halaman penempatan dua kali
- * menghasilkan dua daftar ruang yang berbeda - dan daftar ruang yang dicetak
- * lalu ditempel di pintu tidak akan cocok dengan layar.
- *
- * `mt_srand` dipakai, bukan `shuffle()` biasa, karena ia menerima benih dan
- * PHP menjamin urutannya stabil untuk benih yang sama pada versi yang sama.
+ * Kocokan penempatan peserta berbenih di tingkat ruang event (`event_room_id`).
+ * Penerjemahan ke ruang sesi dilakukan di `petaSesi()`, sedangkan penulisan tetap di `PenempatanService`.
  */
 class PenempatanKocok
 {
-    /** Huruf yang dipakai benih - tanpa I, O, 0, dan 1. */
+    /** Karakter benih tanpa I, O, 0, dan 1 agar tidak tertukar saat dibacakan. */
     private const HURUF_BENIH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
     public function __construct(
@@ -95,18 +28,8 @@ class PenempatanKocok
     ) {}
 
     /**
-     * Kelompokkan peserta EVENT menurut kelasnya.
-     *
-     * Pesertanya diambil dari `event_participants`, bukan dari
-     * `exam_participants`, dan itu mengikuti keputusan "satu peta per event":
-     * yang ditempatkan adalah SELURUH peserta ujian, sehingga siswa yang hanya
-     * ikut satu mapel pun sudah punya kursi sejak mapel pertama.
-     *
-     * Kelas null - peserta manual yang belum punya kelas - mendapat kelompok
-     * sendiri, dan kelompok itu dirotasi seperti kelas lain. Membuangnya
-     * berarti siswa pindahan tidak akan pernah punya ruang; menggabungkannya
-     * ke sembarang kelas berarti laporan "seisi satu kelas" berbohong tentang
-     * dirinya sendiri.
+     * Kelompokkan peserta terdaftar event menurut kelasnya (kelas null mendapat kelompok sendiri).
+     * Diambil dari `event_participants` agar satu peta berlaku untuk seluruh event.
      *
      * @return array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>
      */
@@ -115,9 +38,7 @@ class PenempatanKocok
         $peserta = EventParticipant::query()
             ->where('event_id', $event->id)
             ->where('status', EventParticipant::STATUS_TERDAFTAR)
-            // `studentProfile` ikut dimuat karena NIS dicetak di denah, tablo,
-            // dan daftar presensi Admin. Tanpa baris ini setiap peserta
-            // memicu satu kueri profil sendiri saat namanya digambar.
+            // Eager-load studentProfile agar pencetakan NIS tidak memicu N+1.
             ->with(['kelas:id,name', 'student:id,name,username', 'student.studentProfile:id,user_id,nis'])
             ->orderBy('student_id')
             ->get();
@@ -138,10 +59,7 @@ class PenempatanKocok
             $kelompok[$kunci]['peserta'][] = $p;
         }
 
-        // Kelas dengan peserta TERBANYAK dirotasi lebih dulu. Urutannya
-        // menentukan siapa yang kehabisan kursi ketika kursinya kurang, dan
-        // yang paling adil dibuang terakhir adalah kelompok terbesar - bukan
-        // kelompok yang kebetulan namanya berawalan A.
+        // Urutkan kelas terbesar lebih dulu agar rotasi dan pembagian ruang adil saat kapasitas kurang.
         usort($kelompok, fn (array $a, array $b) => count($b['peserta']) <=> count($a['peserta'])
             ?: strcmp($a['nama'], $b['nama']));
 
@@ -149,12 +67,7 @@ class PenempatanKocok
     }
 
     /**
-     * Kelompok dengan isi tiap kelas DIACAK menurut benih - batas kelas tetap.
-     *
-     * Dipisahkan supaya mode `kelas` dan `campur` memakai pengacakan yang
-     * sama: pratinjau di laman penempatan menghitung ulang dari benih yang
-     * sama, dan dua jalur pengacakan akan menghasilkan dua susunan berbeda
-     * dari satu benih.
+     * Acak urutan peserta di dalam tiap kelas memakai benih yang sama untuk semua mode.
      *
      * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
      * @return array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>
@@ -163,10 +76,7 @@ class PenempatanKocok
     {
         mt_srand($this->benihKeAngka($benih));
 
-        // Tiap kelompok DIACAK SENDIRI lebih dulu. Tanpa langkah ini, rotasi
-        // tetap menghasilkan urutan yang sama setiap kali karena isinya
-        // berurutan menurut student_id - dan "kocokan" yang hasilnya
-        // deterministik tanpa benih adalah kocokan yang tidak mengocok apa pun.
+        // Acak isi tiap kelompok terlebih dulu karena peserta urut berdasarkan student_id.
         $isi = array_map(function (array $k) {
             $orang = $k['peserta'];
             $this->acakSendiri($orang);
@@ -175,22 +85,15 @@ class PenempatanKocok
             return $k;
         }, $kelompok);
 
-        // Benih dikembalikan ke keadaan acak. Tanpa ini, permintaan BERIKUTNYA
-        // di proses yang sama - penerbitan token, kode pengawas - ikut memakai
-        // urutan yang sama, dan seluruh aplikasi menjadi bisa ditebak dari satu
-        // benih yang kebetulan terlihat.
+        // Reset seed global agar pemanggilan acak berikutnya di proses yang sama tidak bisa ditebak.
         mt_srand();
 
         return $isi;
     }
 
     /**
-     * Antrean DATAR hasil rotasi antar kelas - mode `campur`.
-     *
-     * Mode `kelas` TIDAK lewat sini: ia dibagi dari kelompoknya di `susun()`,
-     * karena antrean yang sudah diratakan kehilangan batas kelas. Parameter
-     * `$mode` tinggal untuk pemanggil lama yang menyebutnya; nilainya tidak
-     * lagi mengubah perilaku.
+     * Susun antrean datar hasil rotasi antar kelas untuk mode `campur`.
+     * Parameter `$mode` dipertahankan demi kompatibilitas pemanggil lama dan tidak mengubah perilaku.
      *
      * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
      * @return Collection<int, EventParticipant>
@@ -204,14 +107,8 @@ class PenempatanKocok
     }
 
     /**
-     * Rotasi: ambil satu dari tiap kelompok, ulang sampai habis.
-     *
-     * Penghitungnya `$sisa`, BUKAN `$selesai` dari hasil array_shift, dan
-     * itu bukan pilihan gaya. `foreach` bekerja atas SALINAN array-nya,
-     * sehingga `array_shift($daftar)` di dalamnya memendekkan salinan yang
-     * dibuat ulang setiap putaran - bukan sumbernya. Isi salinan itu tidak
-     * pernah habis, dan putaran ini berjalan sampai memori proses uji
-     * habis (536 MB, diukur) alih-alih menghasilkan urutan yang salah.
+     * Rotasi ambil satu peserta per kelompok sampai habis.
+     * Memakai penghitung `$sisa` karena `foreach` bekerja pada salinan array sehingga `array_shift` tidak menghentikan loop.
      *
      * @param  array<int, array<int, EventParticipant>>  $isi
      * @return array<int, EventParticipant>
@@ -236,18 +133,7 @@ class PenempatanKocok
     }
 
     /**
-     * Berurutan per kelas: kelas pertama habis, lalu kelas berikutnya.
-     *
-     * Kelompoknya sudah diurutkan `kelompokKelas()` - yang terbanyak lebih
-     * dulu - jadi hasilnya ruang pertama berisi kelas terbesar, dan itu
-     * memang yang diharapkan Admin yang menyusun urutannya di laman Kelas &
-     * peserta: kelas yang ia lihat paling atas mendapat ruang pertama.
-     *
-     * Konsekuensi yang harus disebut, bukan disembunyikan: bila satu kelas
-     * lebih besar daripada satu ruang, kelas itu TERBELAH ke dua ruang - dan
-     * ruang kedua berisi ekor kelas pertama beserta kelas berikutnya. Itu
-     * tetap lebih benar daripada menolak seluruh penyebaran, karena sekolah
-     * dengan kelas 40 dan ruang 36 memang harus memakai dua ruang.
+     * Susun antrean berurutan per kelas; kelas yang melebihi satu ruang berlanjut ke ruang berikutnya.
      *
      * @param  array<int, array<int, EventParticipant>>  $isi
      * @return array<int, EventParticipant>
@@ -266,16 +152,7 @@ class PenempatanKocok
     }
 
     /**
-     * Bagi antrean ke ruang EVENT menurut kapasitas efektif masing-masing.
-     *
-     * Ruang diisi sampai PENUH sebelum pindah - tidak seperti kocokan biasa,
-     * pembagiannya sendiri BUKAN yang diacak. Yang diacak adalah urutan
-     * orangnya; ruangnya diisi berurutan supaya setiap kursi terpakai dan
-     * tidak ada ruang yang setengah kosong sementara ruang lain menolak
-     * peserta.
-     *
-     * Dipakai mode `campur`. Mode `kelas` memakai `bagiPerKelas()`, yang
-     * menghormati batas kelas - lihat docblock-nya.
+     * Bagi antrean berurutan ke ruang event sampai penuh sesuai kapasitas efektif (mode `campur`).
      *
      * @param  Collection<int, EventParticipant>  $antrean
      * @param  Collection<int, EventRoom>  $ruangan
@@ -296,24 +173,8 @@ class PenempatanKocok
     }
 
     /**
-     * Bagi per KELAS: satu ruang diisi oleh satu kelas saja - mode `kelas`.
-     *
-     * =====================================================================
-     * Mengapa bukan `bagi()` yang berurutan
-     * =====================================================================
-     * `bagi()` mengisi ruang sampai penuh lalu pindah, tanpa peduli batas
-     * kelas. Akibatnya kelas kecil tidak mendapat ruangnya sendiri: ia
-     * menambal sisa kursi ruang sebelumnya, dan kelas berikutnya terbelah ke
-     * dua ruang. Sekolah yang meminta "berurutan per kelas" justru mendapat
-     * susunan yang mencampur dua kelas dalam satu ruang - kebalikan dari yang
-     * ia minta, dan yang paling mahal karena lembar absennya jadi dua kelas.
-     *
-     * Di sini kelas baru SELALU mulai di ruang BARU yang belum terpakai.
-     * Konsekuensi yang disebut apa adanya: kelas yang lebih kecil daripada
-     * kapasitas ruangnya meninggalkan kursi kosong, karena kursi itu tidak
-     * boleh diisi kelas lain. Kelas yang lebih BESAR daripada satu ruang tetap
-     * merambat ke ruang berikutnya - itu satu-satunya cara memuatnya - dan
-     * `kelasTerbelah()` yang melaporkannya.
+     * Bagi peserta per kelas (mode `kelas`): tiap kelas mulai di ruang kosong baru.
+     * Kelas yang melebihi satu ruang merambat ke ruang berikutnya; sisa yang tak kebagian ruang bersih ditempatkan di kursi kosong mana pun.
      *
      * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
      * @param  Collection<int, EventRoom>  $ruangan
@@ -327,15 +188,8 @@ class PenempatanKocok
 
         $hasil = array_fill_keys($idRuang, []);
 
-        // Peserta yang tak mendapat ruang BERSIH - kelasnya kehabisan ruang
-        // kosong, atau kelasnya lebih besar daripada sisa ruang yang ada.
-        // Mereka ditempatkan belakangan, di sisa kursi mana pun, supaya tidak
-        // ada siswa yang kehilangan kursi saat kapasitasnya sebenarnya cukup.
         $sisa = [];
 
-        // Kelompok sudah urut besar-dulu (`kelompokKelas()`), dan urutan itu
-        // penting: kelas terbesar mendapat ruang paling awal, dan kelas yang
-        // harus merambat mendapat prioritas ruang berikutnya.
         foreach ($kelompok as $k) {
             $orang = array_values($k['peserta']);
 
@@ -343,8 +197,6 @@ class PenempatanKocok
                 continue;
             }
 
-            // Ruang kosong pertama - inilah "satu kelas satu ruang". Kelas
-            // baru tidak pernah menambal sisa kursi kelas sebelumnya.
             $ke = null;
 
             for ($i = 0; $i < $jumlahRuang; $i++) {
@@ -361,14 +213,11 @@ class PenempatanKocok
             }
 
             foreach ($orang as $satu) {
-                // Kelas yang lebih besar dari satu ruang merambat ke ruang
-                // berikutnya - terbelah, dan itu satu-satunya cara memuatnya.
                 while ($ke < $jumlahRuang && count($hasil[$idRuang[$ke]]) >= $kapasitas[$idRuang[$ke]]) {
                     $ke++;
                 }
 
                 if ($ke >= $jumlahRuang) {
-                    // Ruang bersih habis; sisanya ditampung, bukan dibuang.
                     $sisa[] = $satu;
 
                     continue;
@@ -384,48 +233,8 @@ class PenempatanKocok
     }
 
     /**
-     * Tempatkan sisa peserta ke kursi kosong ruang mana pun - jalur darurat.
-     *
-     * Dipakai `bagiPerKelas()` hanya untuk peserta yang tak mendapat ruang
-     * bersih. Ia sengaja MENGABAIKAN batas kelas: tujuan satu-satunya adalah
-     * memastikan tidak ada siswa yang kehilangan kursi saat kapasitasnya
-     * sebenarnya cukup. Peserta yang masih tak kebagian dibiarkan -
-     * `kurang` di `susun()` yang melaporkannya.
-     *
-     * @param  array<int, array<int, EventParticipant>>  $hasil
-     * @param  array<int, string>  $idRuang
-     * @param  array<int, int>  $kapasitas
-     * @param  array<int, EventParticipant>  $sisa
-     */
-    /**
-     * Kurangi kursi ber-PC sebanyak jumlah peserta bertanda di satu ruang -
-     * dipakai SETELAH pembagian selesai.
-     *
-     * =====================================================================
-     * Mengapa memotong sesudahnya, bukan mengubah ketiga algoritma pembagian
-     * =====================================================================
-     * Tiga mode (`bagi`, `bagiPerKelas`, `bagiRata`) masing-masing punya
-     * aturan pembagian sendiri, dan menambahkan "berapa kursi ber-PC" ke
-     * ketiganya berarti tiga salinan aturan yang sama - dan tiga tempat yang
-     * bisa salah. Yang jauh lebih kecil: sesudah pembagian, untuk tiap ruang,
-     * tukar tempat antara peserta bertanda yang kebetulan mendarat di kursi
-     * tanpa PC dan peserta tanpa tanda yang mendarat di kursi ber-PC.
-     *
-     * Pertukaran itu mempertahankan JUMLAH penghuni tiap ruang, sehingga
-     * kapasitas yang sudah dihormati ketiga algoritma tetap terhormat.
-     *
-     * ---------------------------------------------------------------------
-     * Bila ruangnya tidak cukup, peserta dipindah ke ruang lain yang punya
-     * ---------------------------------------------------------------------
-     * Lab campuran yang kursi ber-PC-nya lebih sedikit daripada peserta
-     * bertanda tidak bisa menyelesaikannya sendiri; sisanya dipindahkan ke
-     * ruang lain yang masih punya kursi ber-PC kosong. Itu memang yang
-     * diinginkan: anak tanpa perangkat harus duduk di depan PC, dan ruangnya
-     * mana ditentukan ketersediaan, bukan kelasnya.
-     *
-     * Yang benar-benar tidak kebagian tetap dibiarkan di tempatnya semula,
-     * dan `perangkatKurang` di `susun()` melaporkannya dengan nama - bukan
-     * diam-diam, karena yang menemukannya adalah anak itu pada pukul 07:30.
+     * Pindahkan peserta bertanda butuh perangkat ke kursi ber-PC setelah pembagian selesai.
+     * Pertukaran mempertahankan jumlah penghuni tiap ruang; sisa yang tidak kebagian dilaporkan di `kurang`.
      *
      * @param  array<int, array<int, EventParticipant>>  $hasil
      * @param  Collection<int, EventRoom>  $ruangan
@@ -443,10 +252,7 @@ class PenempatanKocok
 
         $bertanda = fn (EventParticipant $p) => (bool) ($p->butuh_perangkat ?? false);
 
-        // ---------------------------------------------------------- tukar
-        // Satu putaran per ruang cukup: setiap pertukaran menempatkan satu
-        // peserta bertanda ke kursi ber-PC, dan jumlah kursi ber-PC yang
-        // terpakai tidak pernah berkurang oleh pertukaran itu sendiri.
+        // Tukar peserta bertanda di luar jatah PC dengan peserta tanpa tanda di kursi PC ruang yang sama.
         foreach (array_keys($hasil) as $id) {
             $kursiPc = $adaPc[$id] ?? 0;
 
@@ -458,9 +264,6 @@ class PenempatanKocok
                     continue;
                 }
 
-                // Cari peserta BERTANDA yang duduk di luar jatah kursi PC,
-                // mulai dari yang paling depan supaya hasilnya tetap
-                // deterministik.
                 foreach (array_keys($hasil[$id]) as $lain) {
                     if ($lain < $kursiPc || ! $bertanda($hasil[$id][$lain])) {
                         continue;
@@ -473,10 +276,7 @@ class PenempatanKocok
             }
         }
 
-        // ------------------------------------------------------- pindahkan
-        // Ruang yang kursi PC-nya sudah penuh oleh peserta BERTANDA tetapi
-        // masih punya peserta bertanda di luar jatah: sisa itu dipindah ke
-        // ruang lain yang kursi PC-nya masih kosong.
+        // Jika kursi PC ruang ini penuh peserta bertanda, tukar sisanya ke kursi PC ruang lain.
         $kurang = [];
 
         foreach (array_keys($hasil) as $id) {
@@ -501,8 +301,6 @@ class PenempatanKocok
                         continue;
                     }
 
-                    // Ruang tujuan masih punya kursi PC yang dihuni peserta
-                    // TANPA tanda - yaitu kursi yang boleh ditukar.
                     foreach (array_keys($hasil[$lain]) as $posLain) {
                         if ($posLain >= $pcLain) {
                             break;
@@ -517,7 +315,6 @@ class PenempatanKocok
                 }
 
                 if ($tujuan === null) {
-                    // Tidak ada kursi PC mana pun yang tersisa untuknya.
                     $kurang[] = [
                         'nama' => (string) ($hasil[$id][$pos]->student?->name ?? 'Peserta'),
                         'ruang' => $kode[$id] ?? 'R-?',
@@ -532,9 +329,7 @@ class PenempatanKocok
             }
         }
 
-        // Kunci array dirapikan supaya pemanggil berikutnya menerima daftar,
-        // bukan peta posisi - `array_slice(..., true)` di atas mempertahankan
-        // kunci aslinya.
+        // Rapikan indeks array karena array_slice(..., true) mempertahankan kunci asli.
         foreach ($hasil as $id => $isi) {
             $hasil[$id] = array_values($isi);
         }
@@ -554,29 +349,7 @@ class PenempatanKocok
     }
 
     /**
-     * Bagi MERATA: tiap kelas disebar ke seluruh ruang - mode `rata`.
-     *
-     * =====================================================================
-     * Bedanya dengan `bagi()` yang berurutan
-     * =====================================================================
-     * `bagi()` mengisi ruang pertama sampai penuh lalu pindah, sehingga
-     * ruang terakhir bisa tinggal separuh sementara yang pertama penuh.
-     * Sekolah yang membagi pengawas menurut jumlah kursi terpakai - dan yang
-     * mencetak tablo per ruang - meminta kebalikannya: setiap ruang hampir
-     * sama besar.
-     *
-     * Di sini setiap kelas dibagi ke SEMUA ruang sekaligus: sisa baginya
-     * (`intdiv`) ke setiap ruang, dan sisanya dibagikan satu-satu ke ruang
-     * terdepan. Kelas 40 di empat ruang berkapasitas 10 menjadi 10-10-10-10,
-     * bukan 10-10-10-10-0 atau 40-0-0-0.
-     *
-     * ---------------------------------------------------------------------
-     * Kapasitas ruang tetap dihormati
-     * ---------------------------------------------------------------------
-     * Pembagian rata yang mengabaikan kapasitas akan menaruh 12 orang di ruang
-     * 10 kursi. Yang dipakai karena itu adalah kuota hasil pembagian, DIPATOK
-     * pada kapasitas - dan sisa yang tak kebagian mengalir ke ruang lain yang
-     * masih punya tempat.
+     * Sebar tiap kelas merata ke seluruh ruang dengan menghormati kapasitas efektif (mode `rata`).
      *
      * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
      * @param  Collection<int, EventRoom>  $ruangan
@@ -594,22 +367,11 @@ class PenempatanKocok
             return $hasil;
         }
 
-        // Kursor BERPUTAR yang berlanjut antar kelas, dan itu yang membuat
-        // ruangnya benar-benar rata.
-        //
-        // Versi yang selalu mulai dari ruang pertama menumpuk setiap kelas di
-        // R-01: tiga kelas berisi 10 di tiga ruang berkapasitas 10 menghasilkan
-        // 10-9-9 pada satu contoh, tetapi 12-9-9 sebelum kapasitas memotongnya -
-        // dan R-01 selalu yang paling penuh. Dengan kursor yang berputar,
-        // kelas kedua mulai di R-02, kelas ketiga di R-03, sehingga isi ruang
-        // berakhir hampir sama.
+        // Kursor berputar antar kelas agar distribusi tidak menumpuk di ruang pertama.
         $pos = 0;
 
         foreach ($kelompok as $k) {
             foreach ($k['peserta'] as $orang) {
-                // Cari ruang pertama (mulai dari kursor) yang masih punya
-                // kursi. Ruang yang penuh dilewati, bukan diisi melebihi
-                // kapasitasnya.
                 for ($t = 0; $t < $jumlahRuang; $t++) {
                     $idx = ($pos + $t) % $jumlahRuang;
                     $id = $idRuang[$idx];
@@ -622,8 +384,6 @@ class PenempatanKocok
                     }
                 }
 
-                // Seluruh ruang penuh: kursi benar-benar habis, dan `kurang`
-                // di `susun()` yang melaporkannya - bukan diam-diam.
                 break 2;
             }
         }
@@ -632,12 +392,7 @@ class PenempatanKocok
     }
 
     /**
-     * Seluruh hasil kocokan satu EVENT, siap dipakai layar MAUPUN penyimpanan.
-     *
-     * Satu method karena keduanya harus sepakat: layar yang menampilkan
-     * kocokan berbeda dari yang disimpan adalah layar yang berbohong, dan itu
-     * bentuk kebohongan yang paling mahal - ia baru ketahuan saat siswa
-     * berdiri di depan pintu ruang yang salah.
+     * Hitung hasil kocokan satu event untuk pratinjau maupun penyimpanan.
      *
      * @return array{
      *     benih: string,
@@ -652,7 +407,7 @@ class PenempatanKocok
      *     rincian_kelas: array<int, array{nama: string, jumlah: int, ruang: array<int, string>}>
      * }
      *
-     * @throws DomainException Bila eventnya belum punya ruang sama sekali.
+     * @throws DomainException Bila event belum punya ruang.
      */
     public function susun(SchoolEvent $event, ?string $benih = null, ModePenempatan $mode = ModePenempatan::Campur): array
     {
@@ -664,12 +419,131 @@ class PenempatanKocok
             throw new DomainException("Event {$event->name} belum punya ruang.");
         }
 
+        $ruangKhusus = $ruangan->filter(fn (EventRoom $r) => $r->isKhususPerangkat())->values();
+        $ruangReguler = $ruangan->reject(fn (EventRoom $r) => $r->isKhususPerangkat())->values();
+
         $kelompok = $this->kelompokKelas($event);
 
-        // Dua mode membagi dari KELOMPOK-nya, bukan dari antrean datar: batas
-        // kelas harus diketahui saat pembagian, dan antrean yang sudah
-        // diratakan kehilangan batas itu. Urutan orang di dalam tiap kelas
-        // tetap diacak menurut benih yang sama dengan mode `campur`.
+        // Jika tidak ada ruang khusus perangkat, seluruh ruang & peserta memakai alur standar
+        // agar perilaku lab campuran (hormatiPerangkat pada PC terbatas) tetap terjaga.
+        if ($ruangKhusus->isEmpty()) {
+            [$perRuang, $antrean] = $this->susunKolam($kelompok, $ruangan, $benih, $mode);
+
+            $perangkat = $this->hormatiPerangkat($perRuang, $ruangan);
+            $perRuang = $perangkat['per_ruang'];
+
+            $kapasitas = $ruangan->sum(fn (EventRoom $r) => $r->kapasitasEfektif());
+
+            return [
+                'benih' => $benih,
+                'mode' => $mode,
+                'antrean' => $antrean,
+                'per_ruang' => $perRuang,
+                'kapasitas' => $kapasitas,
+                'peserta' => $antrean->count(),
+                'kurang' => max(0, $antrean->count() - $kapasitas),
+                'seisi_satu_kelas' => $this->seisiSatuKelas($perRuang, $ruangan),
+                // Kelas terbelah hanya relevan di mode kelas.
+                'kelas_terbelah' => $mode === ModePenempatan::Kelas
+                    ? $this->kelasTerbelah($perRuang, $ruangan)
+                    : [],
+                'rincian_kelas' => $this->rincianKelas($perRuang, $ruangan),
+
+                'perangkat_kurang' => $perangkat['kurang'],
+                'kursi_berperangkat' => $ruangan->sum(fn (EventRoom $r) => $r->kursiBerPerangkat()),
+                'bertanda' => $antrean->filter(fn (EventParticipant $p) => (bool) ($p->butuh_perangkat ?? false))->count(),
+
+                'peserta_reguler' => $antrean->count(),
+                'kapasitas_reguler' => $kapasitas,
+                'kurang_reguler' => max(0, $antrean->count() - $kapasitas),
+                'ruang_reguler' => $ruangan->count(),
+                'ruang_khusus' => 0,
+                'kapasitas_khusus' => 0,
+                'terisi_khusus' => 0,
+            ];
+        }
+
+        // Pisahkan kolam reguler vs kolam khusus perangkat.
+        // Siswa reguler (butuh_perangkat = false) tidak pernah masuk ke ruang khusus perangkat,
+        // sehingga kursi lab yang tersisa tetap siaga untuk pindah ruang darurat hari-H.
+        [$kelompokReguler, $kelompokKhusus] = $this->pisahKelompokPerangkat($kelompok);
+
+        $antreanKhusus = $this->antrean($kelompokKhusus, $benih, ModePenempatan::Campur);
+        $kapasitasKhusus = $ruangKhusus->sum(fn (EventRoom $r) => $r->kapasitasEfektif());
+        $masukKhusus = $antreanKhusus->slice(0, $kapasitasKhusus)->values();
+        $sisaKhusus = $antreanKhusus->slice($kapasitasKhusus)->values();
+        $perRuangKhusus = $this->bagi($masukKhusus, $ruangKhusus);
+
+        $perangkatKurang = [];
+        $kapasitasPcReguler = $ruangReguler->sum(fn (EventRoom $r) => $r->kursiBerPerangkat());
+
+        if ($sisaKhusus->isNotEmpty()) {
+            if ($kapasitasPcReguler > 0) {
+                $kelompokReguler = $this->gabungSisaKeKelompok($kelompokReguler, $sisaKhusus);
+            } else {
+                foreach ($sisaKhusus as $p) {
+                    $perangkatKurang[] = [
+                        'nama' => (string) ($p->student?->name ?? 'Peserta'),
+                        'ruang' => 'Lab Khusus Penuh',
+                    ];
+                }
+            }
+        }
+
+        [$perRuangReguler, $antreanReguler] = $this->susunKolam($kelompokReguler, $ruangReguler, $benih, $mode);
+        $perangkatReguler = $this->hormatiPerangkat($perRuangReguler, $ruangReguler);
+        $perRuangReguler = $perangkatReguler['per_ruang'];
+        $perangkatKurang = array_merge($perangkatKurang, $perangkatReguler['kurang']);
+
+        $perRuang = [];
+        foreach ($ruangan as $r) {
+            $perRuang[$r->id] = $perRuangKhusus[$r->id] ?? $perRuangReguler[$r->id] ?? [];
+        }
+
+        $kapasitasReguler = $ruangReguler->sum(fn (EventRoom $r) => $r->kapasitasEfektif());
+        $kapasitasTotal = $kapasitasReguler + $kapasitasKhusus;
+        $antreanTotal = $antreanReguler->concat($masukKhusus)->values();
+        $jumlahPesertaTotal = $antreanReguler->count() + $antreanKhusus->count();
+        $ditempatkan = collect($perRuang)->sum(fn (array $isi) => count($isi));
+        $kurangReguler = max(0, $antreanReguler->count() - $kapasitasReguler);
+        $kurang = max(0, $jumlahPesertaTotal - $ditempatkan);
+
+        return [
+            'benih' => $benih,
+            'mode' => $mode,
+            'antrean' => $antreanTotal,
+            'per_ruang' => $perRuang,
+            'kapasitas' => $kapasitasTotal,
+            'peserta' => $jumlahPesertaTotal,
+            'kurang' => $kurang,
+            // Temuan seisi satu kelas & kelas terbelah hanya relevan untuk ruang reguler.
+            'seisi_satu_kelas' => $this->seisiSatuKelas($perRuangReguler, $ruangReguler),
+            'kelas_terbelah' => $mode === ModePenempatan::Kelas
+                ? $this->kelasTerbelah($perRuangReguler, $ruangReguler)
+                : [],
+            'rincian_kelas' => $this->rincianKelas($perRuang, $ruangan),
+
+            'perangkat_kurang' => $perangkatKurang,
+            'kursi_berperangkat' => $ruangan->sum(fn (EventRoom $r) => $r->kursiBerPerangkat()),
+            'bertanda' => $antreanKhusus->count(),
+
+            'peserta_reguler' => $antreanReguler->count(),
+            'kapasitas_reguler' => $kapasitasReguler,
+            'kurang_reguler' => $kurangReguler,
+            'ruang_reguler' => $ruangReguler->count(),
+            'ruang_khusus' => $ruangKhusus->count(),
+            'kapasitas_khusus' => $kapasitasKhusus,
+            'terisi_khusus' => $masukKhusus->count(),
+        ];
+    }
+
+    /**
+     * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
+     * @param  Collection<int, EventRoom>  $ruangan
+     * @return array{0: array<int, array<int, EventParticipant>>, 1: Collection<int, EventParticipant>}
+     */
+    private function susunKolam(array $kelompok, Collection $ruangan, string $benih, ModePenempatan $mode): array
+    {
         if ($mode === ModePenempatan::Kelas || $mode === ModePenempatan::Rata) {
             $kelompokAcak = $this->kelompokAcak($kelompok, $benih);
 
@@ -683,52 +557,87 @@ class PenempatanKocok
             $perRuang = $this->bagi($antrean, $ruangan);
         }
 
-        // Peserta bertanda "butuh perangkat" harus duduk di kursi ber-PC.
-        // Dipotong SESUDAH pembagian - lihat catatan `hormatiPerangkat()`
-        // tentang mengapa bukan di dalam ketiga algoritmanya.
-        $perangkat = $this->hormatiPerangkat($perRuang, $ruangan);
-        $perRuang = $perangkat['per_ruang'];
-
-        $kapasitas = $ruangan->sum(fn (EventRoom $r) => $r->kapasitasEfektif());
-
-        return [
-            'benih' => $benih,
-            'mode' => $mode,
-            'antrean' => $antrean,
-            'per_ruang' => $perRuang,
-            'kapasitas' => $kapasitas,
-            'peserta' => $antrean->count(),
-            'kurang' => max(0, $antrean->count() - $kapasitas),
-            'seisi_satu_kelas' => $this->seisiSatuKelas($perRuang, $ruangan),
-            // Hanya mode `kelas` yang punya temuan ini. Di `campur` DAN `rata`
-            // kelas yang tersebar adalah TUJUANNYA - melaporkannya sebagai
-            // temuan membalik arti seluruh laman.
-            'kelas_terbelah' => $mode === ModePenempatan::Kelas
-                ? $this->kelasTerbelah($perRuang, $ruangan)
-                : [],
-            'rincian_kelas' => $this->rincianKelas($perRuang, $ruangan),
-
-            // Peserta bertanda "butuh perangkat" yang TIDAK mendapat kursi
-            // ber-PC. Daftarnya, bukan jumlahnya: yang harus dicari panitia
-            // adalah anaknya, dan "7 peserta" tidak menjawab itu.
-            'perangkat_kurang' => $perangkat['kurang'],
-            'kursi_berperangkat' => $ruangan->sum(fn (EventRoom $r) => $r->kursiBerPerangkat()),
-            'bertanda' => $antrean->filter(fn (EventParticipant $p) => (bool) ($p->butuh_perangkat ?? false))->count(),
-        ];
+        return [$perRuang, $antrean];
     }
 
     /**
-     * Terjemahkan peta ruang EVENT menjadi peta ruang SESI, tanpa menulis apa pun.
-     *
-     * Dipisahkan dari penulisannya karena halaman penempatan harus bisa
-     * MENGATAKAN bahwa sebuah sesi tidak bisa memakai seluruh peta - dan
-     * mengatakannya tanpa menerapkannya lebih dulu. Sesi yang ruangnya kurang
-     * adalah keadaan yang Admin perbaiki di laman jadwal.
-     *
-     * Hanya peserta ujian INI yang masuk peta. Siswa yang tidak mengerjakan
-     * mapel ini tetap punya kursi yang sama di peta event, tetapi tidak
-     * ditempatkan pada sesi yang bukan miliknya - dan itu memang yang
-     * diinginkan: kursinya menunggu, sesinya tidak diisi orang yang tidak ikut.
+     * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
+     * @return array{
+     *     0: array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>,
+     *     1: array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>
+     * }
+     */
+    private function pisahKelompokPerangkat(array $kelompok): array
+    {
+        $reguler = [];
+        $khusus = [];
+
+        foreach ($kelompok as $k) {
+            $isiReguler = [];
+            $isiKhusus = [];
+
+            foreach ($k['peserta'] as $p) {
+                if ((bool) ($p->butuh_perangkat ?? false)) {
+                    $isiKhusus[] = $p;
+                } else {
+                    $isiReguler[] = $p;
+                }
+            }
+
+            if ($isiReguler !== []) {
+                $reguler[] = [
+                    'kelas' => $k['kelas'],
+                    'nama' => $k['nama'],
+                    'peserta' => $isiReguler,
+                ];
+            }
+
+            if ($isiKhusus !== []) {
+                $khusus[] = [
+                    'kelas' => $k['kelas'],
+                    'nama' => $k['nama'],
+                    'peserta' => $isiKhusus,
+                ];
+            }
+        }
+
+        return [$reguler, $khusus];
+    }
+
+    /**
+     * @param  array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>  $kelompok
+     * @param  Collection<int, EventParticipant>  $sisa
+     * @return array<int, array{kelas: ?int, nama: string, peserta: array<int, EventParticipant>}>
+     */
+    private function gabungSisaKeKelompok(array $kelompok, Collection $sisa): array
+    {
+        $peta = [];
+        foreach ($kelompok as $k) {
+            $peta[$k['kelas'] ?? 0] = $k;
+        }
+
+        foreach ($sisa as $p) {
+            $kunci = $p->class_id ?? 0;
+            if (! isset($peta[$kunci])) {
+                $peta[$kunci] = [
+                    'kelas' => $p->class_id,
+                    'nama' => $p->kelas?->name ?? 'Tanpa kelas',
+                    'peserta' => [],
+                ];
+            }
+            $peta[$kunci]['peserta'][] = $p;
+        }
+
+        $hasil = array_values($peta);
+        usort($hasil, fn (array $a, array $b) => count($b['peserta']) <=> count($a['peserta'])
+            ?: strcmp($a['nama'], $b['nama']));
+
+        return $hasil;
+    }
+
+    /**
+     * Terjemahkan peta ruang event ke peta ruang satu sesi tanpa menulis ke basis data.
+     * Hanya memetakan peserta yang terdaftar di ujian sesi ini.
      *
      * @param  array<int, array<int, EventParticipant>>  $perRuang
      * @return array{
@@ -743,12 +652,7 @@ class PenempatanKocok
     {
         $ruangSesi = ExamSessionRoom::query()
             ->where('exam_session_id', $sesi->id)
-            // `capacity` ruangnya WAJIB ikut dimuat meski yang tampak dibaca
-            // hanya kode ruangnya: kapasitasEfektif() menelusuri
-            // capacity_override -> eventRoom.capacity_override -> room.capacity,
-            // dan kolom yang tidak dimuat bernilai null - sehingga setiap ruang
-            // terbaca berkapasitas NOL, dan setiap sesi dilaporkan kelebihan
-            // muatan. Jebakan yang sama sudah tercatat di PenempatanService.
+            // Kolom capacity wajib dimuat agar kapasitasEfektif() tidak jatuh ke 0.
             ->with('eventRoom.room:id,code,capacity')
             ->get()
             ->keyBy('event_room_id');
@@ -766,9 +670,6 @@ class PenempatanKocok
             $ruang = $ruangSesi->get($idRuangEvent);
 
             if ($ruang === null) {
-                // Ruang event ini tidak dipakai sesi ini. Seluruh penghuninya
-                // kehilangan kursi, dan itu disebut - bukan dibiarkan mencari
-                // ruang lain yang kapasitasnya belum tentu ada.
                 if ($anggota !== []) {
                     $ruangHilang[] = $this->kodeRuangEvent($event, $idRuangEvent);
                 }
@@ -800,9 +701,6 @@ class PenempatanKocok
             }
         }
 
-        // Setiap peserta ujian ini harus mendapat kursi. Yang tidak mendapat
-        // berarti ruangnya tidak dipakai sesi ini - dan itu keadaan yang lebih
-        // buruk daripada kursi kurang, karena tidak terlihat sebagai angka.
         $tanpaKursi = ExamParticipant::query()
             ->where('exam_id', $sesi->exam_id)
             ->where('status', ExamParticipant::STATUS_TERDAFTAR)
@@ -823,17 +721,8 @@ class PenempatanKocok
     }
 
     /**
-     * Kocok lalu SEBAR seluruh event: satu peta, diterapkan ke setiap sesinya.
-     *
-     * ---------------------------------------------------------------------
-     * Seluruh sesi diperiksa lebih dulu, baru satu baris pun ditulis
-     * ---------------------------------------------------------------------
-     * Sesi yang tidak bisa memuat seluruh ruang event membatalkan SELURUH
-     * penyebaran, dengan menyebut sesi mana. Alternatifnya - menerapkan ke sesi
-     * yang bisa, melewati yang tidak - menghasilkan event yang tampak selesai:
-     * sebagian siswa punya ruang, sisanya menggantung tanpa penjelasan, dan
-     * yang menemukannya adalah pengawas di hari-H. Prinsip itu sama dengan
-     * "kursi kurang ditolak, bukan diisi sebagian" di PenempatanService.
+     * Kocok dan terapkan satu peta ruang event ke seluruh sesi utama.
+     * Seluruh sesi divalidasi lebih dulu; satu sesi bermasalah membatalkan seluruh penyebaran.
      *
      * @return array<string, mixed>
      */
@@ -843,29 +732,10 @@ class PenempatanKocok
         ?int $olehUserId = null,
         ?ModePenempatan $mode = null,
     ): array {
-        // Benih yang tidak diberikan dipakai dari kocokan yang SUDAH tersimpan
-        // bila ada. Menyebar ulang event yang sudah dikunci karenanya tidak
-        // memindahkan seorang pun - dan itulah yang membuat tombol Sebar aman
-        // ditekan dua kali. "Kocok ulang" adalah satu-satunya pemanggil yang
-        // selalu mengirim benih baru.
-        //
-        // Mode mengikuti aturan yang SAMA, dan itu yang membuat "Sebar ulang"
-        // tidak diam-diam mengubah susunan: mode yang tidak diberikan diambil
-        // dari kocokan tersimpan, bukan dari bawaan `campur`.
+        // Benih dan mode yang null memakai nilai tersimpan agar sebar ulang bersifat idempoten.
         $tersimpan = $this->benihTersimpan($event);
 
-        // Penempatan yang DIKUNCI menolak seluruh penulisan ulang kursi.
-        //
-        // `sebarEvent()` adalah satu-satunya jalur yang dipakai "Sebar" DAN
-        // "Kocok ulang", sehingga penjagaan di sini menutup keduanya sekaligus
-        // - dan keduanya sama-sama menulis ulang kursi setiap siswa. Sesudah
-        // daftar ruang dicetak dan ditempel di pintu, penulisan ulang itu
-        // berarti daftar yang tercetak tidak berlaku lagi sementara layarnya
-        // terlihat benar.
-        //
-        // Penjagaan di service, bukan hanya di controller: seeder, perintah
-        // artisan, dan test memanggil method ini langsung, dan aturan yang
-        // hanya hidup di pintu HTTP adalah aturan yang dilewati jalur lain.
+        // Tolak penulisan ulang jika penempatan sudah dikunci (dijaga di service agar berlaku di luar HTTP).
         if ($tersimpan !== null && $tersimpan->terkunci()) {
             throw new DomainException(
                 'Penempatan event ini sudah dikunci, sehingga kursi tidak bisa disebar ulang. '.
@@ -885,25 +755,7 @@ class PenempatanKocok
             );
         }
 
-        // Peserta setiap ujian ditarik LEBIH DULU, di sini, dan bukan di
-        // pemanggilnya.
-        //
-        // Sampai 07 Nov 2026 penarikan itu hanya dikerjakan
-        // `ExamJadwalController::sebar()` - dan laman Penempatan, yang tombolnya
-        // berbunyi "Sebar peserta", tidak melakukannya. Akibatnya nyata dan
-        // tampak: penyebaran dari laman Penempatan melaporkan
-        // "1265 peserta disebar ke ruang seluruh event" sambil menulis NOL
-        // baris `exam_participants`, karena `petaSesi()` hanya bisa memetakan
-        // peserta ujian yang BARISNYA sudah ada - dan tidak ada satu pun.
-        // Layar siswa lalu berbunyi "Belum ada ujian yang ditempatkan untuk
-        // Anda" pada event yang jadwalnya sudah lengkap.
-        //
-        // Mengapa di sini, bukan di kedua controller: `sebarEvent()` adalah
-        // satu-satunya jalur yang dipakai "Sebar" DAN "Kocok ulang", dan
-        // `petaSesi()` tidak bisa tahu bahwa daftar peserta yang kosong itu
-        // berarti "belum ditarik" atau "memang tidak ada yang ikut". Menaruh
-        // penarikan di sini membuat keduanya benar sekaligus, dan tidak
-        // bergantung pada pemanggil yang mengingatnya.
+        // Tarik peserta ujian lebih dulu agar petaSesi() punya baris exam_participants untuk dipetakan.
         foreach (Exam::query()->where('event_id', $event->id)->get() as $u) {
             $this->penempatan->tarikPeserta($u);
         }
@@ -913,25 +765,14 @@ class PenempatanKocok
         $perUjian = $this->sesiEvent($event)->groupBy('exam_id');
 
         foreach ($perUjian as $idUjian => $sesiUjian) {
-            // Sesi susulan DILEWATI, bukan dihitung. Ia punya peserta yang
-            // sengaja dipindahkan Admin satu per satu (siswa yang alpa di sesi
-            // utama), dan peta ruang event - satu kursi per siswa untuk seluruh
-            // event - tidak boleh menimpanya. Menghitungnya sebagai "sesi
-            // kedua" akan memblokir seluruh penyebaran event begitu satu
-            // susulan dibuat.
+            // Lewati sesi susulan karena pesertanya dipindahkan manual oleh admin.
             $utama = $sesiUjian->reject(fn (ExamSession $s) => $s->susulan());
 
-            // Ujian yang HANYA punya sesi susulan (belum ada sesi utama) tidak
-            // punya apa pun untuk disebar; lewati tanpa menganggapnya masalah.
             if ($utama->isEmpty()) {
                 continue;
             }
 
-            // Satu baris `exam_participants` hanya bisa menunjuk SATU sesi, dan
-            // peta event tidak tahu siswa mana yang duduk di sesi utama kedua.
-            // Menyebarkannya ke semua sesi akan menulis kursi yang sama berulang
-            // kali - yang terakhir menang, diam-diam - sehingga yang menentukan
-            // siapa ada di sesi mana adalah urutan query, bukan keputusan Admin.
+            // Satu baris exam_participants hanya menunjuk satu sesi; lebih dari satu sesi utama bersifat ambigu.
             if ($utama->count() > 1) {
                 $bermasalah[] = "ujian {$idUjian} punya {$utama->count()} sesi utama - ".
                     'peta ruang event tidak bisa menentukan siswa mana di sesi mana';
@@ -990,30 +831,7 @@ class PenempatanKocok
     }
 
     /**
-     * Ruang yang seluruh pesertanya dari satu kelas.
-     *
-     * Inilah satu-satunya angka yang membuktikan rotasinya bekerja, dan ia
-     * hanya bisa dibaca SEBELUM disebar - sesudahnya, satu-satunya cara
-     * memperbaikinya adalah mengocok ulang, dan itu membatalkan seluruh daftar
-     * yang sudah tercetak.
-     *
-     * @param  array<int, array<int, EventParticipant>>  $perRuang
-     * @param  Collection<int, EventRoom>|null  $ruangan  Untuk kode ruangnya.
-     * @return array<int, string> Kunci = event_room_id, isi = kode ruang.
-     */
-    /**
-     * Kelas yang terbelah ke lebih dari satu ruang - hanya untuk mode `kelas`.
-     *
-     * Inilah angka yang membuktikan mode itu bekerja, dan ia SAMA PENTINGNYA
-     * dengan `seisiSatuKelas` di mode `campur`: keduanya satu-satunya cara
-     * Admin tahu susunannya menyimpang dari yang ia minta, dan keduanya cuma
-     * bisa dibaca SEBELUM disebar.
-     *
-     * Terbelah bukan kegagalan. Kelas 40 dengan ruang berkapasitas 36 memang
-     * HARUS memakai dua ruang - menolaknya berarti sekolah itu tidak bisa
-     * menyebar sama sekali. Yang berbahaya adalah terbelah tanpa ada yang
-     * tahu, karena pengawas ruang kedua akan memegang lembar absen yang
-     * setengahnya milik kelas lain.
+     * Daftar kelas yang terbagi ke lebih dari satu ruang (khusus mode `kelas`).
      *
      * @param  array<int, array<int, EventParticipant>>  $perRuang
      * @param  Collection<int, EventRoom>|null  $ruangan
@@ -1047,12 +865,7 @@ class PenempatanKocok
     }
 
     /**
-     * Kelas mana di ruang mana - daftar yang dibaca Admin di laman penempatan.
-     *
-     * Mode `kelas` dijanjikan sebagai "satu kelas satu ruang", dan janji itu
-     * tidak bisa diperiksa dari KPI angka saja: Admin yang menemukan "9K
-     * terbagi ke R-01 + R-02" perlu tahu berapa yang di masing-masing ruang
-     * untuk memutuskan apakah kapasitasnya perlu ditambah.
+     * Ringkasan sebaran tiap kelas beserta jumlah pesertanya per ruang.
      *
      * @param  array<int, array<int, EventParticipant>>  $perRuang
      * @param  Collection<int, EventRoom>|null  $ruangan
@@ -1081,9 +894,6 @@ class PenempatanKocok
             ->map(fn (array $k) => [
                 'nama' => $k['nama'],
                 'jumlah' => $k['jumlah'],
-                // "R-01 · 36 orang" - angka per ruang, bukan hanya daftar
-                // ruangnya. Daftar yang menyebut "R-01 + R-02" tanpa jumlah
-                // tidak menjelaskan ke mana anak-anak itu sebenarnya.
                 'ruang' => collect($k['ruang'])
                     ->map(fn (int $n, string $kode) => "{$kode} · {$n} orang")
                     ->values()
@@ -1094,19 +904,10 @@ class PenempatanKocok
     }
 
     /**
-     * Ruang yang seluruh pesertanya dari satu kelas - temuan mode `campur`.
-     *
-     * Inilah satu-satunya angka yang membuktikan rotasinya bekerja, dan ia
-     * hanya bisa dibaca SEBELUM disebar - sesudahnya, satu-satunya cara
-     * memperbaikinya adalah mengocok ulang, dan itu membatalkan seluruh daftar
-     * yang sudah tercetak.
-     *
-     * Di mode `kelas` angka ini memang SELALU tinggi - itu tujuannya - jadi
-     * laman penempatan tidak menampilkannya sebagai peringatan di sana.
-     * Lihat `kelasTerbelah()`, yang menggantikannya.
+     * Daftar ruang yang seluruh pesertanya berasal dari satu kelas (temuan mode `campur`).
      *
      * @param  array<int, array<int, EventParticipant>>  $perRuang
-     * @param  Collection<int, EventRoom>|null  $ruangan  Untuk kode ruangnya.
+     * @param  Collection<int, EventRoom>|null  $ruangan
      * @return array<int, string> Kunci = event_room_id, isi = kode ruang.
      */
     public function seisiSatuKelas(array $perRuang, ?Collection $ruangan = null): array
@@ -1119,10 +920,7 @@ class PenempatanKocok
                 ->filter()
                 ->unique();
 
-            // Ruang kosong dan ruang berisi satu orang tidak dihitung: keduanya
-            // memang "satu kelas" secara teknis, dan melaporkannya sebagai
-            // temuan berarti setiap pratinjau pada event yang belum lengkap
-            // berbunyi seperti kegagalan.
+            // Abaikan ruang kosong atau berisi 1 orang agar tidak memicu false positive.
             if (count($anggota) > 1 && $kelas->count() === 1) {
                 $temuan[$idRuang] = $ruangan?->firstWhere('id', $idRuang)?->room?->code ?? 'R-?';
             }
@@ -1131,12 +929,7 @@ class PenempatanKocok
         return $temuan;
     }
 
-    /**
-     * Simpan hasil kocokan sebagai satu baris per EVENT - idempoten.
-     *
-     * Kocok ulang MENGGANTI barisnya, bukan menambah. Dua baris untuk satu
-     * event berarti dua kebenaran tentang kursi yang sama.
-     */
+    /** Simpan hasil kocokan secara idempoten (satu baris per event). */
     public function simpan(
         SchoolEvent $event,
         string $benih,
@@ -1159,7 +952,7 @@ class PenempatanKocok
         );
     }
 
-    /** Benih untuk satu event, atau null bila eventnya belum pernah dikocok. */
+    /** Benih untuk satu event, atau null bila event belum pernah dikocok. */
     public function benihTersimpan(SchoolEvent $event): ?ExamEventShuffle
     {
         return ExamEventShuffle::query()
@@ -1167,13 +960,7 @@ class PenempatanKocok
             ->first();
     }
 
-    /**
-     * Benih baru: enam huruf yang bisa dieja di telepon.
-     *
-     * Tanpa I/O/0/1 - keempatnya hilang saat dibacakan, dan Admin yang
-     * melaporkan "kocokan #7K2M" lewat telepon tidak boleh membuat orang
-     * mengetik benih yang berbeda.
-     */
+    /** Buat benih acak 6 karakter dari HURUF_BENIH. */
     public function benihBaru(): string
     {
         $benih = '';
@@ -1185,26 +972,8 @@ class PenempatanKocok
         return $benih;
     }
 
-    /* ------------------------------------------------------------ Pembantu */
-
     /**
-     * Seluruh sesi ujian satu event, urut waktu.
-     *
-     * @return Collection<int, ExamSession>
-     */
-    /**
-     * Sesi UTAMA ujian satu event, urut waktu.
-     *
-     * Sesi SUSULAN dikecualikan, dan itu wajib: peta ruang event menyusun
-     * kursi untuk SELURUH peserta ujian, sementara peserta sesi susulan
-     * sengaja dipindahkan Admin satu per satu ke sesi itu. Memasukkannya ke
-     * daftar ini membuat laman penempatan menawarkan "Pakai penempatan" untuk
-     * sesi susulan - dan menekannya akan menarik kembali siswa susulan ke
-     * ruang sesi utama, membatalkan pemindahan yang baru saja dibuat.
-     *
-     * Ia juga akan membuat Sebar seluruh event mustahil: sesi susulan memakai
-     * sebagian ruang, sehingga setiap event yang punya susulan selalu
-     * dilaporkan "tidak bisa memakai peta ruang event".
+     * Sesi utama event, urut waktu (sesi susulan dikecualikan agar penempatannya tidak tertimpa).
      *
      * @return Collection<int, ExamSession>
      */
@@ -1227,16 +996,8 @@ class PenempatanKocok
         return EventRoom::query()
             ->where('event_id', $event->id)
             ->where('status', 'aktif')
-            // `capacity` ikut dimuat meski yang tampak dibaca hanya kode ruang:
-            // kapasitasEfektif() menelusuri capacity_override -> room.capacity,
-            // dan kolom yang tidak dimuat bernilai null - sehingga setiap ruang
-            // terbaca berkapasitas NOL. Jebakan yang sama sudah tercatat di
-            // PenempatanService.
-            // `device_count` WAJIB ikut, dan alasannya sama dengan `capacity`:
-            // `kursiBerPerangkat()` membacanya, dan kolom yang tidak dimuat
-            // bernilai null - sehingga setiap ruang terbaca TANPA PC, dan
-            // seluruh peserta bertanda ditolak karena "lab tidak tersedia".
-            ->with('room:id,code,name,capacity,device_count')
+            // Kolom capacity, device_count, dan khusus_perangkat wajib dimuat.
+            ->with('room:id,code,name,capacity,device_count,khusus_perangkat')
             ->orderBy('id')
             ->get();
     }
@@ -1247,13 +1008,7 @@ class PenempatanKocok
     }
 
     /**
-     * Acak satu array dengan Fisher-Yates memakai mt_rand berbenih.
-     *
-     * `shuffle()` tidak dipakai: ia memakai generator yang sama, tetapi
-     * memanggilnya lewat fungsi yang tidak menjamin berapa kali ia menarik
-     * angka. Fisher-Yates di sini menarik tepat n-1 angka, sehingga urutannya
-     * stabil antar versi PHP - dan urutan yang bergeser diam-diam antar versi
-     * adalah urutan yang membuat daftar cetak bulan lalu tidak cocok lagi.
+     * Acak array dengan Fisher-Yates memakai mt_rand berbenih agar urutan stabil antar versi PHP.
      *
      * @param  array<int, mixed>  $isi
      */
@@ -1265,12 +1020,9 @@ class PenempatanKocok
         }
     }
 
-    /** Benih teks -> bilangan bulat, stabil lintas pemanggilan. */
     private function benihKeAngka(string $benih): int
     {
-        // crc32 cukup di sini: benihnya bukan rahasia dan bukan pengaman -
-        // ia penanda "kocokan yang mana". Nilainya hanya perlu sama setiap
-        // kali benih yang sama dibaca.
+        // crc32 cukup karena benih bukan rahasia, hanya perlu deterministik.
         return crc32($benih);
     }
 }

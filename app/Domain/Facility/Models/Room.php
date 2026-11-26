@@ -35,7 +35,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * ruang memakai satu tautan pintu untuk semua ujiannya.
  */
 #[ScopedBy(SchoolScope::class)]
-#[Fillable(['school_id', 'code', 'name', 'location', 'capacity', 'device_count', 'status'])]
+#[Fillable(['school_id', 'code', 'name', 'location', 'capacity', 'device_count', 'khusus_perangkat', 'status'])]
 class Room extends Model
 {
     use BelongsToSchool, HasFactory;
@@ -45,6 +45,7 @@ class Room extends Model
         return [
             'capacity' => 'integer',
             'device_count' => 'integer',
+            'khusus_perangkat' => 'boolean',
         ];
     }
 
@@ -65,6 +66,15 @@ class Room extends Model
     public function isByod(): bool
     {
         return $this->device_count === 0;
+    }
+
+    /**
+     * Ruang khusus perangkat (Lab PC): dikecualikan dari acak kelas reguler
+     * dan pengawasannya langsung ditangani oleh panitia event.
+     */
+    public function isKhususPerangkat(): bool
+    {
+        return (bool) $this->khusus_perangkat;
     }
 
     /**

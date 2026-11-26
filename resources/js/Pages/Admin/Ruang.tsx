@@ -41,6 +41,7 @@ type Baris = {
     kapasitas: number;
     pc: number;
     byod: boolean;
+    khusus_perangkat: boolean;
     status: string;
     /**
      * Slug tautan pintu yang sedang berlaku - null bila belum pernah
@@ -258,20 +259,26 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                     },
                     {
                         judul: 'PC',
-                        kelas: 'w-28',
-                        render: (b) =>
-                            b.byod ? (
-                                <Chip nada="warn">BYOD</Chip>
-                            ) : (
-                                <span className="font-mono text-sm text-ink">
-                                    {b.pc}
-                                    {b.pc < b.kapasitas && (
-                                        <span className="ml-1 text-[10px] text-ink-3">
-                                            / {b.kapasitas}
-                                        </span>
-                                    )}
-                                </span>
-                            ),
+                        kelas: 'w-36',
+                        render: (b) => (
+                            <span className="flex flex-wrap items-center gap-1.5">
+                                {b.byod ? (
+                                    <Chip nada="warn">BYOD</Chip>
+                                ) : (
+                                    <span className="font-mono text-sm text-ink">
+                                        {b.pc}
+                                        {b.pc < b.kapasitas && (
+                                            <span className="ml-1 text-[10px] text-ink-3">
+                                                / {b.kapasitas}
+                                            </span>
+                                        )}
+                                    </span>
+                                )}
+                                {b.khusus_perangkat && (
+                                    <Chip nada="info">Khusus Perangkat</Chip>
+                                )}
+                            </span>
+                        ),
                     },
                     {
                         // Kios lab - hanya untuk ruang yang PUNYA kursi
@@ -535,6 +542,7 @@ function FormRuang({
         location: ruang?.lokasi ?? '',
         capacity: ruang?.kapasitas ?? 32,
         device_count: ruang?.pc ?? 32,
+        khusus_perangkat: ruang?.khusus_perangkat ?? false,
         status: ruang?.status ?? 'aktif',
     });
 
@@ -621,6 +629,25 @@ function FormRuang({
                 {data.device_count === 0 && (
                     <Chip nada="warn">Ruang ini akan ditandai BYOD</Chip>
                 )}
+
+                <label className="flex cursor-pointer items-start justify-between gap-3 rounded-wf border border-line bg-surface-2/60 p-3">
+                    <div>
+                        <span className="block text-xs font-medium text-ink">
+                            Ruang Khusus Perangkat (Lab PC)
+                        </span>
+                        <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-3">
+                            Ruang ini tidak ikut diacak untuk kelas reguler. Hanya diisi siswa
+                            bertanda <strong>Butuh Perangkat</strong> atau siswa darurat hari-H, dan
+                            diawasi langsung oleh <strong>Panitia</strong>.
+                        </span>
+                    </div>
+                    <input
+                        type="checkbox"
+                        checked={data.khusus_perangkat}
+                        onChange={(e) => setData('khusus_perangkat', e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-line text-accent focus:ring-accent"
+                    />
+                </label>
 
                 <Field label="Status" galat={errors.status}>
                     <select

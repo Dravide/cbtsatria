@@ -32,6 +32,7 @@ type RuangBaris = {
     id: number;
     ruang: string | null;
     ruang_nama: string | null;
+    khusus_perangkat?: boolean;
     kapasitas: number;
     peserta: number;
     pengawas: PengawasBaris[];
@@ -68,6 +69,16 @@ type Props = {
         dikecualikan?: boolean;
         alasan_pengecualian?: string | null;
     }[];
+    calon_panitia?: {
+        id: number;
+        nama: string;
+        username: string;
+        peran: string;
+        terpakai?: number;
+        maks?: number;
+        dikecualikan?: boolean;
+        alasan_pengecualian?: string | null;
+    }[];
     jalur_induk: string;
 };
 
@@ -77,8 +88,10 @@ export default function PengawasSesi({
     ruang,
     angka,
     calon,
+    calon_panitia,
     jalur_induk,
 }: Props) {
+    const daftarPanitia = calon_panitia ?? calon;
     const jalur = `/admin/events/${event.id}`;
 
     // Ruang yang panel "Tugaskan"-nya terbuka. Satu pada satu waktu: panel
@@ -211,6 +224,9 @@ export default function PengawasSesi({
                                     <span className="font-mono text-xs font-medium text-ink">
                                         {r.ruang ?? '—'}
                                     </span>
+                                    {r.khusus_perangkat && (
+                                        <Chip nada="info">Khusus Perangkat · Panitia</Chip>
+                                    )}
                                     <span className="text-[11px] text-ink-3">{r.ruang_nama}</span>
 
                                     <span className="font-mono text-[11px] text-ink-3">
@@ -254,7 +270,7 @@ export default function PengawasSesi({
 
                                     <Tombol
                                         nada={terbuka ? 'sek' : 'pri'}
-                                        disabled={calon.length === 0}
+                                        disabled={(r.khusus_perangkat ? daftarPanitia.length : calon.length) === 0}
                                         onClick={() => buka(r.id)}
                                     >
                                         {terbuka ? 'Batal' : 'Tugaskan'}
@@ -263,12 +279,18 @@ export default function PengawasSesi({
 
                                 {terbuka && (
                                     <div className="border-t border-line bg-surface-2/30 px-3 py-3">
+                                        {r.khusus_perangkat && (
+                                            <p className="mb-2 text-[11px] text-info">
+                                                Ruang Khusus Perangkat: dilewati dari rotasi pengawas
+                                                reguler dan langsung ditangani oleh Panitia Event.
+                                            </p>
+                                        )}
                                         <div className="flex flex-wrap items-end gap-2">
                                             <div className="w-72">
                                                 <PilihCari
-                                                    label="Pengawas"
+                                                    label={r.khusus_perangkat ? 'Panitia Event' : 'Pengawas'}
                                                     nilai={orangId}
-                                                    pilihan={calon.map((c) => {
+                                                    pilihan={(r.khusus_perangkat ? daftarPanitia : calon).map((c) => {
                                                         const kuota =
                                                             c.maks && c.maks > 0
                                                                 ? `${c.terpakai ?? 0}/${c.maks}`

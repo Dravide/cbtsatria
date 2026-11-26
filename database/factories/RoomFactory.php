@@ -26,6 +26,7 @@ class RoomFactory extends Factory
             'capacity' => 32,
             // Bawaan: ruang ber-PC. Ruang BYOD dibuat lewat ->byod().
             'device_count' => 32,
+            'khusus_perangkat' => false,
             'status' => 'aktif',
         ];
     }
@@ -36,6 +37,14 @@ class RoomFactory extends Factory
     public function byod(): static
     {
         return $this->state(fn () => ['device_count' => 0]);
+    }
+
+    /**
+     * Ruang khusus perangkat (Lab PC): tidak ikut acak kelas reguler.
+     */
+    public function khususPerangkat(): static
+    {
+        return $this->state(fn () => ['khusus_perangkat' => true]);
     }
 
     public function perbaikan(): static

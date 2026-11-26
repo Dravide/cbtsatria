@@ -53,6 +53,7 @@ type Baris = {
     id: number;
     ruang: string | null;
     ruang_nama: string | null;
+    khusus_perangkat?: boolean;
     kapasitas: number;
     kelas?: string[];
     sesi: string | null;
@@ -82,6 +83,7 @@ type SesiKelompok = {
         id: number;
         ruang: string | null;
         ruang_nama: string | null;
+        khusus_perangkat?: boolean;
         kapasitas: number;
         kelas?: string[];
         peserta: number;
@@ -831,6 +833,9 @@ function JadwalPengawasan({
                                             <span className="font-mono text-xs font-medium text-ink">
                                                 {b.ruang ?? '—'}
                                             </span>
+                                            {b.khusus_perangkat && (
+                                                <Chip nada="info">Khusus Perangkat · Panitia</Chip>
+                                            )}
                                             {b.ruang_nama && (
                                                 <span className="text-xs text-ink-3">
                                                     · {b.ruang_nama}
