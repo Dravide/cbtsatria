@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { bacaQrDariBerkas, bacaQrDariVideo, buatDetectorBawaan } from '@/lib/bacaQr';
 
 type Props = {
     labelTombol?: string;
@@ -6,13 +7,9 @@ type Props = {
     padaTeks: (isi: string) => void;
 };
 
-function adaPembaca(): boolean {
-    return typeof window !== 'undefined' && 'BarcodeDetector' in window;
-}
-
 /**
- * Pemindai QR generik via kamera peramban (`BarcodeDetector` + `getUserMedia`)
- * untuk membaca payload teks mentah seperti paket darurat offline (`Z1:...`).
+ * Pemindai QR generik via kamera peramban (`BarcodeDetector` dengan fallback `jsQR`)
+ * untuk membaca payload teks mentah seperti paket darurat offline (`Z1:...`) di Android maupun iPhone.
  */
 export default function PemindaiQrTeks({
     labelTombol = 'Scan QR Darurat',
@@ -20,9 +17,12 @@ export default function PemindaiQrTeks({
     padaTeks,
 }: Props) {
     const [terbuka, setTerbuka] = useState(false);
+    const [kameraGagal, setKameraGagal] = useState(false);
     const [galat, setGalat] = useState<string | null>(null);
 
     const video = useRef<HTMLVideoElement>(null);
+    const kanvas = useRef<HTMLCanvasElement | null>(null);
+    const fotoInput = useRef<HTMLInputElement>(null);
     const aliran = useRef<MediaStream | null>(null);
     const berhenti = useRef(false);
 
@@ -35,6 +35,7 @@ export default function PemindaiQrTeks({
     const tutup = () => {
         hentikan();
         setTerbuka(false);
+        setKameraGagal(false);
         setGalat(null);
     };
 
@@ -43,14 +44,14 @@ export default function PemindaiQrTeks({
             return;
         }
 
-        if (!adaPembaca()) {
-            setGalat(
-                'Peramban ini belum mendukung pemindai QR langsung (gunakan Chrome/Edge Android, atau tempel kode teks di bawah).',
-            );
+        if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+            setKameraGagal(true);
+            setGalat('Kamera langsung tidak tersedia. Gunakan Foto QR atau tempel kode teks di bawah.');
             return;
         }
 
         berhenti.current = false;
+        setKameraGagal(false);
 
         const mulai = async () => {
             try {
@@ -67,26 +68,25 @@ export default function PemindaiQrTeks({
                 aliran.current = media;
 
                 if (video.current !== null) {
+                    video.current.setAttribute('playsinline', 'true');
+                    video.current.setAttribute('webkit-playsinline', 'true');
                     video.current.srcObject = media;
                     await video.current.play().catch(() => undefined);
                 }
 
-                const Pembaca = (window as unknown as {
-                    BarcodeDetector: new (o: { formats: string[] }) => {
-                        detect: (sumber: HTMLVideoElement) => Promise<{ rawValue: string }[]>;
-                    };
-                }).BarcodeDetector;
+                if (kanvas.current === null) {
+                    kanvas.current = document.createElement('canvas');
+                }
 
-                const pembaca = new Pembaca({ formats: ['qr_code'] });
+                const detector = buatDetectorBawaan();
 
                 const putaran = async () => {
-                    if (berhenti.current || video.current === null) {
+                    if (berhenti.current || video.current === null || kanvas.current === null) {
                         return;
                     }
 
                     try {
-                        const hasil = await pembaca.detect(video.current);
-                        const isi = hasil[0]?.rawValue?.trim();
+                        const isi = await bacaQrDariVideo(video.current, kanvas.current, detector);
 
                         if (isi) {
                             hentikan();
@@ -100,18 +100,15 @@ export default function PemindaiQrTeks({
                     }
 
                     if (!berhenti.current) {
-                        window.requestAnimationFrame(() => {
-                            void putaran();
-                        });
+                        window.setTimeout(putaran, 250);
                     }
                 };
 
-                window.requestAnimationFrame(() => {
-                    void putaran();
-                });
+                void putaran();
             } catch {
                 if (!berhenti.current) {
-                    setGalat('Izin kamera ditolak atau kamera tidak tersedia.');
+                    setKameraGagal(true);
+                    setGalat('Izin kamera ditolak atau kamera tidak tersedia. Gunakan Foto QR.');
                 }
             }
         };
@@ -122,6 +119,21 @@ export default function PemindaiQrTeks({
             hentikan();
         };
     }, [terbuka, padaTeks]);
+
+    const pindaiDariFoto = async (berkas: File | null) => {
+        if (berkas === null) {
+            return;
+        }
+
+        const isi = await bacaQrDariBerkas(berkas).catch(() => null);
+        if (!isi) {
+            setGalat('QR tidak terbaca dari foto tersebut.');
+            return;
+        }
+
+        tutup();
+        padaTeks(isi);
+    };
 
     if (!terbuka) {
         return (
@@ -154,18 +166,41 @@ export default function PemindaiQrTeks({
                 </button>
             </div>
 
-            {galat ? (
+            {galat && (
                 <p className="rounded-wf border border-warn/40 bg-warn-bg px-2.5 py-2 text-[11px] text-warn">
                     {galat}
                 </p>
-            ) : (
+            )}
+
+            {!kameraGagal && (
                 <video
                     ref={video}
                     playsInline
                     muted
+                    autoPlay
                     className="aspect-square w-full rounded-wf border border-line bg-black object-cover"
                 />
             )}
+
+            <input
+                ref={fotoInput}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                    void pindaiDariFoto(e.target.files?.[0] ?? null);
+                    e.target.value = '';
+                }}
+            />
+
+            <button
+                type="button"
+                onClick={() => fotoInput.current?.click()}
+                className="inline-grid min-h-9 w-full place-items-center rounded-wf border border-line bg-surface-2 px-3 text-[11px] font-medium text-ink"
+            >
+                Ambil foto QR (alternatif kamera)
+            </button>
         </div>
     );
 }

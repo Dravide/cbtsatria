@@ -55,7 +55,7 @@ type Props = {
 
 export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, pesan }: Props) {
     const { auth, flash } = usePage<{
-        auth?: { user?: { name?: string } | null };
+        auth?: { pengguna?: { nama?: string } | null };
         flash?: { galat?: string | null };
     }>().props;
 
@@ -93,7 +93,7 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
         }
     };
 
-    const user = auth?.user ?? null;
+    const user = auth?.pengguna ?? null;
     const galat = flash?.galat ?? null;
 
     const bisaMasuk = user !== null && sesi.berjalan && !nomor_sah && pesan === null;
@@ -219,6 +219,12 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
                                     </p>
                                 </div>
 
+                                {galat && (
+                                    <p className="max-w-md rounded-wf border border-bad/30 bg-bad-bg px-4 py-3 text-sm leading-relaxed text-bad">
+                                        {galat}
+                                    </p>
+                                )}
+
                                 {/* Tautan ke rute GERBANG, bukan langsung ke
                                     `/login`. Rute itu berada di dalam `auth`,
                                     sehingga middleware-nya menulis
@@ -242,7 +248,7 @@ export default function KiosLab({ sekolah, slug, nomor, ruang, nomor_sah, sesi, 
                             <>
                                 <div>
                                     <h1 className="font-display text-2xl font-semibold text-ink">
-                                        Halo, {user.name ?? 'siswa'}
+                                        Halo, {user.nama ?? 'siswa'}
                                     </h1>
                                     <p className="mt-2 max-w-sm text-sm leading-relaxed text-ink-2">
                                         {sesi.ujian ?? 'Ujian'}

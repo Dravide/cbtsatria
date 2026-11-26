@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { kelasInput } from '@/Components/ui';
+import { bacaQrDariBerkas, bacaQrDariVideo, buatDetectorBawaan } from '@/lib/bacaQr';
 
 /**
  * Pemindai QR presensi - kamera langsung di dalam laman gerbang.
@@ -68,29 +69,19 @@ export function kodeDari(isi: string): string | null {
     return null;
 }
 
-/** Apakah peramban ini punya pembaca QR bawaan. */
-function adaPembaca(): boolean {
-    return typeof window !== 'undefined' && 'BarcodeDetector' in window;
-}
-
 export default function PemindaiQr({ padaKode }: Props) {
     const [terbuka, setTerbuka] = useState(false);
+    const [kameraGagal, setKameraGagal] = useState(false);
     const [galat, setGalat] = useState<string | null>(null);
     const [manual, setManual] = useState('');
     const [galatManual, setGalatManual] = useState<string | null>(null);
 
     const video = useRef<HTMLVideoElement>(null);
+    const kanvas = useRef<HTMLCanvasElement | null>(null);
+    const fotoInput = useRef<HTMLInputElement>(null);
     const aliran = useRef<MediaStream | null>(null);
     const berhenti = useRef(false);
 
-    /**
-     * Seluruh sumber daya kamera dilepas di sini, dan hanya di sini.
-     *
-     * Tanpa `getTracks().forEach(t => t.stop())` kamera tetap menyala
-     * sesudah laman ditutup - lampu hijau di ponsel siswa menyala sepanjang
-     * ujian, dan yang menyimpulkan aplikasi ini memata-matai mereka adalah
-     * pengawas yang melihatnya, bukan siswa.
-     */
     const hentikan = () => {
         berhenti.current = true;
         aliran.current?.getTracks().forEach((t) => t.stop());
@@ -100,6 +91,7 @@ export default function PemindaiQr({ padaKode }: Props) {
     const tutup = () => {
         hentikan();
         setTerbuka(false);
+        setKameraGagal(false);
         setGalat(null);
     };
 
@@ -108,15 +100,16 @@ export default function PemindaiQr({ padaKode }: Props) {
             return;
         }
 
-        if (!adaPembaca()) {
-            // Pesannya bukan galat: peramban ini memang tidak punya
-            // pembacanya, dan yang bisa dikerjakan siswa sudah tersedia di
-            // bawah dalam bentuk kolom kode.
-            setGalat('Peramban ini belum bisa membaca QR langsung. Ketik kodenya di bawah.');
+        if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+            setKameraGagal(true);
+            setGalat(
+                'Kamera langsung tidak tersedia di peramban ini (pastikan situs diakses via HTTPS). Gunakan tombol Foto QR atau ketik kode di bawah.',
+            );
             return;
         }
 
         berhenti.current = false;
+        setKameraGagal(false);
 
         const mulai = async () => {
             try {
@@ -125,8 +118,6 @@ export default function PemindaiQr({ padaKode }: Props) {
                     audio: false,
                 });
 
-                // Komponen sudah ditutup selagi izinnya menunggu - jangan
-                // tinggalkan kamera menyala tanpa pemilik.
                 if (berhenti.current) {
                     media.getTracks().forEach((t) => t.stop());
 
@@ -136,28 +127,27 @@ export default function PemindaiQr({ padaKode }: Props) {
                 aliran.current = media;
 
                 if (video.current !== null) {
+                    video.current.setAttribute('playsinline', 'true');
+                    video.current.setAttribute('webkit-playsinline', 'true');
                     video.current.srcObject = media;
                     await video.current.play().catch(() => undefined);
                 }
 
-                const Pembaca = (window as unknown as {
-                    BarcodeDetector: new (o: { formats: string[] }) => {
-                        detect: (sumber: HTMLVideoElement) => Promise<{ rawValue: string }[]>;
-                    };
-                }).BarcodeDetector;
+                if (kanvas.current === null) {
+                    kanvas.current = document.createElement('canvas');
+                }
 
-                const pembaca = new Pembaca({ formats: ['qr_code'] });
+                const detector = buatDetectorBawaan();
 
                 const putaran = async () => {
-                    if (berhenti.current || video.current === null) {
+                    if (berhenti.current || video.current === null || kanvas.current === null) {
                         return;
                     }
 
                     try {
-                        const hasil = await pembaca.detect(video.current);
-                        const isi = hasil[0]?.rawValue;
+                        const isi = await bacaQrDariVideo(video.current, kanvas.current, detector);
 
-                        if (isi !== undefined) {
+                        if (isi !== null) {
                             const kode = kodeDari(isi);
 
                             if (kode !== null) {
@@ -168,27 +158,26 @@ export default function PemindaiQr({ padaKode }: Props) {
                                 return;
                             }
 
-                            // QR yang terbaca tetapi bukan kode presensi.
-                            // Dibiarkan berjalan: siswa mungkin memindai QR
-                            // lain di meja, lalu mengarahkan ulang kameranya.
                             setGalat('QR itu bukan kode presensi ruang ujian.');
                         }
                     } catch {
-                        // `detect()` melempar saat video belum punya bingkai -
-                        // itu keadaan normal pada detik pertama, bukan galat.
+                        // Frame awal belum siap; lanjut ke frame berikutnya.
                     }
 
                     if (!berhenti.current) {
-                        window.setTimeout(putaran, 350);
+                        window.setTimeout(putaran, 250);
                     }
                 };
 
                 void putaran();
             } catch {
-                setGalat(
-                    'Kamera tidak bisa dibuka. Beri izin kamera pada peramban ini, '
-                    + 'atau ketik kodenya di bawah.',
-                );
+                if (!berhenti.current) {
+                    setKameraGagal(true);
+                    setGalat(
+                        'Kamera tidak bisa dibuka. Beri izin kamera pada peramban ini, '
+                        + 'gunakan Foto QR, atau ketik kodenya di bawah.',
+                    );
+                }
             }
         };
 
@@ -196,6 +185,29 @@ export default function PemindaiQr({ padaKode }: Props) {
 
         return hentikan;
     }, [terbuka, padaKode]);
+
+    const pindaiDariFoto = async (berkas: File | null) => {
+        if (berkas === null) {
+            return;
+        }
+
+        const isi = await bacaQrDariBerkas(berkas).catch(() => null);
+
+        if (isi === null) {
+            setGalat('QR tidak terbaca dari foto tersebut. Coba foto ulang lebih jelas atau ketik kodenya.');
+            return;
+        }
+
+        const kode = kodeDari(isi);
+
+        if (kode === null) {
+            setGalat('QR itu bukan kode presensi ruang ujian.');
+            return;
+        }
+
+        tutup();
+        padaKode(kode);
+    };
 
     const kirimManual = (e: React.FormEvent) => {
         e.preventDefault();
@@ -235,26 +247,48 @@ export default function PemindaiQr({ padaKode }: Props) {
 
     return (
         <div className="space-y-2.5">
-            <div className="relative overflow-hidden rounded-wf border border-line bg-ink">
-                {/* `playsInline` wajib: tanpa itu iOS membuka video layar
-                    penuh sendiri, dan bingkai bidik di bawah tidak pernah
-                    terlihat. */}
-                <video
-                    ref={video}
-                    playsInline
-                    muted
-                    autoPlay
-                    className="block h-52 w-full object-cover"
-                />
+            {!kameraGagal && (
+                <div className="relative overflow-hidden rounded-wf border border-line bg-ink">
+                    {/* `playsInline` wajib: tanpa itu iOS membuka video layar
+                        penuh sendiri, dan bingkai bidik di bawah tidak pernah
+                        terlihat. */}
+                    <video
+                        ref={video}
+                        playsInline
+                        muted
+                        autoPlay
+                        className="block h-52 w-full object-cover"
+                    />
 
-                <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                    <div className="size-36 rounded-wf border-2 border-white/80" />
+                    <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                        <div className="size-36 rounded-wf border-2 border-white/80" />
+                    </div>
                 </div>
-            </div>
+            )}
 
             {galat !== null && (
                 <p className="text-[11px] leading-relaxed text-warn">{galat}</p>
             )}
+
+            <input
+                ref={fotoInput}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                    void pindaiDariFoto(e.target.files?.[0] ?? null);
+                    e.target.value = '';
+                }}
+            />
+
+            <button
+                type="button"
+                onClick={() => fotoInput.current?.click()}
+                className="tombol w-full"
+            >
+                Ambil foto QR (alternatif kamera)
+            </button>
 
             <form onSubmit={kirimManual} className="space-y-2">
                 <input
