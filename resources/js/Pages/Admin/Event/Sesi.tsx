@@ -541,7 +541,7 @@ function LangkahBerikut({ jalur, baris }: { jalur: string; baris: Baris }) {
 
     if (baris.status === 'siap') {
         return (
-            <Tombol nada="pri" onClick={() => kirim('buka')}>
+            <Tombol nada="pri" onClick={() => kirim('mulai')}>
                 Buka
             </Tombol>
         );
