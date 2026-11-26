@@ -90,7 +90,6 @@ export default function Token({ ruang, token, pemakaian, riwayat }: Props) {
     return (
         <KerangkaPonsel
             judul="Token sesi"
-            gelap
             tabbar={{ ruangId: ruang.id, aktif: 'token' }}
             kiri={
                 <>

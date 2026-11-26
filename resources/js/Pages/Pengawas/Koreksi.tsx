@@ -98,7 +98,6 @@ export default function Koreksi({ ruang, sesi_berakhir, kursi, opsi }: Props) {
     return (
         <KerangkaPonsel
             judul="Koreksi presensi"
-            gelap
             kiri={
                 <>
                     <Chip nada="info">{ruang.kode}</Chip>
