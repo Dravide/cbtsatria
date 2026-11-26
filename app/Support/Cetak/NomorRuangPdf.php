@@ -39,7 +39,7 @@ class NomorRuangPdf
             $kelas = [];
 
             if ($er !== null) {
-                $kelas = collect($this->petaKursi->isi((int) $er->id))
+                $kelas = collect($this->petaKursi->barisRuang((int) $er->id))
                     ->pluck('kelas')
                     ->filter(fn ($k) => is_string($k) && trim($k) !== '')
                     ->unique()
