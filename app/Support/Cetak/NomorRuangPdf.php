@@ -63,7 +63,7 @@ class NomorRuangPdf
             'sekolahModel' => $sekolah,
             'event' => $event?->name,
             'halaman' => $halaman,
-        ])->setPaper('a4', 'portrait')->output();
+        ])->setPaper('a4', 'landscape')->output();
     }
 
     public function namaBerkas(): string
