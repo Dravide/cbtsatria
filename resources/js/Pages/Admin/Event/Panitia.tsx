@@ -116,7 +116,7 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
             // tidak akan punya pintu. Server tetap menolaknya
             // sendiri - layar hanya tidak menjanjikan yang
             // pasti gagal.
-            const bisa = b.akun !== null && adalahPengawas(b);
+            const bisa = b.akun !== null && (adalahPengawas(b) || b.kode !== null);
 
             if (!bisa) {
                 return <span className="text-xs text-ink-3">&mdash;</span>;
@@ -337,7 +337,9 @@ export default function EventPanitia({ event, panitia, akun, ruang, jabatan }: P
                         kelas: 'w-32',
                         render: (b) => <Chip nada={nadaStatus(b.status)}>{b.status}</Chip>,
                     },
-                    ...(tab === 'pengawas' ? [kolomKodePengawas] : []),
+                    ...(tab === 'pengawas' || daftarPanitia.some((p) => p.kode !== null)
+                        ? [kolomKodePengawas]
+                        : []),
                     {
                         judul: '',
                         kelas: 'w-40',
