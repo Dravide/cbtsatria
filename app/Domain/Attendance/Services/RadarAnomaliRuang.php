@@ -42,6 +42,11 @@ class RadarAnomaliRuang
         $posisi = [];
 
         foreach ($penempatan as $p) {
+            $att = $attempt->get($p->id);
+            if ($att === null || $att->status !== ExamAttempt::STATUS_BERJALAN) {
+                continue;
+            }
+
             $no = $petaNomor[$p->student_id] ?? null;
 
             if ($no === null) {

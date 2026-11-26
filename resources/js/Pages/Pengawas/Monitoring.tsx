@@ -1,7 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import KerangkaPonsel from '@/Layouts/KerangkaPonsel';
-import { Chip, Inbox, Peringatan } from '@/Components/ui';
+import { Chip, Inbox, Modal, Peringatan } from '@/Components/ui';
 import { KpiPonsel, KotakPonsel } from '@/Components/ponsel';
 
 /**
@@ -129,6 +129,7 @@ export default function Monitoring({
     const [terbalik, setTerbalik] = useState(false);
     const [autoSegar, setAutoSegar] = useState(true);
     const [terpilihId, setTerpilihId] = useState<number | null>(null);
+    const [bukaRadar, setBukaRadar] = useState(false);
 
     useEffect(() => {
         if (!autoSegar) {
@@ -631,26 +632,40 @@ export default function Monitoring({
             </Inbox>
 
             {radar_anomali.length > 0 && (
-                <KotakPonsel
-                    solid
-                    padat
-                    judul="Radar anomali denah kursi"
-                    kanan={<Chip nada="warn">{radar_anomali.length}</Chip>}
-                >
-                    <div className="space-y-1.5">
-                        {radar_anomali.map((r, idx) => (
-                            <div
-                                key={`${r.kursi_a}-${r.kursi_b}-${idx}`}
-                                className="rounded-wf border border-warn bg-warn/10 px-2.5 py-2 text-xs text-ink"
-                            >
-                                <p className="font-medium">
-                                    Kursi {r.kursi_a} ({r.nama_a}) & Kursi {r.kursi_b} ({r.nama_b})
-                                </p>
-                                <p className="text-[11px] text-ink-2">{r.alasan}</p>
-                            </div>
-                        ))}
-                    </div>
-                </KotakPonsel>
+                <>
+                    <button
+                        type="button"
+                        onClick={() => setBukaRadar(true)}
+                        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-wf border border-warn bg-warn-bg px-3 py-2 text-left text-xs text-ink"
+                    >
+                        <span className="font-medium text-warn">
+                            Radar anomali denah kursi ({radar_anomali.length})
+                        </span>
+                        <span className="shrink-0 rounded-wf border border-warn/40 bg-surface px-2.5 py-1 text-[11px] font-medium text-warn">
+                            Lihat
+                        </span>
+                    </button>
+
+                    <Modal
+                        judul={`Radar anomali denah kursi (${radar_anomali.length})`}
+                        terbuka={bukaRadar}
+                        padaTutup={() => setBukaRadar(false)}
+                    >
+                        <div className="max-h-[65vh] space-y-2 overflow-y-auto pr-1">
+                            {radar_anomali.map((r, idx) => (
+                                <div
+                                    key={`${r.kursi_a}-${r.kursi_b}-${idx}`}
+                                    className="rounded-wf border border-warn bg-warn/10 px-3 py-2 text-xs text-ink"
+                                >
+                                    <p className="font-medium">
+                                        Kursi {r.kursi_a} ({r.nama_a}) &amp; Kursi {r.kursi_b} ({r.nama_b})
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] text-ink-2">{r.alasan}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </Modal>
+                </>
             )}
 
             <KotakPonsel
