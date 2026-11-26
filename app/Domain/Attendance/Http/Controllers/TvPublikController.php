@@ -2,6 +2,7 @@
 
 namespace App\Domain\Attendance\Http\Controllers;
 
+use App\Domain\Attendance\Models\RoomSignal;
 use App\Domain\Attendance\Services\PantauPublik;
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventAnnouncement;
@@ -133,12 +134,40 @@ class TvPublikController
             ->values()
             ->all();
 
+        $sinyal = RoomSignal::query()
+            ->withoutGlobalScopes()
+            ->where('school_id', $sekolah->id)
+            ->where('status', RoomSignal::STATUS_AKTIF)
+            ->with([
+                'room' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'event_room_id'),
+                'room.eventRoom' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'room_id'),
+                'room.eventRoom.room' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'code', 'name', 'location'),
+            ])
+            ->latest('id')
+            ->limit(6)
+            ->get()
+            ->map(fn (RoomSignal $s) => [
+                'id' => (int) $s->id,
+                'ruang_id' => (int) $s->exam_session_room_id,
+                'ruang' => $s->room?->eventRoom?->room?->code ?? 'Ruang',
+                'ruang_nama' => $s->room?->eventRoom?->room?->name,
+                'lokasi' => $s->room?->eventRoom?->room?->location,
+                'jenis' => $s->jenis,
+                'label' => $s->labelJenis(),
+                'catatan' => $s->catatan,
+                'pelapor' => $s->pelapor_nama,
+                'jam' => $s->created_at?->format('H:i'),
+            ])
+            ->values()
+            ->all();
+
         return [
             'potret' => $potret,
             'selesai_iso' => $selesaiIso,
             'server_iso' => now()->toIso8601String(),
             'pengumuman' => $pengumuman,
             'sesi_berikutnya' => $sesiBerikutnya,
+            'sinyal' => $sinyal,
         ];
     }
 

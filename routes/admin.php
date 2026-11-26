@@ -144,6 +144,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/ruang', [RoomController::class, 'store']);
     // Segmen statis harus sebelum /ruang/{ruang} agar tidak di-bind sebagai id ruang.
     Route::get('/ruang/kartu', [RoomController::class, 'kartu'])->name('ruang.kartu');
+    Route::get('/ruang/nomor-pdf', [RoomController::class, 'nomorPdf'])->name('ruang.nomor-pdf');
     Route::post('/ruang/terbitkan-massal', [RoomController::class, 'terbitkanMassal'])->name('ruang.terbitkan-massal');
     Route::put('/ruang/kapasitas-massal', [RoomController::class, 'kapasitasMassal'])->name('ruang.kapasitas-massal');
     Route::put('/ruang/{ruang}', [RoomController::class, 'update']);

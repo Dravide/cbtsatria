@@ -107,6 +107,12 @@ export default function Ruang({ baris, filter, ringkasan, jumlah }: Props) {
                     >
                         Cetak kartu pintu
                     </TombolTautan>
+                    <TombolTautan
+                        href="/admin/ruang/nomor-pdf"
+                        title="Unduh nomor ruang A4 (nama event, kode ruang besar, dan kelas)"
+                    >
+                        Unduh nomor ruang (PDF)
+                    </TombolTautan>
                     {/* Massal, bukan per ruang: yang menyiapkan hari ujian
                         menyalakan seluruh pintu sekaligus. Sama seperti pada
                         kode pengawas, tombol ini hanya melayani ruang yang

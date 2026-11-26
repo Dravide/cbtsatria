@@ -2,6 +2,7 @@
 
 use App\Domain\Academic\Models\AcademicYear;
 use App\Domain\Academic\Models\Semester;
+use App\Domain\Attendance\Models\RoomSignal;
 use App\Domain\Event\Enums\EventStatus;
 use App\Domain\Event\Models\EventAnnouncement;
 use App\Domain\Exam\Services\SesiService;
@@ -76,4 +77,38 @@ it('menampilkan potret live, pengumuman aktif, dan denyut JSON tanpa data siswa'
     foreach ($data['siswa'] as $siswa) {
         expect($json)->not->toContain($siswa->name);
     }
+});
+
+it('menampilkan sinyal teknisi aktif pada /tv dan /tv/denyut', function () {
+    $data = siapkanUjianSiswa($this->sekolah, $this->tahun, $this->semester, $this->admin);
+    $data['event']->forceFill(['status' => EventStatus::Ongoing])->save();
+
+    RoomSignal::query()->withoutGlobalScopes()->create([
+        'school_id' => $this->sekolah->id,
+        'exam_session_room_id' => $data['ruang'][0]->id,
+        'jenis' => 'wifi_putus',
+        'catatan' => 'Router lantai 1 putus nyambung',
+        'pelapor_id' => $data['pengawas']->id,
+        'pelapor_nama' => $data['pengawas']->name,
+        'status' => RoomSignal::STATUS_AKTIF,
+    ]);
+
+    Auth::logout();
+    app(SchoolResolver::class)->forget();
+
+    $props = $this->get('/tv/'.$this->sekolah->papan_slug)
+        ->assertOk()
+        ->viewData('page')['props'];
+
+    expect($props['sinyal'])->toHaveCount(1)
+        ->and($props['sinyal'][0]['jenis'])->toBe('wifi_putus')
+        ->and($props['sinyal'][0]['label'])->toBe('Wi-Fi / Jaringan Putus')
+        ->and($props['sinyal'][0]['catatan'])->toBe('Router lantai 1 putus nyambung');
+
+    $denyut = $this->getJson('/tv/'.$this->sekolah->papan_slug.'/denyut')
+        ->assertOk()
+        ->json();
+
+    expect($denyut['sinyal'])->toHaveCount(1)
+        ->and($denyut['sinyal'][0]['ruang_id'])->toBe($data['ruang'][0]->id);
 });

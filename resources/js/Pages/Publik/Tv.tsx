@@ -65,12 +65,26 @@ type SesiBerikutnya = {
     jam: string;
 };
 
+type SinyalTv = {
+    id: number;
+    ruang_id: number;
+    ruang: string;
+    ruang_nama: string | null;
+    lokasi: string | null;
+    jenis: string;
+    label: string;
+    catatan: string | null;
+    pelapor: string | null;
+    jam: string | null;
+};
+
 type MuatanTv = {
     potret: PotretTv;
     selesai_iso: string | null;
     server_iso: string;
     pengumuman: PengumumanTv[];
     sesi_berikutnya: SesiBerikutnya[];
+    sinyal?: SinyalTv[];
 };
 
 type Props = MuatanTv & {
@@ -121,6 +135,7 @@ export default function Tv({
     server_iso: serverAwal,
     pengumuman: pengumumanAwal,
     sesi_berikutnya: berikutAwal,
+    sinyal: sinyalAwal = [],
     denyut_url,
 }: Props) {
     const { identitasAplikasi } = usePage().props as unknown as {
@@ -133,6 +148,7 @@ export default function Tv({
         server_iso: serverAwal,
         pengumuman: pengumumanAwal,
         sesi_berikutnya: berikutAwal,
+        sinyal: sinyalAwal,
     });
 
     const [selisihJamMs, setSelisihJamMs] = useState<number>(
@@ -146,6 +162,12 @@ export default function Tv({
     const [galatKoneksi, setGalatKoneksi] = useState<string | null>(null);
 
     const { potret, selesai_iso, pengumuman, sesi_berikutnya } = muatan;
+    const sinyal = muatan.sinyal ?? [];
+
+    const sinyalPerRuang = useMemo(
+        () => new Set(sinyal.map((s) => s.ruang_id)),
+        [sinyal],
+    );
 
     // Jam digital & hitung mundur tiap detik
     useEffect(() => {
@@ -195,17 +217,19 @@ export default function Tv({
         return () => window.clearInterval(id);
     }, [segarkan]);
 
-    // Urutkan ruang yang punya kendala (terkunci/terputus) ke depan
+    // Urutkan ruang yang punya sinyal teknisi / kendala (terkunci/terputus) ke depan
     const ruangUrut = useMemo(() => {
         return [...potret.ruang].sort((a, b) => {
-            const skorA = a.terkunci * 100 + a.terputus * 10;
-            const skorB = b.terkunci * 100 + b.terputus * 10;
+            const sinyalA = sinyalPerRuang.has(a.id) ? 1000 : 0;
+            const sinyalB = sinyalPerRuang.has(b.id) ? 1000 : 0;
+            const skorA = sinyalA + a.terkunci * 100 + a.terputus * 10;
+            const skorB = sinyalB + b.terkunci * 100 + b.terputus * 10;
             if (skorA !== skorB) {
                 return skorB - skorA;
             }
             return a.kode.localeCompare(b.kode, 'id');
         });
-    }, [potret.ruang]);
+    }, [potret.ruang, sinyalPerRuang]);
 
     const totalHalaman = Math.max(1, Math.ceil(ruangUrut.length / RUANG_PER_SLIDE));
     const halamanAman = halaman % totalHalaman;
@@ -458,12 +482,14 @@ export default function Tv({
                                     const adaTerkunci = r.terkunci > 0;
                                     const adaTerputus = r.terputus > 0;
 
+                                    const adaSinyal = sinyalPerRuang.has(r.id);
+
                                     return (
                                         <article
                                             key={r.id}
                                             className={
                                                 'flex flex-col justify-between rounded-2xl border p-4 transition-colors ' +
-                                                (adaTerkunci
+                                                (adaSinyal || adaTerkunci
                                                     ? 'border-rose-500/60 bg-rose-950/35'
                                                     : adaTerputus
                                                       ? 'border-amber-500/50 bg-amber-950/25'
@@ -489,22 +515,26 @@ export default function Tv({
                                                     <span
                                                         className={
                                                             'shrink-0 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-semibold ' +
-                                                            (r.laporan === 'selesai'
-                                                                ? 'bg-emerald-500/20 text-emerald-400'
-                                                                : adaTerkunci
-                                                                  ? 'bg-rose-500/25 text-rose-300'
-                                                                  : adaTerputus
-                                                                    ? 'bg-amber-500/25 text-amber-300'
-                                                                    : 'bg-slate-500/20 text-slate-400')
+                                                            (adaSinyal
+                                                                ? 'animate-pulse bg-rose-500/30 text-rose-200'
+                                                                : r.laporan === 'selesai'
+                                                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                                                  : adaTerkunci
+                                                                    ? 'bg-rose-500/25 text-rose-300'
+                                                                    : adaTerputus
+                                                                      ? 'bg-amber-500/25 text-amber-300'
+                                                                      : 'bg-slate-500/20 text-slate-400')
                                                         }
                                                     >
-                                                        {adaTerkunci
-                                                            ? `${r.terkunci} terkunci`
-                                                            : adaTerputus
-                                                              ? `${r.terputus} terputus`
-                                                              : r.laporan === 'selesai'
-                                                                ? 'BA selesai'
-                                                                : `${r.peserta} peserta`}
+                                                        {adaSinyal
+                                                            ? 'Sinyal teknisi'
+                                                            : adaTerkunci
+                                                              ? `${r.terkunci} terkunci`
+                                                              : adaTerputus
+                                                                ? `${r.terputus} terputus`
+                                                                : r.laporan === 'selesai'
+                                                                  ? 'BA selesai'
+                                                                  : `${r.peserta} peserta`}
                                                     </span>
                                                 </div>
 
@@ -647,6 +677,53 @@ export default function Tv({
                                 </p>
                             </div>
                         </section>
+
+                        {/* Sinyal Teknisi / Panitia */}
+                        {sinyal.length > 0 && (
+                            <section className="rounded-2xl border border-rose-500/60 bg-rose-950/35 p-4">
+                                <div className="mb-2.5 flex items-center justify-between gap-2">
+                                    <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-rose-300">
+                                        <span className="inline-block size-2 animate-ping rounded-full bg-rose-400" />
+                                        Sinyal Teknisi / Panitia
+                                    </h2>
+                                    <span className="rounded-full bg-rose-500/25 px-2 py-0.5 font-mono text-[11px] font-semibold text-rose-200">
+                                        {sinyal.length} aktif
+                                    </span>
+                                </div>
+                                <div className="space-y-2">
+                                    {sinyal.slice(0, 3).map((s) => (
+                                        <article
+                                            key={s.id}
+                                            className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2"
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="truncate text-sm font-bold text-rose-200">
+                                                    {s.ruang}
+                                                    {s.lokasi ? ` · ${s.lokasi}` : ''} — {s.label}
+                                                </p>
+                                                {s.jam && (
+                                                    <span className="shrink-0 font-mono text-[11px] text-rose-300">
+                                                        {s.jam}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {(s.catatan || s.pelapor) && (
+                                                <p className="mt-0.5 truncate text-xs text-rose-100/80">
+                                                    {[s.catatan, s.pelapor ? `Pelapor: ${s.pelapor}` : null]
+                                                        .filter(Boolean)
+                                                        .join(' · ')}
+                                                </p>
+                                            )}
+                                        </article>
+                                    ))}
+                                    {sinyal.length > 3 && (
+                                        <p className="text-right font-mono text-[11px] text-rose-300">
+                                            +{sinyal.length - 3} sinyal lainnya menunggu penanganan
+                                        </p>
+                                    )}
+                                </div>
+                            </section>
+                        )}
 
                         {/* Pengumuman Panitia */}
                         <section

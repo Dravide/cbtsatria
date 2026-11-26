@@ -10,6 +10,7 @@ use App\Domain\Facility\Services\KartuPintu;
 use App\Domain\Facility\Services\RoomEntryLinkService;
 use App\Domain\Tenancy\Models\School;
 use App\Support\Cetak\KopSekolah;
+use App\Support\Cetak\NomorRuangPdf;
 use App\Support\TabelQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -461,6 +462,27 @@ class RoomController
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$kartu->namaBerkas().'"',
+        ]);
+    }
+
+    /**
+     * Unduh nomor ruang ukuran A4 (nama event, kode ruang besar, dan kelas peserta).
+     */
+    public function nomorPdf(Request $request, NomorRuangPdf $cetak, ActivityLogger $logger): HttpResponse
+    {
+        Gate::authorize('viewAny', Room::class);
+
+        $ruang = Room::query()->orderBy('code')->get();
+        $sekolah = School::query()->findOrFail($ruang->first()?->school_id ?? auth()->user()?->school_id);
+        $eventId = $request->session()->get('event_aktif');
+
+        $pdf = $cetak->buat($ruang, $sekolah, is_numeric($eventId) ? (int) $eventId : null);
+
+        $logger->log('Mengunduh PDF nomor ruang A4', null, ['jumlah' => $ruang->count()]);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$cetak->namaBerkas().'"',
         ]);
     }
 }
