@@ -1584,39 +1584,29 @@ class PengawasService
     }
 
     /**
-     * Calon pengawas khusus ruang perangkat: seluruh anggota panitia event aktif yang memiliki akun.
-     * Anggota panitia non-pengawas (teknisi/ketua/koordinator/anggota) diprioritaskan lebih dulu
-     * agar pengawas reguler tetap fokus di ruang reguler.
+     * Calon pengawas khusus ruang perangkat: anggota panitia event aktif (non-pengawas)
+     * yang memiliki akun, seperti Ketua, Proktor, Teknisi, atau Anggota Panitia.
      *
      * @return array<int, User>
      */
     public function calonPanitia(SchoolEvent $event): array
     {
-        $anggota = $event->committee()
+        $idPanitia = $event->committee()
             ->where('status', 'aktif')
+            ->where('position', 'not like', '%pengawas%')
             ->whereNotNull('user_id')
-            ->get(['user_id', 'position']);
+            ->pluck('user_id')
+            ->all();
 
-        if ($anggota->isEmpty()) {
+        if ($idPanitia === []) {
             return [];
         }
 
-        $posisiPerUser = $anggota->mapWithKeys(fn ($a) => [
-            (int) $a->user_id => mb_strtolower((string) $a->position),
-        ]);
-
         return User::query()
-            ->whereIn('id', $posisiPerUser->keys()->all())
+            ->whereIn('id', $idPanitia)
             ->where('is_active', true)
             ->orderBy('name')
             ->get()
-            ->sortBy(function (User $u) use ($posisiPerUser): array {
-                $pos = $posisiPerUser->get($u->id, '');
-                $bukanPengawas = str_contains($pos, 'pengawas') ? 1 : 0;
-
-                return [$bukanPengawas, $u->name];
-            })
-            ->values()
             ->all();
     }
 

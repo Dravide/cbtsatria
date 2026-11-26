@@ -541,16 +541,20 @@ class ExamPengawasController
                 ->all(),
 
             'calon_panitia' => collect($penugasan->calonPanitia($event))
-                ->map(function (User $u) use ($aturan, $bebanEvent, $kuotaPerOrang, $pengecualian, $sesi): array {
+                ->map(function (User $u) use ($event, $aturan, $bebanEvent, $kuotaPerOrang, $pengecualian, $sesi): array {
                     $terpakai = $bebanEvent[$u->id] ?? 0;
                     $maks = $kuotaPerOrang[$u->id] ?? $aturan['maks_per_event'];
                     $kunci = "{$sesi->id}:{$u->id}";
+                    $jabatan = $event->committee()
+                        ->where('user_id', $u->id)
+                        ->where('status', 'aktif')
+                        ->value('position') ?? 'Panitia';
 
                     return [
                         'id' => $u->id,
                         'nama' => $u->name,
                         'username' => $u->username,
-                        'peran' => $u->role->label(),
+                        'peran' => $jabatan,
                         'terpakai' => $terpakai,
                         'maks' => $maks,
                         'dikecualikan' => array_key_exists($kunci, $pengecualian),

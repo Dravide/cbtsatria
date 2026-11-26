@@ -91,7 +91,7 @@ export default function PengawasSesi({
     calon_panitia,
     jalur_induk,
 }: Props) {
-    const daftarPanitia = calon_panitia ?? calon;
+    const daftarPanitia = calon_panitia ?? [];
     const jalur = `/admin/events/${event.id}`;
 
     // Ruang yang panel "Tugaskan"-nya terbuka. Satu pada satu waktu: panel
@@ -307,7 +307,11 @@ export default function PengawasSesi({
                                                         };
                                                     })}
                                                     padaPilih={(id) => setOrangId(id)}
-                                                    kosong="Tidak ada pengawas yang cocok."
+                                                    kosong={
+                                                        r.khusus_perangkat
+                                                            ? 'Belum ada panitia event (non-pengawas) yang memiliki akun.'
+                                                            : 'Tidak ada pengawas yang cocok.'
+                                                    }
                                                 />
                                             </div>
 
