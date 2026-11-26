@@ -67,7 +67,17 @@ it('mencatat durasi per butir melalui denyut dan menerima paket darurat offline 
     expect($jawaban?->answer_json)->toBe(['opsi' => ['B']])
         ->and($attempt->refresh()->status)->toBe(ExamAttempt::STATUS_DIKIRIM);
 
-    // 3. Paket dengan tanda tangan palsu ditolak.
+    // 3. Paket darurat terkompresi (Z1:deflate) juga diterima dengan validasi HMAC yang sama.
+    $payloadZ = ['a' => $attempt->id, 'j' => [$butir->id => ['opsi' => ['C']]]];
+    $sigZ = hash_hmac('sha256', json_encode($payloadZ, JSON_UNESCAPED_UNICODE), $secret);
+    $paketZ = 'Z1:'.base64_encode(gzcompress(json_encode([...$payloadZ, 's' => $sigZ])));
+
+    $this->post("/pengawas/ruang/{$ruang->id}/qr-darurat", ['paket' => $paketZ])
+        ->assertSessionHas('sukses');
+
+    expect($jawaban->refresh()->answer_json)->toBe(['opsi' => ['C']]);
+
+    // 4. Paket dengan tanda tangan palsu ditolak.
     $palsu = base64_encode(json_encode([...$payload, 's' => 'tanda-tangan-palsu']));
     $this->post("/pengawas/ruang/{$ruang->id}/qr-darurat", ['paket' => $palsu])
         ->assertSessionHas('galat');

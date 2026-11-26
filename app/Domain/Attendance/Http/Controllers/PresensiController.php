@@ -696,7 +696,7 @@ class PresensiController
             'ada' => true,
             'label' => $attempt->labelStatus(),
             'nada' => $attempt->nadaStatus(),
-            'terhubung' => $attempt->terhubung(),
+            'terhubung' => $attempt->status === ExamAttempt::STATUS_BERJALAN ? $attempt->terhubung() : null,
             'pelanggaran' => $attempt->violation_count,
             'terakhir' => $attempt->last_seen_at?->format('H:i'),
         ];

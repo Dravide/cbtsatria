@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import KerangkaSiswa from '@/Layouts/KerangkaSiswa';
 import { Chip, Inbox, Modal } from '@/Components/ui';
@@ -8,80 +9,11 @@ import { renderRumusDalamHtml } from '@/lib/matematika';
 import * as layar from '@/Components/layar';
 
 /**
- * Pengerjaan soal - wireframe-peran.html plate 22, 23, dan lapisan 24.
- *
- * =====================================================================
- * Kunci jawaban tidak pernah ada di berkas ini, dan itu bisa diperiksa
- * =====================================================================
- * Seluruh butir datang lewat `ExamQuestion::untukSiswa()` - lihat
- * KerjakanSiswaController. Artinya `kunci_json`, `rubrik_json`, dan
- * `pembahasan_json` memang tidak ada di props. Laman ini karena itu TIDAK
- * bisa menilai jawaban anak, dan memang tidak boleh: penilaian otomatis
- * adalah Fase 8, dan laman yang mengira-ngira benar/salah berarti
- * mengirimkan jawabannya dalam bentuk lain.
- *
- * Laman ini juga TIDAK menampilkan satuan jawaban soal angka, dan itu
- * konsekuensi yang sama: `satuan` disimpan di dalam KUNCI
- * (`SkemaJenisSoal::angka()`), dan kunci tidak dikirim ke sini. Satuan
- * karena itu harus ditulis Guru di dalam teks soalnya.
- *
- * =====================================================================
- * Bentuk opsi dan butir BERBEDA dari bentuk bank soal
- * =====================================================================
- * Yang sampai ke sini adalah `opsi_json` dan `butir_json` hasil
- * `PembekuPaket`, dan bentuknya dipadatkan untuk pembacaan:
- *
- *   opsi   { kunci, teks }                        - bukan { option_key, content_json }
- *   butir  { kunci, grup, teks, pasangan, posisi } - bukan { item_key, item_group, ... }
- *
- * `teks` di keduanya MASIH berupa objek `{teks: html}` - ia adalah
- * `content_json` apa adanya. Karena itu ada `teksDari()` di bawah, bukan
- * `o.teks` yang ditulis langsung di JSX.
- *
- * ---------------------------------------------------------------------
- * Tiga pengirim latar belakang, dan ketiganya gagal dengan diam
- * ---------------------------------------------------------------------
- * Blueprint `:683` menulis aturannya: "Kegagalan mengirim catatan
- * pelanggaran tidak boleh menahan penyimpanan jawaban, karena autosave
- * jauh lebih penting daripada log."
- *
- *   1. SIMPAN   - selang `simpan_tiap_detik` dari pengaturan sekolah, plus
- *                 sekali saat butir berpindah. Jawaban 409 berarti versi
- *                 yang dipegang laman ini sudah basi: butirnya dimuat ulang.
- *   2. DENYUT   - tiap 30 detik (PRD §12.2). Jawabannya yang menentukan:
- *                 `terkunci` memindahkan anak ke plate 25 SEKARANG, bukan
- *                 pada penyimpanan berikutnya.
- *   3. LAPOR    - saat kejadian pantangan terjadi. Dikirim lepas, dan
- *                 hasilnya hanya dipakai untuk penghitung sisa menuju kunci.
- *
- * ---------------------------------------------------------------------
- * `fetch` dan bukan `router.post`
- * ---------------------------------------------------------------------
- * `router.post` adalah navigasi: ia mengganti props halaman, dan pada laman
- * yang sedang dikerjakan itu berarti butir yang sedang dibaca bisa berganti
- * di tengah kalimat. Autosave yang memindahkan anak dari soalnya lebih
- * merugikan daripada autosave yang gagal.
- *
- * Token CSRF dibaca dari cookie `XSRF-TOKEN`, yang MEMANG bisa dibaca JS
- * (`newCookie(..., false)`), dan dikirim sebagai header `X-XSRF-TOKEN` -
- * bentuk yang didekripsi `PreventRequestForgery::getTokenFromRequest()`.
- * Tidak ada meta tag dan tidak ada rute baru untuk itu.
- *
- * ---------------------------------------------------------------------
- * Yang TIDAK dikerjakan di sini, dan disengaja
- * ---------------------------------------------------------------------
- * Tidak ada penilaian, dan tidak ada pengacakan ulang (urutan datang dari
- * server).
- *
- * Penguncian layar penuh TIDAK dimulai dari sini: `requestFullscreen()`
- * hanya diizinkan peramban dari gestur pengguna, sehingga yang memintanya
- * adalah klik "Mulai" di gerbang - lihat `Siswa/Gerbang.tsx`. Yang
- * dikerjakan laman ini adalah MENJAGANYA: bila `wajib_layar_penuh` menyala
- * dan anak keluar dari layar penuh, kejadiannya dilaporkan sebagai
- * `keluar_layar_penuh`.
+ * Laman pengerjaan soal siswa. Kunci, rubrik, dan pembahasan tidak pernah dikirim ke klien (`ExamQuestion::untukSiswa()`).
+ * Autosave, denyut, dan laporan pelanggaran memakai `fetch` (dengan cookie `XSRF-TOKEN`) agar tidak memicu navigasi Inertia.
  */
 
-/** Satu blok `content_json` - bentuknya `{teks: html}`. */
+/** Satu blok `content_json` berbentuk `{teks: html}`. */
 type Blok = { teks?: string } | null;
 
 type OpsiSnapshot = { kunci: string; teks: Blok; media?: MediaButir[] | null };
@@ -149,53 +81,21 @@ type Props = {
     butir: Butir[];
     progres: Progres;
     simpan_tiap_detik: number;
-    /**
-     * Event menuntut layar penuh - `SchoolEvent::enforce_fullscreen`.
-     *
-     * Dibaca sebagai boolean, bukan sebagai aturan main: yang dilakukan laman
-     * ini atasnya hanyalah menjaga layar penuh dan melaporkan kehilangannya.
-     * Ambang pelanggaran tetap tidak pernah sampai ke peramban.
-     */
+    /** Event mewajibkan layar penuh (`SchoolEvent::enforce_fullscreen`); ambang pelanggaran tetap di server. */
     wajib_layar_penuh: boolean;
-    /**
-     * Identitas untuk tanda air - nama dan nomor induk siswa.
-     *
-     * Tanda air ada karena screenshot TIDAK BISA diblokir peramban, dan
-     * menyembunyikan fakta itu dari perancang berikutnya berarti ia akan
-     * menulis `preventDefault` pada tombol yang tidak mengirim kejadian apa
-     * pun. Yang bisa dikerjakan hanyalah membuat hasil tangkapannya menyebut
-     * pemiliknya.
-     */
+    /** Identitas siswa untuk tanda air karena peramban tidak bisa memblokir tangkapan layar. */
     tanda_air: { nama: string; nomor_induk: string };
     qr_secret?: string;
-    /**
-     * Tiga penjaga layar milik event - `SchoolEvent::detect_split_screen`,
-     * `detect_float_window`, `show_watermark`.
-     *
-     * Dipisahkan dari `tanda_air` karena keduanya menjawab pertanyaan
-     * berbeda: `tanda_air` adalah BAHAN yang dicetak, ketiganya adalah
-     * apakah penjaganya dinyalakan. Ujian di ponsel pribadi butuh penjaga
-     * layar terbagi mati - rotasi dan papan tik menghasilkan viewport sempit
-     * tanpa siapa pun membelah layar - sementara tanda airnya tetap berguna.
-     */
+    /** Penjaga layar dari pengaturan event (`detect_split_screen`, `detect_float_window`, `show_watermark`). */
     deteksi_layar_terbagi: boolean;
     deteksi_jendela_mengambang: boolean;
     tanda_air_aktif: boolean;
 };
 
-/** Selang denyut - PRD §12.2, dan tidak dibaca dari pengaturan. */
+/** Selang denyut ke server dalam milidetik. */
 const SELANG_DENYUT = 30_000;
 
-/**
- * Batas karakter uraian, dan ia SALINAN dari `SkemaJenisSoal::BATAS_TEKS`.
- *
- * Disalin karena batas itu tidak ikut ke peramban: yang tersimpan di
- * `skor_json` hanyalah konfigurasi skor, sementara rubrik - satu-satunya
- * tempat yang memuat batas per soal - sengaja tidak pernah dikirim ke sini.
- * Yang menjaga salinan ini tetap benar: server tetap menolak teks yang lebih
- * panjang, sehingga yang hilang kalau angkanya berubah hanyalah penghitung
- * di layar, bukan kebenarannya.
- */
+/** Salinan `SkemaJenisSoal::BATAS_TEKS` untuk penghitung karakter; batas akhir tetap divalidasi server. */
 const BATAS_URAIAN = 20_000;
 
 export default function Kerjakan({
@@ -213,6 +113,8 @@ export default function Kerjakan({
 }: Props) {
     const [indeks, setIndeks] = useState(0);
     const [kodeDarurat, setKodeDarurat] = useState<string | null>(null);
+    const [qrDaruratImg, setQrDaruratImg] = useState<string | null>(null);
+    const [qrTerlaluBesar, setQrTerlaluBesar] = useState(false);
     const durasiButirRef = useRef<Record<number, number>>({});
     const [sisa, setSisa] = useState(attempt.sisa_detik);
     const [ringkas, setRingkas] = useState(progres);
@@ -229,14 +131,9 @@ export default function Kerjakan({
     );
     const sedangSyncRef = useRef(false);
 
-    // Daftar soal hanya muncul saat diminta - lihat `DaftarSoal` di bawah.
     const [daftarTerbuka, setDaftarTerbuka] = useState(false);
 
-    // Jawaban dipegang di satu objek, bukan di state per butir: jawaban
-    // harus bertahan saat anak berpindah butir lalu kembali, dan state yang
-    // hidup di dalam komponen butir akan hilang begitu butirnya dilepas.
-    // Cadangan lokal dari `localStorage` digabungkan agar jawaban yang belum
-    // sempat terkirim saat offline tidak hilang jika halaman dimuat ulang.
+    // Simpan semua jawaban di state induk agar bertahan saat pindah butir, digabung dengan cadangan offline localStorage.
     const [jawaban, setJawaban] = useState<Record<number, Record<string, unknown>>>(() => ({
         ...Object.fromEntries(
             butir.filter((b) => b.jawaban?.isi).map((b) => [b.id, b.jawaban?.isi ?? {}]),
@@ -248,53 +145,27 @@ export default function Kerjakan({
         Object.fromEntries(butir.map((b) => [b.id, b.jawaban?.ditandai ?? false])),
     );
 
-    // Versi yang dipegang laman ini per butir - dipakai optimistic
-    // concurrency. Di ref, bukan state: menaikkannya tidak boleh memicu
-    // render, karena render di tengah pengetikan adalah hal yang justru
-    // ingin dihindari.
+    // Versi optimistic concurrency per butir; disimpan di ref agar tidak memicu render saat mengetik.
     const versi = useRef<Record<number, number>>(
         Object.fromEntries(butir.map((b) => [b.id, b.jawaban?.versi ?? 0])),
     );
 
-    // Salinan jawaban terbaru untuk autosave dan untuk penyimpanan saat
-    // berpindah butir. Keduanya membacanya dari sini, bukan dari state:
-    // autosave yang menjadikan `jawaban` sebagai dependensi akan MEMBANGUN
-    // ULANG jamnya pada setiap ketukan tombol, dan jam yang selalu dibangun
-    // ulang tidak pernah sampai ke detiknya.
+    // Ref jawaban terbaru agar interval autosave tidak di-reset pada setiap ketukan tombol.
     const jawabanRef = useRef(jawaban);
     jawabanRef.current = jawaban;
 
-    // Peringatan tingkat 1 - plate 24. `sisa` datang dari server, bukan
-    // dihitung dari ambang - ambang sekolah tidak pernah dikirim ke
-    // peramban, dan itu keputusan `TindakanPelanggaran`.
+    // Peringatan pelanggaran tingkat 1; `sisa` dihitung server agar ambang tidak bocor ke klien.
     const [peringatan, setPeringatan] = useState<{ sisa: number | null } | null>(null);
 
-    // Dipakai penjaga plate 24 untuk mengukur lama perpindahan.
     const mulaiPindahTab = useRef<number | null>(null);
 
     const aktif = butir[indeks];
 
-    // Nomor soal yang SEDANG DILIHAT anak, dan ia dipegang di ref - bukan
-    // dijadikan dependensi efek denyut.
-    //
-    // Dua alasan, dan keduanya sama dengan alasan `jawabanRef` di atas.
-    // Pertama, `indeks` sebagai dependensi akan MEMBANGUN ULANG jam denyutnya
-    // pada setiap perpindahan soal, sehingga denyut justru paling jarang
-    // terkirim dari anak yang paling sering berpindah. Kedua, yang perlu
-    // dikirim bukan nomor saat efeknya dipasang, melainkan nomor saat
-    // denyutnya benar-benar berangkat.
-    //
-    // `aktif.nomor` adalah `attempt_questions.display_order` - nomor YANG
-    // DILIHAT anak, yang berbeda dari `exam_questions.position` begitu urutan
-    // soalnya dikocok. Server tidak bisa menghitungnya sendiri, dan itulah
-    // sebabnya ia ikut menumpang di sini. `indeks + 1` hanya jaring pengaman
-    // untuk butir yang gagal dirender; nilainya selalu datang dari server.
+    // Ref nomor soal yang sedang dilihat (`display_order`) agar interval denyut tidak di-reset saat berpindah soal.
     const nomorRef = useRef<number>(aktif?.nomor ?? 1);
     nomorRef.current = aktif?.nomor ?? indeks + 1;
 
-    /* ------------------------------------------------------------- Pengirim */
-
-    /** Kirim JSON ke endpoint siswa, dengan token CSRF dari cookie. */
+    /** Kirim JSON ke endpoint siswa dengan token CSRF dari cookie `XSRF-TOKEN`. */
     const kirimJson = useCallback(async (jalur: string, isi: unknown): Promise<unknown> => {
         const cocok = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
 
@@ -310,10 +181,7 @@ export default function Kerjakan({
             body: JSON.stringify(isi),
         });
 
-        // 419 = sesi CSRF kedaluwarsa, dan itu berarti halaman ini sudah
-        // terlalu lama terbuka. Yang benar adalah memuat ulang, bukan
-        // mengulang kiriman - muat ulang akan memulihkan tokennya sekaligus
-        // memperbarui sisa waktu dari server.
+        // 419 menandakan sesi CSRF kedaluwarsa; muat ulang halaman untuk memulihkan token dan sisa waktu.
         if (tanggapan.status === 419) {
             window.location.reload();
 
@@ -327,7 +195,7 @@ export default function Kerjakan({
         return tanggapan.json();
     }, []);
 
-    /** Laporan pelanggaran - dikirim lepas, tidak pernah ditunggu. */
+    /** Kirim laporan pelanggaran secara fire-and-forget agar tidak menghambat autosave. */
     const lapor = useCallback(
         (jenis: string, durasiMs?: number) => {
             kirimJson(`/siswa/ujian/${peserta.peserta_id}/lapor`, {
@@ -344,18 +212,13 @@ export default function Kerjakan({
                         void kirimTertunda();
                     }
 
-                    // Namanya dari `TindakanPelanggaran::toArray()`, dan
-                    // dibaca apa adanya: `dikunci` dan `diperingatkan` adalah
-                    // keputusan server atas rangkaiannya, bukan kesimpulan
-                    // laman ini atas satu kejadian.
+                    // Keputusan `dikunci` dan `diperingatkan` berasal dari server (`TindakanPelanggaran`).
                     const t = hasil as {
                         dikunci?: boolean;
                         diperingatkan?: boolean;
                         sisa_menuju_kunci?: number | null;
                     };
 
-                    // Terkunci seketika (sesi ganda) - pindah ke plate 25
-                    // sekarang juga, bukan menunggu denyut berikutnya.
                     if (t.dikunci) {
                         router.visit(`/siswa/ujian/${peserta.peserta_id}/terkunci`);
 
@@ -367,7 +230,7 @@ export default function Kerjakan({
                     }
                 })
                 .catch(() => {
-                    // Diam, dan disengaja: lihat catatan berkas ini.
+                    // Sengaja diam agar kegagalan log pelanggaran tidak menahan autosave.
                 });
         },
         [kirimJson, peserta.peserta_id],
@@ -397,7 +260,7 @@ export default function Kerjakan({
         [attempt.id],
     );
 
-    /** Simpan satu butir. `senyap` berarti autosave, bukan aksi anak. */
+    /** Simpan satu butir; `senyap` menandakan autosave latar belakang. */
     const simpan = useCallback(
         async (butirId: number, isi: Record<string, unknown>, senyap: boolean): Promise<boolean> => {
             if (!senyap) {
@@ -422,10 +285,7 @@ export default function Kerjakan({
 
                 return true;
             } catch (galat) {
-                // 409 - versi basi. Butirnya dimuat ulang, dan yang lebih
-                // baru menang. Jawaban di layar TIDAK ditimpa: anak yang
-                // sedang mengetik tidak boleh kehilangan ketikannya karena
-                // tab lain menyimpan lebih dulu.
+                // 409 (versi basi): muat ulang prop butir tanpa menimpa ketikan yang sedang aktif di layar.
                 if (String(galat).includes('409')) {
                     router.reload({ only: ['butir', 'progres'] });
                 }
@@ -438,7 +298,7 @@ export default function Kerjakan({
         [hapusTertunda, kirimJson, peserta.peserta_id],
     );
 
-    /** Kirim seluruh jawaban yang tertunda di localStorage saat koneksi pulih. */
+    /** Sinkronkan jawaban tertunda dari localStorage saat koneksi pulih. */
     const kirimTertunda = useCallback(async () => {
         if (sedangSyncRef.current) {
             return;
@@ -484,8 +344,6 @@ export default function Kerjakan({
         };
     }, [kirimTertunda]);
 
-    /* -------------------------------------------------------------- Denyut */
-
     useEffect(() => {
         const aktifId = butir[indeks]?.id;
         if (!aktifId) {
@@ -508,9 +366,6 @@ export default function Kerjakan({
                 perangkat,
                 layar_penuh: document.fullscreenElement !== null,
                 pelindung: true,
-                // Nomor soal yang sedang dibuka. Bacaan dari ref supaya
-                // denyutnya tidak dipasang ulang tiap kali anak berpindah
-                // soal - lihat catatan `nomorRef` di atas.
                 nomor: nomorRef.current,
                 durasi_butir: delta,
             })
@@ -524,8 +379,6 @@ export default function Kerjakan({
                         void kirimTertunda();
                     }
 
-                    // `DenyutService::catat()` mengembalikan tepat kunci-kunci
-                    // ini - lihat docblock-nya.
                     const h = hasil as {
                         terkunci?: boolean;
                         sisa_detik?: number;
@@ -541,10 +394,7 @@ export default function Kerjakan({
                         setRingkas(h.progres);
                     }
 
-                    // Attempt yang ditutup - oleh pengawas, oleh kedaluwarsa,
-                    // maupun oleh tab lain - memindahkan anak ke laman yang
-                    // benar. Ini satu-satunya jalan anak yang menutup tab lalu
-                    // kembali tahu ujiannya sudah berakhir.
+                    // Alihkan segera bila attempt sudah dikunci atau ditutup dari server/tab lain.
                     if (h.terkunci) {
                         router.visit(`/siswa/ujian/${peserta.peserta_id}/terkunci`);
                     } else if (h.status !== undefined && h.status !== 'berjalan') {
@@ -561,19 +411,11 @@ export default function Kerjakan({
         return () => window.clearInterval(jam);
     }, [kirimJson, peserta.peserta_id]);
 
-    /* ------------------------------------------- Penjaga layar penuh */
-
-    // Apakah dokumen sedang memenuhi layar. State, bukan bacaan langsung di
-    // setiap render: React tidak tahu `fullscreenchange` terjadi, sehingga
-    // tanpa state ini spanduknya tidak akan pernah muncul.
+    // State diperlukan agar React merender ulang spanduk saat event fullscreenchange terjadi.
     const [layarPenuh, setLayarPenuh] = useState(() => layar.sedang());
 
     useEffect(() => {
-        // Perangkat yang perambannya memang tidak bisa layar penuh tidak
-        // dijaga sama sekali - lihat `Components/layar.ts`. Menjaganya
-        // berarti melaporkan setiap siswa di perangkat itu pada detik
-        // pertama ujian, dan mengunci mereka karena peramban yang dipakai
-        // sekolahnya.
+        // Lewati perangkat tanpa dukungan Fullscreen API agar siswa tidak langsung dilaporkan.
         if (!wajib_layar_penuh || !layar.dukung()) {
             return;
         }
@@ -583,10 +425,7 @@ export default function Kerjakan({
 
             setLayarPenuh(sekarang);
 
-            // Kehilangan layar penuh dilaporkan SETIAP kali, bukan sekali
-            // per attempt: berpindah keluar-masuk tiga kali adalah tiga
-            // kejadian, dan yang menilai rangkaiannya adalah tangga
-            // pelanggaran di server - bukan laman ini.
+            // Laporkan setiap kehilangan layar penuh; tangga pelanggaran dievaluasi di server.
             if (!sekarang) {
                 lapor('keluar_layar_penuh');
             }
@@ -597,50 +436,20 @@ export default function Kerjakan({
         return () => document.removeEventListener('fullscreenchange', saatBerubah);
     }, [wajib_layar_penuh, lapor]);
 
-    /* --------------------------------------------------- Penjaga layar terbagi */
-
     useEffect(() => {
-        // Dua syarat, dan keduanya harus benar.
-        //
-        //   `wajib_layar_penuh`  - event menuntut layar penuh. Bila ia
-        //                          membiarkan layar dibagi, layar yang
-        //                          terbagi BUKAN pelanggaran: ia keadaan
-        //                          yang memang diizinkan.
-        //   dua centang event    - `detect_split_screen` dan
-        //                          `detect_float_window`, bawaan Pengaturan
-        //                          sekolah. Ujian di ponsel pribadi bisa
-        //                          mematikan salah satunya tanpa mematikan
-        //                          penjaga layar penuhnya.
-        //
-        // `layar.dukung()` sengaja TIDAK ikut diperiksa di sini, berbeda dari
-        // penjaga layar penuh di atas. Dukungan `requestFullscreen()` dan
-        // kemampuan mendeteksi viewport yang sempit adalah dua hal terpisah:
-        // peramban tanpa API layar penuh tetap bisa membuka jendela kecil,
-        // dan mematikan deteksinya di sana berarti membuka jalan yang justru
-        // dipakai perangkat itu.
+        // `layar.dukung()` tidak diperiksa di sini karena deteksi viewport sempit tetap berguna tanpa Fullscreen API.
         if (!wajib_layar_penuh || (!deteksi_layar_terbagi && !deteksi_jendela_mengambang)) {
             return;
         }
 
-        // Dua sisi diukur terpisah, dan hanya sisi yang dicentang yang
-        // diukur. Mengukur keduanya lalu menyaring hasilnya berarti sekolah
-        // yang memaafkan jendela mengambang tetap dilaporkan atas tinggi
-        // yang menyempit - persis yang ingin ia maafkan.
         const menyempit = () =>
             (deteksi_layar_terbagi && layar.lebar()) ||
             (deteksi_jendela_mengambang && layar.tinggi());
 
-        // Penahan 4 detik, dan ia menyaring dua hal sekaligus: animasi
-        // putaran layar yang membuat viewport sempit sepersekian detik, dan
-        // jendela pengubah-ukuran yang digeser anak tanpa maksud apa pun.
-        // Tanpa penahan ini, setiap `resize` menghasilkan satu baris.
+        // Debounce 4 detik untuk menyaring animasi rotasi layar dan resize sesaat.
         const PENAHAN_MS = 4_000;
 
-        // Satu laporan per KEJADIAN, bukan per resize. Jendela yang ditarik
-        // pelan-pelan menghasilkan puluhan `resize`, dan tiga puluh baris
-        // untuk satu jendela akan menenggelamkan satu baris "berpindah
-        // aplikasi 40 detik" yang perlu dibaca pengawas - alasan yang sama
-        // dengan `TanggaPelanggaran` yang tidak mencatat klik kanan.
+        // Laporkan sekali per kejadian menyempit, bukan setiap event resize.
         let dilaporkan = false;
         let jam: number | null = null;
 
@@ -651,15 +460,11 @@ export default function Kerjakan({
             }
 
             if (! menyempit()) {
-                // Kembali ke layar utuh - kejadian berikutnya boleh dilaporkan
-                // lagi. Yang dihitung adalah kejadian, bukan keadaan.
                 dilaporkan = false;
 
                 return;
             }
 
-            // Sudah dilaporkan untuk kejadian ini: jendela masih sempit,
-            // dan mengulanginya berarti menulis baris yang sama berkali-kali.
             if (dilaporkan) {
                 return;
             }
@@ -673,19 +478,14 @@ export default function Kerjakan({
 
                 dilaporkan = true;
 
-                // Durasi dikirim 0, bukan lama kejadian: yang dilaporkan
-                // adalah AWAL keadaan, dan lama totalnya baru diketahui saat
-                // jendelanya kembali. Mengirim angka yang belum benar adalah
-                // angka yang tidak bisa dipercaya di riwayat.
+                // Kirim durasi 0 karena yang dicatat adalah awal kejadian.
                 lapor('layar_terbagi', 0);
             }, PENAHAN_MS);
         };
 
         periksa();
 
-        // `orientationchange` didengar terpisah karena sebagian peramban
-        // ponsel menembakkan `resize` SEBELUM putarannya selesai, dan ukuran
-        // yang terbaca di sana adalah ukuran lama.
+        // Dengar orientationchange karena beberapa peramban ponsel memicu resize sebelum rotasi selesai.
         window.addEventListener('resize', periksa);
         window.addEventListener('orientationchange', periksa);
 
@@ -699,8 +499,6 @@ export default function Kerjakan({
         };
     }, [wajib_layar_penuh, deteksi_layar_terbagi, deteksi_jendela_mengambang, lapor]);
 
-    /* --------------------------------------------------------- Hitung waktu */
-
     const habis = sisa <= 0;
 
     useEffect(() => {
@@ -713,16 +511,12 @@ export default function Kerjakan({
         return () => window.clearInterval(jam);
     }, [habis]);
 
-    // Waktu habis: yang memutuskan adalah server, dan laman ini hanya
-    // berhenti menghitung. Menutup attempt di sini berarti jam perangkat yang
-    // menentukan akhir ujian - tepat yang dihindari MesinUjian.
+    // Penutupan attempt tetap diputuskan server; klien hanya mengarahkan ke halaman selesai saat hitungan habis.
     useEffect(() => {
         if (habis) {
             router.visit(`/siswa/ujian/${peserta.peserta_id}/selesai`);
         }
     }, [habis, peserta.peserta_id]);
-
-    /* ------------------------------------------------------- Autosave butir */
 
     useEffect(() => {
         if (!aktif || aktif.rusak) {
@@ -742,8 +536,6 @@ export default function Kerjakan({
         return () => window.clearInterval(jam);
     }, [aktif, simpan, simpan_tiap_detik]);
 
-    /* ------------------------------------------ Penjaga plate 24 dan `:540` */
-
     useEffect(() => {
         const saatSembunyi = () => {
             if (document.visibilityState === 'hidden') {
@@ -759,11 +551,7 @@ export default function Kerjakan({
             const durasi = Date.now() - mulaiPindahTab.current;
             mulaiPindahTab.current = null;
 
-            // Ambang 1,5 detik menyaring gangguan bukan kesengajaan -
-            // blueprint `:557` - TANPA menghilangkan catatannya: yang
-            // dihilangkan hanya peringatannya, dan kejadiannya tetap dikirim
-            // supaya pengawas bisa menilai sendiri. `AmbangPelanggaran` yang
-            // memutuskan apa artinya, bukan laman ini.
+            // Tetap kirim semua durasi pindah tab; penyaringan ambang 1,5 detik dilakukan server.
             lapor('pindah_tab', durasi);
         };
 
@@ -772,10 +560,7 @@ export default function Kerjakan({
             lapor('klik_kanan');
         };
 
-        // Salin, potong, dan tempel DIBLOKIR, dan ketiganya dilaporkan
-        // sebagai satu jenis yang sama. Blueprint memetakan `copy`, `cut`,
-        // dan `paste` ke `salin_tempel` - lihat peta di TanggaPelanggaran -
-        // dan yang dilaporkan adalah percobaannya, bukan keberhasilannya.
+        // Blokir copy/cut/paste dan laporkan ketiganya sebagai salin_tempel.
         const saatSalin = (e: ClipboardEvent) => {
             e.preventDefault();
             lapor('salin_tempel');
@@ -786,11 +571,7 @@ export default function Kerjakan({
 
             const terlarang =
                 e.key === 'F12' ||
-                // PrintScreen - papan tik fisik, dan satu-satunya tangkap
-                // layar yang mengirim kejadian. Tombol tangkap layar di
-                // ponsel TIDAK mengirim apa pun, dan menuliskannya seolah
-                // bisa berarti menjanjikan hal yang tidak ada - lihat tanda
-                // air di bawah berkas ini.
+                // PrintScreen hanya terdeteksi pada papan tik fisik; tombol tangkap layar ponsel tidak mengirim event.
                 e.key === 'PrintScreen' ||
                 (tahan && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) ||
                 (tahan && ['U', 'P'].includes(e.key.toUpperCase()));
@@ -801,11 +582,7 @@ export default function Kerjakan({
             }
         };
 
-        // Jaring untuk jalur yang TIDAK lewat papan tik: menu peramban,
-        // tombol bagikan, dan Ctrl+P di ponsel yang membuka dialog cetak
-        // tanpa mengirim `keydown`. Yang bisa dicegah halaman web hanyalah
-        // hasil cetaknya - lihat `@media print` di `konsol-siswa.css`, yang
-        // menyembunyikan soal dan menggantinya satu kalimat.
+        // Tangkap jalur cetak di luar pintasan papan tik; konten cetak juga disembunyikan lewat @media print.
         const saatCetak = () => lapor('pintasan_terlarang');
 
         document.addEventListener('visibilitychange', saatSembunyi);
@@ -829,23 +606,17 @@ export default function Kerjakan({
         };
     }, [lapor]);
 
-    /* ------------------------------------------------------------ Navigasi */
-
     const pindah = useCallback(
         (tujuan: number) => {
             if (tujuan < 0 || tujuan >= butir.length) {
                 return;
             }
 
-            // Mundur dimatikan bila ujiannya melarangnya - dan yang melarang
-            // adalah `allow_back_navigation` milik ujian, bukan laman ini.
             if (tujuan < indeks && !attempt.boleh_mundur) {
                 return;
             }
 
-            // Simpan butir yang ditinggalkan SEBELUM pindah, bukan sesudah:
-            // autosave berselang dua puluh detik, dan anak yang mengerjakan
-            // cepat bisa berpindah tiga soal di antaranya.
+            // Simpan butir saat ini sebelum berpindah agar tidak menunggu interval autosave.
             const sekarang = butir[indeks];
 
             if (sekarang && !sekarang.rusak && jawabanRef.current[sekarang.id] !== undefined) {
@@ -913,13 +684,6 @@ export default function Kerjakan({
                     <div className="flex items-center gap-2">
                         <PenandaSimpan keadaan={tersimpan} tertunda={jumlahTertunda} />
 
-                        {/* Daftar nomor soal dulunya berdiri di atas soal -
-                            enam kolom tombol yang selalu terlihat. Di layar
-                            ponsel itu memakan seperempat layar untuk sesuatu
-                            yang dibuka sesekali, dan yang paling sering
-                            dibutuhkan anak di tengah soal adalah soal itu
-                            sendiri. Sekarang ia satu tombol di bilah bawah:
-                            ringkasan progres SEKALIGUS pintu ke daftarnya. */}
                         <button
                             type="button"
                             onClick={() => setDaftarTerbuka(true)}
@@ -973,14 +737,6 @@ export default function Kerjakan({
                 </div>
             }
         >
-            {/* Plate 24 - sisanya diredupkan dan TIDAK disembunyikan:
-                gangguan sepersekian detik dari notifikasi ponsel adalah hal
-                biasa, dan menghapus pekerjaannya karena itu adalah hukuman
-                yang tidak sepadan. */}
-
-            {/* Peringatan koneksi terputus: jawaban tetap dicadangkan di perangkat
-                agar tidak hilang, dan siswa diingatkan melapor ke pengawas bila
-                koneksi belum pulih sebelum waktu habis. */}
             {(!online || tersimpan === 'galat') && (
                 <div className="rounded-wf border border-bad/50 bg-bad-bg p-3">
                     <b className="block font-display text-sm text-bad">
@@ -1011,13 +767,69 @@ export default function Kerjakan({
                                     const hex = Array.from(new Uint8Array(sig))
                                         .map((b) => b.toString(16).padStart(2, '0'))
                                         .join('');
-                                    const paket = btoa(JSON.stringify({ ...payload, s: hex }));
+                                    const lengkapJson = JSON.stringify({ ...payload, s: hex });
+
+                                    let paket = '';
+                                    if (typeof CompressionStream !== 'undefined') {
+                                        try {
+                                            const cs = new CompressionStream('deflate');
+                                            const writer = cs.writable.getWriter();
+                                            void writer.write(enc.encode(lengkapJson));
+                                            void writer.close();
+                                            const buf = await new Response(cs.readable).arrayBuffer();
+                                            const bytes = new Uint8Array(buf);
+                                            let bin = '';
+                                            for (let i = 0; i < bytes.length; i++) {
+                                                bin += String.fromCharCode(bytes[i]);
+                                            }
+                                            paket = 'Z1:' + btoa(bin);
+                                        } catch {
+                                            paket = btoa(lengkapJson);
+                                        }
+                                    } else {
+                                        paket = btoa(lengkapJson);
+                                    }
+
                                     setKodeDarurat(paket);
+                                    if (paket.length <= 2200) {
+                                        try {
+                                            const dataUrl = await QRCode.toDataURL(paket, {
+                                                width: 280,
+                                                margin: 2,
+                                                errorCorrectionLevel: 'L',
+                                            });
+                                            setQrDaruratImg(dataUrl);
+                                            setQrTerlaluBesar(false);
+                                        } catch {
+                                            setQrDaruratImg(null);
+                                            setQrTerlaluBesar(true);
+                                        }
+                                    } else {
+                                        setQrDaruratImg(null);
+                                        setQrTerlaluBesar(true);
+                                    }
                                 }}
                                 className="rounded-wf border border-bad bg-surface px-2.5 py-1 text-[11px] font-medium text-bad"
                             >
-                                Buat Paket Darurat Offline
+                                Buat QR / Paket Darurat Offline
                             </button>
+                            {qrDaruratImg && (
+                                <div className="mt-2 flex flex-col items-center rounded-wf border border-line bg-white p-3">
+                                    <img
+                                        src={qrDaruratImg}
+                                        alt="QR Paket Darurat Offline"
+                                        className="h-56 w-56 object-contain"
+                                    />
+                                    <p className="mt-1.5 text-center text-[11px] text-ink-2">
+                                        Tunjukkan QR ini ke pengawas untuk dipindai.
+                                    </p>
+                                </div>
+                            )}
+                            {qrTerlaluBesar && (
+                                <p className="mt-1.5 text-[11px] text-bad">
+                                    Ukuran jawaban terlalu panjang untuk 1 QR. Salin teks di bawah lalu kirim ke pengawas.
+                                </p>
+                            )}
                             {kodeDarurat && (
                                 <textarea
                                     readOnly
@@ -1032,11 +844,7 @@ export default function Kerjakan({
                 </div>
             )}
 
-            {/* Event yang menuntut layar penuh menampilkan spanduk ini saat
-                anak keluar darinya. Tombolnya BUKAN paksaan: peramban
-                mewajibkan gestur, jadi yang bisa dilakukan laman ini adalah
-                menyebutkan keadaannya dan menyediakan satu klik untuk
-                kembali. Kejadiannya sudah dilaporkan terpisah di atas. */}
+            {/* Spanduk kembali ke layar penuh; browser mewajibkan gestur klik pengguna untuk requestFullscreen(). */}
             {wajib_layar_penuh && layar.dukung() && ! layarPenuh && (
                 <div className="rounded-wf border border-warn/50 bg-warn-bg p-3">
                     <b className="block font-display text-sm text-warn">Anda keluar dari layar penuh</b>
@@ -1071,10 +879,7 @@ export default function Kerjakan({
                         >
                             Kembali ke ujian
                         </button>
-                        {/* Angkanya dari `sisa_menuju_kunci`. Penyebutnya
-                            sengaja tidak disebut - ambang sekolah tidak pernah
-                            sampai ke peramban, dan angka sisa ini pun hanya
-                            ada karena server memilih mengirimnya. */}
+                        {/* Hanya tampilkan sisa dari server agar ambang batas sekolah tidak dikirim ke klien. */}
                         {peringatan.sisa !== null && (
                             <span className="text-[11px] text-ink-3">
                                 Sisa {peringatan.sisa} sebelum ujian dikunci
@@ -1103,12 +908,6 @@ export default function Kerjakan({
                 <IsiButir butir={aktif} jawaban={jawaban[aktif.id] ?? {}} set={setJawabanButir} />
             )}
 
-            {/* Tanda air - lihat catatan di `Props.tanda_air` dan
-                `tanda_air_aktif`.
-                Matanya bisa dimatikan event, bukan karena tangkapan layar
-                tidak lagi mungkin, melainkan karena ia MENUTUPI soal: pada
-                layar 5 inci, teks yang diulang delapan kali memakan ruang
-                baca. Sekolah yang ujiannya di ponsel pribadi boleh memilih. */}
             {tanda_air_aktif && (
                 <TandaAir
                     nama={tanda_air.nama}
@@ -1122,36 +921,7 @@ export default function Kerjakan({
     );
 }
 
-/* ================================================================== Bagian */
-
-/**
- * Tanda air ujian - nama, nomor induk, ruang, kursi, dan nomor soal.
- *
- * ---------------------------------------------------------------------
- * Mengapa tanda air, padahal screenshot tidak bisa dicegah
- * ---------------------------------------------------------------------
- * Peramban tidak memberi tahu bahwa tombol tangkap layar ditekan, dan tidak
- * ada API yang bisa membatalkannya. `preventDefault` pada `PrintScreen`
- * hanya berlaku pada papan tik fisik yang mengirim kejadiannya; tombol di
- * ponsel tidak mengirim apa pun. Satu-satunya yang tersisa adalah membuat
- * hasil tangkapannya MENYEBUT pemiliknya.
- *
- * ---------------------------------------------------------------------
- * Nomor soal ikut, dan itu bukan hiasan
- * ---------------------------------------------------------------------
- * Tangkapan layar yang hanya menyebut nama masih bisa dibingkai sebagai
- * "bocoran satu soal". Nomor soal membuatnya bisa dicocokkan dengan attempt
- * yang sedang berjalan - pengawas bisa bertanya "mengapa nomor 17 ada di
- * grup ini pada jam 09:40", dan pertanyaan itu punya jawaban.
- *
- * ---------------------------------------------------------------------
- * `aria-hidden`
- * ---------------------------------------------------------------------
- * Ia diulang delapan kali dan selalu di atas isi. Pembaca layar yang
- * membacanya delapan kali akan menenggelamkan soal itu sendiri - dan tanda
- * air bukan informasi untuk pembaca layar mana pun: ia untuk mata yang
- * melihat tangkapan layar.
- */
+/** Lapisan tanda air (identitas peserta + nomor soal) dengan `aria-hidden` agar tidak mengganggu pembaca layar. */
 function TandaAir({
     nama,
     nomorInduk,
@@ -1165,9 +935,6 @@ function TandaAir({
     kursi: number | null;
     nomor: number;
 }) {
-    // Satu baris teks, lalu diulang. Yang diulang bukan komponennya: empat
-    // puluh simpul teks untuk satu lapisan yang tidak bisa diklik adalah
-    // biaya render yang tidak membeli apa pun.
     const isi = [nama, nomorInduk, ruang && `R${ruang}`, kursi && `K${kursi}`, `Soal ${nomor}`]
         .filter(Boolean)
         .join(' · ');
@@ -1193,31 +960,7 @@ const tombolGeser =
 const kelasJawab =
     'w-full rounded-wf border border-line bg-surface px-2.5 py-2 text-sm text-ink outline-none focus:border-accent';
 
-/**
- * Daftar nomor soal - plate 22 `.qstrip`, dipindahkan ke dalam modal.
- *
- * =====================================================================
- * Mengapa modal, dan apa yang hilang karenanya
- * =====================================================================
- * Sebelumnya delapan baris kotak nomor berdiri permanen di atas soal. Pada
- * ponsel 26rem, empat puluh soal berarti seluruh layar pertama terpakai
- * sebelum satu kata soal terbaca - dan nomornya dibuka hanya untuk melompat
- * atau untuk melihat yang masih kosong. Yang dibutuhkan terus-menerus adalah
- * soalnya.
- *
- * Yang tidak boleh hilang bersamanya: penanda "sudah dijawab" dan "ragu"
- * harus tetap terbaca saat daftarnya dibuka, dan angkanya tetap harus sama
- * dengan yang dibacakan pengawas. Karena itu isinya tidak berubah - hanya
- * tempatnya.
- *
- * =====================================================================
- * TIGA penanda, dan warnanya bukan satu-satunya
- * =====================================================================
- * Angka yang sudah dijawab diberi latar, yang ragu diberi tanda titik, dan
- * yang belum dibiarkan kosong. Anak yang buta warna tetap membedakannya, dan
- * itulah alasan plate 22 menulis bahwa warna tidak pernah menjadi
- * satu-satunya penanda.
- */
+/** Modal navigasi nomor soal dengan penanda warna dan simbol (titik untuk ragu). */
 function DaftarSoal({
     terbuka,
     tutup,
@@ -1240,9 +983,7 @@ function DaftarSoal({
     pindah: (n: number) => void;
 }) {
     return (
-        // `gelap` karena laman ini memakai `.rangka-ujian`; tanpa itu
-        // lapisannya memakai `--color-ink` yang di sana nyaris putih, dan
-        // yang tampak adalah kabut terang di atas laman gelap.
+        // Pakai prop gelap agar backdrop modal sesuai dengan tema .rangka-ujian.
         <Modal judul="Daftar soal" terbuka={terbuka} padaTutup={tutup} gelap>
             <div className="space-y-2.5">
                 <p className="text-[11px] text-ink-3">{progres.ringkas}</p>
@@ -1251,10 +992,6 @@ function DaftarSoal({
                     {butir.map((b, i) => {
                         const dijawab = adaIsi(jawaban[b.id]);
                         const ragu = ditandai[b.id];
-                        // Mundur dimatikan bila ujiannya melarangnya. Tombolnya
-                        // tetap terlihat - daftar ini juga peta seberapa jauh
-                        // anak sudah berjalan - tetapi tidak membawa ke mana
-                        // pun saat ditekan.
                         const terlarang = i < indeks && !bolehMundur;
 
                         return (
@@ -1282,9 +1019,6 @@ function DaftarSoal({
                     })}
                 </div>
 
-                {/* Kunci penandanya, bukan hiasan: tanpa baris ini titik di
-                    sebelah angka tidak berarti apa-apa bagi anak yang baru
-                    pertama mengerjakan ujian. */}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-ink-3">
                     <span className="flex items-center gap-1">
                         <span className="h-2 w-2 rounded-sm border border-ok/40 bg-ok-bg" />
@@ -1304,16 +1038,7 @@ function DaftarSoal({
     );
 }
 
-/**
- * Ada isinya atau tidak - CERMIN dari `StudentAnswer::terjawab()`.
- *
- * Disalin, dan itu perlu: penanda "sudah dijawab" di pemilih nomor harus
- * berubah pada ketukan yang sama anak mengisi jawabannya, sementara server
- * baru mengetahuinya satu simpanan kemudian. Yang dijaga agar kedua sisi
- * tetap sepakat adalah satu aturannya: sel berupa daftar kosong tidak
- * dihitung menjawab, karena `{"opsi":[]}` dan tidak menjawab adalah hal
- * yang sama.
- */
+/** Cermin `StudentAnswer::terjawab()` di klien; array kosong (mis. `{"opsi":[]}`) dianggap belum terjawab. */
 function adaIsi(isi: Record<string, unknown> | undefined): boolean {
     if (!isi) {
         return false;
@@ -1321,9 +1046,7 @@ function adaIsi(isi: Record<string, unknown> | undefined): boolean {
 
     const periksa = (nilai: unknown): boolean => {
         if (Array.isArray(nilai)) {
-            // Rekursif sejak isian rumpang ada: `["gravitasi","",""]`
-            // panjangnya tiga tetapi barunya satu jawaban. Cermin
-            // StudentAnswer::terjawab().
+            // Periksa rekursif karena isian rumpang bisa berisi array string kosong.
             return nilai.some(periksa);
         }
 
@@ -1333,7 +1056,7 @@ function adaIsi(isi: Record<string, unknown> | undefined): boolean {
     return Object.values(isi).some(periksa);
 }
 
-/** Isi lubang rumpang dari jawaban tersimpan, sebagai daftar string. */
+/** Ambil daftar isian rumpang sebagai array string. */
 function isiRumpang(jawaban: Record<string, unknown>): string[] {
     if (!Array.isArray(jawaban.rumpang)) {
         return [];
@@ -1342,19 +1065,7 @@ function isiRumpang(jawaban: Record<string, unknown>): string[] {
     return (jawaban.rumpang as unknown[]).map((v) => (typeof v === 'string' ? v : ''));
 }
 
-/**
- * Teks soal dengan lubang yang bisa diketik.
- *
- * Penandanya `{{n}}` - lihat SkemaJenisSoal::rumpang. Penanda yang muncul di
- * teks tetapi nomornya di luar jangkauan kunci tetap dirender sebagai lubang:
- * menyembunyikannya berarti anak tidak bisa menjawabnya sama sekali, dan
- * halaman ini tidak menerima kunci sehingga tidak bisa memutuskan mana yang
- * "di luar jangkauan".
- *
- * Teksnya dipotong pada penanda, lalu potongan HTML dirender bergantian
- * dengan `<input>`. `dangerouslySetInnerHTML` dipakai per potongan dan bukan
- * pada seluruh teks, karena seluruh teks tidak bisa memuat elemen React.
- */
+/** Render teks soal rumpang dengan memecah penanda `{{n}}` menjadi potongan HTML dan `<input>` inline. */
 function TeksRumpang({
     teks,
     isian,
@@ -1373,12 +1084,7 @@ function TeksRumpang({
     const bagian = html.split(/(\{\{\s*\d+\s*\}\})/g);
 
     return (
-        // Potongan HTML di sini TIDAK seimbang: penanda {{n}} biasanya berada
-        // di tengah satu paragraf, sehingga potongan pertama berupa
-        // "<p>Gaya tarik bumi disebut " tanpa penutup. Peramban menutupnya
-        // sendiri dengan membuat elemen <p>, dan <p> adalah blok - tanpa dua
-        // aturan di bawah, setiap lubang jatuh ke baris baru tersendiri dan
-        // soal rumpang terbaca sebagai daftar, bukan kalimat.
+        // Paksa <p> menjadi inline karena pemecahan di tengah paragraf membuat browser menutup tag <p> di tiap potongan.
         <div className="text-sm leading-loose text-ink [&_b]:font-semibold [&_p]:m-0 [&_p]:inline [&_sub]:align-sub [&_sub]:text-[0.75em] [&_sup]:align-super [&_sup]:text-[0.75em]">
             {bagian.map((potongan, i) => {
                 const cocok = /^\{\{\s*(\d+)\s*\}\}$/.exec(potongan);
@@ -1404,12 +1110,7 @@ function TeksRumpang({
                         autoCorrect="off"
                         autoCapitalize="none"
                         spellCheck={false}
-                        // Ukuran mengikuti isinya, bukan tetap: lubang yang
-                        // selebar 8 karakter memotong jawaban seperti
-                        // "dinamometer". `ch` menjaga lebarnya mengecil lagi
-                        // saat isinya dihapus. `size` sengaja tidak dipakai -
-                        // ia dan `style.width` saling menimpa, dan yang
-                        // terlihat di layar hanya salah satunya.
+                        // Pakai style.width dalam satuan ch (bukan atribut size) agar lebar mengikuti isi jawaban.
                         style={{ width: `${Math.max(8, (isian[nomor - 1] ?? '').length + 2)}ch` }}
                         className="mx-1 inline-block rounded-wf border border-line bg-surface px-1.5 py-0.5 text-center font-mono text-[13px] text-ink outline-none focus:border-accent"
                     />
@@ -1419,15 +1120,6 @@ function TeksRumpang({
     );
 }
 
-/**
- * Badan soal, per jenis - plate 23.
- *
- * Sepuluh jenis berbagi satu rangka, dan yang berubah hanya bentuk
- * jawabannya. Plate 23 menulis alasannya: menyeragamkan rangkanya membuat
- * kesepuluh jenis terasa sebagai satu ujian, bukan sepuluh aplikasi
- * berbeda - dan bagi siswa yang sedang tegang, pengenalan bentuk adalah
- * beban yang tidak perlu.
- */
 function IsiButir({
     butir,
     jawaban,
@@ -1437,10 +1129,7 @@ function IsiButir({
     jawaban: Record<string, unknown>;
     set: (potongan: Record<string, unknown>) => void;
 }) {
-    // Butir rusak: snapshotnya tidak punya soal. Ia TETAP dikirim dan TETAP
-    // bernomor - lihat KerjakanSiswaController::butirUntukSiswa() - karena
-    // membuangnya akan menggeser nomor seluruh soal sesudahnya, dan nomor
-    // soal adalah hal yang disebut pengawas di ruang ujian.
+    // Butir rusak tetap dipertahankan agar nomor soal berikutnya tidak bergeser.
     if (butir.rusak) {
         return (
             <Inbox>
@@ -1450,10 +1139,7 @@ function IsiButir({
         );
     }
 
-    // Urutan yang dilihat peserta ini. Null berarti "sebagaimana snapshot" -
-    // lihat AttemptQuestion - dan itu BUKAN urutan array mentah: kolomnya ada
-    // supaya pengacakan tercatat, dan laman yang mengabaikannya menampilkan
-    // urutan yang berbeda dari yang pernah dilihat anak ini.
+    // Terapkan urutan acak dari server (`urutan_opsi`/`urutan_butir`); null berarti urutan snapshot.
     const opsi = urutkan(butir.opsi ?? [], butir.urutan_opsi, 'kunci');
     const butirItem = urutkan(butir.butir ?? [], butir.urutan_butir, 'kunci');
 
@@ -1473,11 +1159,6 @@ function IsiButir({
                     {butir.jenis_label} · {butir.bobot} poin
                 </span>
 
-                {/* Isian rumpang: teksnya memuat `{{n}}`, dan lubangnya harus
-                    menjadi isian DI TENGAH kalimat - bukan kotak terpisah di
-                    bawahnya. `Html` tidak bisa melakukan itu (ia satu blok
-                    `dangerouslySetInnerHTML`), jadi jenis ini punya
-                    perender sendiri yang memecah teks pada penandanya. */}
                 {butir.jenis === 'isian_rumpang' ? (
                     <TeksRumpang
                         teks={butir.soal?.teks}
@@ -1522,9 +1203,6 @@ function IsiButir({
                     </div>
                 )}
 
-                {/* Pilihan ganda, ganda, benar/salah, dan media berjawaban
-                    pilihan berbagi bentuk yang sama; yang berbeda hanya
-                    berapa yang boleh dipilih. */}
                 {pakaiOpsi && (
                     <div className="space-y-1.5">
                         {opsi.map((o) => {
@@ -1551,13 +1229,7 @@ function IsiButir({
                                             : 'border-line bg-surface text-ink')
                                     }
                                 >
-                                    {/* Pilihan tunggal dan ganda dibedakan
-                                        BENTUKNYA - bulat dan kotak - bukan
-                                        hanya jumlah yang boleh dipilih.
-                                        Ponsel tidak menampilkan kursor, dan
-                                        satu-satunya isyarat "boleh lebih dari
-                                        satu" yang tersisa adalah bentuk
-                                        kotaknya. */}
+                                    {/* Bulat untuk pilihan tunggal, kotak untuk pilihan ganda. */}
                                     <span
                                         className={
                                             'grid size-4 shrink-0 place-items-center border font-mono text-[10px] ' +
@@ -1572,12 +1244,6 @@ function IsiButir({
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <Html nilai={teksDari(o.teks)} />
-                                        {/* Gambar/audio/video yang menempel
-                                            pada pilihan ini tampil DI DALAM
-                                            tombolnya - sehingga gambar
-                                            pilihan B jelas milik B. Ukurannya
-                                            dibatasi supaya tombol tetap bisa
-                                            ditekan di ponsel. */}
                                         {o.media && o.media.length > 0 && (
                                             <span className="mt-1 flex flex-wrap gap-1.5">
                                                 {o.media.map((m) => (
@@ -1589,17 +1255,7 @@ function IsiButir({
                                                                 className="max-h-32 max-w-full rounded-wf border border-line"
                                                             />
                                                         ) : (
-                                                            /* Bukan tautan: <a>
-                                                                di dalam <button>
-                                                                adalah HTML yang
-                                                                tidak sah, dan
-                                                                klik tautannya
-                                                                tidak boleh ikut
-                                                                memilih pilihan
-                                                                ini. Berkas non-
-                                                                gambar pada opsi
-                                                                jarang; namanya
-                                                                cukup. */
+                                                            /* Jangan pakai <a> di dalam <button> (HTML tidak valid dan memicu pemilihan opsi). */
                                                             <span className="text-[11px] text-ink-3">
                                                                 {m.nama ?? 'Berkas'}
                                                             </span>
@@ -1615,10 +1271,7 @@ function IsiButir({
                     </div>
                 )}
 
-                {/* Isian singkat. `autoCorrect` dan `spellCheck` dimatikan
-                    karena koreksi otomatis ponsel mengubah jawaban singkat
-                    menjadi kata lain - dan anak melihat jawabannya "salah
-                    padahal yang salah adalah ponselnya". */}
+                {/* Matikan autocorrect dan spellcheck agar koreksi otomatis ponsel tidak mengubah jawaban singkat. */}
                 {(butir.jenis === 'isian_singkat' ||
                     (butir.jenis === 'media' && mekanisme === 'isian')) && (
                     <input
@@ -1673,20 +1326,17 @@ function urutkan<T extends Record<string, unknown>>(
 
     const hasil = urutan.map((k) => peta.get(k)).filter((b): b is T => b !== undefined);
 
-    // Baris yang tidak disebut urutannya tetap ditampilkan, di belakang.
-    // Membuangnya berarti soal yang kehilangan satu pilihan sejak Fase 4
-    // tampak sebagai soal yang lebih mudah.
+    // Sertakan baris sisa yang tidak tercantum di `urutan` agar tidak ada opsi yang hilang.
     const sisa = baris.filter((b) => !urutan.includes(String(b[kunci])));
 
     return [...hasil, ...sisa];
 }
 
-/** `content_json` satu blok, atau string kosong. */
+/** Ambil string HTML dari blok `content_json`, atau string kosong. */
 function teksDari(blok: Blok | undefined): string {
     return typeof blok?.teks === 'string' ? blok.teks : '';
 }
 
-/** Uraian - plate 23, dengan penghitung karakter sisa. */
 function Uraian({
     jawaban,
     set,
@@ -1696,11 +1346,6 @@ function Uraian({
 }) {
     const teks = (jawaban.teks as string) ?? '';
 
-    // Batasnya TIDAK datang dari server: `scoring_config_json` tidak memuat
-    // `batas_karakter`, dan rubrik - satu-satunya tempat soal bisa membawa
-    // batasnya sendiri - sengaja tidak pernah dikirim ke peramban siswa.
-    // Yang dipakai karena itu batas teks yang sama dengan yang ditegakkan
-    // `SkemaJenisSoal::BATAS_TEKS` saat soal disimpan.
     const batas = BATAS_URAIAN;
 
     return (
@@ -1713,17 +1358,12 @@ function Uraian({
             />
             <div className="flex items-center gap-2 text-[11px] text-ink-3">
                 <span>{Math.max(0, batas - teks.length)} karakter tersisa</span>
-                {/* Dinyatakan terbuka, bukan dibiarkan tampak bisa: menempel
-                    diblokir penjaga plate 24 di atas, dan anak yang
-                    mencobanya perlu tahu bahwa yang menghalangi adalah
-                    aturannya, bukan ponselnya yang rusak. */}
                 <span className="ml-auto">tempel teks nonaktif</span>
             </div>
         </div>
     );
 }
 
-/** Jodohkan dan mengurutkan - plate 23. */
 function PasanganButir({
     jenis,
     butirItem,
@@ -1739,10 +1379,7 @@ function PasanganButir({
         const semua = butirItem.map((b) => b.kunci);
         const tersimpan = Array.isArray(jawaban.urutan) ? (jawaban.urutan as string[]) : [];
 
-        // Belum dijawab: mulainya dari urutan snapshot, bukan dari daftar
-        // kosong. Anak yang membuka soal mengurutkan harus melihat itemnya
-        // supaya bisa menggesernya - urutan awal yang kosong berarti soal yang
-        // tidak bisa dikerjakan sama sekali.
+        // Mulai dari urutan snapshot jika siswa belum pernah mengubah urutan.
         const urutan = tersimpan.length > 0 ? tersimpan : semua;
 
         const geser = (dari: number, ke: number) => {
@@ -1769,10 +1406,6 @@ function PasanganButir({
                         <span className="min-w-0 flex-1 text-[12.5px]">
                             <Html nilai={teksDari(butirItem.find((b) => b.kunci === kunci)?.teks)} />
                         </span>
-                        {/* Tombol naik/turun, bukan geser-seret: menyeret di
-                            layar ponsel sambil berdiri adalah gerakan yang
-                            paling sering salah, dan salah di sini berarti
-                            urutan yang tidak pernah dimaksudkan. */}
                         <button
                             type="button"
                             onClick={() => geser(i, i - 1)}
@@ -1795,10 +1428,7 @@ function PasanganButir({
         );
     }
 
-    // `grup` diisi untuk soal jodoh: `kiri` adalah pernyataannya, `kanan`
-    // adalah pilihan pasangannya. Baris tanpa grup ikut ke kiri supaya soal
-    // yang butirnya kurang lengkap tetap bisa dikerjakan sebagian, bukan
-    // hilang seluruhnya.
+    // Baris tanpa grup dimasukkan ke kiri agar soal dengan data kurang lengkap tetap bisa dikerjakan.
     const kiri = butirItem.filter((b) => b.grup !== 'kanan');
     const kanan = butirItem.filter((b) => b.grup === 'kanan');
     const pasangan = (jawaban.pasangan as Record<string, string>) ?? {};
@@ -1810,10 +1440,6 @@ function PasanganButir({
                     <span className="min-w-0 flex-1 text-[12.5px]">
                         <Html nilai={teksDari(b.teks)} />
                     </span>
-                    {/* Garis, bukan tanda pisah: yang memisahkan pernyataan
-                        dari pilihannya adalah ruang, dan tanda pisah di sini
-                        adalah tanda baca yang diketik sebagai kalimat (lantai
-                        19). */}
                     <span className="h-px w-3 shrink-0 bg-line" aria-hidden="true" />
                     <select
                         value={pasangan[b.kunci] ?? ''}
@@ -1822,11 +1448,6 @@ function PasanganButir({
                         }
                         className="w-[45%] rounded-wf border border-line bg-surface px-2 py-1.5 text-[12px] text-ink outline-none focus:border-accent"
                     >
-                        {/* `belum dipilih`, bukan `— pilih —`: yang pertama
-                            sudah dipakai konsol ini untuk nilai kosong
-                            ("belum terdata", "belum ada"), dan yang kedua
-                            menuliskan tanda pisah sebagai tanda baca
-                            kalimat (lantai 19). */}
                         <option value="">belum dipilih</option>
                         {kanan.map((k) => (
                             <option key={k.kunci} value={k.kunci}>
@@ -1840,14 +1461,11 @@ function PasanganButir({
     );
 }
 
-/** Teks tanpa tag, untuk `<option>` - yang tidak bisa memuat HTML. */
+/** Hapus tag HTML untuk label `<option>`. */
 function teksPolos(html: string): string {
     return html.replace(/<[^>]*>/g, '').trim();
 }
 
-/* ================================================================ Penunjuk */
-
-/** Jam surut - plate 22 `.timer`, dan ia memanas di bawah lima menit. */
 function Jam({ sisa, panas }: { sisa: number; panas: boolean }) {
     const j = Math.floor(sisa / 3600);
     const m = Math.floor((sisa % 3600) / 60);
@@ -1868,7 +1486,6 @@ function Jam({ sisa, panas }: { sisa: number; panas: boolean }) {
     );
 }
 
-/** "Tersimpan" / "Menyimpan…" / "Gagal menyimpan" - plate 22. */
 function PenandaSimpan({
     keadaan,
     tertunda = 0,
@@ -1885,9 +1502,7 @@ function PenandaSimpan({
     }
 
     if (keadaan === 'galat') {
-        // Gagal menyimpan DITAMPILKAN, dan itu kebalikan dari laporan
-        // pelanggaran yang gagal dengan diam: kehilangan jawaban adalah hal
-        // yang harus diketahui anak saat itu juga, bukan setelah ujian.
+        // Gagal menyimpan ditampilkan terang-terangan (berbeda dari log pelanggaran yang diam).
         return (
             <Chip nada="bad">
                 {tertunda > 0 ? `Tertunda (${tertunda}) · di perangkat` : 'Gagal menyimpan'}
@@ -1940,48 +1555,13 @@ function tulisTertunda(attemptId: number, data: Record<number, Record<string, un
             window.localStorage.setItem(kunciCadangan(attemptId), JSON.stringify(data));
         }
     } catch {
-        // localStorage penuh atau diblokir mode privat — memori tab tetap jalan.
+        // localStorage penuh atau diblokir mode privat, memori tab tetap jalan.
     }
 }
 
 /**
- * Id peramban, disimpan di `sessionStorage` tab ini.
- *
- * =====================================================================
- * Menyimpannya di memori saja mengunci ujian pada SETIAP muat ulang
- * =====================================================================
- * Sebelumnya id ini hanya hidup di objek `window`. Muat ulang - `F5`, tab
- * yang dipulihkan peramban ponsel sesudah memorinya habis, layar yang
- * berputar di sebagian peramban - membuat `window` baru, dan idnya lahir
- * lagi secara acak. `DenyutService` membandingkannya dengan yang tersimpan
- * dan menyimpulkan apa yang memang tampak dari luar: PERANGKAT BERUBAH
- * sementara denyut lama masih segar (di bawah 90 detik), jadi ini
- * `sesi_ganda` - dan `sesi_ganda` adalah satu-satunya jenis yang mengunci
- * seketika, `TanggaPelanggaran::SEGERA_KUNCI`.
- *
- * Akibatnya bukan galat yang bisa diabaikan: satu muat ulang, dan anak itu
- * terkunci dari ujiannya sendiri, dengan alasan yang ditampilkan di layar
- * sebagai "Ujian dikunci: Sesi ganda." Tidak ada yang bisa ia lakukan -
- * pengawas pun hanya bisa membukanya lewat jalur pengawas. Dan yang paling
- * sering memicunya bukan kecurangan, melainkan ponsel yang kehabisan
- * memori di tengah ujian - tepat pada perangkat yang paling banyak dipakai.
- *
- * ---------------------------------------------------------------------
- * `sessionStorage`: per tab, dan bertahan melewati muat ulang
- * ---------------------------------------------------------------------
- * Itu persis dua sifat yang dibutuhkan. Dua tab di perangkat yang sama
- * adalah dua sesi penyimpanan yang berbeda, sehingga sesi ganda yang
- * SUNGGUHAN tetap terdeteksi; satu tab yang dimuat ulang tetap satu sesi,
- * sehingga muat ulang tidak lagi dihukum.
- *
- * `localStorage` akan salah di sini: ia dibagi seluruh tab, jadi membuka
- * ujian yang sama di tab kedua akan memakai id yang sama, dan justru
- * penyamaran itulah yang harus dicegah.
- *
- * Kalau `sessionStorage` tidak bisa dibaca - mode privat, penyimpanan
- * diblokir - id sementara di memori tetap dipakai. Ujiannya berjalan; yang
- * hilang cuma ketahanannya melewati muat ulang, dan itu keadaan yang sudah
- * lebih baik daripada menolak anak mengerjakan.
+ * Id peramban per tab di `sessionStorage` agar muat ulang tab tidak memicu `sesi_ganda`,
+ * namun tab kedua tetap mendapat id berbeda (tidak memakai `localStorage` yang dibagi antar tab).
  */
 function idPeramban(): string {
     const kunci = '__cbtPerangkat';
@@ -1994,9 +1574,7 @@ function idPeramban(): string {
             return tersimpan;
         }
     } catch {
-        // Penyimpanan diblokir. Jatuh ke memori di bawah - dan id yang
-        // tersimpan di wadah itu pun bisa saja sudah ada dari pemanggilan
-        // sebelumnya di tab yang sama.
+        // Fallback ke memori tab jika sessionStorage diblokir.
     }
 
     if (wadah[kunci]) {
@@ -2010,7 +1588,7 @@ function idPeramban(): string {
     try {
         window.sessionStorage.setItem(kunci, baru);
     } catch {
-        // Idnya tetap berlaku untuk tab ini, hanya tidak melewati muat ulang.
+        // Tetap gunakan id di memori tab jika penulisan sessionStorage gagal.
     }
 
     return baru;

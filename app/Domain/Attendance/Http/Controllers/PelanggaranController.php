@@ -119,7 +119,9 @@ class PelanggaranController
                 'status_nada' => $attempt?->nadaStatus() ?? 'mute',
                 'terkunci' => $attempt?->dikunci() ?? false,
                 'kunci_alasan' => $attempt->lock_reason ?? null,
-                'terhubung' => $attempt?->terhubung(),
+                'terhubung' => $attempt !== null && $attempt->status === ExamAttempt::STATUS_BERJALAN
+                    ? $attempt->terhubung()
+                    : null,
                 'terakhir' => $attempt?->last_seen_at?->format('H:i'),
 
                 // Waktu yang tersisa, dan ia dihitung SERVER - bukan dari jam

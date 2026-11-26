@@ -268,7 +268,18 @@ class MonitoringController
             'paket' => ['required', 'string', 'max:32000'],
         ]);
 
-        $decoded = json_decode(base64_decode($valid['paket'], true) ?: '', true);
+        $rawPaket = trim($valid['paket']);
+        $decoded = null;
+
+        if (str_starts_with($rawPaket, 'Z1:')) {
+            $bin = base64_decode(substr($rawPaket, 3), true);
+            $uncompressed = $bin !== false ? @gzuncompress($bin) : false;
+            if ($uncompressed !== false) {
+                $decoded = json_decode($uncompressed, true);
+            }
+        } else {
+            $decoded = json_decode(base64_decode($rawPaket, true) ?: '', true);
+        }
 
         if (! is_array($decoded) || ! isset($decoded['a'], $decoded['j'], $decoded['s']) || ! is_array($decoded['j'])) {
             return back()->with('galat', 'Format paket QR darurat tidak valid.');

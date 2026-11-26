@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import KerangkaPonsel from '@/Layouts/KerangkaPonsel';
 import { Chip, Inbox, Modal, Peringatan } from '@/Components/ui';
 import { KpiPonsel, KotakPonsel } from '@/Components/ponsel';
+import PemindaiQrTeks from '@/Components/PemindaiQrTeks';
 
 /**
  * Plate 15 - monitoring ruang. `/pengawas/ruang/{id}/monitoring`.
@@ -715,14 +716,33 @@ export default function Monitoring({
 
             <KotakPonsel solid padat judul="Terima paket darurat offline">
                 <p className="text-[11px] text-ink-3">
-                    Jika perangkat siswa putus Wi-Fi total, tempel kode paket darurat dari layar siswa.
+                    Jika perangkat siswa putus Wi-Fi total, pindai QR darurat atau tempel kode dari layar siswa.
                 </p>
+                <div className="mt-2">
+                    <PemindaiQrTeks
+                        labelTombol="Scan QR Darurat"
+                        disabled={kirim}
+                        padaTeks={(isi) => {
+                            setPaketDarurat(isi);
+                            setKirim(true);
+                            router.post(
+                                `/pengawas/ruang/${ruang.id}/qr-darurat`,
+                                { paket: isi },
+                                {
+                                    preserveScroll: true,
+                                    onSuccess: () => setPaketDarurat(''),
+                                    onFinish: () => setKirim(false),
+                                },
+                            );
+                        }}
+                    />
+                </div>
                 <textarea
                     value={paketDarurat}
                     onChange={(e) => setPaketDarurat(e.target.value)}
                     rows={2}
-                    placeholder="Tempel kode paket darurat siswa..."
-                    className="mt-1.5 w-full rounded-wf border border-line bg-surface px-2 py-1.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
+                    placeholder="Atau tempel kode paket darurat siswa..."
+                    className="mt-2 w-full rounded-wf border border-line bg-surface px-2 py-1.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
                 />
                 <button
                     type="button"
@@ -739,9 +759,9 @@ export default function Monitoring({
                             },
                         );
                     }}
-                    className="mt-1.5 inline-grid min-h-10 place-items-center rounded-wf border border-accent bg-accent px-3 text-xs font-medium text-on-accent disabled:opacity-50"
+                    className="mt-1.5 inline-grid min-h-10 place-items-center rounded-wf border border-line bg-surface-2 px-3 text-xs font-medium text-ink disabled:opacity-50"
                 >
-                    Sinkronkan jawaban darurat
+                    Sinkronkan kode teks
                 </button>
             </KotakPonsel>
         </KerangkaPonsel>

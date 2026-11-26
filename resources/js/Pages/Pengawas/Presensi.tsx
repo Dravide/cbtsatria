@@ -582,7 +582,7 @@ export default function Presensi({ ruang, rekap, kursi, pindai, pengakuan }: Pro
                                     <Chip nada={p.nada as 'mute'}>{p.label}</Chip>
 
                                     {putus && <Chip nada="bad">koneksi putus</Chip>}
-                                    {!p.terhubung && p.ada && p.terakhir && (
+                                    {putus && p.terakhir && (
                                         <span className="text-[11px] text-ink-3">
                                             {p.terakhir}
                                         </span>

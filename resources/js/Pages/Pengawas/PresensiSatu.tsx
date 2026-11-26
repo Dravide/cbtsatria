@@ -190,7 +190,16 @@ export default function PresensiSatu({
                 kanan={<Chip nada={pengerjaan.nada as 'mute'}>{pengerjaan.label}</Chip>}
             >
                 <div className="grid grid-cols-2 gap-1">
-                    <KpiPonsel label="Terhubung" nilai={pengerjaan.ada ? (pengerjaan.terhubung ? 'Ya' : 'Tidak') : '—'} />
+                    <KpiPonsel
+                        label="Terhubung"
+                        nilai={
+                            pengerjaan.terhubung === null
+                                ? '—'
+                                : pengerjaan.terhubung
+                                  ? 'Ya'
+                                  : 'Tidak'
+                        }
+                    />
                     <KpiPonsel label="Pelanggaran" nilai={pengerjaan.pelanggaran} nada={pengerjaan.pelanggaran > 0 ? 'warn' : undefined} />
                     <KpiPonsel label="Terakhir aktif" nilai={pengerjaan.terakhir ?? '—'} />
                     <KpiPonsel label="Status" nilai={pengerjaan.ada ? pengerjaan.label : '—'} />
