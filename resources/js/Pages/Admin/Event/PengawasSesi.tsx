@@ -200,6 +200,23 @@ export default function PengawasSesi({
                 </div>
             )}
 
+            {ruang.some((r) => r.khusus_perangkat) && daftarPanitia.length === 0 && (
+                <div className="mt-3">
+                    <Peringatan>
+                        Belum ada anggota <strong>Panitia Event</strong> (jabatan selain pengawas,
+                        seperti Ketua/Teknisi/Proktor/Anggota) yang punya akun untuk mengawasi ruang{' '}
+                        <strong>Khusus Perangkat</strong>. Tambahkan di laman{' '}
+                        <Link
+                            href={`${jalur}/panitia`}
+                            className="font-medium underline underline-offset-2"
+                        >
+                            Kepanitiaan
+                        </Link>
+                        .
+                    </Peringatan>
+                </div>
+            )}
+
             {ruang.length === 0 ? (
                 <div className="mt-3">
                     <Kotak>
