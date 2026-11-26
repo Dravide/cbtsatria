@@ -197,3 +197,49 @@ it('melewati ruang khusus perangkat pada acak pengawas reguler dan menunjuk pani
         ->and(SupervisionAssignment::query()->where('exam_session_room_id', $sesiRuangLab->id)->pluck('supervisor_id')->all())
         ->toBe([$panitiaTeknisi->id]);
 });
+
+it('dapat menugaskan panitia event tanpa akun ke ruang khusus perangkat', function () {
+    $data = siapkanPresensi(
+        $this->sekolah,
+        $this->tahun,
+        $this->semester,
+        $this->admin,
+        ['LAB-01'],
+        2,
+    );
+
+    $event = $data['event'];
+    $sesiRuangLab = $data['ruang'][0];
+
+    $sesiRuangLab->eventRoom->room->forceFill([
+        'khusus_perangkat' => true,
+    ])->save();
+
+    EventCommitteeMember::query()->where('event_id', $event->id)->delete();
+    SupervisionAssignment::query()->delete();
+
+    $panitiaTanpaAkun = EventCommitteeMember::create([
+        'school_id' => $this->sekolah->id,
+        'event_id' => $event->id,
+        'user_id' => null,
+        'name' => 'Hendra Teknisi',
+        'position' => 'Teknisi',
+        'scope' => EventCommitteeMember::SCOPE_EVENT,
+        'status' => 'aktif',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/events/{$event->id}/pengawas/ruang/{$sesiRuangLab->id}", [
+            'supervisor_id' => -$panitiaTanpaAkun->id,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $panitiaTanpaAkun->refresh();
+
+    expect($panitiaTanpaAkun->user_id)->not->toBeNull()
+        ->and(SupervisionAssignment::query()
+            ->where('exam_session_room_id', $sesiRuangLab->id)
+            ->pluck('supervisor_id')
+            ->all())
+        ->toBe([$panitiaTanpaAkun->user_id]);
+});

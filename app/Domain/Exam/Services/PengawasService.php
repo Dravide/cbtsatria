@@ -13,7 +13,9 @@ use App\Domain\Exam\Models\SupervisorSessionExclusion;
 use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
 use DomainException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -434,7 +436,7 @@ class PengawasService
         }
 
         $calon = $this->calonPengawas($event);
-        $calonPanitia = $this->calonPanitia($event);
+        $anggotaPanitia = $this->anggotaPanitia($event);
 
         $aturan = $this->aturan($event);
         $target = $aturan['target_per_ruang'];
@@ -464,9 +466,9 @@ class PengawasService
             );
         }
 
-        if ($ruangReguler->isEmpty() && $ruangKhusus->isNotEmpty() && $calonPanitia === []) {
+        if ($ruangReguler->isEmpty() && $ruangKhusus->isNotEmpty() && $anggotaPanitia->isEmpty()) {
             throw new DomainException(
-                'Belum ada panitia event yang memiliki akun untuk mengawasi ruang khusus perangkat.',
+                'Belum ada anggota panitia event (non-pengawas) di laman Kepanitiaan.',
             );
         }
 
@@ -615,7 +617,7 @@ class PengawasService
         if ($ruangKhusus->isNotEmpty()) {
             $hasilKhusus = $this->tugaskanRuangKhususPanitia(
                 $ruangKhusus,
-                $calonPanitia,
+                $anggotaPanitia,
                 $olehUserId,
                 $pengecualian,
                 $bebanEvent,
@@ -648,7 +650,7 @@ class PengawasService
     ): array {
         $mulai = microtime(true);
         $calon = $this->calonPengawas($event);
-        $calonPanitia = $this->calonPanitia($event);
+        $anggotaPanitia = $this->anggotaPanitia($event);
 
         $aturan = $this->aturan($event);
         $target = $aturan['target_per_ruang'];
@@ -679,9 +681,9 @@ class PengawasService
             );
         }
 
-        if ($ruangan->isEmpty() && $ruangKhusus->isNotEmpty() && $calonPanitia === []) {
+        if ($ruangan->isEmpty() && $ruangKhusus->isNotEmpty() && $anggotaPanitia->isEmpty()) {
             throw new DomainException(
-                'Belum ada panitia event yang memiliki akun untuk mengawasi ruang khusus perangkat.',
+                'Belum ada anggota panitia event (non-pengawas) di laman Kepanitiaan.',
             );
         }
 
@@ -730,7 +732,7 @@ class PengawasService
                 $hariKosong = [];
                 $hasilKhusus = $this->tugaskanRuangKhususPanitia(
                     $ruangKhusus,
-                    $calonPanitia,
+                    $anggotaPanitia,
                     $olehUserId,
                     $this->aturan($event)['hormati_pengecualian'] ? $this->pengecualianEvent($event) : [],
                     $bebanKosong,
@@ -1115,7 +1117,7 @@ class PengawasService
         if ($ruangKhusus->isNotEmpty()) {
             $hasilKhusus = $this->tugaskanRuangKhususPanitia(
                 $ruangKhusus,
-                $calonPanitia,
+                $anggotaPanitia,
                 $olehUserId,
                 $pengecualian,
                 $bebanEventAwal,
@@ -1584,6 +1586,61 @@ class PengawasService
     }
 
     /**
+     * Anggota panitia event aktif (non-pengawas), termasuk yang belum memiliki akun.
+     *
+     * @return Collection<int, EventCommitteeMember>
+     */
+    public function anggotaPanitia(SchoolEvent $event): Collection
+    {
+        return $event->committee()
+            ->where('status', 'aktif')
+            ->where('position', 'not like', '%pengawas%')
+            ->with('user:id,name,username,role,is_active')
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Pastikan anggota panitia memiliki akun User agar bisa ditugaskan di supervision_assignments.
+     */
+    public function pastikanAkunPanitia(EventCommitteeMember $panitia): User
+    {
+        if ($panitia->user_id !== null) {
+            $user = User::query()->find($panitia->user_id);
+
+            if ($user !== null) {
+                return $user;
+            }
+        }
+
+        return DB::transaction(function () use ($panitia): User {
+            $slug = Str::slug($panitia->name, '.') ?: 'panitia';
+            $base = "panitia.{$panitia->id}.".Str::limit($slug, 20, '');
+            $username = $base;
+            $urut = 1;
+
+            while (User::withTrashed()->where('username', $username)->exists()) {
+                $username = "{$base}.{$urut}";
+                $urut++;
+            }
+
+            $user = User::create([
+                'school_id' => $panitia->school_id,
+                'role' => Role::Supervisor,
+                'name' => $panitia->name,
+                'username' => $username,
+                'phone' => $panitia->phone,
+                'password' => Str::random(32),
+                'is_active' => true,
+            ]);
+
+            $panitia->forceFill(['user_id' => $user->id])->save();
+
+            return $user;
+        });
+    }
+
+    /**
      * Calon pengawas khusus ruang perangkat: anggota panitia event aktif (non-pengawas)
      * yang memiliki akun, seperti Ketua, Proktor, Teknisi, atau Anggota Panitia.
      *
@@ -1613,16 +1670,16 @@ class PengawasService
     /**
      * Tugaskan panitia event langsung ke ruang khusus perangkat (minimal 1 per ruang).
      *
-     * @param  \Illuminate\Support\Collection<int, ExamSessionRoom>  $ruangKhusus
-     * @param  array<int, User>  $calonPanitia
+     * @param  Collection<int, ExamSessionRoom>  $ruangKhusus
+     * @param  Collection<int, EventCommitteeMember>  $anggotaPanitia
      * @param  array<string, ?string>  $pengecualian
      * @param  array<int, int>  $bebanEvent
      * @param  array<int, array<string, int>>  $bebanHari
      * @return array{dibuat: int, tersentuh: array<int, bool>, dilewati: array<int, bool>}
      */
     private function tugaskanRuangKhususPanitia(
-        $ruangKhusus,
-        array $calonPanitia,
+        Collection $ruangKhusus,
+        Collection $anggotaPanitia,
         ?int $olehUserId,
         array $pengecualian,
         array &$bebanEvent,
@@ -1632,7 +1689,7 @@ class PengawasService
         $tersentuh = [];
         $dilewati = [];
 
-        if ($calonPanitia === []) {
+        if ($anggotaPanitia->isEmpty()) {
             return ['dibuat' => 0, 'tersentuh' => [], 'dilewati' => []];
         }
 
@@ -1643,7 +1700,9 @@ class PengawasService
 
             $tgl = $r->session?->access_opens_at?->toDateString() ?? '';
 
-            foreach ($calonPanitia as $orang) {
+            foreach ($anggotaPanitia as $anggota) {
+                $orang = $this->pastikanAkunPanitia($anggota);
+
                 if (array_key_exists("{$r->exam_session_id}:{$orang->id}", $pengecualian)) {
                     $dilewati[$orang->id] = true;
 

@@ -204,7 +204,7 @@ export default function PengawasSesi({
                 <div className="mt-3">
                     <Peringatan>
                         Belum ada anggota <strong>Panitia Event</strong> (jabatan selain pengawas,
-                        seperti Ketua/Teknisi/Proktor/Anggota) yang punya akun untuk mengawasi ruang{' '}
+                        seperti Ketua/Teknisi/Proktor/Anggota) untuk mengawasi ruang{' '}
                         <strong>Khusus Perangkat</strong>. Tambahkan di laman{' '}
                         <Link
                             href={`${jalur}/panitia`}

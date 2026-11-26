@@ -3,6 +3,7 @@
 namespace App\Domain\Exam\Http\Controllers;
 
 use App\Domain\Audit\Services\ActivityLogger;
+use App\Domain\Event\Models\EventCommitteeMember;
 use App\Domain\Event\Models\SchoolEvent;
 use App\Domain\Exam\Models\ExamParticipant;
 use App\Domain\Exam\Models\ExamSession;
@@ -540,25 +541,23 @@ class ExamPengawasController
                 ->values()
                 ->all(),
 
-            'calon_panitia' => collect($penugasan->calonPanitia($event))
-                ->map(function (User $u) use ($event, $aturan, $bebanEvent, $kuotaPerOrang, $pengecualian, $sesi): array {
-                    $terpakai = $bebanEvent[$u->id] ?? 0;
-                    $maks = $kuotaPerOrang[$u->id] ?? $aturan['maks_per_event'];
-                    $kunci = "{$sesi->id}:{$u->id}";
-                    $jabatan = $event->committee()
-                        ->where('user_id', $u->id)
-                        ->where('status', 'aktif')
-                        ->value('position') ?? 'Panitia';
+            'calon_panitia' => $penugasan->anggotaPanitia($event)
+                ->map(function (EventCommitteeMember $m) use ($aturan, $bebanEvent, $kuotaPerOrang, $pengecualian, $sesi): array {
+                    $uid = $m->user_id;
+                    $terpakai = $uid !== null ? ($bebanEvent[$uid] ?? 0) : 0;
+                    $maks = $uid !== null ? ($kuotaPerOrang[$uid] ?? $aturan['maks_per_event']) : $aturan['maks_per_event'];
+                    $kunci = $uid !== null ? "{$sesi->id}:{$uid}" : '';
 
                     return [
-                        'id' => $u->id,
-                        'nama' => $u->name,
-                        'username' => $u->username,
-                        'peran' => $jabatan,
+                        // ID negatif menandai anggota panitia tanpa akun; tugaskan() membuatkan akunnya saat dipilih.
+                        'id' => $uid !== null ? $uid : -$m->id,
+                        'nama' => $m->name,
+                        'username' => $m->user?->username ?? 'tanpa akun',
+                        'peran' => $m->position,
                         'terpakai' => $terpakai,
                         'maks' => $maks,
-                        'dikecualikan' => array_key_exists($kunci, $pengecualian),
-                        'alasan_pengecualian' => $pengecualian[$kunci] ?? null,
+                        'dikecualikan' => $uid !== null && array_key_exists($kunci, $pengecualian),
+                        'alasan_pengecualian' => $uid !== null ? ($pengecualian[$kunci] ?? null) : null,
                     ];
                 })
                 ->values()
@@ -594,7 +593,22 @@ class ExamPengawasController
             'supervisor_id' => ['required', 'integer'],
         ]);
 
-        $pengawas = User::query()->find($data['supervisor_id']);
+        $supervisorId = (int) $data['supervisor_id'];
+
+        if ($supervisorId < 0) {
+            $panitia = EventCommitteeMember::query()
+                ->where('event_id', $event->id)
+                ->where('status', 'aktif')
+                ->find(abs($supervisorId));
+
+            if ($panitia === null) {
+                return back()->with('galat', 'Anggota panitia itu tidak ditemukan.');
+            }
+
+            $pengawas = $service->pastikanAkunPanitia($panitia);
+        } else {
+            $pengawas = User::query()->find($supervisorId);
+        }
 
         if ($pengawas === null) {
             return back()->with('galat', 'Akun pengawas itu tidak ditemukan.');
