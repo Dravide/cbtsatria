@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Chip, Inbox, Kotak, Tabel, Tombol, kelasInput } from '@/Components/ui';
+import { Chip, Inbox, Kotak, Modal, Tabel, Tombol, kelasInput } from '@/Components/ui';
 
 /**
  * Laman 15 - Mata pelajaran & paket soal. Wireframe plate 15.
@@ -89,6 +89,8 @@ export default function EventMapel({ event, baris, tersedia }: Props) {
         (s) =>
             (s.nama + ' ' + (s.kode ?? '')).toLowerCase().includes(cari.toLowerCase()),
     );
+
+    const barisAktif = bukaPaket === null ? null : (baris.find((b) => b.id === bukaPaket) ?? null);
 
     return (
         <AdminLayout
@@ -193,13 +195,19 @@ export default function EventMapel({ event, baris, tersedia }: Props) {
                 ]}
             />
 
-            {bukaPaket !== null && (
-                <PanelPaket
-                    event={event}
-                    baris={baris.find((b) => b.id === bukaPaket)!}
-                    padaTutup={() => setBukaPaket(null)}
-                />
-            )}
+            <Modal
+                judul={barisAktif ? `Paket soal · ${barisAktif.nama}` : 'Paket soal'}
+                terbuka={barisAktif !== null}
+                padaTutup={() => setBukaPaket(null)}
+            >
+                {barisAktif !== null && (
+                    <PanelPaket
+                        event={event}
+                        baris={barisAktif}
+                        padaTutup={() => setBukaPaket(null)}
+                    />
+                )}
+            </Modal>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 <Kotak
@@ -359,91 +367,83 @@ function PanelPaket({
     };
 
     return (
-        <div className="mt-3 rounded-wf border border-line bg-surface">
-            <header className="flex items-center gap-2 border-b border-line px-4 py-2.5">
-                <h2 className="font-display text-sm font-semibold text-ink">
-                    Paket soal · {baris.nama}
-                </h2>
-                <button
-                    onClick={padaTutup}
-                    className="ml-auto text-ink-3 hover:text-ink"
-                    aria-label="Tutup"
-                >
-                    &#10005;
-                </button>
-            </header>
+        <div className="space-y-3">
+            {galat && (
+                <p className="rounded-wf border border-bad/30 bg-bad-bg px-3 py-2 text-xs text-bad">
+                    {galat}
+                </p>
+            )}
 
-            <div className="space-y-3 p-4">
-                {galat && (
-                    <p className="rounded-wf border border-bad/30 bg-bad-bg px-3 py-2 text-xs text-bad">
-                        {galat}
-                    </p>
-                )}
+            {paket === null && (
+                <p className="text-xs text-ink-3">Memuat daftar paket…</p>
+            )}
 
-                {paket === null && (
-                    <p className="text-xs text-ink-3">Memuat daftar paket…</p>
-                )}
+            {paket !== null && paket.length === 0 && (
+                <p className="text-xs text-ink-3">
+                    Belum ada paket soal untuk mata pelajaran ini. Paket disusun Guru di
+                    konsolnya, di laman Paket soal.
+                </p>
+            )}
 
-                {paket !== null && paket.length === 0 && (
-                    <p className="text-xs text-ink-3">
-                        Belum ada paket soal untuk mata pelajaran ini. Paket disusun Guru di
-                        konsolnya, di laman Paket soal.
-                    </p>
-                )}
+            {paket !== null && paket.length > 0 && (
+                <div className="max-h-72 space-y-1 overflow-y-auto">
+                    {paket.map((p) => (
+                        <label
+                            key={p.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-wf px-2 py-1.5 text-sm hover:bg-surface-2"
+                        >
+                            <input
+                                type="radio"
+                                name={`paket-${baris.baris_id}`}
+                                checked={baris.paket_id === p.id}
+                                onChange={() => pasang(p.id)}
+                                disabled={kirim}
+                            />
+                            <span className="min-w-0 flex-1 truncate text-ink">{p.nama}</span>
+                            <Chip nada={p.status === 'siap' ? 'ok' : 'mute'}>
+                                {p.status}
+                            </Chip>
+                            <span className="font-mono text-[11px] text-ink-3">
+                                {p.butir} butir
+                            </span>
+                        </label>
+                    ))}
+                </div>
+            )}
 
-                {paket !== null && paket.length > 0 && (
-                    <div className="max-h-56 space-y-1 overflow-y-auto">
-                        {paket.map((p) => (
-                            <label
-                                key={p.id}
-                                className="flex cursor-pointer items-center gap-2 rounded-wf px-1.5 py-1.5 text-sm hover:bg-surface-2"
-                            >
-                                <input
-                                    type="radio"
-                                    name={`paket-${baris.baris_id}`}
-                                    checked={baris.paket_id === p.id}
-                                    onChange={() => pasang(p.id)}
-                                    disabled={kirim}
-                                />
-                                <span className="min-w-0 flex-1 truncate text-ink">{p.nama}</span>
-                                <Chip nada={p.status === 'siap' ? 'ok' : 'mute'}>
-                                    {p.status}
-                                </Chip>
-                                <span className="font-mono text-[11px] text-ink-3">
-                                    {p.butir} butir
-                                </span>
-                            </label>
+            {riwayat.length > 0 && (
+                <details className="border-t border-line pt-3">
+                    <summary className="cursor-pointer text-[11px] text-ink-3 hover:text-ink">
+                        Riwayat pemasangan ({riwayat.length})
+                    </summary>
+                    <ul className="mt-2 space-y-1">
+                        {riwayat.map((r) => (
+                            <li key={r.id} className="text-[11px] text-ink-3">
+                                <span className="text-ink-2">{r.paket}</span>
+                                {' · dipasang '}
+                                {r.pemasang ?? 'Admin'}
+                                {r.pada && ` · ${new Date(r.pada).toLocaleString('id-ID')}`}
+                            </li>
                         ))}
-                    </div>
-                )}
+                    </ul>
+                </details>
+            )}
 
-                {baris.paket_id !== null && (
-                    <Tombol
-                        nada="bahaya"
-                        onClick={() => pasang(null)}
-                        disabled={kirim}
-                    >
-                        Lepas paket
-                    </Tombol>
-                )}
-
-                {riwayat.length > 0 && (
-                    <details className="border-t border-line pt-3">
-                        <summary className="cursor-pointer text-[11px] text-ink-3 hover:text-ink">
-                            Riwayat pemasangan ({riwayat.length})
-                        </summary>
-                        <ul className="mt-2 space-y-1">
-                            {riwayat.map((r) => (
-                                <li key={r.id} className="text-[11px] text-ink-3">
-                                    <span className="text-ink-2">{r.paket}</span>
-                                    {' · dipasang '}
-                                    {r.pemasang ?? 'Admin'}
-                                    {r.pada && ` · ${new Date(r.pada).toLocaleString('id-ID')}`}
-                                </li>
-                            ))}
-                        </ul>
-                    </details>
-                )}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+                <div>
+                    {baris.paket_id !== null && (
+                        <Tombol
+                            nada="bahaya"
+                            onClick={() => pasang(null)}
+                            disabled={kirim}
+                        >
+                            Lepas paket
+                        </Tombol>
+                    )}
+                </div>
+                <Tombol onClick={padaTutup} disabled={kirim}>
+                    Tutup
+                </Tombol>
             </div>
         </div>
     );
