@@ -59,6 +59,7 @@ type Baris = {
 
 type PaketTersedia = {
     id: number;
+    kode: string | null;
     nama: string;
     status: string;
     butir: number;
@@ -399,7 +400,14 @@ function PanelPaket({
                                 onChange={() => pasang(p.id)}
                                 disabled={kirim}
                             />
-                            <span className="min-w-0 flex-1 truncate text-ink">{p.nama}</span>
+                            <span className="min-w-0 flex-1 truncate text-ink">
+                                {p.kode && (
+                                    <span className="mr-1.5 font-mono text-[11px] text-ink-3">
+                                        {p.kode}
+                                    </span>
+                                )}
+                                {p.nama}
+                            </span>
                             <Chip nada={p.status === 'siap' ? 'ok' : 'mute'}>
                                 {p.status}
                             </Chip>

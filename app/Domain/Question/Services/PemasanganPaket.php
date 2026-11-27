@@ -147,6 +147,7 @@ class PemasanganPaket
             ->get()
             ->map(fn (QuestionPackage $paket) => [
                 'id' => $paket->id,
+                'kode' => $paket->code,
                 'nama' => $paket->name,
                 'status' => $paket->status->value,
                 'butir' => (int) $paket->butir_count,
