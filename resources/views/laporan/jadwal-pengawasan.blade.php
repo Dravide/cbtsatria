@@ -88,6 +88,32 @@
             margin-top: 2.5mm;
             page-break-inside: avoid;
         }
+
+        .seksi-judul {
+            margin-top: 4mm;
+            padding: 1.5mm 2.5mm;
+            background: #edf1f7;
+            border-left: 3px solid #2b4c7e;
+            font-size: 8.5px;
+            font-weight: bold;
+            color: #161b24;
+            page-break-after: avoid;
+        }
+
+        .seksi-judul.panitia {
+            border-left-color: #8a5a14;
+            background: #fbf6ec;
+        }
+
+        .lencana-jabatan {
+            display: inline-block;
+            padding: 0.3mm 1.5mm;
+            font-size: 6.5px;
+            background: #f3e8d2;
+            color: #6d470f;
+            border: 1px solid #e2c998;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -109,63 +135,92 @@
         &nbsp;·&nbsp; <strong>Sesi:</strong> <span class="mono">{{ $ringkasan['sesi'] }}</span>
         &nbsp;·&nbsp; <strong>Ruang-sesi:</strong> <span class="mono">{{ $ringkasan['ruang'] }}</span>
         @if ($format === 'guru')
-            &nbsp;·&nbsp; <strong>Pengawas:</strong> <span class="mono">{{ $ringkasan['guru'] }}</span>
+            &nbsp;·&nbsp; <strong>Pengawas:</strong> <span class="mono">{{ $ringkasan['pengawas'] ?? count($perPengawas ?? []) }}</span>
+            &nbsp;·&nbsp; <strong>Panitia:</strong> <span class="mono">{{ $ringkasan['panitia'] ?? count($perPanitia ?? []) }}</span>
         @endif
         &nbsp;·&nbsp; <strong>Penugasan:</strong> <span class="mono">{{ $ringkasan['penugasan'] }}</span>
         &nbsp;·&nbsp; <strong>Dicetak:</strong> {{ $dicetak }}
     </div>
 
     @if ($format === 'guru')
-        @forelse ($perGuru as $g)
-            <div class="guru-blok">
-                <div class="sesi-kepala">
-                    <strong>{{ $g['nama'] }}</strong>
-                    @if (!empty($g['username']))
-                        &nbsp;<span class="mono lokasi">({{ $g['username'] }})</span>
-                    @endif
-                    &nbsp;·&nbsp; <span class="mono">{{ count($g['tugas']) }} sesi</span>
-                </div>
-                <table class="data">
-                    <thead>
-                        <tr>
-                            <th style="width: 5%; text-align: center;">No</th>
-                            <th style="width: 22%;">Hari &amp; Tanggal</th>
-                            <th style="width: 13%;">Waktu</th>
-                            <th style="width: 8%;">Sesi</th>
-                            <th style="width: 24%;">Mata Pelajaran</th>
-                            <th style="width: 28%;">Ruang &amp; Lokasi / Kelas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($g['tugas'] as $i => $t)
-                            <tr>
-                                <td class="num">{{ $i + 1 }}</td>
-                                <td>{{ $t['hari_tanggal'] }}</td>
-                                <td class="mono">{{ $t['waktu'] }}</td>
-                                <td class="mono">{{ $t['sesi'] }}</td>
-                                <td>{{ $t['mapel'] }}</td>
-                                <td>
-                                    <span class="mono"><strong>{{ $t['ruang_kode'] }}</strong></span>
-                                    @if ($t['ruang_nama'] && $t['ruang_nama'] !== $t['ruang_kode'])
-                                        <span>· {{ $t['ruang_nama'] }}</span>
-                                    @endif
-                                    @if (!empty($t['lokasi']))
-                                        <span class="lokasi">({{ $t['lokasi'] }})</span>
-                                    @endif
-                                    @if (!empty($t['kelas']))
-                                        <div class="lokasi">Kelas: {{ implode(', ', $t['kelas']) }}</div>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @empty
+        @php
+            $kelompokGuru = [
+                [
+                    'judul' => 'Pengawas (Oleh Pengawas)',
+                    'daftar' => $perPengawas ?? $perGuru,
+                    'panitia' => false,
+                ],
+                [
+                    'judul' => 'Pengawas oleh Panitia',
+                    'daftar' => $perPanitia ?? [],
+                    'panitia' => true,
+                ],
+            ];
+            $adaPenugasanGuru = collect($kelompokGuru)->contains(fn (array $k) => count($k['daftar']) > 0);
+        @endphp
+
+        @if ($adaPenugasanGuru)
+            @foreach ($kelompokGuru as $kelompok)
+                @if (count($kelompok['daftar']) > 0)
+                    <div class="seksi-judul {{ $kelompok['panitia'] ? 'panitia' : '' }}">
+                        {{ $kelompok['judul'] }} · <span class="mono">{{ count($kelompok['daftar']) }} orang</span>
+                    </div>
+                    @foreach ($kelompok['daftar'] as $g)
+                        <div class="guru-blok">
+                            <div class="sesi-kepala">
+                                <strong>{{ $g['nama'] }}</strong>
+                                @if (!empty($g['username']))
+                                    &nbsp;<span class="mono lokasi">({{ $g['username'] }})</span>
+                                @endif
+                                @if ($kelompok['panitia'] && !empty($g['jabatan']))
+                                    &nbsp;<span class="lencana-jabatan">{{ $g['jabatan'] }}</span>
+                                @endif
+                                &nbsp;·&nbsp; <span class="mono">{{ count($g['tugas']) }} sesi</span>
+                            </div>
+                            <table class="data">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 5%; text-align: center;">No</th>
+                                        <th style="width: 22%;">Hari &amp; Tanggal</th>
+                                        <th style="width: 13%;">Waktu</th>
+                                        <th style="width: 8%;">Sesi</th>
+                                        <th style="width: 24%;">Mata Pelajaran</th>
+                                        <th style="width: 28%;">Ruang &amp; Lokasi / Kelas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($g['tugas'] as $i => $t)
+                                        <tr>
+                                            <td class="num">{{ $i + 1 }}</td>
+                                            <td>{{ $t['hari_tanggal'] }}</td>
+                                            <td class="mono">{{ $t['waktu'] }}</td>
+                                            <td class="mono">{{ $t['sesi'] }}</td>
+                                            <td>{{ $t['mapel'] }}</td>
+                                            <td>
+                                                <span class="mono"><strong>{{ $t['ruang_kode'] }}</strong></span>
+                                                @if ($t['ruang_nama'] && $t['ruang_nama'] !== $t['ruang_kode'])
+                                                    <span>· {{ $t['ruang_nama'] }}</span>
+                                                @endif
+                                                @if (!empty($t['lokasi']))
+                                                    <span class="lokasi">({{ $t['lokasi'] }})</span>
+                                                @endif
+                                                @if (!empty($t['kelas']))
+                                                    <div class="lokasi">Kelas: {{ implode(', ', $t['kelas']) }}</div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endforeach
+                @endif
+            @endforeach
+        @else
             <div style="border: 1px solid #e6eaf0; padding: 6mm; text-align: center; color: #77808f; margin-top: 3mm;">
                 Belum ada penugasan pengawas pada event ini.
             </div>
-        @endforelse
+        @endif
     @else
         @forelse ($sesi as $s)
             <div class="sesi-blok">
@@ -179,13 +234,18 @@
                     <thead>
                         <tr>
                             <th style="width: 5%; text-align: center;">No</th>
-                            <th style="width: 11%;">Kode</th>
-                            <th style="width: 26%;">Nama Ruang</th>
-                            <th style="width: 58%;">Pengawas</th>
+                            <th style="width: 10%;">Kode</th>
+                            <th style="width: 25%;">Nama Ruang</th>
+                            <th style="width: 33%;">Pengawas (Oleh Pengawas)</th>
+                            <th style="width: 27%;">Pengawas oleh Panitia</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($s['ruang'] as $i => $r)
+                            @php
+                                $reguler = $r['pengawas_reguler'] ?? $r['pengawas'];
+                                $panitia = $r['pengawas_panitia'] ?? [];
+                            @endphp
                             <tr>
                                 <td class="num">{{ $i + 1 }}</td>
                                 <td class="mono"><strong>{{ $r['kode'] }}</strong></td>
@@ -199,10 +259,17 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if (count($r['pengawas']) > 0)
-                                        {{ implode(', ', $r['pengawas']) }}
+                                    @if (count($reguler) > 0)
+                                        {{ implode(', ', $reguler) }}
                                     @else
-                                        <span class="kosong">Belum ditugaskan</span>
+                                        <span class="kosong">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if (count($panitia) > 0)
+                                        {{ implode(', ', $panitia) }}
+                                    @else
+                                        <span class="kosong">—</span>
                                     @endif
                                 </td>
                             </tr>

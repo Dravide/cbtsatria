@@ -344,10 +344,17 @@ class ExamPengawasController
                 ->groupBy('exam_session_room_id')
                 ->map(fn ($items) => $items->pluck('kelas_nama')->values()->all());
 
+        $panitiaByUserId = $event->committee()
+            ->where('status', 'aktif')
+            ->where('position', 'not like', '%pengawas%')
+            ->whereNotNull('user_id')
+            ->pluck('position', 'user_id')
+            ->all();
+
         $totalPenugasan = 0;
         $petaGuru = [];
 
-        $daftarSesi = $sesi->map(function (ExamSession $s) use ($ruangan, $kelasPerRuangSesi, &$totalPenugasan, &$petaGuru): ?array {
+        $daftarSesi = $sesi->map(function (ExamSession $s) use ($ruangan, $kelasPerRuangSesi, $panitiaByUserId, &$totalPenugasan, &$petaGuru): ?array {
             $ruangSesi = $ruangan->where('exam_session_id', $s->id)->values();
 
             if ($ruangSesi->isEmpty()) {
@@ -363,6 +370,7 @@ class ExamPengawasController
 
             $barisRuang = $ruangSesi->map(function (ExamSessionRoom $r) use (
                 $kelasPerRuangSesi,
+                $panitiaByUserId,
                 &$totalPenugasan,
                 &$petaGuru,
                 $hariTanggal,
@@ -376,18 +384,31 @@ class ExamPengawasController
                 $kelas = $kelasPerRuangSesi->get($r->id, []);
 
                 $pengawas = [];
+                $pengawasReguler = [];
+                $pengawasPanitia = [];
                 foreach ($r->supervisors as $t) {
                     if ($t->status !== 'aktif' || $t->supervisor === null) {
                         continue;
                     }
-                    $pengawas[] = $t->supervisor->name;
+                    $sid = (int) $t->supervisor_id;
+                    $jabatanPanitia = $panitiaByUserId[$sid] ?? null;
+                    $isPanitia = $jabatanPanitia !== null;
+                    $namaTampil = $t->supervisor->name;
+
+                    $pengawas[] = $namaTampil;
+                    if ($isPanitia) {
+                        $pengawasPanitia[] = $jabatanPanitia !== '' ? "{$namaTampil} ({$jabatanPanitia})" : $namaTampil;
+                    } else {
+                        $pengawasReguler[] = $namaTampil;
+                    }
                     $totalPenugasan++;
 
-                    $sid = (int) $t->supervisor_id;
                     if (! isset($petaGuru[$sid])) {
                         $petaGuru[$sid] = [
-                            'nama' => $t->supervisor->name,
+                            'nama' => $namaTampil,
                             'username' => $t->supervisor->username,
+                            'is_panitia' => $isPanitia,
+                            'jabatan' => $jabatanPanitia,
                             'tugas' => [],
                         ];
                     }
@@ -409,6 +430,8 @@ class ExamPengawasController
                     'lokasi' => $lokasi,
                     'kelas' => $kelas,
                     'pengawas' => $pengawas,
+                    'pengawas_reguler' => $pengawasReguler,
+                    'pengawas_panitia' => $pengawasPanitia,
                 ];
             })->all();
 
@@ -423,6 +446,9 @@ class ExamPengawasController
 
         usort($petaGuru, fn (array $a, array $b) => strcasecmp($a['nama'], $b['nama']));
 
+        $perPengawas = array_values(array_filter($petaGuru, fn (array $g) => ! $g['is_panitia']));
+        $perPanitia = array_values(array_filter($petaGuru, fn (array $g) => $g['is_panitia']));
+
         $kode = preg_replace('/[^A-Za-z0-9\-_]+/', '-', strtolower($event->code)) ?: (string) $event->id;
         $namaBerkas = $format === 'guru'
             ? "jadwal-pengawasan-guru-{$kode}.pdf"
@@ -434,10 +460,14 @@ class ExamPengawasController
             'format' => $format,
             'sesi' => $daftarSesi,
             'perGuru' => $petaGuru,
+            'perPengawas' => $perPengawas,
+            'perPanitia' => $perPanitia,
             'ringkasan' => [
                 'sesi' => count($daftarSesi),
                 'ruang' => $ruangan->count(),
                 'guru' => count($petaGuru),
+                'pengawas' => count($perPengawas),
+                'panitia' => count($perPanitia),
                 'penugasan' => $totalPenugasan,
             ],
             'dicetak' => now()->format('d/m/Y H:i'),
