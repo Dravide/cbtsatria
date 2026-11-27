@@ -55,23 +55,92 @@ class BankSoalAdminController
     {
         Gate::authorize('viewAny', Question::class);
 
+        $cari = trim((string) $request->query('cari', ''));
+
+        $semuaMapel = Subject::query()
+            ->when($cari !== '', function ($q) use ($cari): void {
+                $pola = '%'.$cari.'%';
+                $q->where(fn ($sub) => $sub
+                    ->where('name', 'like', $pola)
+                    ->orWhere('code', 'like', $pola));
+            })
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+
+        $agregatPerMapel = Question::query()
+            ->selectRaw('subject_id, COUNT(*) as total, COUNT(DISTINCT created_by) as guru')
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as siap', [StatusSoal::Siap->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as draft', [StatusSoal::Draft->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as arsip', [StatusSoal::Arsip->value])
+            ->groupBy('subject_id')
+            ->get()
+            ->keyBy('subject_id');
+
+        $dipakaiPerMapel = Question::query()
+            ->has('pemakaian')
+            ->selectRaw('subject_id, COUNT(*) as dipakai')
+            ->groupBy('subject_id')
+            ->pluck('dipakai', 'subject_id');
+
+        $jenisPerMapel = Question::query()
+            ->selectRaw('subject_id, question_type, COUNT(*) as jumlah')
+            ->groupBy('subject_id', 'question_type')
+            ->get()
+            ->groupBy('subject_id')
+            ->map(fn ($items) => $items->mapWithKeys(fn ($row) => [
+                $row->question_type instanceof JenisSoal ? $row->question_type->value : (string) $row->question_type => (int) $row->jumlah,
+            ])->all());
+
+        $daftarMapel = $semuaMapel->map(function (Subject $m) use ($agregatPerMapel, $dipakaiPerMapel, $jenisPerMapel): array {
+            $agg = $agregatPerMapel->get($m->id);
+            $total = (int) ($agg->total ?? 0);
+
+            return [
+                'id' => $m->id,
+                'kode' => $m->code,
+                'nama' => $m->name,
+                'total' => $total,
+                'siap' => (int) ($agg->siap ?? 0),
+                'draft' => (int) ($agg->draft ?? 0),
+                'arsip' => (int) ($agg->arsip ?? 0),
+                'guru' => (int) ($agg->guru ?? 0),
+                'dipakai' => (int) ($dipakaiPerMapel->get($m->id) ?? 0),
+                'sebaran' => $jenisPerMapel->get($m->id, []),
+            ];
+        })->values()->all();
+
+        $ringkasan = [
+            'mapel' => Subject::query()->count(),
+            'soal' => (int) $agregatPerMapel->sum('total'),
+            'siap' => (int) $agregatPerMapel->sum('siap'),
+            'dipakai' => (int) $dipakaiPerMapel->sum(),
+        ];
+
+        return Inertia::render('Admin/BankSoal', [
+            'mapel' => $daftarMapel,
+            'ringkasan' => $ringkasan,
+            'filter' => [
+                'cari' => $cari,
+            ],
+            'pengguna' => $request->user()->name,
+        ]);
+    }
+
+    public function mapel(Request $request, Subject $mapel): Response
+    {
+        Gate::authorize('viewAny', Question::class);
+
         $idTerpilih = (int) $request->query('soal', 0);
 
         $halaman = TabelQuery::buat(
             Question::query()
+                ->where('subject_id', $mapel->id)
                 ->with(['subject:id,name', 'penulis:id,name'])
-                // Kolom "Dipakai" di daftar - satu kueri agregat, bukan satu
-                // per baris.
                 ->withCount('pemakaian'),
             $request,
-            // Judul dan kode saja. Mencari di dalam `prompt_json` berarti
-            // LIKE atas JSON, yang tidak bisa memakai indeks dan mencocokkan
-            // potongan markup - "align" akan menemukan setiap soal yang
-            // perataannya disetel.
             cariDi: ['title', 'code'],
             bolehDiurut: ['title', 'code', 'question_type', 'status'],
             penyaring: [
-                'mapel' => 'subject_id',
                 'jenis' => 'question_type',
                 'tingkat' => 'difficulty',
                 'status' => 'status',
@@ -80,39 +149,35 @@ class BankSoalAdminController
             arahBawaan: 'desc',
         );
 
-        // Soal yang sedang dibuka di panel pratinjau. Id-nya dibaca dari
-        // query, dan `view` diperiksa di sini - bukan di laman. Laman yang
-        // memutuskan sendiri soal mana yang boleh dibaca akan benar sampai
-        // policy berubah, lalu menampilkan panel kosong tanpa sebab.
         $terpilih = null;
 
         if ($idTerpilih > 0) {
-            $soal = Question::query()->find($idTerpilih);
+            $soal = Question::query()
+                ->where('subject_id', $mapel->id)
+                ->find($idTerpilih);
 
             if ($soal !== null && Gate::allows('view', $soal)) {
                 $terpilih = $this->pratinjau($soal);
             }
         }
 
-        // Yang dikirim balik adalah id soal yang BENAR-BENAR terbuka, bukan
-        // id yang diminta. Id tebakan yang tidak ada - atau milik sekolah
-        // lain - akan membuat laman menandai baris yang tidak ada dan
-        // menghitung "baru dibuka" dua kali pada klik berikutnya.
         $idTerbuka = $terpilih === null ? null : $idTerpilih;
 
-        return Inertia::render('Admin/BankSoal', [
+        return Inertia::render('Admin/BankSoalMapel', [
+            'mapel' => [
+                'id' => $mapel->id,
+                'kode' => $mapel->code,
+                'nama' => $mapel->name,
+            ],
             'baris' => $halaman->through(fn (Question $soal) => [
                 'id' => $soal->id,
                 'kode' => $soal->code,
                 'judul' => $soal->title,
-                // Cuplikan dibersihkan dari markup supaya kolomnya
-                // menampilkan kalimatnya, bukan tag-nya.
                 'cuplikan' => mb_substr(trim(strip_tags((string) ($soal->prompt_json['teks'] ?? ''))), 0, 120),
                 'jenis' => $soal->question_type->value,
                 'jenis_label' => $soal->question_type->label(),
                 'jenis_pendek' => $soal->question_type->pendek(),
                 'tingkat' => $soal->difficulty,
-                'mapel' => $soal->subject?->name,
                 'penulis' => $soal->penulis?->name,
                 'dipakai' => (int) $soal->pemakaian_count,
                 'status' => $soal->status,
@@ -121,24 +186,14 @@ class BankSoalAdminController
             'terpilih' => $terpilih,
             'filter' => [
                 'cari' => $request->query('cari', ''),
-                'mapel' => $request->query('mapel', ''),
                 'jenis' => $request->query('jenis', ''),
                 'tingkat' => $request->query('tingkat', ''),
                 'status' => $request->query('status', ''),
                 'soal' => $idTerbuka,
             ],
             'jumlah' => $halaman->total(),
-            'mapel' => Subject::query()
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn (Subject $m) => ['id' => $m->id, 'nama' => $m->name])
-                ->all(),
             'jenis' => JenisSoal::untukTab(),
             'status' => StatusSoal::untukFilter(),
-            // Nama pengguna yang sedang masuk DIBACA laman ini untuk satu
-            // kalimat saja: "soal milik siapa" pada panel pratinjau. Admin
-            // bukan penulis soal mana pun, sehingga tanpa ini kolom penulis
-            // hanya nama orang lain tanpa konteks.
             'pengguna' => $request->user()->name,
         ]);
     }

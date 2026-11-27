@@ -54,7 +54,7 @@ const MASTER: ItemNav[] = [
     // dan kelas. Menaruhnya di kelompok Event berarti soal hanya bisa
     // ditemukan setelah satu event dibuka - padahal Admin yang memeriksa bank
     // soal sering belum tahu event mana yang akan memakainya.
-    { label: 'Bank Soal', href: '/admin/bank-soal', awalan: false, ikon: 'paket' },
+    { label: 'Bank Soal', href: '/admin/bank-soal', awalan: true, ikon: 'paket' },
     // Rincian ruang (/admin/ruang/R-01) harus tetap menyalakan "Ruang" di
     // sidebar; tanpa awalan ini, Admin yang membuka satu ruang melihat tidak
     // ada menu yang aktif dan merasa tersesat.

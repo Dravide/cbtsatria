@@ -138,6 +138,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     // Bank soal baca-saja untuk Admin; controller tetap di modul Question agar batas domain terjaga.
     Route::get('/bank-soal', [BankSoalAdminController::class, 'index'])->name('bank-soal');
+    Route::get('/bank-soal/mapel/{mapel}', [BankSoalAdminController::class, 'mapel'])
+        ->whereNumber('mapel')
+        ->name('bank-soal.mapel');
 
     Route::get('/mapel', [SubjectController::class, 'index'])->name('mapel');
     Route::post('/mapel', [SubjectController::class, 'store']);

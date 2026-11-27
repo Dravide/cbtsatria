@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe Bank Soal Admin (Mapel → Daftar Soal → Modal Detail)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+:root{
+  --paper:#eceff4;
+  --surface:#ffffff;
+  --surface-2:#e4e9f0;
+  --line:#d3d9e2;
+  --ink:#161b24;
+  --ink-2:#4a5565;
+  --ink-3:#77808f;
+  --accent:#1e4fa3;
+  --accent-soft:#e3ebf9;
+  --ok:#186b47; --warn:#8a5a06; --bad:#9b2530; --info:#1f5f7a;
+  --ok-bg:#e2f2e9; --warn-bg:#fbf0d9; --bad-bg:#fae4e6; --info-bg:#e1eff4;
+
+  --wf-bg:#ffffff;
+  --wf-soft:#f2f4f8;
+  --wf-line:#c6cedb;
+  --wf-dash:#a9b5c5;
+  --wf-hair:#e6eaf0;
+  --wf-head:#edf1f7;
+  --wf-ink:#2b3442;
+  --wf-dim:#8892a3;
+  --on-accent:#ffffff;
+
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --gl:max(16px, env(safe-area-inset-left,0px));
+  --gr:max(16px, env(safe-area-inset-right,0px));
+  --r:8px;
+  --shadow:0 1px 2px rgba(16,22,32,.05), 0 10px 26px -18px rgba(16,22,32,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+    --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+    --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+    --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+    --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+    --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b0e14; --surface:#151a23; --surface-2:#1c222c; --line:#2a323e;
+  --ink:#e7ecf4; --ink-2:#a4aebd; --ink-3:#7b8596; --accent:#7aa8f0; --accent-soft:#1a2740;
+  --ok:#6ecfa0; --warn:#e0b062; --bad:#f08b93; --info:#79c0da;
+  --ok-bg:#122c22; --warn-bg:#2e2413; --bad-bg:#331a1d; --info-bg:#12252d;
+  --wf-bg:#181d27; --wf-soft:#1f2531; --wf-line:#3a4453; --wf-dash:#4b5666; --wf-hair:#28303c;
+  --wf-head:#1e2430; --wf-ink:#dee4ee; --wf-dim:#8894a5; --on-accent:#0b0e14;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -20px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:14px/1.6 var(--font-body);
+  padding-left:var(--gl); padding-right:var(--gr); padding-block:0 56px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.02em}
+p{margin:0}
+code{font-family:var(--font-mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto}
+
+.top{border-bottom:1px solid var(--line);background:var(--surface);margin-left:calc(-1 * var(--gl));margin-right:calc(-1 * var(--gr));padding-left:var(--gl);padding-right:var(--gr)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 0;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.top-in .r{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink-3);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.theme-btn{font:500 11px/1 var(--font-mono);padding:5px 9px;border-radius:99px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);cursor:pointer}
+.theme-btn:hover{color:var(--ink);border-color:var(--ink-3)}
+
+.head{padding:28px 0 18px;display:grid;gap:12px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.head h1{font-size:1.85rem}
+.head .lede{color:var(--ink-2);max-width:78ch}
+.scope{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:24px}
+.fbtn{font:500 12px/1 var(--font-mono);letter-spacing:.04em;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.fbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+.group{margin-bottom:36px;display:grid;gap:16px}
+.group[hidden]{display:none}
+.group>header{display:grid;gap:6px}
+.group>header h2{font-size:1.15rem;display:flex;gap:9px;align-items:baseline}
+.group>header h2 em{font-family:var(--font-mono);font-style:normal;font-size:12px;color:var(--accent);letter-spacing:.1em}
+.group>header p{color:var(--ink-2);max-width:78ch;font-size:13.5px}
+
+.note{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 var(--r) var(--r) 0;padding:11px 13px;font-size:13px;color:var(--ink-2);line-height:1.6}
+.note>*+*{margin-top:5px}
+.note b{font-family:var(--font-display);color:var(--ink);font-size:13px}
+
+/* ---------- primitif .wf ---------- */
+.wf{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--wf-bg);color:var(--wf-ink);box-shadow:var(--shadow);font-size:11.5px;line-height:1.4;min-width:0;position:relative}
+.chrome{display:flex;gap:7px;align-items:center;padding:7px 11px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head)}
+.chrome .dot{width:7px;height:7px;border-radius:99px;background:var(--wf-dash);flex:none}
+.chrome .url{font-family:var(--font-mono);font-size:10px;color:var(--wf-dim);margin-left:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.chrome .who{margin-left:auto;font-size:10px;color:var(--wf-dim);white-space:nowrap}
+.grid2{display:grid;grid-template-columns:152px minmax(0,1fr);min-height:460px}
+@media (max-width:720px){.grid2{grid-template-columns:46px minmax(0,1fr)}}
+
+.rail{border-right:1px solid var(--wf-hair);background:var(--wf-soft);padding:10px 8px;display:grid;gap:2px;align-content:start;min-width:0}
+.rail .mark{width:20px;height:20px;border-radius:5px;background:var(--accent);color:var(--on-accent);font:700 10px/20px var(--font-display);text-align:center;margin:0 auto 8px}
+.ni{display:flex;gap:7px;align-items:center;padding:5px 7px;border-radius:4px;font-size:10.5px;color:var(--wf-dim);min-width:0}
+.ni i{width:8px;height:8px;border-radius:2px;background:var(--wf-line);flex:none}
+.ni span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:720px){.ni span,.rail .glab{display:none}}
+.ni.on{background:var(--wf-bg);color:var(--wf-ink);box-shadow:inset 2px 0 0 var(--accent);font-weight:600}
+.ni.on i{background:var(--accent)}
+.rail .sep{height:1px;background:var(--wf-hair);margin:5px 0}
+.rail .glab{font:500 8.5px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--wf-dim);padding:3px 7px}
+
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+.tbar{display:flex;gap:8px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--wf-hair);background:var(--wf-bg);flex-wrap:wrap;min-width:0}
+.crumb{font-size:10.5px;color:var(--wf-dim);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.crumb b{color:var(--wf-ink);font-weight:600}
+.crumb a{color:var(--accent);text-decoration:none;cursor:pointer}
+.crumb a:hover{text-decoration:underline}
+.sp{margin-left:auto}
+.body{padding:14px;display:grid;gap:12px;align-content:start;min-width:0}
+.ph{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ph h3{font-family:var(--font-display);font-size:15px}
+.ph .sub{font-size:11px;color:var(--wf-dim)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{display:grid;gap:3px;border:1px solid var(--wf-hair);border-radius:6px;padding:8px 10px;background:var(--wf-bg);min-width:0}
+.kpi .lb{font:500 8.5px/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.kpi b{font-family:var(--font-display);font-size:16px;font-variant-numeric:tabular-nums}
+
+.fbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.inp{font:inherit;font-size:10.5px;padding:5px 8px;border:1px solid var(--wf-line);border-radius:5px;background:var(--wf-bg);color:var(--wf-ink)}
+.inp.grow{flex:1;min-width:160px;max-width:280px}
+
+.btn{display:inline-flex;align-items:center;gap:5px;font:500 10.5px/1 var(--font-body);padding:6px 10px;border-radius:5px;border:1px solid var(--wf-line);background:var(--wf-bg);color:var(--wf-ink);cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn:hover{border-color:var(--wf-dash);background:var(--wf-soft)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.pri:hover{opacity:.92}
+.btn.sm{font-size:9.5px;padding:4px 8px}
+
+.chip{display:inline-block;font:500 9px/1 var(--font-mono);padding:3px 7px;border-radius:99px;border:1px solid;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.chip.mute{background:var(--wf-soft);color:var(--wf-dim);border-color:var(--wf-dash)}
+
+/* Mapel cards */
+.mapel-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.mapel-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.mapel-grid{grid-template-columns:1fr}}
+.mcard{border:1px solid var(--wf-hair);border-radius:7px;background:var(--wf-bg);padding:11px 12px;display:grid;gap:8px;cursor:pointer;transition:border-color .12s,box-shadow .12s;text-align:left}
+.mcard:hover{border-color:var(--accent);box-shadow:0 2px 10px -4px color-mix(in srgb,var(--accent) 35%,transparent)}
+.mcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.mcard-code{font-family:var(--font-mono);font-size:9.5px;color:var(--accent);background:var(--accent-soft);padding:2px 6px;border-radius:4px;font-weight:500}
+.mcard-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--wf-ink);margin-top:3px}
+.mcard-count{font-family:var(--font-display);font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+.mcard-count small{display:block;font:400 9px/1.2 var(--font-mono);color:var(--wf-dim);margin-top:2px}
+.mcard-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:10px;color:var(--wf-dim)}
+.mcard-foot{display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--wf-hair);font-size:10px;color:var(--accent);font-weight:500}
+
+.spark{display:flex;height:5px;border-radius:99px;overflow:hidden;background:var(--wf-hair);gap:1px}
+.spark i{display:block;height:100%}
+.spark i.pg{background:var(--accent)}
+.spark i.gd{background:color-mix(in srgb,var(--accent) 62%,var(--wf-bg))}
+.spark i.bs{background:color-mix(in srgb,var(--accent) 40%,var(--wf-bg))}
+.spark i.is{background:color-mix(in srgb,var(--info) 65%,var(--wf-bg))}
+.spark i.ur{background:var(--warn)}
+
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:9.5px;color:var(--wf-dim);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+/* Tabel soal */
+.tbl{border:1px solid var(--wf-hair);border-radius:6px;overflow:hidden;background:var(--wf-bg)}
+.tr{display:grid;grid-template-columns:82px minmax(0,1fr) 68px 66px 115px 62px 66px 86px;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--wf-hair)}
+.tr:last-child{border-bottom:0}
+.tr.th{background:var(--wf-head);font:500 8.5px/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--wf-dim)}
+.tr.row{cursor:pointer}
+.tr.row:hover{background:var(--wf-soft)}
+.tr .c{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10.5px}
+.tr .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.qtitle{font-weight:600;color:var(--wf-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qsnip{font-size:9.5px;color:var(--wf-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:860px){
+  .tr{grid-template-columns:72px minmax(0,1fr) 60px 66px 76px}
+  .tr .hide-sm{display:none}
+}
+
+/* Modal Detail Bank Soal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(11,14,20,.58);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+.modal-backdrop.open{display:flex}
+.modal-static-wrap{background:color-mix(in srgb,var(--wf-dim) 18%,transparent);padding:20px;border-radius:var(--r);border:1px dashed var(--wf-dash)}
+.modal-card{width:100%;max-width:740px;max-height:88vh;background:var(--wf-bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 24px 60px -20px rgba(0,0,0,.45);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;color:var(--wf-ink)}
+.modal-hd{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--wf-hair);background:var(--wf-head);flex-wrap:wrap}
+.modal-hd b{font-family:var(--font-display);font-size:14px}
+.modal-close{margin-left:auto;border:1px solid var(--wf-line);background:var(--wf-bg);color:var(--wf-ink);border-radius:5px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1}
+.modal-bd{padding:16px;overflow-y:auto;display:grid;gap:12px;align-content:start}
+.modal-ft{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;border-top:1px solid var(--wf-hair);background:var(--wf-soft);flex-wrap:wrap}
+
+.meta-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:9px 11px;border:1px solid var(--wf-hair);border-radius:6px;background:var(--wf-soft)}
+@media (max-width:600px){.meta-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.meta-strip div span{display:block;font:500 8.5px/1 var(--font-mono);text-transform:uppercase;color:var(--wf-dim);margin-bottom:3px}
+.meta-strip div strong{font-size:11px;color:var(--wf-ink)}
+
+.sec-box{border:1px solid var(--wf-hair);border-radius:6px;padding:11px 13px;background:var(--wf-bg);display:grid;gap:7px}
+.sec-lb{font:600 9px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--wf-dim)}
+.opt-list{display:grid;gap:5px}
+.opt-item{display:flex;gap:8px;align-items:flex-start;padding:6px 9px;border-radius:5px;border:1px solid var(--wf-hair);background:var(--wf-soft);font-size:11px}
+.opt-item.kunci{border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:var(--ok-bg)}
+.opt-key{font-family:var(--font-mono);font-weight:700;min-width:18px}
+
+.view-pane[hidden]{display:none}
+footer{border-top:1px solid var(--line);margin-top:20px;padding-top:16px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="top-in">
+    <div class="brand">CBT Satria <span>· Wireframe Desain</span></div>
+    <div class="r">
+      <span>Admin · Bank Soal (Baca-Saja)</span>
+      <button class="theme-btn" id="themeBtn" type="button">Tema: Auto</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="head">
+    <div class="eyebrow">Konsep Baru · /admin/bank-soal</div>
+    <h1>Bank Soal Admin: Daftar Mapel → Daftar Soal → Modal Detail</h1>
+    <p class="lede">
+      Perubahan alur dari tabel datar seluruh soal + panel samping menjadi tiga tingkat yang lebih terfokus:
+      (1) laman utama menampilkan <strong>daftar mata pelajaran</strong>, (2) klik mapel membuka <strong>laman baru daftar bank soal</strong> milik mapel tersebut, dan (3) klik soal membuka <strong>modal detail bank soal</strong> (baca-saja lengkap dengan kunci &amp; pembahasan).
+    </p>
+    <div class="scope">
+      <span class="tag">Laman 1: /admin/bank-soal</span>
+      <span class="tag">Laman 2: /admin/bank-soal/mapel/{id}</span>
+      <span class="tag">Modal: Detail &amp; Pratinjau Soal</span>
+      <span class="tag">Izin: Baca-Saja (Tanpa Ubah/Hapus)</span>
+    </div>
+  </header>
+
+  <div class="filters" role="tablist" aria-label="Pilih tampilan wireframe">
+    <button class="fbtn on" type="button" data-filter="all">Semua Bagian</button>
+    <button class="fbtn" type="button" data-filter="proto">1. Prototipe Interaktif</button>
+    <button class="fbtn" type="button" data-filter="spec-modal">2. Anatomi Modal Detail</button>
+  </div>
+
+  <!-- BAGIAN 1: PROTOTIPE INTERAKTIF -->
+  <section class="group" data-group="proto">
+    <header>
+      <h2><em>01</em> Prototipe Alur Interaktif (Klik Mapel → Daftar Soal → Modal Detail)</h2>
+      <p>
+        Klik salah satu kartu mata pelajaran di bawah untuk berpindah ke laman daftar soal mapel tersebut, lalu klik baris soal atau tombol <strong>Lihat detail</strong> untuk membuka modal detailnya.
+      </p>
+    </header>
+
+    <div class="wf">
+      <div class="chrome">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="url" id="protoUrl">https://cbt.sekolah.sch.id/admin/bank-soal</span>
+        <span class="who">Admin Sekolah · Baca-Saja</span>
+      </div>
+
+      <div class="grid2">
+        <aside class="rail" aria-label="Navigasi admin">
+          <div class="mark">S</div>
+          <div class="glab">Akademik</div>
+          <div class="ni"><i></i><span>Dasbor</span></div>
+          <div class="ni"><i></i><span>Mata Pelajaran</span></div>
+          <div class="ni"><i></i><span>Pengguna</span></div>
+          <div class="ni on"><i></i><span>Bank Soal</span></div>
+          <div class="sep"></div>
+          <div class="glab">Ujian</div>
+          <div class="ni"><i></i><span>Event Ujian</span></div>
+          <div class="ni"><i></i><span>Monitoring</span></div>
+        </aside>
+
+        <div class="main">
+          <div class="tbar">
+            <div class="crumb" id="protoCrumb">
+              <span>/admin</span> <span>·</span> <b>Bank soal</b>
+            </div>
+            <div class="sp"></div>
+            <span class="chip mute" id="protoBadge">6 mata pelajaran · 218 soal</span>
+          </div>
+
+          <!-- VIEW A: LIST MAPEL -->
+          <div class="body view-pane" id="viewMapel">
+            <div class="ph">
+              <h3>Bank Soal per Mata Pelajaran</h3>
+              <span class="sub">Pilih mata pelajaran untuk membuka daftar bank soalnya.</span>
+            </div>
+
+            <div class="kpis">
+              <div class="kpi"><span class="lb">Total Mapel</span><b>6</b></div>
+              <div class="kpi"><span class="lb">Total Soal</span><b>218</b></div>
+              <div class="kpi"><span class="lb">Status Siap</span><b>184</b></div>
+              <div class="kpi"><span class="lb">Dipakai di Event</span><b>142</b></div>
+            </div>
+
+            <div class="fbar">
+              <input class="inp grow" id="cariMapel" type="search" placeholder="Cari kode atau nama mata pelajaran...">
+              <div class="legend" style="margin-left:auto">
+                <span><i style="background:var(--accent)"></i>PG</span>
+                <span><i style="background:color-mix(in srgb,var(--accent) 62%,var(--wf-bg))"></i>PGK</span>
+                <span><i style="background:color-mix(in srgb,var(--accent) 40%,var(--wf-bg))"></i>B/S</span>
+                <span><i style="background:color-mix(in srgb,var(--info) 65%,var(--wf-bg))"></i>Isian</span>
+                <span><i style="background:var(--warn)"></i>Uraian</span>
+              </div>
+            </div>
+
+            <div class="mapel-grid" id="mapelGrid"></div>
+          </div>
+
+          <!-- VIEW B: LIST BANK SOAL PER MAPEL -->
+          <div class="body view-pane" id="viewSoal" hidden>
+            <div class="ph">
+              <button class="btn sm" type="button" id="btnKembaliMapel">← Semua Mapel</button>
+              <h3 id="judulMapelAktif">Matematika</h3>
+              <span class="chip info" id="kodeMapelAktif">MTK</span>
+              <span class="sub" id="subMapelAktif">48 soal · 42 siap · 3 guru</span>
+            </div>
+
+            <div class="fbar">
+              <input class="inp grow" id="cariSoal" type="search" placeholder="Cari kode atau judul soal...">
+              <select class="inp" id="filterJenis">
+                <option value="">Semua jenis</option>
+                <option value="pg">Pilihan Ganda</option>
+                <option value="pgk">PG Kompleks</option>
+                <option value="bs">Benar / Salah</option>
+                <option value="isian">Isian Singkat</option>
+                <option value="uraian">Uraian</option>
+              </select>
+              <select class="inp" id="filterStatus">
+                <option value="">Semua status</option>
+                <option value="siap">Siap</option>
+                <option value="draf">Draf</option>
+                <option value="arsip">Arsip</option>
+              </select>
+            </div>
+
+            <div class="tbl" id="tabelSoal"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>Mengapa dipisah menjadi Laman Mapel → Laman Soal → Modal?</b>
+      <p>Pada konsep lama, seluruh soal lintas mapel bercampur di satu tabel dan panel pratinjau di kanan membuat tabel menyempit. Dengan memecah pintu masuk per mata pelajaran, Admin langsung fokus ke satu mapel di laman penuh, sementara detail soal dibuka lewat modal lebar yang nyaman dibaca termasuk gambar, opsi jawaban, kunci, rubrik, dan pembahasan.</p>
+    </div>
+  </section>
+
+  <!-- BAGIAN 2: ANATOMI MODAL DETAIL (STATIS UNTUK REFERENSI) -->
+  <section class="group" data-group="spec-modal">
+    <header>
+      <h2><em>02</em> Anatomi Modal Detail Bank Soal</h2>
+      <p>
+        Pratinjau struktur isi modal ketika Admin mengklik salah satu soal. Seluruh komponen bersifat <em>read-only</em> (tanpa tombol ubah/hapus/builder).
+      </p>
+    </header>
+
+    <div class="modal-static-wrap">
+      <div class="modal-card" style="margin:0 auto">
+        <div class="modal-hd">
+          <span class="chip info">MTK-014</span>
+          <b>Menentukan Gradien Garis dari Dua Titik</b>
+          <span class="chip ok">Siap</span>
+          <span class="chip mute">Pilihan Ganda</span>
+          <button class="modal-close" type="button" aria-label="Tutup">×</button>
+        </div>
+        <div class="modal-bd">
+          <div class="meta-strip">
+            <div><span>Mata Pelajaran</span><strong>Matematika</strong></div>
+            <div><span>Penulis</span><strong>Budi Santoso, S.Pd.</strong></div>
+            <div><span>Tingkat</span><strong>Sedang</strong></div>
+            <div><span>Dipakai di Event</span><strong>2 paket ujian</strong></div>
+          </div>
+
+          <div class="sec-box">
+            <div class="sec-lb">Pertanyaan</div>
+            <p>Tentukan gradien garis yang melalui titik <strong>A(2, 3)</strong> dan <strong>B(6, 11)</strong>.</p>
+          </div>
+
+          <div class="sec-box">
+            <div class="sec-lb">Pilihan Jawaban &amp; Kunci</div>
+            <div class="opt-list">
+              <div class="opt-item"><span class="opt-key">A.</span><span>1/2</span></div>
+              <div class="opt-item kunci"><span class="opt-key">B.</span><span>2</span><span class="chip ok" style="margin-left:auto">Kunci</span></div>
+              <div class="opt-item"><span class="opt-key">C.</span><span>4</span></div>
+              <div class="opt-item"><span class="opt-key">D.</span><span>8</span></div>
+            </div>
+          </div>
+
+          <div class="sec-box">
+            <div class="sec-lb">Pembahasan</div>
+            <p>Rumus gradien m = (y₂ − y₁) / (x₂ − x₁) = (11 − 3) / (6 − 2) = 8 / 4 = 2.</p>
+          </div>
+        </div>
+        <div class="modal-ft">
+          <div style="display:flex;gap:6px">
+            <button class="btn sm" type="button">← Soal sebelumnya</button>
+            <button class="btn sm" type="button">Soal berikutnya →</button>
+          </div>
+          <button class="btn pri sm" type="button">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>CBT Satria · Wireframe Bank Soal Admin</span>
+    <span>Berlaku untuk /admin/bank-soal</span>
+  </footer>
+</div>
+
+<!-- MODAL INTERAKTIF -->
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalJudul">
+  <div class="modal-card">
+    <div class="modal-hd">
+      <span class="chip info" id="modalKode">MTK-001</span>
+      <b id="modalJudul">Judul Soal</b>
+      <span class="chip ok" id="modalStatus">Siap</span>
+      <span class="chip mute" id="modalJenis">Pilihan Ganda</span>
+      <button class="modal-close" id="modalCloseBtn" type="button" aria-label="Tutup modal">×</button>
+    </div>
+    <div class="modal-bd" id="modalBody"></div>
+    <div class="modal-ft">
+      <div style="display:flex;gap:6px">
+        <button class="btn sm" id="modalPrev" type="button">← Sebelumnya</button>
+        <button class="btn sm" id="modalNext" type="button">Berikutnya →</button>
+      </div>
+      <button class="btn pri sm" id="modalCloseFoot" type="button">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA_MAPEL = [
+  {
+    id: 1, kode: 'MTK', nama: 'Matematika', total: 48, siap: 42, draf: 4, arsip: 2, guru: 3, event: 32,
+    sebaran: { pg: 55, gd: 15, bs: 10, is: 10, ur: 10 },
+    soal: [
+      { id: 101, kode: 'MTK-014', judul: 'Menentukan Gradien Garis dari Dua Titik', cuplikan: 'Tentukan gradien garis yang melalui titik A(2, 3) dan B(6, 11).', jenis: 'pg', jenisLabel: 'PG', tingkat: 'Sedang', penulis: 'Budi Santoso', dipakai: 2, status: 'siap',
+        pertanyaan: 'Tentukan gradien garis yang melalui titik A(2, 3) dan B(6, 11).',
+        opsi: [
+          { k: 'A', t: '1/2', benar: false },
+          { k: 'B', t: '2', benar: true },
+          { k: 'C', t: '4', benar: false },
+          { k: 'D', t: '8', benar: false }
+        ],
+        pembahasan: 'm = (y2 - y1) / (x2 - x1) = (11 - 3) / (6 - 2) = 8 / 4 = 2.'
+      },
+      { id: 102, kode: 'MTK-015', judul: 'Sifat Bangun Ruang Sisi Lengkung', cuplikan: 'Pilih pernyataan yang benar mengenai tabung dan kerucut.', jenis: 'pgk', jenisLabel: 'PGK', tingkat: 'Sulit', penulis: 'Siti Aminah', dipakai: 1, status: 'siap',
+        pertanyaan: 'Pilih semua pernyataan yang benar mengenai bangun ruang tabung dan kerucut.',
+        opsi: [
+          { k: 'A', t: 'Tabung memiliki dua sisi datar berbentuk lingkaran', benar: true },
+          { k: 'B', t: 'Kerucut memiliki 2 titik sudut', benar: false },
+          { k: 'C', t: 'Volume kerucut = 1/3 × luas alas × tinggi', benar: true },
+          { k: 'D', t: 'Selimut tabung berbentuk segitiga jika dibentangkan', benar: false }
+        ],
+        pembahasan: 'Tabung memiliki 2 sisi lingkaran + 1 selimut persegi panjang; kerucut memiliki 1 titik puncak dan volume 1/3 πr²t.'
+      },
+      { id: 103, kode: 'MTK-016', judul: 'Penerapan Teorema Pythagoras pada Tangga', cuplikan: 'Sebuah tangga sepanjang 5 m disandarkan pada dinding setinggi 4 m...', jenis: 'uraian', jenisLabel: 'Uraian', tingkat: 'Sedang', penulis: 'Budi Santoso', dipakai: 0, status: 'draf',
+        pertanyaan: 'Sebuah tangga sepanjang 5 m disandarkan pada dinding vertikal. Jika jarak kaki tangga ke dinding adalah 3 m, hitunglah tinggi ujung atas tangga dari tanah beserta langkahnya!',
+        opsi: [],
+        pembahasan: 't = √(5² − 3²) = √(25 − 9) = √16 = 4 meter. (Rubrik: rumus 2 poin, substitusi 2 poin, hasil akhir 1 poin).'
+      }
+    ]
+  },
+  {
+    id: 2, kode: 'BIN', nama: 'Bahasa Indonesia', total: 42, siap: 38, draf: 3, arsip: 1, guru: 2, event: 28,
+    sebaran: { pg: 60, gd: 10, bs: 10, is: 5, ur: 15 },
+    soal: [
+      { id: 201, kode: 'BIN-008', judul: 'Menentukan Ide Pokok Paragraf Deduktif', cuplikan: 'Bacalah teks berita mengenai pengelolaan sampah kota berikut...', jenis: 'pg', jenisLabel: 'PG', tingkat: 'Mudah', penulis: 'Ratna Dewi', dipakai: 3, status: 'siap',
+        pertanyaan: 'Kalimat utama pada paragraf di atas terletak pada kalimat nomor...',
+        opsi: [
+          { k: 'A', t: 'Kalimat pertama', benar: true },
+          { k: 'B', t: 'Kalimat kedua', benar: false },
+          { k: 'C', t: 'Kalimat ketiga', benar: false },
+          { k: 'D', t: 'Kalimat keempat', benar: false }
+        ],
+        pembahasan: 'Paragraf deduktif menempatkan gagasan utama di awal paragraf.'
+      }
+    ]
+  },
+  {
+    id: 3, kode: 'BIG', nama: 'Bahasa Inggris', total: 36, siap: 30, draf: 6, arsip: 0, guru: 2, event: 24,
+    sebaran: { pg: 50, gd: 15, bs: 15, is: 10, ur: 10 },
+    soal: [
+      { id: 301, kode: 'BIG-011', judul: 'Narrative Text — Purpose of the Story', cuplikan: 'Read the following folktale carefully and answer...', jenis: 'bs', jenisLabel: 'B/S', tingkat: 'Sedang', penulis: 'Hendra Wijaya', dipakai: 1, status: 'siap',
+        pertanyaan: 'Tentukan Benar atau Salah: The main character learned to be honest at the end of the story.',
+        opsi: [
+          { k: 'B', t: 'Benar', benar: true },
+          { k: 'S', t: 'Salah', benar: false }
+        ],
+        pembahasan: 'Pada paragraf terakhir disebutkan tokoh utama mengakui kesalahannya.'
+      }
+    ]
+  },
+  {
+    id: 4, kode: 'IPA', nama: 'Ilmu Pengetahuan Alam', total: 38, siap: 32, draf: 4, arsip: 2, guru: 3, event: 26,
+    sebaran: { pg: 55, gd: 20, bs: 10, is: 5, ur: 10 },
+    soal: [
+      { id: 401, kode: 'IPA-021', judul: 'Hukum Newton II pada Bidang Datar', cuplikan: 'Benda bermassa 4 kg didorong dengan gaya 20 N...', jenis: 'isian', jenisLabel: 'Isian', tingkat: 'Mudah', penulis: 'Dian Pertiwi', dipakai: 2, status: 'siap',
+        pertanyaan: 'Sebuah benda bermassa 4 kg didorong gaya konstan 20 N tanpa gesekan. Percepatan benda adalah ____ m/s².',
+        opsi: [{ k: 'Kunci', t: '5', benar: true }],
+        pembahasan: 'a = F / m = 20 / 4 = 5 m/s².'
+      }
+    ]
+  },
+  {
+    id: 5, kode: 'IPS', nama: 'Ilmu Pengetahuan Sosial', total: 30, siap: 24, draf: 5, arsip: 1, guru: 2, event: 18,
+    sebaran: { pg: 65, gd: 10, bs: 10, is: 5, ur: 10 },
+    soal: []
+  },
+  {
+    id: 6, kode: 'PAI', nama: 'Pendidikan Agama Islam', total: 24, siap: 18, draf: 4, arsip: 2, guru: 1, event: 14,
+    sebaran: { pg: 70, gd: 10, bs: 10, is: 0, ur: 10 },
+    soal: []
+  }
+];
+
+let mapelAktif = DATA_MAPEL[0];
+let daftarTersaring = [];
+let idxModal = -1;
+
+const mapelGrid = document.getElementById('mapelGrid');
+const viewMapel = document.getElementById('viewMapel');
+const viewSoal = document.getElementById('viewSoal');
+const protoUrl = document.getElementById('protoUrl');
+const protoCrumb = document.getElementById('protoCrumb');
+const protoBadge = document.getElementById('protoBadge');
+
+function renderMapel() {
+  const q = (document.getElementById('cariMapel').value || '').toLowerCase();
+  const list = DATA_MAPEL.filter(m => !q || m.nama.toLowerCase().includes(q) || m.kode.toLowerCase().includes(q));
+  mapelGrid.innerHTML = list.map(m => `
+    <button class="mcard" type="button" onclick="bukaMapel(${m.id})">
+      <div class="mcard-top">
+        <div>
+          <span class="mcard-code">${m.kode}</span>
+          <div class="mcard-title">${m.nama}</div>
+        </div>
+        <div class="mcard-count">${m.total}<small>soal</small></div>
+      </div>
+      <div class="spark" title="Sebaran jenis soal">
+        <i class="pg" style="width:${m.sebaran.pg}%"></i>
+        <i class="gd" style="width:${m.sebaran.gd}%"></i>
+        <i class="bs" style="width:${m.sebaran.bs}%"></i>
+        <i class="is" style="width:${m.sebaran.is}%"></i>
+        <i class="ur" style="width:${m.sebaran.ur}%"></i>
+      </div>
+      <div class="mcard-meta">
+        <span><strong style="color:var(--ok)">${m.siap}</strong> siap</span>
+        <span>·</span>
+        <span>${m.draf} draf</span>
+        <span>·</span>
+        <span>${m.guru} guru</span>
+        <span>·</span>
+        <span>${m.event} dipakai</span>
+      </div>
+      <div class="mcard-foot">
+        <span>Lihat daftar bank soal</span>
+        <span>→</span>
+      </div>
+    </button>
+  `).join('') || '<div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--wf-dim)">Mapel tidak ditemukan.</div>';
+}
+
+window.bukaMapel = function(id) {
+  mapelAktif = DATA_MAPEL.find(m => m.id === id) || DATA_MAPEL[0];
+  viewMapel.hidden = true;
+  viewSoal.hidden = false;
+  protoUrl.textContent = `https://cbt.sekolah.sch.id/admin/bank-soal/mapel/${mapelAktif.id}`;
+  protoCrumb.innerHTML = `<span>/admin</span> <span>·</span> <a onclick="kembaliKeMapel()">Bank soal</a> <span>·</span> <b>${mapelAktif.nama}</b>`;
+  protoBadge.textContent = `${mapelAktif.total} soal · ${mapelAktif.siap} siap`;
+  document.getElementById('judulMapelAktif').textContent = mapelAktif.nama;
+  document.getElementById('kodeMapelAktif').textContent = mapelAktif.kode;
+  document.getElementById('subMapelAktif').textContent = `${mapelAktif.total} soal · ${mapelAktif.siap} siap · ${mapelAktif.guru} guru`;
+  renderSoal();
+};
+
+window.kembaliKeMapel = function() {
+  viewSoal.hidden = true;
+  viewMapel.hidden = false;
+  protoUrl.textContent = 'https://cbt.sekolah.sch.id/admin/bank-soal';
+  protoCrumb.innerHTML = '<span>/admin</span> <span>·</span> <b>Bank soal</b>';
+  protoBadge.textContent = '6 mata pelajaran · 218 soal';
+};
+
+function renderSoal() {
+  const q = (document.getElementById('cariSoal').value || '').toLowerCase();
+  const jenis = document.getElementById('filterJenis').value;
+  const status = document.getElementById('filterStatus').value;
+  daftarTersaring = (mapelAktif.soal || []).filter(s =>
+    (!q || s.judul.toLowerCase().includes(q) || s.kode.toLowerCase().includes(q)) &&
+    (!jenis || s.jenis === jenis) &&
+    (!status || s.status === status)
+  );
+
+  const head = `<div class="tr th">
+    <div class="c">Kode</div>
+    <div class="c">Judul &amp; Cuplikan</div>
+    <div class="c">Jenis</div>
+    <div class="c hide-sm">Tingkat</div>
+    <div class="c hide-sm">Penulis</div>
+    <div class="c hide-sm">Dipakai</div>
+    <div class="c">Status</div>
+    <div class="c" style="text-align:right">Detail</div>
+  </div>`;
+
+  const rows = daftarTersaring.map((s, idx) => {
+    const stChip = s.status === 'siap' ? 'ok' : (s.status === 'draf' ? 'warn' : 'mute');
+    return `<div class="tr row" onclick="bukaModal(${idx})">
+      <div class="c mono" style="color:var(--accent)">${s.kode}</div>
+      <div class="c"><div class="qtitle">${s.judul}</div><div class="qsnip">${s.cuplikan}</div></div>
+      <div class="c"><span class="chip mute">${s.jenisLabel}</span></div>
+      <div class="c hide-sm">${s.tingkat}</div>
+      <div class="c hide-sm">${s.penulis}</div>
+      <div class="c hide-sm mono">${s.dipakai}×</div>
+      <div class="c"><span class="chip ${stChip}">${s.status}</span></div>
+      <div class="c" style="text-align:right"><button class="btn sm" type="button" onclick="event.stopPropagation();bukaModal(${idx})">Lihat</button></div>
+    </div>`;
+  }).join('') || `<div style="padding:18px;text-align:center;color:var(--wf-dim)">Belum ada contoh soal pada mapel ini di wireframe (coba pilih Matematika, B. Indonesia, B. Inggris, atau IPA).</div>`;
+
+  document.getElementById('tabelSoal').innerHTML = head + rows;
+}
+
+window.bukaModal = function(idx) {
+  if (idx < 0 || idx >= daftarTersaring.length) return;
+  idxModal = idx;
+  const s = daftarTersaring[idx];
+  document.getElementById('modalKode').textContent = s.kode;
+  document.getElementById('modalJudul').textContent = s.judul;
+  const stEl = document.getElementById('modalStatus');
+  stEl.textContent = s.status;
+  stEl.className = 'chip ' + (s.status === 'siap' ? 'ok' : (s.status === 'draf' ? 'warn' : 'mute'));
+  document.getElementById('modalJenis').textContent = s.jenisLabel;
+
+  const opsiHtml = s.opsi.length > 0
+    ? `<div class="sec-box"><div class="sec-lb">Pilihan Jawaban &amp; Kunci</div><div class="opt-list">${
+        s.opsi.map(o => `<div class="opt-item ${o.benar ? 'kunci' : ''}"><span class="opt-key">${o.k}.</span><span>${o.t}</span>${o.benar ? '<span class="chip ok" style="margin-left:auto">Kunci</span>' : ''}</div>`).join('')
+      }</div></div>`
+    : '';
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="meta-strip">
+      <div><span>Mata Pelajaran</span><strong>${mapelAktif.nama}</strong></div>
+      <div><span>Penulis</span><strong>${s.penulis}</strong></div>
+      <div><span>Tingkat</span><strong>${s.tingkat}</strong></div>
+      <div><span>Dipakai di Event</span><strong>${s.dipakai} paket ujian</strong></div>
+    </div>
+    <div class="sec-box"><div class="sec-lb">Pertanyaan</div><p>${s.pertanyaan}</p></div>
+    ${opsiHtml}
+    <div class="sec-box"><div class="sec-lb">Pembahasan / Rubrik</div><p>${s.pembahasan}</p></div>
+  `;
+
+  document.getElementById('modalPrev').disabled = idx <= 0;
+  document.getElementById('modalNext').disabled = idx >= daftarTersaring.length - 1;
+  document.getElementById('modalBackdrop').classList.add('open');
+};
+
+function tutupModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+}
+
+document.getElementById('btnKembaliMapel').addEventListener('click', window.kembaliKeMapel);
+document.getElementById('cariMapel').addEventListener('input', renderMapel);
+document.getElementById('cariSoal').addEventListener('input', renderSoal);
+document.getElementById('filterJenis').addEventListener('change', renderSoal);
+document.getElementById('filterStatus').addEventListener('change', renderSoal);
+document.getElementById('modalCloseBtn').addEventListener('click', tutupModal);
+document.getElementById('modalCloseFoot').addEventListener('click', tutupModal);
+document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'modalBackdrop') tutupModal();
+});
+document.getElementById('modalPrev').addEventListener('click', () => window.bukaModal(idxModal - 1));
+document.getElementById('modalNext').addEventListener('click', () => window.bukaModal(idxModal + 1));
+
+// Section filter
+document.querySelectorAll('.fbtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    const f = btn.dataset.filter;
+    document.querySelectorAll('.group').forEach(g => {
+      g.hidden = f !== 'all' && g.dataset.group !== f;
+    });
+  });
+});
+
+// Theme toggle
+const themes = ['auto', 'light', 'dark'];
+let tIdx = 0;
+document.getElementById('themeBtn').addEventListener('click', () => {
+  tIdx = (tIdx + 1) % themes.length;
+  const val = themes[tIdx];
+  if (val === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', val);
+  document.getElementById('themeBtn').textContent = 'Tema: ' + val[0].toUpperCase() + val.slice(1);
+});
+
+renderMapel();
+</script>
+</body>
+</html>
