@@ -89,6 +89,11 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('pengguna.reset-kuota-ai');
     Route::put('/pengguna/pengawas/massal', [UserController::class, 'editMassalPengawas'])
         ->name('pengguna.pengawas.massal');
+    Route::delete('/pengguna/pengawas/terpilih', [UserController::class, 'hapusPengawasTerpilih'])
+        ->name('pengguna.hapus-pengawas-terpilih');
+    Route::delete('/pengguna/pengawas/{pengguna}', [UserController::class, 'hapusPengawas'])
+        ->whereNumber('pengguna')
+        ->name('pengguna.hapus-pengawas-satu');
     Route::delete('/pengguna/pengawas', [UserController::class, 'hapusSemuaPengawas'])
         ->name('pengguna.hapus-pengawas');
 

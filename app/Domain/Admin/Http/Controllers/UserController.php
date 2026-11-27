@@ -12,6 +12,7 @@ use App\Support\TabelQuery;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -384,6 +385,84 @@ class UserController
             return back()->with('galat', 'Tidak ada akun pengawas untuk dihapus.');
         }
 
+        ['permanen' => $permanen, 'diarsipkan' => $diarsipkan] = $this->hapusAkunPengawas($pengawas);
+        $total = $permanen + $diarsipkan;
+
+        $logger->log('Menghapus semua akun pengawas', null, [
+            'jumlah' => $total,
+            'permanen' => $permanen,
+            'diarsipkan' => $diarsipkan,
+        ]);
+
+        return back()->with('sukses', $this->pesanHapusPengawas($total, $permanen, $diarsipkan));
+    }
+
+    /**
+     * Hapus satu akun pengawas di sekolah aktif.
+     */
+    public function hapusPengawas(User $pengguna, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('viewAny', User::class);
+
+        if ($pengguna->role !== Role::Supervisor) {
+            return back()->with('galat', 'Hanya akun pengawas yang dapat dihapus.');
+        }
+
+        ['permanen' => $permanen, 'diarsipkan' => $diarsipkan] = $this->hapusAkunPengawas(collect([$pengguna]));
+
+        $logger->log('Menghapus akun pengawas', $diarsipkan > 0 ? $pengguna : null, [
+            'user_id' => $pengguna->id,
+            'username' => $pengguna->username,
+            'permanen' => $permanen,
+            'diarsipkan' => $diarsipkan,
+        ]);
+
+        $pesan = $diarsipkan > 0
+            ? "Akun pengawas {$pengguna->name} diarsipkan karena terkait riwayat event/presensi."
+            : "Akun pengawas {$pengguna->name} dihapus permanen.";
+
+        return back()->with('sukses', $pesan);
+    }
+
+    /**
+     * Hapus sekumpulan akun pengawas yang dipilih di tab Pengawas.
+     */
+    public function hapusPengawasTerpilih(Request $request, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('viewAny', User::class);
+
+        $data = $request->validate([
+            'id' => ['required', 'array', 'min:1'],
+            'id.*' => ['integer'],
+        ]);
+
+        $pengawas = User::query()
+            ->where('role', Role::Supervisor)
+            ->whereIn('id', $data['id'])
+            ->get();
+
+        if ($pengawas->isEmpty()) {
+            return back()->with('galat', 'Tidak ada akun pengawas yang dipilih untuk dihapus.');
+        }
+
+        ['permanen' => $permanen, 'diarsipkan' => $diarsipkan] = $this->hapusAkunPengawas($pengawas);
+        $total = $permanen + $diarsipkan;
+
+        $logger->log('Menghapus akun pengawas terpilih', null, [
+            'jumlah' => $total,
+            'permanen' => $permanen,
+            'diarsipkan' => $diarsipkan,
+        ]);
+
+        return back()->with('sukses', $this->pesanHapusPengawas($total, $permanen, $diarsipkan));
+    }
+
+    /**
+     * @param  Collection<int, User>  $pengawas
+     * @return array{permanen: int, diarsipkan: int}
+     */
+    private function hapusAkunPengawas(Collection $pengawas): array
+    {
         $ids = $pengawas->pluck('id')->all();
         $waktu = now()->timestamp;
         $permanen = 0;
@@ -411,19 +490,19 @@ class UserController
             }
         }
 
-        $total = $permanen + $diarsipkan;
-
-        $logger->log('Menghapus semua akun pengawas', null, [
-            'jumlah' => $total,
+        return [
             'permanen' => $permanen,
             'diarsipkan' => $diarsipkan,
-        ]);
+        ];
+    }
 
-        $pesan = $diarsipkan > 0
-            ? "{$total} akun pengawas dihapus ({$permanen} permanen, {$diarsipkan} diarsipkan karena terkait riwayat event/presensi)."
-            : "{$permanen} akun pengawas dihapus permanen.";
+    private function pesanHapusPengawas(int $total, int $permanen, int $diarsipkan): string
+    {
+        if ($diarsipkan > 0) {
+            return "{$total} akun pengawas dihapus ({$permanen} permanen, {$diarsipkan} diarsipkan karena terkait riwayat event/presensi).";
+        }
 
-        return back()->with('sukses', $pesan);
+        return "{$permanen} akun pengawas dihapus permanen.";
     }
 
     /**

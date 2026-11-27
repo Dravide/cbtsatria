@@ -157,6 +157,47 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
         });
     };
 
+    const hapusPengawas = async (b: Baris) => {
+        const setuju = await konfirmasi({
+            judul: `Hapus pengawas ${b.nama}?`,
+            pesan: `Akun pengawas ${b.nama} (${b.username}) akan dihapus permanen dan sesi loginnya diakhiri. Bila sudah terkait riwayat event/presensi, akun akan diarsipkan agar data ujian aman.`,
+            labelYa: 'Ya, hapus pengawas',
+            nada: 'bahaya',
+        });
+
+        if (!setuju) {
+            return;
+        }
+
+        router.delete(`/admin/pengguna/pengawas/${b.id}`, {
+            preserveScroll: true,
+            onSuccess: () => setPilih((p) => p.filter((x) => x !== b.id)),
+        });
+    };
+
+    const hapusPengawasTerpilih = async () => {
+        if (pilih.length === 0) {
+            return;
+        }
+
+        const setuju = await konfirmasi({
+            judul: `Hapus ${pilih.length} pengawas terpilih?`,
+            pesan: 'Akun pengawas yang dipilih akan dihapus permanen dan sesi loginnya diakhiri. Akun yang sudah terkait riwayat event/presensi tetap diarsipkan agar data ujian aman.',
+            labelYa: 'Ya, hapus terpilih',
+            nada: 'bahaya',
+        });
+
+        if (!setuju) {
+            return;
+        }
+
+        router.delete('/admin/pengguna/pengawas/terpilih', {
+            data: { id: pilih },
+            preserveScroll: true,
+            onSuccess: () => setPilih([]),
+        });
+    };
+
     /** Buka unduhan PDF/ZIP di tab baru (bukan `router.get`) karena respons bukan halaman Inertia. */
     const cetakKartu = (id?: number[]) => {
         const parameter = new URLSearchParams();
@@ -289,16 +330,25 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                                 </>
                             )}
                             {tabPengawas && (
-                                <Tombol
-                                    onClick={() =>
-                                        setEditMassalTarget(
-                                            baris.data.filter((b) => pilih.includes(b.id)),
-                                        )
-                                    }
-                                    title="Edit data pengawas yang dicentang sekaligus"
-                                >
-                                    Edit terpilih
-                                </Tombol>
+                                <>
+                                    <Tombol
+                                        onClick={() =>
+                                            setEditMassalTarget(
+                                                baris.data.filter((b) => pilih.includes(b.id)),
+                                            )
+                                        }
+                                        title="Edit data pengawas yang dicentang sekaligus"
+                                    >
+                                        Edit terpilih
+                                    </Tombol>
+                                    <Tombol
+                                        nada="bahaya"
+                                        onClick={hapusPengawasTerpilih}
+                                        title="Hapus akun pengawas yang dicentang"
+                                    >
+                                        Hapus terpilih
+                                    </Tombol>
+                                </>
                             )}
                             <Tombol onClick={() => aksiMassal('nonaktifkan')}>
                                 Nonaktifkan terpilih
@@ -406,8 +456,12 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                         : []),
                     {
                         judul: '',
-                        // Tab guru menampilkan empat aksi (Kartu, Kuota AI, Username, Ubah); tab lain dua.
-                        kelas: adaKartu ? 'w-52 text-right' : 'w-32 text-right',
+                        // Tab guru menampilkan empat aksi (Kartu, Kuota AI, Username, Ubah); tab pengawas tiga; tab lain dua.
+                        kelas: adaKartu
+                            ? 'w-52 text-right'
+                            : tabPengawas
+                              ? 'w-44 text-right'
+                              : 'w-32 text-right',
                         render: (b) => (
                             <span className="flex justify-end gap-3">
                                 {adaKartu && (
@@ -441,6 +495,15 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
                                 >
                                     Ubah
                                 </button>
+                                {tabPengawas && (
+                                    <button
+                                        onClick={() => hapusPengawas(b)}
+                                        className="text-xs text-bad hover:underline"
+                                        title={`Hapus pengawas ${b.nama}`}
+                                    >
+                                        Hapus
+                                    </button>
+                                )}
                             </span>
                         ),
                     },
@@ -449,9 +512,9 @@ export default function Pengguna({ tab, tabnya, baris, filter, jumlah, ekspor, f
             )}
 
             <p className="mt-3 text-[11px] text-ink-3">
-                {jumlah.toLocaleString('id-ID')} akun pada peran ini. Akun tidak pernah
-                dihapus, hanya dinonaktifkan. Riwayat ujian dan presensi menunjuk ke
-                sana.
+                {tabPengawas
+                    ? `${jumlah.toLocaleString('id-ID')} akun pengawas. Akun yang belum terkait riwayat event/presensi akan dihapus permanen; yang sudah terkait diarsipkan agar data ujian aman.`
+                    : `${jumlah.toLocaleString('id-ID')} akun pada peran ini. Akun tidak pernah dihapus, hanya dinonaktifkan. Riwayat ujian dan presensi menunjuk ke sana.`}
             </p>
 
             {ekspor.length > 0 && <RiwayatEkspor ekspor={ekspor} />}
